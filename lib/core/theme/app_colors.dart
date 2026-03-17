@@ -16,4 +16,10 @@ class AppColors {
     end: Alignment.centerRight,
     colors: [primary, secondary],
   );
+  
+  static const heroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF2D6FD4), Color(0xFF1DB896)],
+  );
 }

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/router/app_router.dart';
 
 // ─── Design Tokens ───────────────────────────────────────────────
 class AppColors {
@@ -74,7 +76,14 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          if (i == 1) {
+            // 点击中间扫描按钮，跳转到扫描引导页
+            context.push(AppRoutes.scan);
+          } else {
+            setState(() => _currentIndex = i);
+          }
+        },
       ),
     );
   }
@@ -100,7 +109,7 @@ class _BottomNav extends StatelessWidget {
         color: AppColors.cardBg,
         boxShadow: [
           BoxShadow(
-            color: AppColors.deepNavy.withOpacity(0.07),
+            color: AppColors.deepNavy.withValues(alpha: 0.07),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -133,7 +142,7 @@ class _BottomNav extends StatelessWidget {
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.35),
+                                  color: AppColors.primary.withValues(alpha: 0.35),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -301,6 +310,10 @@ class _HomePageState extends State<HomePage>
       ],
       flexibleSpace: _HeroFlexibleSpace(
         collapsedHeader: const _CollapsedHeader(),
+        // greeting: Padding(
+        //   padding: const EdgeInsets.only(top: 20.0), // 向下移动文字
+        //   child: _buildGreeting(),
+        // ),
         greeting: _buildGreeting(),
         scoreRing: _buildScoreRing(),
       ),
@@ -324,7 +337,7 @@ class _HomePageState extends State<HomePage>
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                 ),
                 child: const Icon(Icons.person, size: 22, color: Colors.white),
               ),
@@ -346,7 +359,7 @@ class _HomePageState extends State<HomePage>
                   '今天感觉怎么样？',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.75),
+                    color: Colors.white.withValues(alpha: 0.75),
                   ),
                 ),
               ],
@@ -357,10 +370,10 @@ class _HomePageState extends State<HomePage>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -392,7 +405,7 @@ class _HomePageState extends State<HomePage>
           '建议：多喝水，保持规律作息',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -404,42 +417,9 @@ class _HomePageState extends State<HomePage>
       animation: _scoreAnim,
       builder: (_, __) {
         final score = (_scoreAnim.value * 86).round();
-        return SizedBox(
-          width: 90,
-          height: 90,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                size: const Size(90, 90),
-                painter: _ScoreRingPainter(
-                  progress: _scoreAnim.value * 0.86,
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$score',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '健康分',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white.withOpacity(0.75),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        return _ScoreRingWidget(
+          progress: _scoreAnim.value * 0.86,
+          score: score,
         );
       },
     );
@@ -578,7 +558,7 @@ class _ScoreRingPainter extends CustomPainter {
       2 * math.pi,
       false,
       Paint()
-        ..color = Colors.white.withOpacity(0.2)
+        ..color = Colors.white.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round,
@@ -671,7 +651,7 @@ class _HeroFlexibleSpace extends StatelessWidget {
                           width: 180, height: 180,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.07),
+                            color: Colors.white.withValues(alpha: 0.07),
                           ),
                         ),
                       ),
@@ -681,7 +661,7 @@ class _HeroFlexibleSpace extends StatelessWidget {
                           width: 120, height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                           ),
                         ),
                       ),
@@ -689,10 +669,17 @@ class _HeroFlexibleSpace extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center, // 改为居中对齐，更稳健
                             children: [
-                              Expanded(child: greeting),
-                              const SizedBox(width: 12),
+                              // 问候语区域使用 Expanded 包裹，确保其宽度受限
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  child: greeting,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // 得分环区域
                               scoreRing,
                             ],
                           ),
@@ -720,6 +707,60 @@ class _HeroFlexibleSpace extends StatelessWidget {
   }
 }
 
+// ─── Score Ring (健康得分) ──────────────────────────────────────────
+// 抽离出来的组件以更好地控制布局
+class _ScoreRingWidget extends StatelessWidget {
+  final double progress;
+  final int score;
+
+  const _ScoreRingWidget({required this.progress, required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 90,
+      height: 90,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(90, 90),
+            painter: _ScoreRingPainter(progress: progress),
+          ),
+          FittedBox( // 正确的做法是用 FittedBox 包裹内部文字，防止溢出
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$score',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '健康分',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Collapsed Header ─────────────────────────────────────────────
 class _CollapsedHeader extends StatelessWidget {
   const _CollapsedHeader();
@@ -740,7 +781,7 @@ class _CollapsedHeader extends StatelessWidget {
               height: 14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.9), width: 1.2),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.2),
               ),
             ),
             Container(
@@ -784,7 +825,16 @@ class _ScanCardState extends State<_ScanCard> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {},
+      onTap: () {
+        // 根据标签名匹配跳转目标
+        if (widget.label.contains('面部')) {
+          context.push(AppRoutes.scanFace);
+        } else if (widget.label.contains('舌头')) {
+          context.push(AppRoutes.scanTongue);
+        } else if (widget.label.contains('手掌')) {
+          context.push(AppRoutes.scanPalm);
+        }
+      },
       child: AnimatedScale(
         scale: _pressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 100),
@@ -793,10 +843,10 @@ class _ScanCardState extends State<_ScanCard> {
           decoration: BoxDecoration(
             color: AppColors.cardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: widget.color.withOpacity(0.18), width: 1),
+            border: Border.all(color: widget.color.withValues(alpha: 0.18), width: 1),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withOpacity(0.13),
+                color: widget.color.withValues(alpha: 0.13),
                 blurRadius: 18,
                 offset: const Offset(0, 6),
               ),
@@ -812,7 +862,7 @@ class _ScanCardState extends State<_ScanCard> {
                   height: 4,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [widget.color, widget.color.withOpacity(0.4)],
+                      colors: [widget.color, widget.color.withValues(alpha: 0.4)],
                     ),
                   ),
                 ),
@@ -824,10 +874,10 @@ class _ScanCardState extends State<_ScanCard> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: widget.color.withOpacity(0.1),
+                          color: widget.color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: widget.color.withOpacity(0.2),
+                            color: widget.color.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
@@ -847,7 +897,7 @@ class _ScanCardState extends State<_ScanCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: widget.color.withOpacity(0.1),
+                          color: widget.color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(
@@ -882,7 +932,7 @@ class _LastReportCard extends StatelessWidget {
         border: Border.all(color: AppColors.borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.07),
+            color: AppColors.primary.withValues(alpha: 0.07),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -960,37 +1010,44 @@ class _LastReportCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.inputBg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Container(
-                                  width: 3,
-                                  color: AppColors.primary,
-                                ),
-                                const Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: Text(
-                                      '面色偏黄，舌淡苔白，建议多食健脾食物，保持充足睡眠，避免过度劳累。',
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        color: AppColors.textSecondary,
-                                        height: 1.6,
+                      // 修改的部分：使用 SingleChildScrollView 包裹此区域
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.inputBg,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Container(
+                                    width: 3,
+                                    color: AppColors.primary,
+                                  ),
+                                  const Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(12),
+                                      // 关键修改：增加滚动视图以吸收微小溢出
+                                      child: SingleChildScrollView(
+                                        physics: NeverScrollableScrollPhysics(), // 阻止内容变少时的滚动，只在溢出时起作用
+                                        child: Text(
+                                          '面色偏黄，舌淡苔白，建议多食健脾食物，保持充足睡眠，避免过度劳累。',
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: AppColors.textSecondary,
+                                            height: 1.6,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -1042,7 +1099,7 @@ class _FunctionCellState extends State<_FunctionCell> {
             border: Border.all(color: AppColors.borderColor, width: 1),
             boxShadow: [
               BoxShadow(
-                color: AppColors.deepNavy.withOpacity(0.04),
+                color: AppColors.deepNavy.withValues(alpha: 0.04),
                 blurRadius: 12,
                 offset: const Offset(0, 3),
               ),
@@ -1058,7 +1115,7 @@ class _FunctionCellState extends State<_FunctionCell> {
                   color: widget.bgColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: _darken(widget.bgColor).withOpacity(0.15),
+                    color: _darken(widget.bgColor).withValues(alpha: 0.15),
                     width: 1,
                   ),
                 ),
@@ -1121,7 +1178,7 @@ class _HealthTipCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: tagColor.withOpacity(0.12),
+                  color: tagColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, size: 20, color: tagColor),
@@ -1134,7 +1191,7 @@ class _HealthTipCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: tagColor.withOpacity(0.12),
+                        color: tagColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
@@ -1191,10 +1248,10 @@ class _SectionHeader extends StatelessWidget {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.12),
+                    color: accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: accentColor.withOpacity(0.18),
+                      color: accentColor.withValues(alpha: 0.18),
                       width: 1,
                     ),
                   ),
@@ -1226,10 +1283,10 @@ class _SectionHeader extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.08),
+                  color: accentColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
-                    color: accentColor.withOpacity(0.14),
+                    color: accentColor.withValues(alpha: 0.14),
                     width: 1,
                   ),
                 ),
@@ -1263,7 +1320,7 @@ class _SectionShell extends StatelessWidget {
         border: Border.all(color: AppColors.borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.05),
+            color: AppColors.primary.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -1284,9 +1341,9 @@ class _ReportTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Text(
         label,
@@ -1362,7 +1419,7 @@ class _ScoreBarState extends State<_ScoreBar> with SingleTickerProviderStateMixi
                 borderRadius: BorderRadius.circular(3),
                 child: LinearProgressIndicator(
                   value: widget.score * _animation.value,
-                  backgroundColor: widget.color.withOpacity(0.12),
+                  backgroundColor: widget.color.withValues(alpha: 0.12),
                   valueColor: AlwaysStoppedAnimation<Color>(widget.color),
                   minHeight: 6,
                 ),

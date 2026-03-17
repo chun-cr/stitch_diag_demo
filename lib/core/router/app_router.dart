@@ -4,16 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/features/home/presentation/pages/home_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/pages/scan_guide_page.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_page.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
 
 // ─── 路由路径常量 ─────────────────────────────────────────────────
 class AppRoutes {
   static const home = '/home';
   static const login = '/login';
   static const register = '/register';
+  static const scan = '/scan';
   static const scanFace = '/scan/face';
   static const scanTongue = '/scan/tongue';
   static const scanPalm = '/scan/palm';
   static const report = '/report';
+  static const reportAnalysis = '/report/analysis';
   static const history = '/history';
   static const profile = '/profile';
 }
@@ -36,16 +42,24 @@ final appRouter = GoRouter(
       builder: (context, state) => const RegisterPage(),
     ),
     GoRoute(
+      path: AppRoutes.scan,
+      builder: (context, state) => const ScanGuidePage(),
+    ),
+    GoRoute(
       path: AppRoutes.scanFace,
-      builder: (context, state) => const _Placeholder(label: '面部扫描'),
+      builder: (context, state) => const FaceScanPage(),
     ),
     GoRoute(
       path: AppRoutes.scanTongue,
-      builder: (context, state) => const _Placeholder(label: '舌头扫描'),
+      builder: (context, state) => const TongueScanPage(),
     ),
     GoRoute(
       path: AppRoutes.scanPalm,
-      builder: (context, state) => const _Placeholder(label: '手掌扫描'),
+      builder: (context, state) => const PalmScanPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.reportAnalysis,
+      builder: (context, state) => const _Placeholder(label: '分析结果'),
     ),
     GoRoute(
       path: AppRoutes.report,

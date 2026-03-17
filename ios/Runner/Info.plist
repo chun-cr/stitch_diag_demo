@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>我们需要访问相机来进行 AI 面部健康分析。</string>
 </dict>
 </plist>

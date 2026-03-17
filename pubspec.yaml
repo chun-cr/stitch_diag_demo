@@ -43,6 +43,7 @@ dependencies:
   get_it: any
   freezed_annotation: any
   json_annotation: any
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
