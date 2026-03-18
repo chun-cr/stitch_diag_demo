@@ -13,6 +13,7 @@
 		1A0000030000000000000001 /* FaceOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000130000000000000001 /* FaceOverlayView.swift */; };
 		1A0000040000000000000001 /* FaceLandmarkerViewFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000140000000000000001 /* FaceLandmarkerViewFactory.swift */; };
 		1A0000050000000000000001 /* ModelAssetLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000150000000000000001 /* ModelAssetLocator.swift */; };
+		1A0000060000000000000001 /* FaceScanStatusStreamHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000160000000000000001 /* FaceScanStatusStreamHandler.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
@@ -52,6 +53,7 @@
 		1A0000130000000000000001 /* FaceOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceOverlayView.swift; sourceTree = "<group>"; };
 		1A0000140000000000000001 /* FaceLandmarkerViewFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceLandmarkerViewFactory.swift; sourceTree = "<group>"; };
 		1A0000150000000000000001 /* ModelAssetLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAssetLocator.swift; sourceTree = "<group>"; };
+		1A0000160000000000000001 /* FaceScanStatusStreamHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceScanStatusStreamHandler.swift; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
@@ -131,6 +133,7 @@
 				1A0000130000000000000001 /* FaceOverlayView.swift */,
 				1A0000140000000000000001 /* FaceLandmarkerViewFactory.swift */,
 				1A0000150000000000000001 /* ModelAssetLocator.swift */,
+				1A0000160000000000000001 /* FaceScanStatusStreamHandler.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -288,6 +291,7 @@
 				1A0000030000000000000001 /* FaceOverlayView.swift in Sources */,
 				1A0000040000000000000001 /* FaceLandmarkerViewFactory.swift in Sources */,
 				1A0000050000000000000001 /* ModelAssetLocator.swift in Sources */,
+				1A0000060000000000000001 /* FaceScanStatusStreamHandler.swift in Sources */,
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);

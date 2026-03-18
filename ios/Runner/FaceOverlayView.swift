@@ -13,8 +13,10 @@ final class FaceOverlayView: UIView {
     }
 
     override func draw(_ rect: CGRect) {
-        guard !landmarks.isEmpty else { return }
         guard let context = UIGraphicsGetCurrentContext() else { return }
+
+        context.clear(rect)
+        guard !landmarks.isEmpty else { return }
 
         let mappedPoints = landmarks.map { mapNormalizedPoint($0, canvasSize: bounds.size, imageSize: imageSize) }
 

@@ -8,6 +8,7 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/scan_guide_pag
 import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_page.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 
 // ─── 路由路径常量 ─────────────────────────────────────────────────
 class AppRoutes {
@@ -71,7 +72,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.profile,
-      builder: (context, state) => const _Placeholder(label: '个人中心'),
+      builder: (context, state) => const ProfilePage(),
     ),
   ],
 );

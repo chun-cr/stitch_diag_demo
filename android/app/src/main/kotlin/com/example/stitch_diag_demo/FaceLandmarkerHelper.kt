@@ -14,6 +14,7 @@ import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerOptions
 
 class FaceLandmarkerHelper(private val context: Context) {
     private var landmarker: FaceLandmarker? = null
+    private var resultCallback: ((Map<String, Any?>) -> Unit)? = null
 
     init {
         setupLandmarker()
@@ -33,13 +34,26 @@ class FaceLandmarkerHelper(private val context: Context) {
             .setOutputFaceBlendshapes(true)
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setResultListener { result, _ ->
-                // Handled in callback
+                val landmarks = result.faceLandmarks().firstOrNull()?.map { landmark ->
+                    mapOf(
+                        "x" to landmark.x(),
+                        "y" to landmark.y(),
+                        "z" to landmark.z(),
+                    )
+                } ?: emptyList<Map<String, Float>>()
+
+                resultCallback?.invoke(
+                    mapOf(
+                        "landmarks" to landmarks,
+                    )
+                )
             }
             
         landmarker = FaceLandmarker.createFromOptions(context, optionsBuilder.build())
     }
 
     fun detect(imageProxy: ImageProxy, callback: (Map<String, Any?>) -> Unit) {
+        resultCallback = callback
         val bitmap = imageProxy.toBitmap()
         val matrix = Matrix().apply { postRotate(imageProxy.imageInfo.rotationDegrees.toFloat()) }
         val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)

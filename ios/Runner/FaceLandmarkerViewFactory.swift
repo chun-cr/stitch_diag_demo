@@ -63,6 +63,7 @@ extension NativeFaceScanView: CameraManagerDelegate {
 
 extension NativeFaceScanView: FaceLandmarkerServiceDelegate {
     func faceLandmarkerService(_ service: FaceLandmarkerService, didUpdate landmarks: [CGPoint], imageSize: CGSize) {
+        FaceScanStatusStreamHandler.shared.publish(hasFace: !landmarks.isEmpty)
         overlayView.draw(landmarks: landmarks, imageSize: imageSize)
     }
 }

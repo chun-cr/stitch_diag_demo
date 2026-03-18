@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 
 // ─── Design Tokens (TCM 风格，与扫描页统一) ──────────────────────────
 class AppColors {
@@ -84,7 +85,7 @@ class _MainShellState extends State<MainShell> {
     HomePage(),
     _PlaceholderPage(icon: Icons.qr_code_scanner_outlined, label: '扫描'),
     _PlaceholderPage(icon: Icons.assignment_outlined, label: '报告'),
-    _PlaceholderPage(icon: Icons.person_outline, label: '我的'),
+    ProfilePage(),
   ];
 
   @override
@@ -338,7 +339,7 @@ class _HomePageState extends State<HomePage>
   // ── Sliver App Bar ────────────────────────────────────────────
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 248,
+      expandedHeight: 268,
       pinned: true,
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
@@ -728,7 +729,7 @@ class _HeroFlexibleSpace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      const expandedHeight = 248.0;
+      const expandedHeight = 268.0;
       final collapsedHeight =
           kToolbarHeight + MediaQuery.of(context).padding.top;
       final progress =
@@ -779,7 +780,7 @@ class _HeroFlexibleSpace extends StatelessWidget {
                     ),
                     SafeArea(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
+                        padding: const EdgeInsets.fromLTRB(22, 12, 22, 12),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -791,7 +792,14 @@ class _HeroFlexibleSpace extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            scoreRing,
+                            Align(
+                              alignment: Alignment.center,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.center,
+                                child: scoreRing,
+                              ),
+                            ),
                           ],
                         ),
                       ),
