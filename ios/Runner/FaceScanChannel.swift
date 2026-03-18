@@ -53,8 +53,17 @@ public class FaceScanChannel: NSObject, FlutterPlugin {
       cameraManager.setMode("none")
       result(nil)
     case "captureFrame":
-      // Implementation for capturing static frame if needed
-      result(nil)
+      guard let sampleBuffer = cameraManager.latestSampleBuffer else {
+        result(FlutterError(code: "NO_FRAME", message: "No camera frame available yet", details: nil))
+        return
+      }
+
+      guard let snapshot = faceLandmarkerHelper.capture(sampleBuffer: sampleBuffer, isPreviewMirrored: cameraManager.isPreviewMirrored) else {
+        result(FlutterError(code: "NO_FACE", message: "No face detected in current frame", details: nil))
+        return
+      }
+
+      result(snapshot)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -77,9 +86,9 @@ extension FaceScanChannel: CameraManagerDelegate {
   func didOutput(sampleBuffer: CMSampleBuffer) {
     // Forward to active helper based on mode
     if cameraManager.mode == "detection" {
-        faceDetectionHelper.detect(sampleBuffer: sampleBuffer)
+        faceDetectionHelper.detect(sampleBuffer: sampleBuffer, isPreviewMirrored: cameraManager.isPreviewMirrored)
     } else if cameraManager.mode == "landmark" {
-        faceLandmarkerHelper.detect(sampleBuffer: sampleBuffer)
+        faceLandmarkerHelper.detect(sampleBuffer: sampleBuffer, isPreviewMirrored: cameraManager.isPreviewMirrored)
     }
   }
 }

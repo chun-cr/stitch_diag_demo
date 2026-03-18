@@ -1,12 +1,14 @@
 import Flutter
 import UIKit
 import XCTest
+@testable import Runner
 
 class RunnerTests: XCTestCase {
+  func testFaceFrameMetadataPayload() {
+    let payload = FaceFramePayload.make(imageWidth: 480, imageHeight: 640, isPreviewMirrored: true)
 
-  func testExample() {
-    // If you add code to the Runner application, consider adding tests here.
-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
+    XCTAssertEqual(payload["imageWidth"] as? Int, 480)
+    XCTAssertEqual(payload["imageHeight"] as? Int, 640)
+    XCTAssertEqual(payload["isPreviewMirrored"] as? Bool, true)
   }
-
 }

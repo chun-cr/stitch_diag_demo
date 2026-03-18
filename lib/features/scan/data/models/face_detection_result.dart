@@ -1,13 +1,17 @@
+import 'face_landmark_result.dart';
+
 /// 面部检测结果数据模型
 class FaceDetectionResult {
   final bool detected;
   final BoundingBox? boundingBox;
   final double score;
+  final FaceFrameMetadata frame;
 
   const FaceDetectionResult({
     required this.detected,
     this.boundingBox,
     required this.score,
+    this.frame = FaceFrameMetadata.empty,
   });
 
   factory FaceDetectionResult.fromMap(Map<String, dynamic> map) {
@@ -21,10 +25,16 @@ class FaceDetectionResult {
         bottom: (b['bottom'] as num).toDouble(),
       );
     }
+    final rawFrame = map['frame'] as Map<dynamic, dynamic>?;
+    final frame = rawFrame == null
+        ? FaceFrameMetadata.empty
+        : FaceFrameMetadata.fromMap(Map<String, dynamic>.from(rawFrame));
+
     return FaceDetectionResult(
       detected: map['detected'] as bool? ?? false,
       boundingBox: bbox,
       score: (map['score'] as num?)?.toDouble() ?? 0.0,
+      frame: frame,
     );
   }
 
@@ -32,6 +42,7 @@ class FaceDetectionResult {
         'detected': detected,
         'boundingBox': boundingBox?.toMap(),
         'score': score,
+        'frame': frame.toMap(),
       };
 }
 

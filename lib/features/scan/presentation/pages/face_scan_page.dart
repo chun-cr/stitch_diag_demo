@@ -62,10 +62,21 @@ class _FaceScanPageState extends ConsumerState<FaceScanPage> {
   }
 
   Future<void> _captureAndFinish() async {
-    final result = await ref.read(faceScanProvider.notifier).captureFrame();
-    if (mounted) {
-      // Navigate to report/analysis with data (using state results for now as well)
-      context.push(AppRoutes.reportAnalysis, extra: result);
+    try {
+      final result = await ref.read(faceScanProvider.notifier).captureFrame();
+      if (mounted) {
+        context.push(AppRoutes.reportAnalysis, extra: result);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('当前帧未检测到有效面部，请重试')),
+        );
+        setState(() {
+          _isLandmarkMode = false;
+          _countdown = 3;
+        });
+      }
     }
   }
 
@@ -92,7 +103,7 @@ class _FaceScanPageState extends ConsumerState<FaceScanPage> {
             Positioned.fill(
               child: CustomPaint(
                 painter: FaceLandmarkOverlay(
-                  landmarks: state.landmarkResult!.landmarks,
+                  result: state.landmarkResult!,
                 ),
               ),
             ),

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../../data/models/face_landmark_result.dart';
 
 class FaceLandmarkOverlay extends CustomPainter {
-  final List<LandmarkPoint> landmarks;
+  final FaceLandmarkResult result;
 
-  FaceLandmarkOverlay({required this.landmarks});
+  FaceLandmarkOverlay({required this.result});
+
+  List<LandmarkPoint> get landmarks => result.landmarks;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -20,9 +22,9 @@ class FaceLandmarkOverlay extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     // Convert normalized coordinates to pixels
-    List<Offset> points = landmarks.map((p) {
-      return Offset(p.x * size.width, p.y * size.height);
-    }).toList();
+    final points = landmarks
+        .map((p) => FaceOverlayGeometry.mapNormalizedPoint(p, size, result.frame))
+        .toList();
 
     // Draw mesh points
     for (var point in points) {
@@ -41,7 +43,7 @@ class FaceLandmarkOverlay extends CustomPainter {
   }
 
   void _drawContour(Canvas canvas, List<Offset> points, List<int> indices, Paint paint, {bool close = false}) {
-    if (indices.isEmpty) return;
+    if (indices.isEmpty || indices[0] >= points.length) return;
     final path = Path();
     path.moveTo(points[indices[0]].dx, points[indices[0]].dy);
     for (int i = 1; i < indices.length; i++) {
@@ -66,4 +68,40 @@ class FaceLandmarkOverlay extends CustomPainter {
 
   @override
   bool shouldRepaint(FaceLandmarkOverlay oldDelegate) => true;
+}
+
+class FaceOverlayGeometry {
+  static Offset mapNormalizedPoint(
+    LandmarkPoint point,
+    Size canvasSize,
+    FaceFrameMetadata frame,
+  ) {
+    if (frame.imageWidth <= 0 || frame.imageHeight <= 0) {
+      return Offset(point.x * canvasSize.width, point.y * canvasSize.height);
+    }
+
+    final sourceWidth = frame.imageWidth.toDouble();
+    final sourceHeight = frame.imageHeight.toDouble();
+
+    var x = point.x.clamp(0.0, 1.0) * sourceWidth;
+    final y = point.y.clamp(0.0, 1.0) * sourceHeight;
+
+    if (frame.isPreviewMirrored) {
+      x = sourceWidth - x;
+    }
+
+    final scale = _aspectFillScale(canvasSize, sourceWidth, sourceHeight);
+    final scaledWidth = sourceWidth * scale;
+    final scaledHeight = sourceHeight * scale;
+    final dx = (canvasSize.width - scaledWidth) / 2;
+    final dy = (canvasSize.height - scaledHeight) / 2;
+
+    return Offset(dx + x * scale, dy + y * scale);
+  }
+
+  static double _aspectFillScale(Size canvasSize, double sourceWidth, double sourceHeight) {
+    return (canvasSize.width / sourceWidth) > (canvasSize.height / sourceHeight)
+        ? (canvasSize.width / sourceWidth)
+        : (canvasSize.height / sourceHeight);
+  }
 }

@@ -2,10 +2,12 @@
 class FaceLandmarkResult {
   final List<LandmarkPoint> landmarks;
   final Map<String, double> blendshapes;
+  final FaceFrameMetadata frame;
 
   const FaceLandmarkResult({
     required this.landmarks,
     required this.blendshapes,
+    required this.frame,
   });
 
   factory FaceLandmarkResult.fromMap(Map<String, dynamic> map) {
@@ -24,15 +26,54 @@ class FaceLandmarkResult {
       (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
     );
 
+    final rawFrame = map['frame'] as Map<dynamic, dynamic>?;
+    final frame = rawFrame == null
+        ? FaceFrameMetadata.empty
+        : FaceFrameMetadata.fromMap(Map<String, dynamic>.from(rawFrame));
+
     return FaceLandmarkResult(
       landmarks: landmarks,
       blendshapes: blendshapes,
+      frame: frame,
     );
   }
 
   Map<String, dynamic> toMap() => {
         'landmarks': landmarks.map((l) => l.toMap()).toList(),
         'blendshapes': blendshapes,
+        'frame': frame.toMap(),
+      };
+}
+
+class FaceFrameMetadata {
+  final int imageWidth;
+  final int imageHeight;
+  final bool isPreviewMirrored;
+
+  const FaceFrameMetadata({
+    required this.imageWidth,
+    required this.imageHeight,
+    required this.isPreviewMirrored,
+  });
+
+  static const empty = FaceFrameMetadata(
+    imageWidth: 0,
+    imageHeight: 0,
+    isPreviewMirrored: false,
+  );
+
+  factory FaceFrameMetadata.fromMap(Map<String, dynamic> map) {
+    return FaceFrameMetadata(
+      imageWidth: (map['imageWidth'] as num?)?.toInt() ?? 0,
+      imageHeight: (map['imageHeight'] as num?)?.toInt() ?? 0,
+      isPreviewMirrored: map['isPreviewMirrored'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'imageWidth': imageWidth,
+        'imageHeight': imageHeight,
+        'isPreviewMirrored': isPreviewMirrored,
       };
 }
 
