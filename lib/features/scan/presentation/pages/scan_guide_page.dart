@@ -1,183 +1,684 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 
-class ScanGuidePage extends StatelessWidget {
+class ScanGuidePage extends StatefulWidget {
   const ScanGuidePage({super.key});
+
+  @override
+  State<ScanGuidePage> createState() => _ScanGuidePageState();
+}
+
+class _ScanGuidePageState extends State<ScanGuidePage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<Animation<double>> _cardAnimations;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _cardAnimations = List.generate(3, (i) {
+      return Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(0.15 * i, 0.15 * i + 0.55, curve: Curves.easeOut),
+        ),
+      );
+    });
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.softBg,
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text('AI 健康扫描'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Guide Cards
-              _buildStepCard(
-                step: 1,
-                title: '面部扫描',
-                desc: '分析面色光泽与五官特征',
-                icon: Icons.face_retouching_natural_outlined,
-                color: AppColors.primary,
-                isCompleted: false,
-                isLast: false,
-              ),
-              _buildStepCard(
-                step: 2,
-                title: '舌头扫描',
-                desc: '观察舌质颜色与舌苔厚薄',
-                icon: Icons.sentiment_satisfied_alt_outlined,
-                color: AppColors.secondary,
-                isCompleted: false,
-                isLast: false,
-              ),
-              _buildStepCard(
-                step: 3,
-                title: '手掌扫描',
-                desc: '识别掌纹分布与局部气色',
-                icon: Icons.back_hand_outlined,
-                color: const Color(0xFF9B8EF0),
-                isCompleted: false,
-                isLast: true,
-              ),
-              
-              const Spacer(),
-              
-              // Bottom
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.timer_outlined, size: 14, color: AppColors.textHint),
-                  const SizedBox(width: 4),
-                  const Text('预计 3 分钟完成 · 请在光线充足处进行', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
+      backgroundColor: const Color(0xFFF4F1EB), // 宣纸米色
+      body: Stack(
+        children: [
+          // Decorative background
+          Positioned.fill(child: _buildBackground()),
+
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 4),
+                        _buildTitleSection(),
+                        const SizedBox(height: 28),
+                        _buildStepCards(),
+                        const SizedBox(height: 24),
+                        _buildInfoBanner(),
+                        const SizedBox(height: 32),
+                      ],
                     ),
-                  ],
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  onPressed: () => context.push(AppRoutes.scanFace),
-                  child: const Text('开始扫描', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+                _buildBottomSection(context),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Background ──────────────────────────────────────────────────────────
+
+  Widget _buildBackground() {
+    return CustomPaint(painter: _BgPainter());
+  }
+
+  // ─── Header ──────────────────────────────────────────────────────────────
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new,
+                size: 18, color: Color(0xFF3A3028)),
+            onPressed: () => context.pop(),
+          ),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'AI 健康扫描',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2A2018),
+                  letterSpacing: 1.5,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text('扫描数据仅用于健康分析，不会上传至第三方', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
-              const SizedBox(height: 24),
+            ),
+          ),
+          const SizedBox(width: 48),
+        ],
+      ),
+    );
+  }
+
+  // ─── Title Section ────────────────────────────────────────────────────────
+
+  Widget _buildTitleSection() {
+    return Column(
+      children: [
+        // Decorative top ornament
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildOrnamentLine(),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.25),
+                  width: 1,
+                ),
+              ),
+              child: const Text(
+                '望 · 闻 · 问 · 切',
+                style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 3,
+                  color: Color(0xFF2D6A4F),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _buildOrnamentLine(),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          '三步望诊，辨识体质',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1E1810),
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '结合现代 AI 技术与传统中医望诊理论\n为您提供专属体质分析报告',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.7,
+            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOrnamentLine() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 1,
+          color: const Color(0xFF2D6A4F).withValues(alpha: 0.3),
+        ),
+        const SizedBox(width: 4),
+        Container(
+          width: 4,
+          height: 4,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Step Cards ──────────────────────────────────────────────────────────
+
+  Widget _buildStepCards() {
+    final steps = [
+      _StepData(
+        step: 1,
+        title: '面部扫描',
+        desc: '分析面色光泽与五官特征',
+        detail: '通过面部气色判断脏腑盛衰，观察神、色、形、态',
+        icon: Icons.face_retouching_natural_outlined,
+        tcmLabel: '面诊',
+        color: const Color(0xFF2D6A4F),
+        lightColor: const Color(0xFFE8F5EE),
+      ),
+      _StepData(
+        step: 2,
+        title: '舌头扫描',
+        desc: '观察舌质颜色与舌苔厚薄',
+        detail: '舌为心之苗，脾之外候，舌象反映气血津液盛衰',
+        icon: Icons.sentiment_satisfied_alt_outlined,
+        tcmLabel: '舌诊',
+        color: const Color(0xFF0D7A5A),
+        lightColor: const Color(0xFFE4F7F1),
+      ),
+      _StepData(
+        step: 3,
+        title: '手掌扫描',
+        desc: '识别掌纹分布与局部气色',
+        detail: '手掌色泽与纹路折射经络气血的运行状态',
+        icon: Icons.back_hand_outlined,
+        tcmLabel: '掌诊',
+        color: const Color(0xFF6B5B95),
+        lightColor: const Color(0xFFF0EDF8),
+      ),
+    ];
+
+    return Column(
+      children: List.generate(steps.length, (i) {
+        return AnimatedBuilder(
+          animation: _cardAnimations[i],
+          builder: (context, child) {
+            final v = _cardAnimations[i].value;
+            return Opacity(
+              opacity: v,
+              child: Transform.translate(
+                offset: Offset(0, 24 * (1 - v)),
+                child: child,
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStepCard(steps[i]),
+              if (i < steps.length - 1) _buildConnector(steps[i].color),
             ],
           ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildStepCard(_StepData data) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: data.color.withValues(alpha: 0.12),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: data.color.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+          const BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon container
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: data.lightColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: data.color.withValues(alpha: 0.15),
+                      width: 1,
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(data.icon, size: 28, color: data.color),
+                      // Step number badge
+                      Positioned(
+                        right: 4,
+                        top: 4,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: data.color,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${data.step}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            '步骤 ${data.step}：${data.title}',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E1810),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // TCM label tag
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: data.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              data.tcmLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: data.color,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        data.desc,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 22,
+                  color: const Color(0xFFD0C8B8),
+                ),
+              ],
+            ),
+          ),
+          // Detail strip
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: data.lightColor.withValues(alpha: 0.6),
+              borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(18)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome,
+                    size: 12,
+                    color: data.color.withValues(alpha: 0.6)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    data.detail,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: data.color.withValues(alpha: 0.75),
+                      letterSpacing: 0.2,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnector(Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 45, top: 0),
+      child: SizedBox(
+        height: 22,
+        child: CustomPaint(
+          painter: _DashedLinePainter(color: color),
         ),
       ),
     );
   }
 
-  Widget _buildStepCard({
-    required int step,
-    required String title,
-    required String desc,
-    required IconData icon,
-    required Color color,
-    required bool isCompleted,
-    required bool isLast,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.cardBg,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.borderColor, width: 1),
+  // ─── Info Banner ──────────────────────────────────────────────────────────
+
+  Widget _buildInfoBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2D6A4F).withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.eco_outlined,
+                size: 18, color: Color(0xFF2D6A4F)),
           ),
-          child: Row(
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '温馨提示',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D6A4F),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '请在自然光线充足处进行，扫描前清洁面部，保持放松自然状态',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.5,
+                    color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Bottom Section ───────────────────────────────────────────────────────
+
+  Widget _buildBottomSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F1EB),
+        border: Border(
+          top: BorderSide(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Time estimate
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+              Icon(Icons.timer_outlined,
+                  size: 13,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.4)),
+              const SizedBox(width: 5),
+              Text(
+                '预计 3 分钟完成 · 请在光线充足处进行',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.4),
                 ),
-                child: Icon(icon, size: 28, color: color),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('步骤 $step：$title', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 4),
-                    Text(desc, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.check_circle, 
-                size: 24, 
-                color: isCompleted ? AppColors.secondary : AppColors.textHint.withValues(alpha: 0.3),
               ),
             ],
           ),
-        ),
-        // Connection Line
-        if (!isLast)
-          Container(
-            height: 24,
-            margin: const EdgeInsets.only(left: 44),
-            child: CustomPaint(
-               painter: _DashedLinePainter(),
+          const SizedBox(height: 12),
+          // CTA Button
+          GestureDetector(
+            onTap: () => context.push(AppRoutes.scanFace),
+            child: Container(
+              width: double.infinity,
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1D5E40), Color(0xFF2D8A5E), Color(0xFF3DAB78)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.38),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.play_circle_outline,
+                      color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '开始扫描',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-      ],
+          const SizedBox(height: 10),
+          Text(
+            '扫描数据仅用于健康分析，不会上传至第三方',
+            style: TextStyle(
+              fontSize: 11,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.35),
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _DashedLinePainter extends CustomPainter {
+// ─── Data Model ───────────────────────────────────────────────────────────────
+
+class _StepData {
+  final int step;
+  final String title;
+  final String desc;
+  final String detail;
+  final IconData icon;
+  final String tcmLabel;
+  final Color color;
+  final Color lightColor;
+
+  const _StepData({
+    required this.step,
+    required this.title,
+    required this.desc,
+    required this.detail,
+    required this.icon,
+    required this.tcmLabel,
+    required this.color,
+    required this.lightColor,
+  });
+}
+
+// ─── Background Painter ───────────────────────────────────────────────────────
+
+class _BgPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-       ..color = AppColors.borderColor
-       ..strokeWidth = 1.5
-       ..style = PaintingStyle.stroke;
+    // Top-right subtle radial wash
+    final topPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(1.2, -0.8),
+        radius: 0.9,
+        colors: [
+          const Color(0xFF2D6A4F).withValues(alpha: 0.06),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), topPaint);
 
-    double startY = 0;
-    while(startY < size.height) {
-       canvas.drawLine(Offset(0, startY), Offset(0, startY + 4), paint);
-       startY += 8;
+    // Bottom-left wash
+    final bottomPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-1.1, 1.3),
+        radius: 0.85,
+        colors: [
+          const Color(0xFF6B5B95).withValues(alpha: 0.05),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bottomPaint);
+
+    // Subtle circular watermark (like a seal/chop) top-right corner
+    final sealPaint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.04)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(Offset(size.width - 20, 60), 52, sealPaint);
+    canvas.drawCircle(Offset(size.width - 20, 60), 42, sealPaint);
+
+    // Fine grid texture (very subtle)
+    final gridPaint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.025)
+      ..strokeWidth = 0.5;
+
+    for (double x = 0; x < size.width; x += 28) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (double y = 0; y < size.height; y += 28) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─── Dashed Line Painter ──────────────────────────────────────────────────────
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.3)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    double y = 0;
+    while (y < size.height) {
+      canvas.drawLine(Offset(0, y), Offset(0, y + 4), paint);
+      y += 8;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter old) => old.color != color;
 }
