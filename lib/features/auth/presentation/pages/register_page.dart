@@ -1,10 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import '../../../../core/theme/app_colors.dart';
 
-// ─── Register Page ────────────────────────────────────────────────
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
   @override
@@ -12,7 +10,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -22,8 +20,11 @@ class _RegisterPageState extends State<RegisterPage>
   bool _obscureConfirm = true;
   bool _agreeTerms = false;
   bool _isLoading = false;
-  int _currentStep = 0; // 0=基本信息, 1=设置密码
+  int _currentStep = 0;
+
   late AnimationController _pulseController;
+  late AnimationController _rotateController;
+  late AnimationController _fadeController;
   late PageController _pageController;
 
   // 密码强度
@@ -42,8 +43,8 @@ class _RegisterPageState extends State<RegisterPage>
     final s = _passStrength;
     if (s <= 0.25) return const Color(0xFFE24B4A);
     if (s <= 0.5) return const Color(0xFFEF9F27);
-    if (s <= 0.75) return AppColors.secondary;
-    return const Color(0xFF3ECFB2);
+    if (s <= 0.75) return const Color(0xFF0D7A5A);
+    return const Color(0xFF2D6A4F);
   }
 
   String get _passStrengthLabel {
@@ -62,12 +63,22 @@ class _RegisterPageState extends State<RegisterPage>
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat();
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    )..forward();
     _pageController = PageController();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _rotateController.dispose();
+    _fadeController.dispose();
     _pageController.dispose();
     _nameCtrl.dispose();
     _emailCtrl.dispose();
@@ -78,30 +89,31 @@ class _RegisterPageState extends State<RegisterPage>
 
   void _nextStep() {
     if (_currentStep == 0) {
-      // 验证第一步
       if (_nameCtrl.text.isEmpty || _emailCtrl.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('请填写姓名和手机号/邮箱')),
+          SnackBar(
+            content: const Text('请填写姓名和手机号/邮箱'),
+            backgroundColor: const Color(0xFF2D6A4F),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ),
         );
         return;
       }
       setState(() => _currentStep = 1);
-      _pageController.animateToPage(
-        1,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-      );
+      _pageController.animateToPage(1,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut);
     }
   }
 
   void _prevStep() {
     if (_currentStep == 1) {
       setState(() => _currentStep = 0);
-      _pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-      );
+      _pageController.animateToPage(0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut);
     }
   }
 
@@ -109,7 +121,13 @@ class _RegisterPageState extends State<RegisterPage>
     if (!_formKey.currentState!.validate()) return;
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先同意用户协议和隐私政策')),
+        SnackBar(
+          content: const Text('请先同意用户协议和隐私政策'),
+          backgroundColor: const Color(0xFF2D6A4F),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
       return;
     }
@@ -121,39 +139,43 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.softBg,
+      backgroundColor: const Color(0xFFF4F1EB),
       body: Stack(
         children: [
-          // 背景光晕
-          Positioned(
-            top: -120,
-            right: -80,
-            child: _AmbientOrb(size: 320, color: AppColors.primary.withValues(alpha: 0.15)),
-          ),
-          Positioned(
-            bottom: -60,
-            left: -60,
-            child: _AmbientOrb(size: 280, color: AppColors.secondary.withValues(alpha: 0.16)),
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _rotateController,
+              builder: (_, __) => CustomPaint(
+                painter: _RegBgPainter(
+                  rotation:
+                      _rotateController.value * 2 * math.pi,
+                ),
+              ),
+            ),
           ),
           SafeArea(
-            child: Column(
-              children: [
-                _buildTopBar(),
-                _buildStepIndicator(),
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildStep1(),
-                        _buildStep2(),
-                      ],
+            child: FadeTransition(
+              opacity: CurvedAnimation(
+                  parent: _fadeController, curve: Curves.easeOut),
+              child: Column(
+                children: [
+                  _buildTopBar(),
+                  _buildStepIndicator(),
+                  Expanded(
+                    child: Form(
+                      key: _formKey,
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildStep1(),
+                          _buildStep2(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -167,30 +189,47 @@ class _RegisterPageState extends State<RegisterPage>
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Row(
         children: [
+          // 返回按钮（与扫描页风格一致）
           GestureDetector(
-            onTap: _currentStep == 0 ? () => Navigator.maybePop(context) : _prevStep,
+            onTap: _currentStep == 0
+                ? () => Navigator.maybePop(context)
+                : _prevStep,
             child: Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.cardBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderColor, width: 1.5),
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(Icons.arrow_back_ios_new,
-                  size: 16, color: AppColors.textSecondary),
+                  size: 16, color: Color(0xFF3A3028)),
             ),
           ),
           const Spacer(),
-          // Brand
+          // 品牌
           Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 child: const Center(child: _BrandMark()),
               ),
@@ -199,14 +238,16 @@ class _RegisterPageState extends State<RegisterPage>
                 text: const TextSpan(
                   style: TextStyle(
                     fontSize: 15,
-                    color: AppColors.deepNavy,
-                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1E1810),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                   children: [
                     TextSpan(text: '脉 '),
                     TextSpan(
-                        text: 'AI',
-                        style: TextStyle(color: AppColors.primary)),
+                      text: 'AI',
+                      style: TextStyle(color: Color(0xFF2D6A4F)),
+                    ),
                     TextSpan(text: ' 健康'),
                   ],
                 ),
@@ -214,7 +255,6 @@ class _RegisterPageState extends State<RegisterPage>
             ],
           ),
           const Spacer(),
-          // 登录入口
           TextButton(
             onPressed: () => Navigator.maybePop(context),
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -222,8 +262,8 @@ class _RegisterPageState extends State<RegisterPage>
               '去登录',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.primary,
-                fontWeight: FontWeight.w500,
+                color: Color(0xFF2D6A4F),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -235,10 +275,11 @@ class _RegisterPageState extends State<RegisterPage>
   // ── Step Indicator ─────────────────────────────────────────────
   Widget _buildStepIndicator() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
+      padding: const EdgeInsets.fromLTRB(28, 22, 28, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 步骤圆点 + 连线
           Row(
             children: [
               _StepDot(index: 0, current: _currentStep, label: '基本信息'),
@@ -250,8 +291,14 @@ class _RegisterPageState extends State<RegisterPage>
                     borderRadius: BorderRadius.circular(1),
                     gradient: LinearGradient(
                       colors: _currentStep >= 1
-                          ? [AppColors.primary, AppColors.secondary]
-                          : [AppColors.borderColor, AppColors.borderColor],
+                          ? [
+                              const Color(0xFF2D6A4F),
+                              const Color(0xFF3DAB78)
+                            ]
+                          : [
+                              const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+                              const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+                            ],
                     ),
                   ),
                 ),
@@ -259,26 +306,41 @@ class _RegisterPageState extends State<RegisterPage>
               _StepDot(index: 1, current: _currentStep, label: '设置密码'),
             ],
           ),
-          const SizedBox(height: 20),
-          Text(
-            _currentStep == 0 ? '创建你的账号' : '设置登录密码',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
-              height: 1.2,
-            ),
+          const SizedBox(height: 18),
+          // 装饰横线
+          Row(
+            children: [
+              Container(
+                  width: 3,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2D6A4F),
+                    borderRadius: BorderRadius.circular(2),
+                  )),
+              const SizedBox(width: 10),
+              Text(
+                _currentStep == 0 ? '创建你的账号' : '设置登录密码',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1810),
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            _currentStep == 0
-                ? '填写基本信息，开始你的健康之旅'
-                : '设置一个安全的密码保护你的健康数据',
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.textSecondary,
-              height: 1.5,
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 13),
+            child: Text(
+              _currentStep == 0
+                  ? '填写基本信息，开启你的健康之旅'
+                  : '设置一个安全密码保护你的健康数据',
+              style: TextStyle(
+                fontSize: 13,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+                height: 1.5,
+              ),
             ),
           ),
         ],
@@ -289,37 +351,37 @@ class _RegisterPageState extends State<RegisterPage>
   // ── Step 1: 基本信息 ───────────────────────────────────────────
   Widget _buildStep1() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 头像选择区
           Center(child: _buildAvatarPicker()),
           const SizedBox(height: 28),
-          _InputLabel(text: '姓名'),
+          const _InputLabel(text: '姓名'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _nameCtrl,
             hint: '请输入你的姓名',
             prefixIcon: Icons.person_outline,
-            validator: (v) => (v == null || v.isEmpty) ? '请输入姓名' : null,
+            validator: (v) =>
+                (v == null || v.isEmpty) ? '请输入姓名' : null,
           ),
           const SizedBox(height: 16),
-          _InputLabel(text: '手机号 / 邮箱'),
+          const _InputLabel(text: '手机号 / 邮箱'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _emailCtrl,
             hint: '请输入手机号或邮箱',
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
-            validator: (v) => (v == null || v.isEmpty) ? '请输入手机号或邮箱' : null,
+            validator: (v) =>
+                (v == null || v.isEmpty) ? '请输入手机号或邮箱' : null,
           ),
           const SizedBox(height: 16),
-          // 性别选择（可选）
-          _InputLabel(text: '性别（可选）'),
+          const _InputLabel(text: '性别（可选）'),
           const SizedBox(height: 8),
           _GenderSelector(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           _buildNextButton(),
           const SizedBox(height: 20),
           _buildSocialRow(),
@@ -331,14 +393,13 @@ class _RegisterPageState extends State<RegisterPage>
   // ── Step 2: 设置密码 ───────────────────────────────────────────
   Widget _buildStep2() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 安全图示
           Center(child: _buildSecurityVisual()),
           const SizedBox(height: 28),
-          _InputLabel(text: '密码'),
+          const _InputLabel(text: '密码'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _passCtrl,
@@ -348,9 +409,11 @@ class _RegisterPageState extends State<RegisterPage>
             suffixIcon: GestureDetector(
               onTap: () => setState(() => _obscurePass = !_obscurePass),
               child: Icon(
-                _obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                _obscurePass
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 size: 18,
-                color: AppColors.textHint,
+                color: const Color(0xFFA09080),
               ),
             ),
             onChanged: (_) => setState(() {}),
@@ -359,13 +422,12 @@ class _RegisterPageState extends State<RegisterPage>
               return null;
             },
           ),
-          // 密码强度条
           if (_passCtrl.text.isNotEmpty) ...[
             const SizedBox(height: 8),
             _buildPasswordStrength(),
           ],
           const SizedBox(height: 16),
-          _InputLabel(text: '确认密码'),
+          const _InputLabel(text: '确认密码'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _confirmCtrl,
@@ -373,11 +435,14 @@ class _RegisterPageState extends State<RegisterPage>
             prefixIcon: Icons.lock_outline,
             obscureText: _obscureConfirm,
             suffixIcon: GestureDetector(
-              onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
+              onTap: () =>
+                  setState(() => _obscureConfirm = !_obscureConfirm),
               child: Icon(
-                _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                _obscureConfirm
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 size: 18,
-                color: AppColors.textHint,
+                color: const Color(0xFFA09080),
               ),
             ),
             validator: (v) {
@@ -390,7 +455,7 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(height: 24),
           _buildRegisterButton(),
           const SizedBox(height: 20),
-          _buildHealthTips(),
+          _buildPrivacyTip(),
         ],
       ),
     );
@@ -405,15 +470,16 @@ class _RegisterPageState extends State<RegisterPage>
         return Stack(
           alignment: Alignment.center,
           children: [
-            // 外层脉冲圈
+            // 脉冲外环
             Container(
-              width: 96 + pulse * 4,
-              height: 96 + pulse * 4,
+              width: 98 + pulse * 3,
+              height: 98 + pulse * 3,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.15 + pulse * 0.1),
-                  width: 1.5,
+                  color: const Color(0xFF2D6A4F)
+                      .withValues(alpha: 0.1 + pulse * 0.08),
+                  width: 1.2,
                 ),
               ),
             ),
@@ -423,20 +489,20 @@ class _RegisterPageState extends State<RegisterPage>
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.1),
-                    AppColors.secondary.withValues(alpha: 0.15),
-                  ],
+                  colors: [Color(0xFFE8F5EE), Color(0xFFD4EEE3)],
                 ),
-                border: Border.all(color: AppColors.borderColor, width: 2),
+                border: Border.all(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
               ),
               child: const Icon(
                 Icons.person_outline,
                 size: 36,
-                color: AppColors.textHint,
+                color: Color(0xFF2D6A4F),
               ),
             ),
             // 编辑按钮
@@ -448,10 +514,15 @@ class _RegisterPageState extends State<RegisterPage>
                 height: 26,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: AppColors.primaryGradient,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: const Color(0xFF2D6A4F)
+                          .withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -469,79 +540,91 @@ class _RegisterPageState extends State<RegisterPage>
   // ── Security Visual ────────────────────────────────────────────
   Widget _buildSecurityVisual() {
     return SizedBox(
-      width: 100,
-      height: 100,
+      width: 110,
+      height: 110,
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // 转动八卦环
+          AnimatedBuilder(
+            animation: _rotateController,
+            builder: (_, __) => Transform.rotate(
+              angle: _rotateController.value * 2 * math.pi,
+              child: CustomPaint(
+                size: const Size(110, 110),
+                painter: _SmallBaguaRingPainter(),
+              ),
+            ),
+          ),
+          // 脉冲外圆
           AnimatedBuilder(
             animation: _pulseController,
             builder: (_, __) {
-              final pulse = math.sin(_pulseController.value * 2 * math.pi);
+              final pulse =
+                  math.sin(_pulseController.value * 2 * math.pi);
               return Container(
-                width: 100,
-                height: 100,
+                width: 84 + pulse * 3,
+                height: 84 + pulse * 3,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.secondary.withValues(alpha: 0.2 + pulse * 0.1),
-                    width: 1.5,
+                    color: const Color(0xFF2D6A4F)
+                        .withValues(alpha: 0.15 + pulse * 0.08),
+                    width: 1.2,
                   ),
                 ),
               );
             },
           ),
+          // 内圆
           Container(
-            width: 72,
-            height: 72,
+            width: 66,
+            height: 66,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.3),
-                width: 1.5,
-              ),
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.08),
-                  AppColors.secondary.withValues(alpha: 0.12),
-                ],
+                colors: [Color(0xFFE8F5EE), Color(0xFFD4EEE3)],
               ),
+              border: Border.all(
+                color: const Color(0xFF2D6A4F).withValues(alpha: 0.22),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: const Icon(
               Icons.security_outlined,
-              size: 32,
-              color: AppColors.primary,
+              size: 30,
+              color: Color(0xFF2D6A4F),
             ),
           ),
-          // 四角装饰
-          ..._buildCornerAccents(),
+          // 四角刻度
+          Positioned(
+              top: 6, left: 6,
+              child: _Bracket(
+                  color: const Color(0xFF2D6A4F), tl: true)),
+          Positioned(
+              top: 6, right: 6,
+              child: _Bracket(
+                  color: const Color(0xFF2D6A4F), tr: true)),
+          Positioned(
+              bottom: 6, left: 6,
+              child: _Bracket(
+                  color: const Color(0xFFC9A84C), bl: true)),
+          Positioned(
+              bottom: 6, right: 6,
+              child: _Bracket(
+                  color: const Color(0xFFC9A84C), br: true)),
         ],
       ),
     );
-  }
-
-  List<Widget> _buildCornerAccents() {
-    const offset = 6.0;
-    return [
-      Positioned(
-        top: offset, left: offset,
-        child: _CornerAccent(color: AppColors.primary, corners: [true, false, false, false]),
-      ),
-      Positioned(
-        top: offset, right: offset,
-        child: _CornerAccent(color: AppColors.primary, corners: [false, true, false, false]),
-      ),
-      Positioned(
-        bottom: offset, left: offset,
-        child: _CornerAccent(color: AppColors.secondary, corners: [false, false, true, false]),
-      ),
-      Positioned(
-        bottom: offset, right: offset,
-        child: _CornerAccent(color: AppColors.secondary, corners: [false, false, false, true]),
-      ),
-    ];
   }
 
   // ── Password Strength ──────────────────────────────────────────
@@ -553,9 +636,11 @@ class _RegisterPageState extends State<RegisterPage>
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: _passStrength,
-              backgroundColor: AppColors.borderColor,
-              valueColor: AlwaysStoppedAnimation<Color>(_passStrengthColor),
-              minHeight: 3,
+              backgroundColor:
+                  const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(_passStrengthColor),
+              minHeight: 4,
             ),
           ),
         ),
@@ -565,7 +650,7 @@ class _RegisterPageState extends State<RegisterPage>
           style: TextStyle(
             fontSize: 11,
             color: _passStrengthColor,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -585,9 +670,17 @@ class _RegisterPageState extends State<RegisterPage>
             height: 20,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
-              gradient: _agreeTerms ? AppColors.primaryGradient : null,
+              gradient: _agreeTerms
+                  ? const LinearGradient(
+                      colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
               border: Border.all(
-                color: _agreeTerms ? Colors.transparent : AppColors.borderColor,
+                color: _agreeTerms
+                    ? Colors.transparent
+                    : const Color(0xFF2D6A4F).withValues(alpha: 0.25),
                 width: 1.5,
               ),
             ),
@@ -598,27 +691,27 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(width: 10),
           Expanded(
             child: RichText(
-              text: const TextSpan(
+              text: TextSpan(
                 style: TextStyle(
                   fontSize: 12.5,
-                  color: AppColors.textSecondary,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.6),
                   height: 1.5,
                 ),
-                children: [
+                children: const [
                   TextSpan(text: '我已阅读并同意'),
                   TextSpan(
                     text: '《用户协议》',
                     style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF2D6A4F),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   TextSpan(text: '和'),
                   TextSpan(
                     text: '《隐私政策》',
                     style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF2D6A4F),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   TextSpan(text: '，包括健康数据的收集与使用说明'),
@@ -631,33 +724,30 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  // ── Health Tips ────────────────────────────────────────────────
-  Widget _buildHealthTips() {
+  // ── Privacy Tip ────────────────────────────────────────────────
+  Widget _buildPrivacyTip() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFFAF3E0),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: AppColors.secondary.withValues(alpha: 0.2),
+          color: const Color(0xFFC9A84C).withValues(alpha: 0.25),
           width: 1,
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.health_and_safety_outlined,
-            size: 18,
-            color: AppColors.secondary,
-          ),
+          const Icon(Icons.eco_outlined,
+              size: 17, color: Color(0xFFC9A84C)),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
               '你的健康数据仅用于 AI 诊断分析，经过加密存储，不会用于商业用途或分享给第三方。',
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.6),
                 height: 1.6,
               ),
             ),
@@ -667,92 +757,93 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  // ── Next Button (Step 1) ───────────────────────────────────────
+  // ── Next Button ────────────────────────────────────────────────
   Widget _buildNextButton() {
-    return SizedBox(
-      height: 52,
-      child: DecoratedBox(
+    return GestureDetector(
+      onTap: _nextStep,
+      child: Container(
+        height: 54,
         decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1D5E40), Color(0xFF2D8A5E), Color(0xFF3DAB78)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.32),
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.35),
               blurRadius: 20,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: ElevatedButton(
-          onPressed: _nextStep,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '下一步',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              '下一步',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 1,
               ),
-              SizedBox(width: 6),
-              Icon(Icons.arrow_forward, size: 16, color: Colors.white),
-            ],
-          ),
+            ),
+            SizedBox(width: 6),
+            Icon(Icons.arrow_forward_rounded,
+                size: 17, color: Colors.white),
+          ],
         ),
       ),
     );
   }
 
-  // ── Register Button (Step 2) ───────────────────────────────────
+  // ── Register Button ────────────────────────────────────────────
   Widget _buildRegisterButton() {
-    return SizedBox(
-      height: 52,
-      child: DecoratedBox(
+    return GestureDetector(
+      onTap: _isLoading ? null : _onRegister,
+      child: Container(
+        height: 54,
         decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1D5E40), Color(0xFF2D8A5E), Color(0xFF3DAB78)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.32),
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.35),
               blurRadius: 20,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _onRegister,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+        child: Center(
           child: _isLoading
               ? const SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 22,
+                  height: 22,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                      strokeWidth: 2, color: Colors.white),
                 )
-              : const Text(
-                  '完成注册',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.check_circle_outline,
+                        color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      '完成注册',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
                 ),
         ),
       ),
@@ -770,16 +861,22 @@ class _RegisterPageState extends State<RegisterPage>
                 height: 1,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.transparent, AppColors.borderColor],
+                    colors: [
+                      Colors.transparent,
+                      const Color(0xFF2D6A4F).withValues(alpha: 0.15)
+                    ],
                   ),
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 '或使用第三方账号',
-                style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.4),
+                ),
               ),
             ),
             Expanded(
@@ -787,7 +884,10 @@ class _RegisterPageState extends State<RegisterPage>
                 height: 1,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.borderColor, Colors.transparent],
+                    colors: [
+                      const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+                      Colors.transparent
+                    ],
                   ),
                 ),
               ),
@@ -809,7 +909,7 @@ class _RegisterPageState extends State<RegisterPage>
             Expanded(
               child: _SocialButton(
                 icon: Icons.apple,
-                iconColor: AppColors.textPrimary,
+                iconColor: const Color(0xFF1E1810),
                 label: 'Apple',
                 onTap: () {},
               ),
@@ -820,7 +920,7 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  // ── Shared TextField ───────────────────────────────────────────
+  // ── TextField ──────────────────────────────────────────────────
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -836,35 +936,45 @@ class _RegisterPageState extends State<RegisterPage>
       obscureText: obscureText,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+      style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 13.5, color: AppColors.textHint),
+        hintStyle: const TextStyle(
+            fontSize: 13.5, color: Color(0xFFA09080)),
         filled: true,
-        fillColor: AppColors.inputBg,
-        prefixIcon: Icon(prefixIcon, size: 18, color: AppColors.textHint),
+        fillColor: const Color(0xFFF9F7F2),
+        prefixIcon:
+            Icon(prefixIcon, size: 18, color: const Color(0xFFA09080)),
         suffixIcon: suffixIcon != null
-            ? Padding(padding: const EdgeInsets.only(right: 4), child: suffixIcon)
+            ? Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: suffixIcon)
             : null,
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(vertical: 15),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+              width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+              width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(13),
+          borderSide:
+              const BorderSide(color: Color(0xFF2D6A4F), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.red.withOpacity(0.6), width: 1.5),
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(
+              color: Colors.red.withValues(alpha: 0.5), width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(13),
           borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
       ),
@@ -873,27 +983,103 @@ class _RegisterPageState extends State<RegisterPage>
   }
 }
 
-// ─── Sub-widgets ──────────────────────────────────────────────────
+// ─── Background Painter ───────────────────────────────────────────
+class _RegBgPainter extends CustomPainter {
+  final double rotation;
+  const _RegBgPainter({required this.rotation});
 
-class _AmbientOrb extends StatelessWidget {
-  final double size;
-  final Color color;
-  const _AmbientOrb({required this.size, required this.color});
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
-          stops: const [0.0, 0.7],
-        ),
-      ),
+  void paint(Canvas canvas, Size size) {
+    // 右上金色光晕
+    canvas.drawCircle(
+      Offset(size.width + 30, -30),
+      190,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFFC9A84C).withValues(alpha: 0.07),
+            Colors.transparent,
+          ],
+          stops: const [0, 0.7],
+        ).createShader(Rect.fromCircle(
+            center: Offset(size.width + 30, -30), radius: 190)),
     );
+    // 左下墨绿光晕
+    canvas.drawCircle(
+      Offset(-40, size.height + 30),
+      200,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFF2D6A4F).withValues(alpha: 0.09),
+            Colors.transparent,
+          ],
+          stops: const [0, 0.7],
+        ).createShader(Rect.fromCircle(
+            center: Offset(-40, size.height + 30), radius: 200)),
+    );
+    // 格纹
+    final g = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.022)
+      ..strokeWidth = 0.5;
+    for (double x = 0; x < size.width; x += 28) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), g);
+    }
+    for (double y = 0; y < size.height; y += 28) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), g);
+    }
+    // 左上角慢转装饰圈
+    canvas.save();
+    canvas.translate(24, 180);
+    canvas.rotate(rotation);
+    final rp = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(Offset.zero, 44, rp);
+    for (int i = 0; i < 8; i++) {
+      final a = i * math.pi / 4;
+      canvas.drawLine(
+        Offset(math.cos(a) * 37, math.sin(a) * 37),
+        Offset(math.cos(a) * 44, math.sin(a) * 44),
+        rp,
+      );
+    }
+    canvas.restore();
   }
+
+  @override
+  bool shouldRepaint(_RegBgPainter old) => old.rotation != rotation;
 }
+
+// ─── Small Bagua Ring ─────────────────────────────────────────────
+class _SmallBaguaRingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2 - 2;
+    final paint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    canvas.drawCircle(Offset(cx, cy), r, paint);
+    for (int i = 0; i < 8; i++) {
+      final a = i * math.pi / 4;
+      canvas.drawLine(
+        Offset(cx + math.cos(a) * (r - 8), cy + math.sin(a) * (r - 8)),
+        Offset(cx + math.cos(a) * r, cy + math.sin(a) * r),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ─── Shared Sub-widgets ───────────────────────────────────────────
 
 class _BrandMark extends StatelessWidget {
   const _BrandMark();
@@ -903,19 +1089,38 @@ class _BrandMark extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         Container(
-          width: 14,
-          height: 14,
+          width: 16,
+          height: 16,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.9), width: 1.2),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: 0.9), width: 1.3),
           ),
         ),
         Container(
-          width: 5,
-          height: 5,
-          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+              shape: BoxShape.circle, color: Colors.white),
         ),
       ],
+    );
+  }
+}
+
+class _InputLabel extends StatelessWidget {
+  final String text;
+  const _InputLabel({required this.text});
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF3A3028).withValues(alpha: 0.65),
+        letterSpacing: 0.5,
+      ),
     );
   }
 }
@@ -924,7 +1129,8 @@ class _StepDot extends StatelessWidget {
   final int index;
   final int current;
   final String label;
-  const _StepDot({required this.index, required this.current, required this.label});
+  const _StepDot(
+      {required this.index, required this.current, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -934,16 +1140,23 @@ class _StepDot extends StatelessWidget {
       children: [
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          width: isCurrent ? 32 : 24,
-          height: 24,
+          width: isCurrent ? 34 : 26,
+          height: 26,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: isActive ? AppColors.primaryGradient : null,
-            color: isActive ? null : AppColors.borderColor,
+            borderRadius: BorderRadius.circular(13),
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isActive ? null : const Color(0xFF2D6A4F).withValues(alpha: 0.1),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color:
+                          const Color(0xFF2D6A4F).withValues(alpha: 0.28),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -952,13 +1165,15 @@ class _StepDot extends StatelessWidget {
           ),
           child: Center(
             child: isActive && !isCurrent
-                ? const Icon(Icons.check, size: 12, color: Colors.white)
+                ? const Icon(Icons.check, size: 13, color: Colors.white)
                 : Text(
                     '${index + 1}',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? Colors.white : AppColors.textHint,
+                      fontWeight: FontWeight.w700,
+                      color: isActive
+                          ? Colors.white
+                          : const Color(0xFFA09080),
                     ),
                   ),
           ),
@@ -968,8 +1183,11 @@ class _StepDot extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 10,
-            color: isActive ? AppColors.primary : AppColors.textHint,
-            fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+            color: isActive
+                ? const Color(0xFF2D6A4F)
+                : const Color(0xFFA09080),
+            fontWeight:
+                isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ],
@@ -983,7 +1201,7 @@ class _GenderSelector extends StatefulWidget {
 }
 
 class _GenderSelectorState extends State<_GenderSelector> {
-  int _selected = -1; // -1=未选, 0=男, 1=女, 2=不透露
+  int _selected = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -994,27 +1212,37 @@ class _GenderSelectorState extends State<_GenderSelector> {
     ];
     return Row(
       children: List.generate(options.length, (i) {
-        final selected = _selected == i;
+        final sel = _selected == i;
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(right: i < options.length - 1 ? 8 : 0),
             child: GestureDetector(
-              onTap: () => setState(() => _selected = _selected == i ? -1 : i),
+              onTap: () =>
+                  setState(() => _selected = _selected == i ? -1 : i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 44,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  gradient: selected ? AppColors.primaryGradient : null,
-                  color: selected ? null : AppColors.inputBg,
+                  borderRadius: BorderRadius.circular(11),
+                  gradient: sel
+                      ? const LinearGradient(
+                          colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: sel ? null : const Color(0xFFF9F7F2),
                   border: Border.all(
-                    color: selected ? Colors.transparent : AppColors.borderColor,
-                    width: 1.5,
+                    color: sel
+                        ? Colors.transparent
+                        : const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+                    width: 1.2,
                   ),
-                  boxShadow: selected
+                  boxShadow: sel
                       ? [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.25),
+                            color: const Color(0xFF2D6A4F)
+                                .withValues(alpha: 0.25),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),
@@ -1024,18 +1252,20 @@ class _GenderSelectorState extends State<_GenderSelector> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      options[i].$1,
-                      size: 16,
-                      color: selected ? Colors.white : AppColors.textHint,
-                    ),
+                    Icon(options[i].$1,
+                        size: 16,
+                        color: sel
+                            ? Colors.white
+                            : const Color(0xFFA09080)),
                     const SizedBox(width: 4),
                     Text(
                       options[i].$2,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: selected ? Colors.white : AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        color: sel
+                            ? Colors.white
+                            : const Color(0xFF3A3028),
                       ),
                     ),
                   ],
@@ -1049,48 +1279,36 @@ class _GenderSelectorState extends State<_GenderSelector> {
   }
 }
 
-class _CornerAccent extends StatelessWidget {
+class _Bracket extends StatelessWidget {
   final Color color;
-  final List<bool> corners; // [topLeft, topRight, bottomLeft, bottomRight]
-  const _CornerAccent({required this.color, required this.corners});
+  final bool tl, tr, bl, br;
+  const _Bracket(
+      {required this.color,
+      this.tl = false,
+      this.tr = false,
+      this.bl = false,
+      this.br = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 12,
-      height: 12,
+      width: 13,
+      height: 13,
       decoration: BoxDecoration(
         border: Border(
-          top: corners[0] || corners[1]
-              ? BorderSide(color: color, width: 1.5)
+          top: (tl || tr)
+              ? BorderSide(color: color.withValues(alpha: 0.55), width: 1.8)
               : BorderSide.none,
-          left: corners[0] || corners[2]
-              ? BorderSide(color: color, width: 1.5)
+          left: (tl || bl)
+              ? BorderSide(color: color.withValues(alpha: 0.55), width: 1.8)
               : BorderSide.none,
-          right: corners[1] || corners[3]
-              ? BorderSide(color: color, width: 1.5)
+          right: (tr || br)
+              ? BorderSide(color: color.withValues(alpha: 0.55), width: 1.8)
               : BorderSide.none,
-          bottom: corners[2] || corners[3]
-              ? BorderSide(color: color, width: 1.5)
+          bottom: (bl || br)
+              ? BorderSide(color: color.withValues(alpha: 0.55), width: 1.8)
               : BorderSide.none,
         ),
-      ),
-    );
-  }
-}
-
-class _InputLabel extends StatelessWidget {
-  final String text;
-  const _InputLabel({required this.text});
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11.5,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textSecondary,
-        letterSpacing: 0.5,
       ),
     );
   }
@@ -1107,16 +1325,27 @@ class _SocialButton extends StatelessWidget {
     required this.label,
     required this.onTap,
   });
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 46,
+        height: 48,
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderColor, width: 1.5),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1128,7 +1357,7 @@ class _SocialButton extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
+                color: Color(0xFF1E1810),
               ),
             ),
           ],

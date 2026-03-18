@@ -2,7 +2,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-// ─── Login Page ───────────────────────────────────────────────────
+// ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
+// primary      = Color(0xFF2D6A4F)  墨绿
+// softBg       = Color(0xFFF4F1EB)  宣纸米色
+// cardBg       = Color(0xFFFFFFFF)
+// inputBg      = Color(0xFFF9F7F2)
+// textPrimary  = Color(0xFF1E1810)
+// textSecondary= Color(0xFF3A3028)
+// textHint     = Color(0xFFA09080)
+// tcmGold      = Color(0xFFC9A84C)
+// tcmGoldLight = Color(0xFFFAF3E0)
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
@@ -10,26 +20,54 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscurePass = true;
   bool _isLoading = false;
-  late AnimationController _scanController;
+
+  late AnimationController _breatheController;
+  late AnimationController _rotateController;
+  late AnimationController _fadeController;
+  late Animation<double> _breatheAnim;
+  late Animation<double> _rotateAnim;
+  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _scanController = AnimationController(
+    _breatheController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 18),
     )..repeat();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..forward();
+
+    _breatheAnim =
+        Tween<double>(begin: 0.96, end: 1.04).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
+    );
+    _rotateAnim =
+        Tween<double>(begin: 0, end: 2 * math.pi).animate(
+      CurvedAnimation(parent: _rotateController, curve: Curves.linear),
+    );
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
   }
 
   @override
   void dispose() {
-    _scanController.dispose();
+    _breatheController.dispose();
+    _rotateController.dispose();
+    _fadeController.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -45,62 +83,49 @@ class _LoginPageState extends State<LoginPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.softBg,
+      backgroundColor: const Color(0xFFF4F1EB),
       body: Stack(
         children: [
-          // Ambient orb – top left
-          Positioned(
-            top: -100,
-            left: -80,
-            child: _AmbientOrb(
-              size: 340,
-              color: AppColors.secondary.withOpacity(0.18),
-            ),
-          ),
-          // Ambient orb – bottom right
-          Positioned(
-            bottom: -80,
-            right: -60,
-            child: _AmbientOrb(
-              size: 280,
-              color: AppColors.primary.withOpacity(0.14),
-            ),
-          ),
-          // Main scrollable content
+          // 背景装饰层
+          Positioned.fill(child: _buildBackground()),
+          // 主内容
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildBrandRow(),
-                    const SizedBox(height: 32),
-                    _buildScanVisual(),
-                    const SizedBox(height: 24),
-                    _buildHeroText(),
-                    const SizedBox(height: 28),
-                    _buildDivider(),
-                    const SizedBox(height: 24),
-                    _buildEmailField(),
-                    const SizedBox(height: 14),
-                    _buildPasswordField(),
-                    const SizedBox(height: 8),
-                    _buildForgotPassword(),
-                    const SizedBox(height: 20),
-                    _buildPrimaryButton(),
-                    const SizedBox(height: 20),
-                    _buildOrDivider(),
-                    const SizedBox(height: 16),
-                    _buildSocialRow(),
-                    const SizedBox(height: 20),
-                    _buildSignUpRow(),
-                    const SizedBox(height: 24),
-                    _buildChipsRow(),
-                    const SizedBox(height: 32),
-                  ],
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 24),
+                      _buildBrandRow(),
+                      const SizedBox(height: 36),
+                      _buildHeroVisual(),
+                      const SizedBox(height: 20),
+                      _buildHeroText(),
+                      const SizedBox(height: 28),
+                      _buildSectionDivider(),
+                      const SizedBox(height: 24),
+                      _buildEmailField(),
+                      const SizedBox(height: 14),
+                      _buildPasswordField(),
+                      const SizedBox(height: 8),
+                      _buildForgotPassword(),
+                      const SizedBox(height: 22),
+                      _buildPrimaryButton(),
+                      const SizedBox(height: 20),
+                      _buildOrDivider(),
+                      const SizedBox(height: 16),
+                      _buildSocialRow(),
+                      const SizedBox(height: 22),
+                      _buildSignUpRow(),
+                      const SizedBox(height: 20),
+                      _buildFeatureChips(),
+                      const SizedBox(height: 36),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -110,102 +135,180 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
+  // ── Background ──────────────────────────────────────────────────
+  Widget _buildBackground() {
+    return AnimatedBuilder(
+      animation: _rotateAnim,
+      builder: (context, _) => CustomPaint(
+        painter: _LoginBgPainter(rotation: _rotateAnim.value),
+      ),
+    );
+  }
+
   // ── Brand Row ──────────────────────────────────────────────────
   Widget _buildBrandRow() {
     return Row(
       children: [
         Container(
-          width: 36,
-          height: 36,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(10),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(11),
           ),
-          child: const Center(
-            child: _BrandMark(),
-          ),
+          child: const Center(child: _BrandMark()),
         ),
         const SizedBox(width: 10),
         RichText(
           text: const TextSpan(
             style: TextStyle(
               fontSize: 18,
-              color: AppColors.deepNavy,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.3,
+              color: Color(0xFF1E1810),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
             children: [
               TextSpan(text: '脉 '),
               TextSpan(
                 text: 'AI',
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: Color(0xFF2D6A4F)),
               ),
               TextSpan(text: ' 健康'),
             ],
+          ),
+        ),
+        const Spacer(),
+        // 节气装饰标签
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF3E0),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(
+              color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
+              width: 1,
+            ),
+          ),
+          child: const Text(
+            '春分 · 木旺',
+            style: TextStyle(
+              fontSize: 10,
+              color: Color(0xFFC9A84C),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ],
     );
   }
 
-  // ── Scan Visual ────────────────────────────────────────────────
-  Widget _buildScanVisual() {
+  // ── Hero Visual (中医望诊图示) ──────────────────────────────────
+  Widget _buildHeroVisual() {
     return Center(
-      child: SizedBox(
-        width: 140,
-        height: 140,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer ring
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withOpacity(0.2),
-                  width: 1.5,
+      child: AnimatedBuilder(
+        animation: _breatheAnim,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _breatheAnim.value,
+            child: child,
+          );
+        },
+        child: SizedBox(
+          width: 148,
+          height: 148,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // 旋转八卦环
+              AnimatedBuilder(
+                animation: _rotateAnim,
+                builder: (_, __) => Transform.rotate(
+                  angle: _rotateAnim.value,
+                  child: CustomPaint(
+                    size: const Size(148, 148),
+                    painter: _BaguaRingPainter(),
+                  ),
                 ),
               ),
-            ),
-            // Middle ring
-            Container(
-              margin: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.secondary.withOpacity(0.35),
-                  width: 1.5,
+              // 静态中环
+              Container(
+                width: 112,
+                height: 112,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.18),
+                    width: 1.2,
+                  ),
                 ),
               ),
-            ),
-            // Pulsing inner ring
-            _PulsingRing(controller: _scanController),
-            // Face icon container
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xFFEFF5FF),
-                    const Color(0xFFE0F7F3),
+              // 内圆图标
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFE8F5EE), Color(0xFFD4EEE3)],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.22),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
+                child: const Icon(
+                  Icons.face_retouching_natural_outlined,
+                  size: 32,
+                  color: Color(0xFF2D6A4F),
+                ),
               ),
-              child: const Icon(
-                Icons.face_retouching_natural_outlined,
-                size: 32,
-                color: AppColors.primary,
+              // 扫描线动画
+              AnimatedBuilder(
+                animation: _breatheController,
+                builder: (_, __) {
+                  final t = _breatheController.value;
+                  final topOff = 28.0 + t * 90.0;
+                  return Positioned(
+                    top: topOff,
+                    left: 28,
+                    right: 28,
+                    child: Opacity(
+                      opacity: (math.sin(t * math.pi)).clamp(0.0, 1.0),
+                      child: Container(
+                        height: 1.2,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              const Color(0xFF2D6A4F).withValues(alpha: 0.6),
+                              Colors.transparent,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ),
-            // Scan line animation
-            _ScanLine(controller: _scanController),
-            // Corner brackets
-            const _CornerBrackets(),
-          ],
+              // 四角刻度
+              const _CornerBrackets(color: Color(0xFF2D6A4F)),
+            ],
+          ),
         ),
       ),
     );
@@ -215,49 +318,89 @@ class _LoginPageState extends State<LoginPage>
   Widget _buildHeroText() {
     return Column(
       children: [
+        // 装饰横线
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _ornamentLine(),
+            const SizedBox(width: 12),
+            const Text(
+              '望 · 闻 · 问 · 切',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 3,
+                color: Color(0xFF2D6A4F),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 12),
+            _ornamentLine(),
+          ],
+        ),
+        const SizedBox(height: 14),
         RichText(
           textAlign: TextAlign.center,
           text: const TextSpan(
             style: TextStyle(
               fontSize: 26,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.5,
+              color: Color(0xFF1E1810),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
               height: 1.25,
             ),
             children: [
               TextSpan(text: '智能体质'),
               TextSpan(
                 text: '诊断',
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: Color(0xFF2D6A4F)),
               ),
               TextSpan(text: '\n从面部开始'),
             ],
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'AI 面诊 · 舌象分析 · 经络调理\n三分钟生成专属健康报告',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 13.5,
-            color: AppColors.textSecondary,
-            height: 1.65,
+            fontSize: 13,
+            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+            height: 1.7,
           ),
         ),
       ],
     );
   }
 
-  // ── Divider ────────────────────────────────────────────────────
-  Widget _buildDivider() {
+  Widget _ornamentLine() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20, height: 1,
+          color: const Color(0xFF2D6A4F).withValues(alpha: 0.3),
+        ),
+        const SizedBox(width: 4),
+        Container(
+          width: 4, height: 4,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Section Divider ────────────────────────────────────────────
+  Widget _buildSectionDivider() {
     return Container(
       height: 1,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
             Colors.transparent,
-            AppColors.borderColor,
+            const Color(0xFF2D6A4F).withValues(alpha: 0.15),
             Colors.transparent,
           ],
         ),
@@ -275,17 +418,11 @@ class _LoginPageState extends State<LoginPage>
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textPrimary,
-          ),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
             hint: '请输入手机号或邮箱',
-            prefixIcon: const Icon(
-              Icons.email_outlined,
-              size: 18,
-              color: AppColors.textHint,
-            ),
+            prefixIcon: const Icon(Icons.email_outlined,
+                size: 18, color: Color(0xFFA09080)),
           ),
           validator: (v) =>
               (v == null || v.isEmpty) ? '请输入手机号或邮箱' : null,
@@ -304,17 +441,11 @@ class _LoginPageState extends State<LoginPage>
         TextFormField(
           controller: _passCtrl,
           obscureText: _obscurePass,
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textPrimary,
-          ),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
             hint: '请输入密码',
-            prefixIcon: const Icon(
-              Icons.lock_outline,
-              size: 18,
-              color: AppColors.textHint,
-            ),
+            prefixIcon: const Icon(Icons.lock_outline,
+                size: 18, color: Color(0xFFA09080)),
             suffixIcon: GestureDetector(
               onTap: () => setState(() => _obscurePass = !_obscurePass),
               child: Icon(
@@ -322,7 +453,7 @@ class _LoginPageState extends State<LoginPage>
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 size: 18,
-                color: AppColors.textHint,
+                color: const Color(0xFFA09080),
               ),
             ),
           ),
@@ -348,7 +479,7 @@ class _LoginPageState extends State<LoginPage>
           '忘记密码？',
           style: TextStyle(
             fontSize: 12.5,
-            color: AppColors.primary,
+            color: Color(0xFF2D6A4F),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -358,46 +489,50 @@ class _LoginPageState extends State<LoginPage>
 
   // ── Primary Button ─────────────────────────────────────────────
   Widget _buildPrimaryButton() {
-    return SizedBox(
-      height: 52,
-      child: DecoratedBox(
+    return GestureDetector(
+      onTap: _isLoading ? null : _onLogin,
+      child: Container(
+        height: 54,
         decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1D5E40), Color(0xFF2D8A5E), Color(0xFF3DAB78)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.35),
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.38),
               blurRadius: 20,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _onLogin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+        child: Center(
           child: _isLoading
               ? const SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 22,
+                  height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),
                 )
-              : const Text(
-                  '登录账号',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.login_rounded, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      '登录账号',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
         ),
       ),
@@ -408,15 +543,18 @@ class _LoginPageState extends State<LoginPage>
   Widget _buildOrDivider() {
     return Row(
       children: [
-        Expanded(child: _buildDivider()),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+        Expanded(child: _buildSectionDivider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             '其他方式',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.45),
+            ),
           ),
         ),
-        Expanded(child: _buildDivider()),
+        Expanded(child: _buildSectionDivider()),
       ],
     );
   }
@@ -437,7 +575,7 @@ class _LoginPageState extends State<LoginPage>
         Expanded(
           child: _SocialButton(
             icon: Icons.apple,
-            iconColor: AppColors.textPrimary,
+            iconColor: const Color(0xFF1E1810),
             label: 'Apple 登录',
             onTap: () {},
           ),
@@ -451,9 +589,12 @@ class _LoginPageState extends State<LoginPage>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           '还没有账号？',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 13,
+            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+          ),
         ),
         TextButton(
           onPressed: () {},
@@ -466,8 +607,8 @@ class _LoginPageState extends State<LoginPage>
             '立即注册',
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.primary,
-              fontWeight: FontWeight.w500,
+              color: Color(0xFF2D6A4F),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -476,20 +617,55 @@ class _LoginPageState extends State<LoginPage>
   }
 
   // ── Feature Chips ──────────────────────────────────────────────
-  Widget _buildChipsRow() {
+  Widget _buildFeatureChips() {
+    const chips = [
+      ('面部扫描', Color(0xFF2D6A4F)),
+      ('舌象分析', Color(0xFF0D7A5A)),
+      ('AI 诊断', Color(0xFF6B5B95)),
+    ];
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _FeatureChip(label: '面部扫描', color: AppColors.primary),
-        const SizedBox(width: 8),
-        _FeatureChip(label: '舌象分析', color: AppColors.secondary),
-        const SizedBox(width: 8),
-        _FeatureChip(label: 'AI 诊断', color: const Color(0xFF9B8EF0)),
-      ],
+      children: chips.map((c) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9F7F2),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: c.$2.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6, height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: c.$2,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  c.$1,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF3A3028).withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  // ── Input Decoration Helper ────────────────────────────────────
+  // ── Input Decoration ───────────────────────────────────────────
   InputDecoration _inputDecoration({
     required String hint,
     Widget? prefixIcon,
@@ -497,12 +673,9 @@ class _LoginPageState extends State<LoginPage>
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(
-        fontSize: 13.5,
-        color: AppColors.textHint,
-      ),
+      hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFA09080)),
       filled: true,
-      fillColor: AppColors.inputBg,
+      fillColor: const Color(0xFFF9F7F2),
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon != null
           ? Padding(
@@ -510,55 +683,199 @@ class _LoginPageState extends State<LoginPage>
               child: suffixIcon,
             )
           : null,
-      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(vertical: 15),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderRadius: BorderRadius.circular(13),
+        borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-            color: Colors.red.withOpacity(0.6), width: 1.5),
+        borderRadius: BorderRadius.circular(13),
+        borderSide:
+            BorderSide(color: Colors.red.withValues(alpha: 0.5), width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(13),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     );
   }
 }
 
-// ─── Sub-widgets ──────────────────────────────────────────────────
+// ─── Background Painter ───────────────────────────────────────────
+class _LoginBgPainter extends CustomPainter {
+  final double rotation;
+  const _LoginBgPainter({required this.rotation});
 
-class _AmbientOrb extends StatelessWidget {
-  final double size;
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 右上墨绿光晕
+    canvas.drawCircle(
+      Offset(size.width + 40, -40),
+      200,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+            Colors.transparent,
+          ],
+          stops: const [0, 0.7],
+        ).createShader(Rect.fromCircle(
+            center: Offset(size.width + 40, -40), radius: 200)),
+    );
+    // 左下金色光晕
+    canvas.drawCircle(
+      Offset(-50, size.height + 40),
+      180,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFFC9A84C).withValues(alpha: 0.07),
+            Colors.transparent,
+          ],
+          stops: const [0, 0.7],
+        ).createShader(Rect.fromCircle(
+            center: Offset(-50, size.height + 40), radius: 180)),
+    );
+    // 极淡格纹
+    final gridPaint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.022)
+      ..strokeWidth = 0.5;
+    for (double x = 0; x < size.width; x += 28) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (double y = 0; y < size.height; y += 28) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+    // 右下角慢转装饰圆
+    canvas.save();
+    canvas.translate(size.width - 24, size.height - 80);
+    canvas.rotate(rotation);
+    final ringP = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.055)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(Offset.zero, 50, ringP);
+    for (int i = 0; i < 8; i++) {
+      final a = i * math.pi / 4;
+      canvas.drawLine(
+        Offset(math.cos(a) * 42, math.sin(a) * 42),
+        Offset(math.cos(a) * 50, math.sin(a) * 50),
+        ringP,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_LoginBgPainter old) => old.rotation != rotation;
+}
+
+// ─── Bagua Ring Painter ───────────────────────────────────────────
+class _BaguaRingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2 - 2;
+    final paint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    canvas.drawCircle(Offset(cx, cy), r, paint);
+    for (int i = 0; i < 8; i++) {
+      final a = i * math.pi / 4;
+      canvas.drawLine(
+        Offset(cx + math.cos(a) * (r - 10), cy + math.sin(a) * (r - 10)),
+        Offset(cx + math.cos(a) * r, cy + math.sin(a) * r),
+        paint,
+      );
+    }
+    // 外细点
+    for (int i = 0; i < 24; i++) {
+      final a = i * math.pi / 12;
+      canvas.drawCircle(
+        Offset(cx + math.cos(a) * r, cy + math.sin(a) * r),
+        1,
+        Paint()
+          ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.2)
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ─── Corner Brackets ─────────────────────────────────────────────
+class _CornerBrackets extends StatelessWidget {
   final Color color;
-  const _AmbientOrb({required this.size, required this.color});
+  const _CornerBrackets({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(top: 10, left: 10, child: _Bracket(color: color, tl: true)),
+        Positioned(top: 10, right: 10, child: _Bracket(color: color, tr: true)),
+        Positioned(
+            bottom: 10, left: 10, child: _Bracket(color: color, bl: true)),
+        Positioned(
+            bottom: 10, right: 10, child: _Bracket(color: color, br: true)),
+      ],
+    );
+  }
+}
+
+class _Bracket extends StatelessWidget {
+  final Color color;
+  final bool tl, tr, bl, br;
+  const _Bracket(
+      {required this.color,
+      this.tl = false,
+      this.tr = false,
+      this.bl = false,
+      this.br = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      width: 14,
+      height: 14,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
-          stops: const [0.0, 0.7],
+        border: Border(
+          top: (tl || tr)
+              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              : BorderSide.none,
+          left: (tl || bl)
+              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              : BorderSide.none,
+          right: (tr || br)
+              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              : BorderSide.none,
+          bottom: (bl || br)
+              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              : BorderSide.none,
         ),
       ),
     );
   }
 }
 
+// ─── Brand Mark ───────────────────────────────────────────────────
 class _BrandMark extends StatelessWidget {
   const _BrandMark();
   @override
@@ -571,7 +888,8 @@ class _BrandMark extends StatelessWidget {
           height: 18,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.9), width: 1.5),
+            border:
+                Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.5),
           ),
         ),
         Container(
@@ -587,160 +905,7 @@ class _BrandMark extends StatelessWidget {
   }
 }
 
-class _PulsingRing extends StatelessWidget {
-  final AnimationController controller;
-  const _PulsingRing({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (_, __) {
-        final scale = 1.0 + math.sin(controller.value * 2 * math.pi) * 0.05;
-        final opacity =
-            0.6 + math.sin(controller.value * 2 * math.pi) * 0.4;
-        return Transform.scale(
-          scale: scale,
-          child: Container(
-            margin: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withOpacity(opacity),
-                width: 1.5,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ScanLine extends StatelessWidget {
-  final AnimationController controller;
-  const _ScanLine({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (_, __) {
-        final t = controller.value;
-        final topOffset = 20.0 + t * 100.0;
-        final opacity = t < 0.1
-            ? t / 0.1
-            : t > 0.9
-                ? (1.0 - t) / 0.1
-                : 1.0;
-        return Positioned(
-          top: topOffset,
-          left: 20,
-          right: 20,
-          child: Opacity(
-            opacity: opacity,
-            child: Container(
-              height: 1.5,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    AppColors.secondary,
-                    Colors.transparent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(1),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _CornerBrackets extends StatelessWidget {
-  const _CornerBrackets();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Top-left
-        Positioned(
-          top: 12,
-          left: 12,
-          child: _Bracket(
-            borderRadius:
-                const BorderRadius.only(topLeft: Radius.circular(3)),
-            border: const Border(
-              top: BorderSide(color: AppColors.primary, width: 2),
-              left: BorderSide(color: AppColors.primary, width: 2),
-            ),
-          ),
-        ),
-        // Top-right
-        Positioned(
-          top: 12,
-          right: 12,
-          child: _Bracket(
-            borderRadius:
-                const BorderRadius.only(topRight: Radius.circular(3)),
-            border: const Border(
-              top: BorderSide(color: AppColors.primary, width: 2),
-              right: BorderSide(color: AppColors.primary, width: 2),
-            ),
-          ),
-        ),
-        // Bottom-left
-        Positioned(
-          bottom: 12,
-          left: 12,
-          child: _Bracket(
-            borderRadius:
-                const BorderRadius.only(bottomLeft: Radius.circular(3)),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.secondary, width: 2),
-              left: BorderSide(color: AppColors.secondary, width: 2),
-            ),
-          ),
-        ),
-        // Bottom-right
-        Positioned(
-          bottom: 12,
-          right: 12,
-          child: _Bracket(
-            borderRadius:
-                const BorderRadius.only(bottomRight: Radius.circular(3)),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.secondary, width: 2),
-              right: BorderSide(color: AppColors.secondary, width: 2),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Bracket extends StatelessWidget {
-  final BorderRadius borderRadius;
-  final Border border;
-  const _Bracket({required this.borderRadius, required this.border});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        borderRadius: borderRadius,
-        border: border,
-      ),
-    );
-  }
-}
-
+// ─── Input Label ─────────────────────────────────────────────────
 class _InputLabel extends StatelessWidget {
   final String text;
   const _InputLabel({required this.text});
@@ -749,16 +914,17 @@ class _InputLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 11.5,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textSecondary,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF3A3028).withValues(alpha: 0.65),
         letterSpacing: 0.5,
       ),
     );
   }
 }
 
+// ─── Social Button ────────────────────────────────────────────────
 class _SocialButton extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -776,11 +942,21 @@ class _SocialButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 46,
+        height: 48,
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderColor, width: 1.5),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -792,48 +968,11 @@ class _SocialButton extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
+                color: Color(0xFF1E1810),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _FeatureChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _FeatureChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.inputBg,
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: AppColors.borderColor, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
       ),
     );
   }

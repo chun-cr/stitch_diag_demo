@@ -9,7 +9,6 @@ protocol CameraManagerDelegate: AnyObject {
 
 public class CameraManager: NSObject {
     var session: AVCaptureSession?
-    var mode: String = "none"
     weak var delegate: CameraManagerDelegate?
     private(set) var latestSampleBuffer: CMSampleBuffer?
     let isPreviewMirrored = true
@@ -19,19 +18,20 @@ public class CameraManager: NSObject {
     
     func startSession() {
         if session != nil { return }
-        session = AVCaptureSession()
-        session?.sessionPreset = .vga640x480
+        let session = AVCaptureSession()
+        session.sessionPreset = .vga640x480
+        self.session = session
         
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
               let input = try? AVCaptureDeviceInput(device: device) else {
             return
         }
         
-        session?.addInput(input)
+        session.addInput(input)
         
         let output = AVCaptureVideoDataOutput()
         output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera_queue"))
-        session?.addOutput(output)
+        session.addOutput(output)
 
         if let connection = output.connection(with: .video) {
             configureCaptureConnection(connection)
@@ -40,7 +40,7 @@ public class CameraManager: NSObject {
         previewLayer?.session = session
         configurePreviewConnection()
         
-        session?.startRunning()
+        session.startRunning()
     }
     
     func stopSession() {
@@ -50,14 +50,10 @@ public class CameraManager: NSObject {
         session = nil
     }
     
-    func setMode(_ mode: String) {
-        self.mode = mode
-    }
-
     func attachPreview(to view: UIView) {
         if previewLayer == nil {
             let layer = AVCaptureVideoPreviewLayer(session: session)
-            layer.videoGravity = .resizeAspectFill
+            layer.videoGravity = AVLayerVideoGravity.resizeAspectFill
             previewLayer = layer
         }
 
@@ -89,7 +85,7 @@ public class CameraManager: NSObject {
     private func configurePreviewConnection() {
         guard let connection = previewLayer?.connection else { return }
         if connection.isVideoOrientationSupported {
-            connection.videoOrientation = .portrait
+            connection.videoOrientation = AVCaptureVideoOrientation.portrait
         }
         if connection.isVideoMirroringSupported {
             connection.automaticallyAdjustsVideoMirroring = false
