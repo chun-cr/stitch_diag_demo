@@ -46,7 +46,7 @@ final class FaceLandmarkerService: NSObject {
             )
         }
 
-        try? faceLandmarker.detectAsync(videoFrame: image, timestampInMilliseconds: Int(Date().timeIntervalSince1970 * 1000))
+        try? faceLandmarker.detectAsync(image: image, timestampInMilliseconds: Int(Date().timeIntervalSince1970 * 1000))
     }
 }
 

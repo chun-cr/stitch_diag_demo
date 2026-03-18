@@ -52,7 +52,8 @@ public class CameraManager: NSObject {
     
     func attachPreview(to view: UIView) {
         if previewLayer == nil {
-            let layer = AVCaptureVideoPreviewLayer(session: session)
+            let layer = AVCaptureVideoPreviewLayer()
+            layer.session = session
             layer.videoGravity = AVLayerVideoGravity.resizeAspectFill
             previewLayer = layer
         }
