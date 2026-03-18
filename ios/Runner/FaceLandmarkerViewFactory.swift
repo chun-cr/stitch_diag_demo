@@ -1,6 +1,37 @@
 import Flutter
 import UIKit
 
+final class FaceScanStatusStreamHandler: NSObject, FlutterStreamHandler {
+    static let shared = FaceScanStatusStreamHandler()
+
+    private var eventSink: FlutterEventSink?
+    private var lastValue: Bool?
+
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        eventSink = events
+        if let lastValue = lastValue {
+            events(lastValue)
+        }
+        return nil
+    }
+
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        eventSink = nil
+        return nil
+    }
+
+    func publish(hasFace: Bool) {
+        if lastValue == hasFace {
+            return
+        }
+
+        lastValue = hasFace
+        DispatchQueue.main.async {
+            self.eventSink?(hasFace)
+        }
+    }
+}
+
 final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
     func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
         NativeFaceScanPlatformView(frame: frame)
