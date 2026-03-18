@@ -22,6 +22,7 @@ class ScanFrame extends StatefulWidget {
   final String nextRoute;
   final String nextButtonLabel;
   final String skipRoute;
+  final bool showBuiltInFrame;
 
   const ScanFrame({
     super.key,
@@ -39,6 +40,7 @@ class ScanFrame extends StatefulWidget {
     required this.nextRoute,
     required this.nextButtonLabel,
     required this.skipRoute,
+    this.showBuiltInFrame = true,
   });
 
   @override
@@ -127,7 +129,11 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
               height: topHeight + 28, // Overlaps the bottom round corner slightly
               child: Container(
                 decoration: const BoxDecoration(
-                  gradient: AppColors.heroGradient,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2D6FD4), Color(0xFF1DB896)],
+                  ),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -136,9 +142,12 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
                       widget.titleText,
                       style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 20),
-                    _buildScannerVisual(),
-                    const SizedBox(height: 20),
+                    if (widget.showBuiltInFrame) ...[
+                      const SizedBox(height: 20),
+                      _buildScannerVisual(),
+                      const SizedBox(height: 20),
+                    ] else
+                      const SizedBox(height: 12),
                     Text(
                       _getBottomText(),
                       style: TextStyle(
