@@ -26,6 +26,9 @@ class AppColors {
     end: Alignment.bottomRight,
     colors: [Color(0xFF2D6FD4), Color(0xFF1DB896)],
   );
+  // 中医暖金色 — 用于节气、五行、Section 装饰
+  static const tcmGold = Color(0xFFC9A84C);
+  static const tcmGoldLight = Color(0xFFFAF3E0);
 }
 
 // ─── Entry Point ─────────────────────────────────────────────────
@@ -416,11 +419,7 @@ class _HomePageState extends State<HomePage>
     return AnimatedBuilder(
       animation: _scoreAnim,
       builder: (_, __) {
-        final score = (_scoreAnim.value * 86).round();
-        return _ScoreRingWidget(
-          progress: _scoreAnim.value * 0.86,
-          score: score,
-        );
+        return _TcmConstitutionBadge(progress: _scoreAnim.value);
       },
     );
   }
@@ -428,32 +427,79 @@ class _HomePageState extends State<HomePage>
   // ── Quick Scan ─────────────────────────────────────────────────
   Widget _buildQuickScan() {
     const scans = [
-      (Icons.face_retouching_natural_outlined, '面部\n扫描', Color(0xFF4A8FE8)),
-      (Icons.sentiment_satisfied_alt_outlined, '舌头\n扫描', Color(0xFF3ECFB2)),
-      (Icons.back_hand_outlined, '手掌\n扫描', Color(0xFF9B8EF0)),
+      ('01', '面部\n望诊', '观气色', Color(0xFF4A8FE8), Icons.face_retouching_natural_outlined),
+      ('02', '舌象\n诊断', '察舌苔', Color(0xFF3ECFB2), Icons.sentiment_satisfied_alt_outlined),
+      ('03', '手掌\n经络', '看掌纹', Color(0xFF9B8EF0), Icons.back_hand_outlined),
     ];
     return _SectionShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
-            title: '快捷扫描',
-            action: '查看全部',
-            leadingIcon: Icons.qr_code_scanner_outlined,
-            accentColor: AppColors.primary,
+          Row(
+            children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.18), width: 1),
+                ),
+                child: const Icon(Icons.visibility_outlined, size: 18, color: AppColors.primary),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                '望诊入口',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary, letterSpacing: -0.3),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.tcmGoldLight,
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: AppColors.tcmGold.withValues(alpha: 0.3), width: 1),
+                ),
+                child: const Text('望·闻·问·切', style: TextStyle(fontSize: 10, color: AppColors.tcmGold, fontWeight: FontWeight.w500)),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.14), width: 1),
+                ),
+                child: const Text('查看全部', style: TextStyle(fontSize: 12.5, color: AppColors.primary, fontWeight: FontWeight.w600)),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           Row(
             children: List.generate(scans.length, (i) {
               final item = scans[i];
               return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: i < scans.length - 1 ? 10 : 0),
-                  child: _ScanCard(
-                    icon: item.$1,
-                    label: item.$2,
-                    color: item.$3,
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _ScanCard(
+                        stepNum: item.$1,
+                        icon: item.$5,
+                        label: item.$2,
+                        subLabel: item.$3,
+                        color: item.$4,
+                        onTap: () {
+                          if (item.$2.contains('面部')) context.push(AppRoutes.scanFace);
+                          else if (item.$2.contains('舌象')) context.push(AppRoutes.scanTongue);
+                          else if (item.$2.contains('手掌')) context.push(AppRoutes.scanPalm);
+                        },
+                      ),
+                    ),
+                    if (i < scans.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.textHint.withValues(alpha: 0.5)),
+                      ),
+                  ],
                 ),
               );
             }),
@@ -469,14 +515,43 @@ class _HomePageState extends State<HomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
-            title: '最近报告',
-            action: '查看全部',
-            leadingIcon: Icons.description_outlined,
-            accentColor: AppColors.secondary,
+          Row(
+            children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.secondary.withValues(alpha: 0.18), width: 1),
+                ),
+                child: const Icon(Icons.description_outlined, size: 18, color: AppColors.secondary),
+              ),
+              const SizedBox(width: 10),
+              const Text('辨证报告', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary, letterSpacing: -0.3)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.tcmGoldLight,
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: AppColors.tcmGold.withValues(alpha: 0.3), width: 1),
+                ),
+                child: const Text('AI 四诊合参', style: TextStyle(fontSize: 10, color: AppColors.tcmGold, fontWeight: FontWeight.w500)),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: AppColors.secondary.withValues(alpha: 0.14), width: 1),
+                ),
+                child: const Text('查看全部', style: TextStyle(fontSize: 12.5, color: AppColors.secondary, fontWeight: FontWeight.w600)),
+              ),
+            ],
           ),
-          SizedBox(height: 14),
-          _LastReportCard(),
+          const SizedBox(height: 14),
+          const _LastReportCard(),
         ],
       ),
     );
@@ -519,10 +594,36 @@ class _HomePageState extends State<HomePage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionHeader(title: '今日养生', action: '更多'),
+        Row(
+          children: [
+            Container(
+              width: 3, height: 18,
+              decoration: BoxDecoration(
+                color: AppColors.tcmGold,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('今日养生', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary, letterSpacing: -0.3)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.tcmGoldLight,
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(color: AppColors.tcmGold.withValues(alpha: 0.3), width: 1),
+              ),
+              child: const Text('春分 · 木旺', style: TextStyle(fontSize: 10, color: AppColors.tcmGold, fontWeight: FontWeight.w500)),
+            ),
+            const Spacer(),
+            const Text('更多', style: TextStyle(fontSize: 12.5, color: AppColors.primary, fontWeight: FontWeight.w500)),
+          ],
+        ),
         const SizedBox(height: 12),
         const _HealthTipCard(
           tag: '饮食',
+          wuxing: '土',
+          wuxingColor: Color(0xFFD4A04A),
           tagColor: AppColors.secondary,
           tip: '今日节气宜食清淡，山药、百合有助于润肺健脾，适合气虚体质人群。',
           icon: Icons.restaurant_outlined,
@@ -530,6 +631,8 @@ class _HomePageState extends State<HomePage>
         const SizedBox(height: 12),
         const _HealthTipCard(
           tag: '起居',
+          wuxing: '水',
+          wuxingColor: Color(0xFF4A8FE8),
           tagColor: AppColors.primary,
           tip: '子时（23:00 前）入睡有助于肝胆排毒，建议减少夜间屏幕使用时间。',
           icon: Icons.bedtime_outlined,
@@ -761,6 +864,125 @@ class _ScoreRingWidget extends StatelessWidget {
   }
 }
 
+// ─── TCM Constitution Badge (替换健康分环) ───────────────────────────
+class _TcmConstitutionBadge extends StatelessWidget {
+  final double progress;
+  const _TcmConstitutionBadge({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 92,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 体质圆形徽章
+          SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(80, 80),
+                  painter: _ScoreRingPainter(progress: progress * 0.86),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '平和',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '体质',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          // 阴阳平衡条
+          Container(
+            height: 14,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              color: Colors.white.withValues(alpha: 0.15),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(7),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 55,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF4A8FE8), Color(0xFF3ECFB2)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 45,
+                    child: Container(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '阴阳较平衡',
+            style: TextStyle(fontSize: 9, color: Colors.white.withValues(alpha: 0.7)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Wuxing Dots (五行色点) ───────────────────────────────────────────
+class _WuxingDots extends StatelessWidget {
+  const _WuxingDots();
+
+  static const _dots = [
+    (Color(0xFF4A8FE8), '水'),
+    (Color(0xFF3ECFB2), '木'),
+    (Color(0xFFC9A84C), '土'),
+    (Color(0xFFE85D5D), '火'),
+    (Color(0xFFB8B8B8), '金'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: _dots.map((d) => Padding(
+        padding: const EdgeInsets.only(right: 3),
+        child: Tooltip(
+          message: d.$2,
+          child: Container(
+            width: 8, height: 8,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: d.$1),
+          ),
+        ),
+      )).toList(),
+    );
+  }
+}
+
 // ─── Collapsed Header ─────────────────────────────────────────────
 class _CollapsedHeader extends StatelessWidget {
   const _CollapsedHeader();
@@ -807,10 +1029,20 @@ class _CollapsedHeader extends StatelessWidget {
 
 // ─── Scan Card ────────────────────────────────────────────────────
 class _ScanCard extends StatefulWidget {
+  final String stepNum;
   final IconData icon;
   final String label;
+  final String subLabel;
   final Color color;
-  const _ScanCard({required this.icon, required this.label, required this.color});
+  final VoidCallback onTap;
+  const _ScanCard({
+    required this.stepNum,
+    required this.icon,
+    required this.label,
+    required this.subLabel,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   State<_ScanCard> createState() => _ScanCardState();
@@ -825,16 +1057,7 @@ class _ScanCardState extends State<_ScanCard> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {
-        // 根据标签名匹配跳转目标
-        if (widget.label.contains('面部')) {
-          context.push(AppRoutes.scanFace);
-        } else if (widget.label.contains('舌头')) {
-          context.push(AppRoutes.scanTongue);
-        } else if (widget.label.contains('手掌')) {
-          context.push(AppRoutes.scanPalm);
-        }
-      },
+      onTap: widget.onTap,
       child: AnimatedScale(
         scale: _pressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 100),
@@ -867,46 +1090,58 @@ class _ScanCardState extends State<_ScanCard> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 14, 8, 14),
+                  padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
                   child: Column(
                     children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: widget.color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: widget.color.withValues(alpha: 0.2),
-                            width: 1,
+                      // 步骤序号
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 18, height: 18,
+                          decoration: BoxDecoration(
+                            color: widget.color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                        ),
-                        child: Icon(widget.icon, size: 28, color: widget.color),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        widget.label.replaceAll('\n', ''),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          child: Center(
+                            child: Text(
+                              widget.stepNum,
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: widget.color),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: widget.color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: widget.color.withValues(alpha: 0.2), width: 1),
+                        ),
+                        child: Icon(widget.icon, size: 26, color: widget.color),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.label.replaceAll('\n', ''),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        widget.subLabel,
+                        style: TextStyle(fontSize: 10, color: widget.color.withValues(alpha: 0.8)),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: widget.color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(
-                          '立即扫描',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: widget.color,
-                          ),
+                          '开始',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: widget.color),
                         ),
                       ),
                     ],
@@ -923,6 +1158,7 @@ class _ScanCardState extends State<_ScanCard> {
 
 // ─── Last Report Card ─────────────────────────────────────────────
 class _LastReportCard extends StatelessWidget {
+  const _LastReportCard();
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -946,16 +1182,15 @@ class _LastReportCard extends StatelessWidget {
             children: [
               Container(
                 width: 3,
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                ),
+                decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(15, 18, 18, 18),
+                  padding: const EdgeInsets.fromLTRB(15, 16, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 标题行
                       Row(
                         children: [
                           Container(
@@ -964,90 +1199,66 @@ class _LastReportCard extends StatelessWidget {
                               gradient: AppColors.primaryGradient,
                               borderRadius: BorderRadius.circular(99),
                             ),
-                            child: const Text(
-                              'AI 报告',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: const Text('AI 辨证', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            '2025年3月14日',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textHint,
-                            ),
-                          ),
+                          const Text('2025年3月14日', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
                           const Spacer(),
-                          const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 13,
-                            color: AppColors.textHint,
-                          ),
+                          // 五行色点
+                          _WuxingDots(),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_ios, size: 13, color: AppColors.textHint),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
+                      // 体质辨证标签
                       const Row(
                         children: [
-                          // 体质标签
-                          _ReportTag(label: '平和体质', color: AppColors.secondary),
-                          SizedBox(width: 8),
-                          _ReportTag(label: '偏气虚', color: AppColors.primary),
+                          _ReportTag(label: '平和质', color: AppColors.secondary),
+                          SizedBox(width: 6),
+                          _ReportTag(label: '气虚偏颇', color: AppColors.primary),
+                          SizedBox(width: 6),
+                          _ReportTag(label: '脾胃虚弱', color: Color(0xFFC9A84C)),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      // 得分条
+                      const SizedBox(height: 12),
+                      // 三诊得分条（中医命名）
                       const Row(
                         children: [
-                          _ScoreBar(label: '体质', score: 0.86, color: AppColors.primary),
-                          SizedBox(width: 12),
-                          _ScoreBar(label: '舌象', score: 0.72, color: AppColors.secondary),
-                          SizedBox(width: 12),
-                          _ScoreBar(label: '面色', score: 0.80, color: Color(0xFF9B8EF0)),
+                          _ScoreBar(label: '面诊', score: 0.86, color: AppColors.primary),
+                          SizedBox(width: 10),
+                          _ScoreBar(label: '舌诊', score: 0.72, color: AppColors.secondary),
+                          SizedBox(width: 10),
+                          _ScoreBar(label: '掌诊', score: 0.80, color: Color(0xFF9B8EF0)),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      // 修改的部分：使用 SingleChildScrollView 包裹此区域
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.inputBg,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Container(
-                                    width: 3,
-                                    color: AppColors.primary,
-                                  ),
-                                  const Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(12),
-                                      // 关键修改：增加滚动视图以吸收微小溢出
-                                      child: SingleChildScrollView(
-                                        physics: NeverScrollableScrollPhysics(), // 阻止内容变少时的滚动，只在溢出时起作用
-                                        child: Text(
-                                          '面色偏黄，舌淡苔白，建议多食健脾食物，保持充足睡眠，避免过度劳累。',
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            color: AppColors.textSecondary,
-                                            height: 1.6,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
+                      const SizedBox(height: 12),
+                      // 辨证摘要
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.tcmGoldLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.tcmGold.withValues(alpha: 0.2), width: 1),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Container(width: 3, color: AppColors.tcmGold),
+                                const Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                    child: Text(
+                                      '辨证：脾气亏虚，运化失健。面色偏黄，舌淡苔白，建议健脾益气，规律作息。',
+                                      style: TextStyle(fontSize: 12, color: Color(0xFF8B6914), height: 1.6),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -1146,11 +1357,15 @@ class _FunctionCellState extends State<_FunctionCell> {
 // ─── Health Tip Card ──────────────────────────────────────────────
 class _HealthTipCard extends StatelessWidget {
   final String tag;
+  final String wuxing;
+  final Color wuxingColor;
   final Color tagColor;
   final String tip;
   final IconData icon;
   const _HealthTipCard({
     required this.tag,
+    required this.wuxing,
+    required this.wuxingColor,
     required this.tagColor,
     required this.tip,
     required this.icon,
@@ -1175,8 +1390,7 @@ class _HealthTipCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 38, height: 38,
                 decoration: BoxDecoration(
                   color: tagColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -1188,30 +1402,34 @@ class _HealthTipCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: tagColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: tagColor,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: tagColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(tag, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: tagColor)),
                         ),
-                      ),
+                        const SizedBox(width: 6),
+                        // 五行属性标签
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: wuxingColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(99),
+                            border: Border.all(color: wuxingColor.withValues(alpha: 0.25), width: 1),
+                          ),
+                          child: Text(
+                            '五行·$wuxing',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: wuxingColor),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      tip,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textSecondary,
-                        height: 1.6,
-                      ),
-                    ),
+                    Text(tip, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.6)),
                   ],
                 ),
               ),

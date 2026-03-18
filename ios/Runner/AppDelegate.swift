@@ -8,7 +8,8 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    FaceScanChannel.register(with: registrar(forPlugin: "FaceScanChannel")!)
+    let scanRegistrar = registrar(forPlugin: "FaceLandmarkerViewFactory")!
+    scanRegistrar.register(FaceLandmarkerViewFactory(), withId: "com.yourapp.face_scan/camera_preview")
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

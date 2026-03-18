@@ -1,25 +1,23 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/router/app_router.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/camera_preview_widget.dart';
-import '../widgets/face_landmark_overlay.dart';
-import '../providers/face_scan_provider.dart';
+import '../../../../core/router/app_router.dart';
 
-class FaceScanPage extends ConsumerStatefulWidget {
+class FaceScanPage extends StatefulWidget {
   const FaceScanPage({super.key});
 
   @override
-  ConsumerState<FaceScanPage> createState() => _FaceScanPageState();
+  State<FaceScanPage> createState() => _FaceScanPageState();
 }
 
-class _FaceScanPageState extends ConsumerState<FaceScanPage> {
-  bool _isLandmarkMode = false;
+class _FaceScanPageState extends State<FaceScanPage> {
+  bool _hasPermission = false;
+  bool _isScanning = false;
   int _countdown = 3;
   Timer? _timer;
 
@@ -32,9 +30,11 @@ class _FaceScanPageState extends ConsumerState<FaceScanPage> {
   Future<void> _requestPermissionAndStart() async {
     final status = await Permission.camera.request();
     if (status.isGranted) {
-      ref.read(faceScanProvider.notifier).startCamera();
-      // Start in detection mode
-      ref.read(faceScanProvider.notifier).startDetection('detection');
+      if (mounted) {
+        setState(() {
+          _hasPermission = true;
+        });
+      }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -44,40 +44,22 @@ class _FaceScanPageState extends ConsumerState<FaceScanPage> {
     }
   }
 
-  void _startLandmarkScan() {
+  void _startScan() {
     setState(() {
-      _isLandmarkMode = true;
+      _isScanning = true;
       _countdown = 3;
     });
-    ref.read(faceScanProvider.notifier).startDetection('landmark');
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown > 1) {
         setState(() => _countdown--);
       } else {
         timer.cancel();
-        _captureAndFinish();
+        if (mounted) {
+          context.push(AppRoutes.scanTongue);
+        }
       }
     });
-  }
-
-  Future<void> _captureAndFinish() async {
-    try {
-      final result = await ref.read(faceScanProvider.notifier).captureFrame();
-      if (mounted) {
-        context.push(AppRoutes.reportAnalysis, extra: result);
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('当前帧未检测到有效面部，请重试')),
-        );
-        setState(() {
-          _isLandmarkMode = false;
-          _countdown = 3;
-        });
-      }
-    }
   }
 
   @override
@@ -88,50 +70,30 @@ class _FaceScanPageState extends ConsumerState<FaceScanPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(faceScanProvider);
-    final isDetected = state.detectionResult?.detected ?? false;
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Camera Preview
-          const Positioned.fill(child: CameraPreviewWidget()),
+          Positioned.fill(
+            child: _hasPermission
+                ? const CameraPreviewWidget()
+                : Container(color: Colors.black),
+          ),
 
-          // 2. Landmark Overlay
-          if (state.landmarkResult != null)
-            Positioned.fill(
-              child: CustomPaint(
-                painter: FaceLandmarkOverlay(
-                  result: state.landmarkResult!,
-                ),
-              ),
-            ),
-
-          // 3. UI Layer
           SafeArea(
             child: Column(
               children: [
-                // Header
                 _buildHeader(),
-                
                 const Spacer(),
-                
-                // Guidance Text
-                _buildGuidance(isDetected),
-                
+                _buildGuidance(),
                 const SizedBox(height: 20),
-                
-                // Bottom Controls
-                _buildBottomControls(isDetected),
-                
+                _buildBottomControls(),
                 const SizedBox(height: 40),
               ],
             ),
           ),
-          
-          // 4. Countdown Overlay
-          if (_isLandmarkMode && _countdown > 0)
+
+          if (_isScanning && _countdown > 0)
             Container(
               color: Colors.black.withValues(alpha: 0.3),
               child: Center(
@@ -170,32 +132,32 @@ class _FaceScanPageState extends ConsumerState<FaceScanPage> {
     );
   }
 
-  Widget _buildGuidance(bool isDetected) {
+  Widget _buildGuidance() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: isDetected ? AppColors.secondary : Colors.white24,
+          color: _hasPermission ? AppColors.secondary : Colors.white24,
           width: 1.5,
         ),
       ),
       child: Text(
-        isDetected ? '已检测到面部，请保持不动' : '请将面部对准框内',
+        _hasPermission ? '请将面部对准框内，系统会原生实时描点' : '需要相机权限才能开始扫描',
         style: const TextStyle(color: Colors.white, fontSize: 16),
       ),
     );
   }
 
-  Widget _buildBottomControls(bool isDetected) {
+  Widget _buildBottomControls() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Column(
         children: [
-          if (!_isLandmarkMode)
+          if (!_isScanning)
             ElevatedButton(
-              onPressed: isDetected ? _startLandmarkScan : null,
+              onPressed: _hasPermission ? _startScan : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
