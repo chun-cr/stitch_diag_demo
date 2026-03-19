@@ -16,6 +16,7 @@ import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerOptions
 
 class FaceDetectionHelper(private val context: Context) {
     private var detector: FaceDetector? = null
+    private var resultCallback: ((Map<String, Any?>) -> Unit)? = null
 
     init {
         setupDetector()
@@ -31,21 +32,24 @@ class FaceDetectionHelper(private val context: Context) {
             .setMinDetectionConfidence(0.7f)
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setResultListener { result, _ ->
-                // Handled in callback
+                val hasFace = result.detections().isNotEmpty()
+                resultCallback?.invoke(
+                    mapOf(
+                        "detected" to hasFace,
+                    )
+                )
             }
-            
+
         detector = FaceDetector.createFromOptions(context, optionsBuilder.build())
     }
 
     fun detect(imageProxy: ImageProxy, callback: (Map<String, Any?>) -> Unit) {
+        resultCallback = callback
         val bitmap = imageProxy.toBitmap()
-        // MediaPipe needs orientation-corrected bitmap
         val matrix = Matrix().apply { postRotate(imageProxy.imageInfo.rotationDegrees.toFloat()) }
         val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        
+
         val mpImage = BitmapImageBuilder(rotatedBitmap).build()
         detector?.detectAsync(mpImage, System.currentTimeMillis())
-        // For simplicity, returning first result detected in result listener would be better approach.
-        // Assuming listener is set up to pipe events back to Flutter.
     }
 }

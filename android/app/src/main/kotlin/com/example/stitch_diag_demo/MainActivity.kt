@@ -9,4 +9,9 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         FaceScanChannel.registerWith(flutterEngine, this)
     }
+
+    override fun onDestroy() {
+        FaceScanChannel.release()
+        super.onDestroy()
+    }
 }

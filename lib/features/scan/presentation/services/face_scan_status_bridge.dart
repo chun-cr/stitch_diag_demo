@@ -3,17 +3,31 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-class FaceScanStatusBridge {
+abstract class VisionChannelBridge {
+  Stream<bool> facePresenceStream();
+
+  Future<void> initialize();
+
+  Future<void> startMonitoring();
+
+  Future<void> stopMonitoring();
+}
+
+class FaceScanStatusBridge implements VisionChannelBridge {
   static const EventChannel _iosStatusChannel = EventChannel(
-    'com.yourapp.face_scan/status',
+    'face/landmarkStream',
   );
   static const EventChannel _androidEventsChannel = EventChannel(
-    'com.yourapp.face_scan/events',
+    'face/landmarkStream',
   );
   static const MethodChannel _androidMethodChannel = MethodChannel(
-    'com.yourapp.face_scan/channel',
+    'face/channel',
+  );
+  static const MethodChannel _iosMethodChannel = MethodChannel(
+    'face/channel',
   );
 
+  @override
   Stream<bool> facePresenceStream() {
     if (Platform.isIOS) {
       return _iosStatusChannel
@@ -32,24 +46,57 @@ class FaceScanStatusBridge {
     return const Stream<bool>.empty();
   }
 
-  Future<void> startMonitoring() async {
-    if (!Platform.isAndroid) {
-      return;
+  Stream<Map<String, dynamic>> landmarkStream() {
+    if (Platform.isIOS) {
+      return _iosStatusChannel
+          .receiveBroadcastStream()
+          .map((event) => _extractPayload(event))
+          .where((event) => event.isNotEmpty);
     }
 
-    await _androidMethodChannel.invokeMethod<void>('startCamera');
-    await _androidMethodChannel.invokeMethod<void>('startDetection', {
-      'mode': 'landmark',
-    });
+    if (Platform.isAndroid) {
+      return _androidEventsChannel
+          .receiveBroadcastStream()
+          .map((event) => _extractPayload(event))
+          .where((event) => event.isNotEmpty);
+    }
+
+    return const Stream<Map<String, dynamic>>.empty();
   }
 
-  Future<void> stopMonitoring() async {
-    if (!Platform.isAndroid) {
+  @override
+  Future<void> initialize() async {
+    if (Platform.isAndroid) {
       return;
     }
 
-    await _androidMethodChannel.invokeMethod<void>('stopDetection');
-    await _androidMethodChannel.invokeMethod<void>('stopCamera');
+    if (Platform.isIOS) {
+      return;
+    }
+  }
+
+  @override
+  Future<void> startMonitoring() async {
+    if (Platform.isAndroid) {
+      await _androidMethodChannel.invokeMethod<void>('face/startDetection');
+      return;
+    }
+
+    if (Platform.isIOS) {
+      await _iosMethodChannel.invokeMethod<void>('face/startDetection');
+    }
+  }
+
+  @override
+  Future<void> stopMonitoring() async {
+    if (Platform.isAndroid) {
+      await _androidMethodChannel.invokeMethod<void>('face/stopDetection');
+      return;
+    }
+
+    if (Platform.isIOS) {
+      await _iosMethodChannel.invokeMethod<void>('face/stopDetection');
+    }
   }
 
   bool _extractHasFace(dynamic event) {
@@ -59,18 +106,25 @@ class FaceScanStatusBridge {
 
     if (event is Map) {
       final data = Map<dynamic, dynamic>.from(event);
-      final type = data['type'];
-      if (type == 'landmark') {
-        final landmarks = data['landmarks'];
-        return landmarks is List && landmarks.isNotEmpty;
-      }
-
       final detected = data['detected'];
       if (detected is bool) {
         return detected;
       }
+
+      final landmarks = data['landmarks'];
+      if (landmarks is List) {
+        return landmarks.isNotEmpty;
+      }
     }
 
     return false;
+  }
+
+  Map<String, dynamic> _extractPayload(dynamic event) {
+    if (event is Map) {
+      return Map<String, dynamic>.from(event);
+    }
+
+    return {};
   }
 }

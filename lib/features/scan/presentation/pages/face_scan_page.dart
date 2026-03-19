@@ -57,6 +57,7 @@ class _FaceScanPageState extends State<FaceScanPage>
           _statusBridge.facePresenceStream().listen((hasFace) {
         if (mounted) setState(() => _hasFaceDetected = hasFace);
       });
+      await _statusBridge.initialize();
       await _statusBridge.startMonitoring();
     } else {
       if (mounted) {

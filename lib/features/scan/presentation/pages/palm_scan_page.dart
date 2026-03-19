@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../services/palm_scan_status_bridge.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/scan_frame.dart';
 
@@ -19,8 +23,14 @@ class PalmScanPage extends StatefulWidget {
 
 class _PalmScanPageState extends State<PalmScanPage>
     with SingleTickerProviderStateMixin {
+  final PalmScanStatusBridge _statusBridge = PalmScanStatusBridge();
   late AnimationController _scanCtrl;
   late Animation<double>   _scanAnim;
+  StreamSubscription<PalmScanStatus>? _statusSubscription;
+  bool _hasPermission = false;
+  bool _readyToScan = false;
+  bool _handPresent = false;
+  String _gestureName = '';
 
   @override
   void initState() {
@@ -33,10 +43,36 @@ class _PalmScanPageState extends State<PalmScanPage>
     _scanAnim = Tween<double>(begin: 0.1, end: 0.88).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut),
     );
+    _requestPermissionAndStart();
+  }
+
+  Future<void> _requestPermissionAndStart() async {
+    final status = await Permission.camera.request();
+    if (!mounted) return;
+
+    if (status.isGranted) {
+      setState(() => _hasPermission = true);
+      _statusSubscription?.cancel();
+      _statusSubscription = _statusBridge.statusStream().listen((status) {
+        if (!mounted) return;
+        setState(() {
+          _handPresent = status.handPresent;
+          _readyToScan = status.readyToScan;
+          _gestureName = status.gestureName;
+        });
+      });
+      await _statusBridge.startMonitoring();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('需要相机权限才能进行手掌扫描')),
+      );
+    }
   }
 
   @override
   void dispose() {
+    _statusSubscription?.cancel();
+    unawaited(_statusBridge.stopMonitoring());
     _scanCtrl.dispose();
     super.dispose();
   }
@@ -201,7 +237,7 @@ class _PalmScanPageState extends State<PalmScanPage>
               right: -30,
               child: Center(
                 child: _StatusPill(
-                  label: '掌心朝上，手指自然分开',
+                  label: _statusText(),
                   color: _kPalmPurple.withValues(alpha: 0.7),
                 ),
               ),
@@ -248,6 +284,8 @@ class _PalmScanPageState extends State<PalmScanPage>
             nextButtonLabel: '查看分析报告',
             skipRoute: AppRoutes.reportAnalysis,
             showBuiltInFrame: false,
+            autoStart: false,
+            startEnabled: _hasPermission && _readyToScan,
           ),
           TextButton(
             onPressed: () => context.push(AppRoutes.reportAnalysis),
@@ -262,6 +300,21 @@ class _PalmScanPageState extends State<PalmScanPage>
         ],
       ),
     );
+  }
+
+  String _statusText() {
+    if (!_hasPermission) {
+      return '需要相机权限才能开始识别';
+    }
+    if (_readyToScan) {
+      return '已识别到有效手掌，可点击开始扫描';
+    }
+    if (_handPresent) {
+      return _gestureName.isEmpty
+          ? '请保持掌心朝上，手指自然分开'
+          : '当前手势：$_gestureName，请调整为掌心朝上';
+    }
+    return '请将手掌放入识别区域';
   }
 }
 

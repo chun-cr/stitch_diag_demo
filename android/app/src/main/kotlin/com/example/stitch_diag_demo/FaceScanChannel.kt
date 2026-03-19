@@ -7,61 +7,132 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
 class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
-    private var methodChannel: MethodChannel? = null
-    private var eventChannel: EventChannel? = null
     private var eventSink: EventChannel.EventSink? = null
-    
+    private var gestureEventSink: EventChannel.EventSink? = null
+    private var tongueEventSink: EventChannel.EventSink? = null
+
     private val cameraManager = CameraManager(context)
-    private val faceDetectionHelper = FaceDetectionHelper(context)
     private val faceLandmarkerHelper = FaceLandmarkerHelper(context)
+    private val gestureRecognizerHelper = GestureRecognizerHelper(context)
 
     companion object {
-        private const val CHANNEL = "com.yourapp.face_scan/channel"
-        private const val EVENTS = "com.yourapp.face_scan/events"
+        private const val CHANNEL = "face/channel"
+        private const val EVENTS = "face/landmarkStream"
+        private const val GESTURE_EVENTS = "gesture/resultStream"
+        private const val TONGUE_EVENTS = "tongue/detectionStream"
+        private const val TONGUE_CAPTURE = "tongue/capture"
+
+        private var instance: FaceScanChannel? = null
 
         fun registerWith(flutterEngine: FlutterEngine, context: Context) {
-            val instance = FaceScanChannel(context)
-            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler(instance)
-            EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENTS).setStreamHandler(instance)
+            val channelInstance = FaceScanChannel(context)
+            instance = channelInstance
+            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                .setMethodCallHandler(channelInstance)
+            EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENTS)
+                .setStreamHandler(channelInstance)
+            EventChannel(flutterEngine.dartExecutor.binaryMessenger, GESTURE_EVENTS)
+                .setStreamHandler(channelInstance.gestureStreamHandler)
+            EventChannel(flutterEngine.dartExecutor.binaryMessenger, TONGUE_EVENTS)
+                .setStreamHandler(channelInstance.tongueStreamHandler)
 
-            // Register Camera View
             flutterEngine.platformViewsController.registry.registerViewFactory(
                 "com.yourapp.face_scan/camera_preview",
-                CameraPreviewViewFactory(instance.cameraManager)
+                CameraPreviewViewFactory(channelInstance.cameraManager)
             )
-            
-            // Link helpers
-            instance.cameraManager.setListener { frame ->
-                if (instance.cameraManager.mode == "detection") {
-                    instance.faceDetectionHelper.detect(frame) { result ->
-                        instance.sendEvent(result.apply { put("type", "detection") })
+
+            channelInstance.cameraManager.setListener { frame ->
+                when (channelInstance.cameraManager.mode) {
+                    "landmark" -> {
+                        channelInstance.faceLandmarkerHelper.detect(frame) { result ->
+                            channelInstance.sendFaceEvent(result)
+                            channelInstance.sendTongueEvent(result)
+                        }
                     }
-                } else if (instance.cameraManager.mode == "landmark") {
-                    instance.faceLandmarkerHelper.detect(frame) { result ->
-                        instance.sendEvent(result.apply { put("type", "landmark") })
+                    "gesture" -> {
+                        channelInstance.gestureRecognizerHelper.detect(frame) { result ->
+                            channelInstance.sendGestureEvent(result)
+                        }
                     }
                 }
             }
+        }
+
+        fun release() {
+            instance?.dispose()
+            instance = null
+        }
+    }
+
+    private val gestureStreamHandler = object : EventChannel.StreamHandler {
+        override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+            gestureEventSink = events
+        }
+
+        override fun onCancel(arguments: Any?) {
+            gestureEventSink = null
+        }
+    }
+
+    private val tongueStreamHandler = object : EventChannel.StreamHandler {
+        override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+            tongueEventSink = events
+        }
+
+        override fun onCancel(arguments: Any?) {
+            tongueEventSink = null
         }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "startCamera" -> {
+            "face/startDetection" -> {
+                if (!cameraManager.hasCameraPermission()) {
+                    result.error("PERMISSION_DENIED", "Camera permission not granted", null)
+                    return
+                }
+                cameraManager.mode = "landmark"
                 cameraManager.startCamera()
                 result.success(null)
             }
-            "stopCamera" -> {
+            "face/stopDetection" -> {
+                cameraManager.mode = "none"
                 cameraManager.stopCamera()
                 result.success(null)
             }
-            "startDetection" -> {
-                val mode = call.argument<String>("mode")
-                cameraManager.mode = mode ?: "none"
+            "gesture/startDetection" -> {
+                if (!cameraManager.hasCameraPermission()) {
+                    result.error("PERMISSION_DENIED", "Camera permission not granted", null)
+                    return
+                }
+                cameraManager.mode = "gesture"
+                cameraManager.startCamera()
                 result.success(null)
             }
-            "stopDetection" -> {
+            "tongue/startDetection" -> {
+                if (!cameraManager.hasCameraPermission()) {
+                    result.error("PERMISSION_DENIED", "Camera permission not granted", null)
+                    return
+                }
+                cameraManager.mode = "landmark"
+                cameraManager.startCamera()
+                result.success(null)
+            }
+            "gesture/stopDetection" -> {
                 cameraManager.mode = "none"
+                cameraManager.stopCamera()
+                result.success(null)
+            }
+            "tongue/stopDetection" -> {
+                cameraManager.mode = "none"
+                cameraManager.stopCamera()
+                sendTongueEvent(
+                    mapOf(
+                        "tongueDetected" to false,
+                        "tongueOutScore" to 0.0,
+                        "mouthLandmarks" to emptyList<Map<String, Double>>(),
+                    )
+                )
                 result.success(null)
             }
             else -> result.notImplemented()
@@ -69,16 +140,43 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
     }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        this.eventSink = events
+        eventSink = events
     }
 
     override fun onCancel(arguments: Any?) {
-        this.eventSink = null
+        eventSink = null
     }
 
-    private fun sendEvent(data: Map<String, Any?>) {
+    private fun sendFaceEvent(data: Map<String, Any?>) {
         (context as? MainActivity)?.runOnUiThread {
             eventSink?.success(data)
         }
+    }
+
+    private fun sendGestureEvent(data: Map<String, Any?>) {
+        (context as? MainActivity)?.runOnUiThread {
+            gestureEventSink?.success(data)
+        }
+    }
+
+    private fun sendTongueEvent(data: Map<String, Any?>) {
+        val tonguePayload = mapOf(
+            "tongueDetected" to (data["tongueDetected"] as? Boolean ?: false),
+            "tongueOutScore" to ((data["tongueOutScore"] as? Number)?.toDouble() ?: 0.0),
+            "mouthLandmarks" to (data["mouthLandmarks"] as? List<*> ?: emptyList<Any>()),
+        )
+
+        (context as? MainActivity)?.runOnUiThread {
+            tongueEventSink?.success(tonguePayload)
+        }
+    }
+
+    private fun dispose() {
+        cameraManager.stopCamera()
+        faceLandmarkerHelper.close()
+        gestureRecognizerHelper.close()
+        eventSink = null
+        gestureEventSink = null
+        tongueEventSink = null
     }
 }

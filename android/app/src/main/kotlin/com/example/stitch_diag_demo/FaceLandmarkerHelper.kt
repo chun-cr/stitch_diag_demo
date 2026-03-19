@@ -34,7 +34,8 @@ class FaceLandmarkerHelper(private val context: Context) {
             .setOutputFaceBlendshapes(true)
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setResultListener { result, _ ->
-                val landmarks = result.faceLandmarks().firstOrNull()?.map { landmark ->
+                val firstFaceLandmarks = result.faceLandmarks().firstOrNull()
+                val landmarks = firstFaceLandmarks?.map { landmark ->
                     mapOf(
                         "x" to landmark.x(),
                         "y" to landmark.y(),
@@ -42,13 +43,26 @@ class FaceLandmarkerHelper(private val context: Context) {
                     )
                 } ?: emptyList<Map<String, Float>>()
 
+                val blendshapes = result.faceBlendshapes().firstOrNull()?.categories()?.associate { category ->
+                    category.categoryName() to category.score().toDouble()
+                } ?: emptyMap()
+
+                val tongueData = TongueDetectionUtils.evaluateTongue(firstFaceLandmarks, blendshapes)
+
                 resultCallback?.invoke(
                     mapOf(
+                        "detected" to firstFaceLandmarks.isNullOrEmpty().not(),
                         "landmarks" to landmarks,
+                        "blendshapes" to blendshapes,
+                        "imageWidth" to result.inputImageWidth(),
+                        "imageHeight" to result.inputImageHeight(),
+                        "tongueDetected" to tongueData.tongueDetected,
+                        "tongueOutScore" to tongueData.tongueOutScore,
+                        "mouthLandmarks" to tongueData.mouthLandmarks,
                     )
                 )
             }
-            
+
         landmarker = FaceLandmarker.createFromOptions(context, optionsBuilder.build())
     }
 
@@ -57,8 +71,13 @@ class FaceLandmarkerHelper(private val context: Context) {
         val bitmap = imageProxy.toBitmap()
         val matrix = Matrix().apply { postRotate(imageProxy.imageInfo.rotationDegrees.toFloat()) }
         val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        
+
         val mpImage = BitmapImageBuilder(rotatedBitmap).build()
         landmarker?.detectAsync(mpImage, System.currentTimeMillis())
+    }
+
+    fun close() {
+        landmarker?.close()
+        landmarker = null
     }
 }

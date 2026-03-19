@@ -23,6 +23,11 @@ class ScanFrame extends StatefulWidget {
   final String nextButtonLabel;
   final String skipRoute;
   final bool showBuiltInFrame;
+  final bool autoStart;
+  final bool startEnabled;
+  final VoidCallback? onStartPressed;
+  final ScanState? stateOverride;
+  final double? progressOverride;
 
   const ScanFrame({
     super.key,
@@ -41,6 +46,11 @@ class ScanFrame extends StatefulWidget {
     required this.nextButtonLabel,
     required this.skipRoute,
     this.showBuiltInFrame = true,
+    this.autoStart = true,
+    this.startEnabled = true,
+    this.onStartPressed,
+    this.stateOverride,
+    this.progressOverride,
   });
 
   @override
@@ -89,20 +99,55 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
       }
     });
 
-    // Start scanning after 1 second automatically
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted && _state == ScanState.idle) {
-        _startScanning();
-      }
-    });
+    if (widget.autoStart && widget.stateOverride == null) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted && _state == ScanState.idle) {
+          _startScanning();
+        }
+      });
+    }
+
+    _syncControlledAnimations();
+  }
+
+  @override
+  void didUpdateWidget(covariant ScanFrame oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncControlledAnimations();
   }
   
   void _startScanning() {
+    if (widget.stateOverride != null) {
+      return;
+    }
+
     setState(() {
       _state = ScanState.scanning;
     });
     _scanLineController.repeat(reverse: true);
     _progressController.forward();
+  }
+
+  ScanState get _effectiveState => widget.stateOverride ?? _state;
+
+  double get _effectiveProgress =>
+      (widget.progressOverride ?? _progressController.value).clamp(0.0, 1.0);
+
+  void _syncControlledAnimations() {
+    if (widget.stateOverride == null) {
+      return;
+    }
+
+    if (_effectiveState == ScanState.scanning) {
+      if (!_scanLineController.isAnimating) {
+        _scanLineController.repeat(reverse: true);
+      }
+      return;
+    }
+
+    if (_scanLineController.isAnimating) {
+      _scanLineController.stop();
+    }
   }
   
   @override
@@ -178,7 +223,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
                   children: [
                     ScanHintChips(hints: widget.hints),
                     const Spacer(),
-                    if (_state == ScanState.scanning) ...[
+                    if (_effectiveState == ScanState.scanning) ...[
                       _buildProgressBar(),
                       const SizedBox(height: 12),
                     ],
@@ -207,7 +252,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
   }
   
   String _getBottomText() {
-    switch (_state) {
+    switch (_effectiveState) {
       case ScanState.idle: return widget.bottomTextIdle;
       case ScanState.scanning: return widget.bottomTextScanning;
       case ScanState.completed: return widget.bottomTextCompleted;
@@ -215,7 +260,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
   }
 
   Widget _buildScannerVisual() {
-    final frameColor = _state == ScanState.completed 
+    final frameColor = _effectiveState == ScanState.completed 
         ? widget.themeColor 
         : Colors.white.withValues(alpha: 0.6);
         
@@ -276,7 +321,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
           ..._buildCorners(),
           
           // Scan line
-          if (_state == ScanState.scanning)
+          if (_effectiveState == ScanState.scanning)
             AnimatedBuilder(
               animation: _scanLineController,
               builder: (context, child) {
@@ -315,7 +360,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
   }
   
   Widget _buildProgressBar() {
-    final progress = _progressController.value;
+    final progress = _effectiveProgress;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -359,13 +404,20 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
     Gradient? gradient;
     VoidCallback? onPressed;
     
-    if (_state == ScanState.idle) {
+    if (_effectiveState == ScanState.idle) {
       text = widget.startButtonLabel;
       gradient = widget.themeGradient;
       bgColor = widget.themeGradient == null ? widget.themeColor : null;
-      onPressed = _startScanning; 
-    } else if (_state == ScanState.scanning) {
-      text = '分析中... ${( _progressController.value * 100 ).toInt()}%';
+      onPressed = widget.startEnabled
+          ? () {
+              widget.onStartPressed?.call();
+              if (widget.stateOverride == null) {
+                _startScanning();
+              }
+            }
+          : null;
+    } else if (_effectiveState == ScanState.scanning) {
+      text = '分析中... ${(_effectiveProgress * 100).toInt()}%';
       bgColor = AppColors.primary.withValues(alpha: 0.6);
       onPressed = null;
     } else {
