@@ -47,6 +47,17 @@ class TongueScanPage extends StatefulWidget {
   State<TongueScanPage> createState() => _TongueScanPageState();
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// 只替换 _TongueScanPageState 类（其余组件和常量不变）
+//
+// 本次修复的核心：
+//   1. 去掉所有 await startMonitoring() / await stopMonitoring()
+//      改为 unawaited()，避免主线程 MethodChannel 互等死锁
+//   2. addPostFrameCallback 只用一层，不再嵌套
+//   3. CameraPreviewWidget 始终渲染（沿用上版）
+//   4. dispose 顺序保持：先 cancel 订阅 → 再 stop（fire-and-forget）
+// ═══════════════════════════════════════════════════════════════════
+
 class _TongueScanPageState extends State<TongueScanPage>
     with SingleTickerProviderStateMixin {
   final TongueScanStatusBridge _statusBridge = TongueScanStatusBridge();
@@ -57,12 +68,12 @@ class _TongueScanPageState extends State<TongueScanPage>
   StreamSubscription<TongueScanStatus>? _statusSubscription;
   Timer? _holdTimer;
 
-  bool _hasPermission = false;
-  bool _mouthPresent  = false;
-  bool _tongueDetected = false;
-  double _tongueScore  = 0;
-  double _scanProgress = 0;
-  ScanState _scanState = ScanState.idle;
+  bool   _hasPermission  = false;
+  bool   _mouthPresent   = false;
+  bool   _tongueDetected = false;
+  double _tongueScore    = 0;
+  double _scanProgress   = 0;
+  ScanState _scanState   = ScanState.idle;
 
   @override
   void initState() {
@@ -74,7 +85,8 @@ class _TongueScanPageState extends State<TongueScanPage>
     _scanAnim = Tween<double>(begin: 0.1, end: 0.88).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut),
     );
-    // ★ 首帧渲染完成后再请求权限，确保 Platform View 已 attach
+
+    // 首帧结束后请求权限，此时 Platform View 已经 attach
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) _requestPermission();
     });
@@ -84,33 +96,30 @@ class _TongueScanPageState extends State<TongueScanPage>
     final status = await Permission.camera.request();
     if (!mounted) return;
 
-    if (status.isGranted) {
-      setState(() {
-        _hasPermission = true;
-        _scanState = ScanState.scanning;
-        _mouthPresent = false;
-        _tongueDetected = false;
-        _tongueScore = 0;
-        _scanProgress = 0;
-      });
-
-      _statusSubscription?.cancel();
-      _statusSubscription =
-          _statusBridge.statusStream().listen(_handleStatusUpdate);
-
-      // ★ 等当前帧（包含 CameraPreviewWidget setState 重建）完成后再 startMonitoring
-      //   此时 Platform View 的 layoutSubviews 已执行，pendingCommand 已被消费
-      SchedulerBinding.instance.addPostFrameCallback((_) async {
-        if (mounted) await _statusBridge.startMonitoring();
-      });
-      return;
-    }
-
-    if (mounted) {
+    if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('需要相机权限才能进行舌象扫描')),
       );
+      return;
     }
+
+    setState(() {
+      _hasPermission = true;
+      _scanState     = ScanState.scanning;
+      _mouthPresent  = false;
+      _tongueDetected = false;
+      _tongueScore   = 0;
+      _scanProgress  = 0;
+    });
+
+    _statusSubscription?.cancel();
+    _statusSubscription =
+        _statusBridge.statusStream().listen(_handleStatusUpdate);
+
+    // ★ 关键：不 await，直接 fire-and-forget
+    //   避免 MethodChannel 在 postFrameCallback 里 await 导致主线程死锁
+    //   Platform View 此时已存在（始终渲染），native 侧可以立即处理
+    unawaited(_statusBridge.startMonitoring());
   }
 
   Future<void> _startScan() async {
@@ -121,24 +130,25 @@ class _TongueScanPageState extends State<TongueScanPage>
 
     _cancelHoldTracking(resetProgress: true);
     if (!mounted) return;
+
     setState(() {
-      _scanState = ScanState.scanning;
-      _mouthPresent = false;
+      _scanState      = ScanState.scanning;
+      _mouthPresent   = false;
       _tongueDetected = false;
-      _tongueScore = 0;
+      _tongueScore    = 0;
     });
 
-    await _statusBridge.startMonitoring();
+    // ★ 同样 fire-and-forget
+    unawaited(_statusBridge.startMonitoring());
   }
 
   void _handleStatusUpdate(TongueScanStatus status) {
-    // ★ 严格 guard，防止 unmount 后回调触发 setState
     if (!mounted || _scanState != ScanState.scanning) return;
 
     setState(() {
-      _mouthPresent    = status.mouthPresent;
-      _tongueDetected  = status.tongueDetected;
-      _tongueScore     = status.tongueOutScore;
+      _mouthPresent   = status.mouthPresent;
+      _tongueDetected = status.tongueDetected;
+      _tongueScore    = status.tongueOutScore;
     });
 
     if (status.tongueDetected) {
@@ -165,7 +175,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       if (progress >= 1) {
         timer.cancel();
         _holdTimer = null;
-        unawaited(_completeScan());
+        _completeScan();
         return;
       }
 
@@ -173,11 +183,14 @@ class _TongueScanPageState extends State<TongueScanPage>
     });
   }
 
-  Future<void> _completeScan() async {
-    await _statusBridge.stopMonitoring();
+  // ★ 改为同步触发，内部 stop 用 unawaited
+  void _completeScan() {
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
+    unawaited(_statusBridge.stopMonitoring());
     if (!mounted) return;
     setState(() {
-      _scanState = ScanState.completed;
+      _scanState    = ScanState.completed;
       _scanProgress = 1;
     });
   }
@@ -193,22 +206,23 @@ class _TongueScanPageState extends State<TongueScanPage>
   @override
   void dispose() {
     _holdTimer?.cancel();
-    // ★ 先取消订阅，再 stop，避免 stop 触发的事件回调到已 unmount 的 state
+    _scanCtrl.dispose();
+    // ★ 先断订阅再 stop（fire-and-forget），防止 stop 触发的事件
+    //   打到已 unmount 的 State
     _statusSubscription?.cancel();
     _statusSubscription = null;
     unawaited(_statusBridge.stopMonitoring());
-    _scanCtrl.dispose();
     super.dispose();
   }
 
-  // ── 文字计算（不变）──────────────────────────────────────────────
+  // ── 文字计算 ─────────────────────────────────────────────────────
 
   String get _statusLabel {
-    if (_scanState == ScanState.completed)  return '舌头扫描完成 ✓';
-    if (!_hasPermission)                    return '需要相机权限后才能开始扫描';
-    if (_scanState == ScanState.idle)       return '请点击下方按钮，开始舌象扫描';
-    if (_tongueDetected)                    return '已识别舌头，请保持 2 秒';
-    if (_mouthPresent)                      return '已检测到口部，请再自然伸舌';
+    if (_scanState == ScanState.completed) return '舌头扫描完成 ✓';
+    if (!_hasPermission)                   return '需要相机权限后才能开始扫描';
+    if (_scanState == ScanState.idle)      return '请点击下方按钮，开始舌象扫描';
+    if (_tongueDetected)                   return '已识别舌头，请保持 2 秒';
+    if (_mouthPresent)                     return '已检测到口部，请再自然伸舌';
     return '请伸出舌头，对准框内';
   }
 
@@ -218,8 +232,10 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 
   String get _bottomScanningText {
-    if (_tongueDetected) return '舌象识别中，当前分数 ${(100 * _tongueScore).toStringAsFixed(0)}%';
-    if (_mouthPresent)   return '已检测到口部，请将舌头自然伸出';
+    if (_tongueDetected) {
+      return '舌象识别中，当前分数 ${(100 * _tongueScore).toStringAsFixed(0)}%';
+    }
+    if (_mouthPresent) return '已检测到口部，请将舌头自然伸出';
     return '舌苔颜色正在分析...';
   }
 
@@ -231,9 +247,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       backgroundColor: _kBgBottom,
       body: Stack(
         children: [
-          // ★ 始终渲染 CameraPreviewWidget，不再依赖 _hasPermission 条件
-          //   Platform View 在页面进入时就存在，避免 startMonitoring 时序问题
-          //   无权限时摄像头不会真正启动（底层 session 未 start），只是占位
+          // ★ 始终渲染，不依赖 _hasPermission
           const Positioned.fill(
             child: CameraPreviewWidget(key: ValueKey('tongue_scan_preview')),
           ),
@@ -364,7 +378,10 @@ class _TongueScanPageState extends State<TongueScanPage>
               top: frameH * 0.4,
               left: frameW * 0.2,
               right: frameW * 0.2,
-              child: Container(height: 0.5, color: _kTongueRed.withValues(alpha: 0.18)),
+              child: Container(
+                height: 0.5,
+                color: _kTongueRed.withValues(alpha: 0.18),
+              ),
             ),
             AnimatedBuilder(
               animation: _scanAnim,
@@ -411,11 +428,11 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _TipPill(icon: Icons.wb_sunny_outlined,  label: '光线充足',    color: _kTongueRed),
+          _TipPill(icon: Icons.wb_sunny_outlined,  label: '光线充足',     color: _kTongueRed),
           const SizedBox(width: 8),
-          _TipPill(icon: Icons.no_food_outlined,   label: '勿食有色食物', color: _kTongueRed),
+          _TipPill(icon: Icons.no_food_outlined,   label: '勿食有色食物',  color: _kTongueRed),
           const SizedBox(width: 8),
-          _TipPill(icon: Icons.waves_outlined,     label: '舌头平伸',    color: _kTongueRed),
+          _TipPill(icon: Icons.waves_outlined,     label: '舌头平伸',     color: _kTongueRed),
         ],
       ),
     );
