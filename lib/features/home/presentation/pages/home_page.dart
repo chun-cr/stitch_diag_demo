@@ -711,52 +711,83 @@ class _HeroFlexibleSpace extends StatelessWidget {
       const expandedH = 248.0;
       final collapsedH =
           kToolbarHeight + MediaQuery.of(context).padding.top;
-      final progress =
-      ((constraints.maxHeight - collapsedH) /
+
+      // progress: 1.0 = 完全展开，0.0 = 完全收起
+      final progress = ((constraints.maxHeight - collapsedH) /
           (expandedH - collapsedH))
           .clamp(0.0, 1.0);
+
+      // ── 派生动画曲线 ──────────────────────────────────────────
+      // Hero 整体：在 progress 0.3→1.0 区间淡入
+      final heroOpacity = ((progress - 0.3) / 0.7).clamp(0.0, 1.0);
+
+      // greeting 向上飞出：progress 0→0.5 区间，向下偏移 12px→0
+      final greetingSlide =
+          (1.0 - (progress / 0.5).clamp(0.0, 1.0)) * 12.0;
+      final greetingOpacity = (progress / 0.6).clamp(0.0, 1.0);
+
+      // scoreRing 轻微缩放 + 淡出：progress 0→0.6
+      final ringScale = 0.88 + 0.12 * (progress / 0.6).clamp(0.0, 1.0);
+      final ringOpacity = (progress / 0.6).clamp(0.0, 1.0);
+
+      // 收起态标题：progress 0→0.3 淡入，从下方 6px 滑入
+      final collapsedOpacity =
+      ((0.3 - progress) / 0.3).clamp(0.0, 1.0);
+      final collapsedSlide = (1.0 - collapsedOpacity) * 6.0;
 
       return Stack(
         fit: StackFit.expand,
         children: [
-          // ① 兜底宣纸色
+          // ① 兜底背景色（始终存在）
           const ColoredBox(color: AppColors.softBg),
 
-          // ② 淡绿 Hero（提前淡出避免裁剪残影）
+          // ② Hero 展开区域
           Opacity(
-            opacity: ((progress - 0.35) / 0.65).clamp(0.0, 1.0),
+            opacity: heroOpacity,
             child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(28),
                 bottomRight: Radius.circular(28),
               ),
               child: Container(
-                decoration: const BoxDecoration(
-                    gradient: AppColors.heroGradient),
+                decoration:
+                const BoxDecoration(gradient: AppColors.heroGradient),
                 child: Stack(
                   children: [
                     Positioned.fill(
-                        child: CustomPaint(
-                            painter: _HeroBgPainter())),
+                        child: CustomPaint(painter: _HeroBgPainter())),
                     SafeArea(
                       child: Padding(
                         padding:
                         const EdgeInsets.fromLTRB(22, 52, 22, 12),
                         child: Row(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+                            // ── greeting：向上位移 + 淡入
                             Expanded(
-                              child: SingleChildScrollView(
-                                physics:
-                                const NeverScrollableScrollPhysics(),
-                                child: greeting,
+                              child: Transform.translate(
+                                offset: Offset(0, greetingSlide),
+                                child: Opacity(
+                                  opacity: greetingOpacity,
+                                  child: SingleChildScrollView(
+                                    physics:
+                                    const NeverScrollableScrollPhysics(),
+                                    child: greeting,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: scoreRing,
+                            // ── scoreRing：缩放 + 淡入
+                            Transform.scale(
+                              scale: ringScale,
+                              child: Opacity(
+                                opacity: ringOpacity,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: scoreRing,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -768,15 +799,16 @@ class _HeroFlexibleSpace extends StatelessWidget {
             ),
           ),
 
-          // ③ 收起态品牌标题
+          // ③ 收起态品牌标题：从下方滑入 + 淡入
           Positioned(
             left: 20,
             bottom: 14,
-            child: AnimatedOpacity(
-              opacity:
-              ((0.35 - progress) / 0.35).clamp(0.0, 1.0),
-              duration: const Duration(milliseconds: 80),
-              child: collapsedHeader,
+            child: Opacity(
+              opacity: collapsedOpacity,
+              child: Transform.translate(
+                offset: Offset(0, collapsedSlide),
+                child: collapsedHeader,
+              ),
             ),
           ),
         ],

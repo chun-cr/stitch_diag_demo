@@ -39,12 +39,12 @@ final class FaceOverlayView: UIView {
 
     private func mapNormalizedPoint(_ point: CGPoint, canvasSize: CGSize, imageSize: CGSize) -> CGPoint {
         guard imageSize.width > 0, imageSize.height > 0 else {
-            return CGPoint(x: (1 - point.x) * canvasSize.width, y: point.y * canvasSize.height)
+            return CGPoint(x: point.x * canvasSize.width, y: point.y * canvasSize.height)
         }
 
         let sourceWidth = imageSize.width
         let sourceHeight = imageSize.height
-        let mirroredX = (1 - point.x) * sourceWidth
+        let rawX = point.x * sourceWidth
         let rawY = point.y * sourceHeight
         let scale = max(canvasSize.width / sourceWidth, canvasSize.height / sourceHeight)
         let scaledWidth = sourceWidth * scale
@@ -52,7 +52,9 @@ final class FaceOverlayView: UIView {
         let dx = (canvasSize.width - scaledWidth) / 2
         let dy = (canvasSize.height - scaledHeight) / 2
 
-        return CGPoint(x: dx + mirroredX * scale, y: dy + rawY * scale)
+        // The front-camera preview is already mirrored for the selfie experience.
+        // Flipping landmarks again here makes the overlay move opposite to the face.
+        return CGPoint(x: dx + rawX * scale, y: dy + rawY * scale)
     }
 
     private func drawContour(_ indices: [Int], points: [CGPoint], in context: CGContext, close: Bool) {

@@ -235,7 +235,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
                         minimumSize: const Size(0, 30),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      onPressed: () => context.push(widget.skipRoute),
+                      onPressed: () => context.pushReplacement(widget.skipRoute),
                       child: const Text(
                         '跳过此步骤',
                         style: TextStyle(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w500),
@@ -423,7 +423,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
     } else {
       text = widget.nextButtonLabel;
       bgColor = widget.themeColor;
-      onPressed = () => context.push(widget.nextRoute);
+      onPressed = () => context.pushReplacement(widget.nextRoute);
     }
     
     return Container(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../../../../core/router/app_router.dart';
@@ -34,6 +33,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   StreamSubscription<bool>? _faceStatusSub;
   late AnimationController  _scanLineCtrl;
   late Animation<double>    _scanLineAnim;
+  bool _isTransitioningToTongueScan = false;
 
   @override
   void initState() {
@@ -84,9 +84,27 @@ class _FaceScanPageState extends State<FaceScanPage>
         setState(() => _countdown--);
       } else {
         t.cancel();
-        if (mounted) context.push(AppRoutes.scanTongue);
+        unawaited(_navigateToTongueScan());
       }
     });
+  }
+
+  Future<void> _navigateToTongueScan() async {
+    if (_isTransitioningToTongueScan || !mounted) {
+      return;
+    }
+
+    _isTransitioningToTongueScan = true;
+    _timer?.cancel();
+    await _faceStatusSub?.cancel();
+    _faceStatusSub = null;
+    await _statusBridge.stopMonitoring();
+
+    if (!mounted) {
+      return;
+    }
+
+    context.pushReplacement(AppRoutes.scanTongue);
   }
 
   @override
@@ -362,10 +380,12 @@ class _FaceScanPageState extends State<FaceScanPage>
               onTap: _startScan,
             ),
           const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => context.push(AppRoutes.scanTongue),
-            child: Text(
-              '跳过此步骤',
+           TextButton(
+            onPressed: () {
+              unawaited(_navigateToTongueScan());
+            },
+             child: Text(
+               '跳过此步骤',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.38),
                 fontSize: 13,
