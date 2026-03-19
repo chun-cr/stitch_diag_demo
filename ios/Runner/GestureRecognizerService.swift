@@ -84,7 +84,7 @@ final class GestureRecognizerService: NSObject {
         let score = Double(gesture?.score ?? 0)
 
         var landmarks: [[String: Double]] = []
-        if let firstHand = result.handLandmarks.first {
+        if let firstHand = result.landmarks.first {
             for lm in firstHand {
                 landmarks.append([
                     "x": Double(lm.x),

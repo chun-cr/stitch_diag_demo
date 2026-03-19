@@ -36,16 +36,16 @@ import UIKit
     methodChannel.setMethodCallHandler { call, result in
       switch call.method {
       case "face/startDetection":
-        FaceLandmarkerViewFactory.shared.currentView?.startFaceDetection()
+        FaceLandmarkerViewFactory.shared.perform(.startFace)
         result(nil)
       case "face/stopDetection":
-        FaceLandmarkerViewFactory.shared.currentView?.stopFaceDetection()
+        FaceLandmarkerViewFactory.shared.perform(.stopFace)
         result(nil)
       case "tongue/startDetection":
-        FaceLandmarkerViewFactory.shared.currentView?.startTongueDetection()
+        FaceLandmarkerViewFactory.shared.perform(.startTongue)
         result(nil)
       case "tongue/stopDetection":
-        FaceLandmarkerViewFactory.shared.currentView?.stopTongueDetection()
+        FaceLandmarkerViewFactory.shared.perform(.stopTongue)
         result(nil)
       case "gesture/startDetection":
         GestureRecognizerService.shared.start()

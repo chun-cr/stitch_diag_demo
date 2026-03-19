@@ -49,7 +49,28 @@ final class TongueDetectionStreamHandler: NSObject, FlutterStreamHandler {
 final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
     static let shared = FaceLandmarkerViewFactory()
 
-    private(set) var currentView: NativeFaceScanView?
+    private(set) weak var currentView: NativeFaceScanView?
+    private var pendingCommand: PendingDetectionCommand?
+
+    enum PendingDetectionCommand {
+        case startFace
+        case stopFace
+        case startTongue
+        case stopTongue
+
+        func apply(to view: NativeFaceScanView) {
+            switch self {
+            case .startFace:
+                view.startFaceDetection()
+            case .stopFace:
+                view.stopFaceDetection()
+            case .startTongue:
+                view.startTongueDetection()
+            case .stopTongue:
+                view.stopTongueDetection()
+            }
+        }
+    }
 
     func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
         FlutterStandardMessageCodec.sharedInstance()
@@ -58,7 +79,30 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
     func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
         let view = NativeFaceScanPlatformView(frame: frame)
         currentView = view.nativeView
+        applyPendingCommandIfPossible(to: view.nativeView)
         return view
+    }
+
+    func perform(_ command: PendingDetectionCommand) {
+        DispatchQueue.main.async {
+            guard let currentView = self.currentView, currentView.window != nil else {
+                self.pendingCommand = command
+                return
+            }
+
+            command.apply(to: currentView)
+        }
+    }
+
+    private func applyPendingCommandIfPossible(to view: NativeFaceScanView) {
+        DispatchQueue.main.async {
+            guard self.currentView === view, view.window != nil, let command = self.pendingCommand else {
+                return
+            }
+
+            self.pendingCommand = nil
+            command.apply(to: view)
+        }
     }
 }
 
@@ -104,6 +148,7 @@ final class NativeFaceScanView: UIView {
         super.layoutSubviews()
         cameraManager.layoutPreview(in: bounds)
         overlayView.frame = bounds
+        FaceLandmarkerViewFactory.shared.performPendingCommandIfPossible(for: self)
     }
 
     func startFaceDetection() {
@@ -141,6 +186,17 @@ final class NativeFaceScanView: UIView {
     deinit {
         cameraManager.stopSession()
         faceLandmarkerService.close()
+    }
+}
+
+private extension FaceLandmarkerViewFactory {
+    func performPendingCommandIfPossible(for view: NativeFaceScanView) {
+        guard currentView === view, view.window != nil, let command = pendingCommand else {
+            return
+        }
+
+        pendingCommand = nil
+        command.apply(to: view)
     }
 }
 
