@@ -105,7 +105,6 @@ class _FaceScanPageState extends State<FaceScanPage>
     }
 
     context.pushReplacement(AppRoutes.scanTongue);
-    context.pushReplacement(AppRoutes.scanPalm);
   }
 
   @override
