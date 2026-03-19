@@ -248,9 +248,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       body: Stack(
         children: [
           // ★ 始终渲染，不依赖 _hasPermission
-          const Positioned.fill(
-            child: CameraPreviewWidget(key: ValueKey('tongue_scan_preview')),
-          ),
+          Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('shared_camera_preview'))),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -268,17 +266,22 @@ class _TongueScanPageState extends State<TongueScanPage>
               ),
             ),
           ),
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                _buildHeader(context),
-                _buildTitleBlock(),
-                Expanded(child: _buildFrameArea()),
-                _buildTipsStrip(),
-                _buildBottomControls(),
-                const SizedBox(height: 40),
-              ],
+          Positioned.fill(
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  _buildTitleBlock(),
+                  Expanded(child: _buildFrameArea()),
+                  _buildTipsStrip(),
+                  SizedBox(
+                  height: 350,
+                  child: _buildBottomControls(),
+                ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ],

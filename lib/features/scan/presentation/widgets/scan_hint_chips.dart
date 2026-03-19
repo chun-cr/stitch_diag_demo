@@ -17,16 +17,17 @@ class ScanHintChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8, // 水平间距
+      runSpacing: 8, // 垂直间距
       children: hints.map((hint) {
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.softBg,
             borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: AppColors.borderColor, width: 1),
+            border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

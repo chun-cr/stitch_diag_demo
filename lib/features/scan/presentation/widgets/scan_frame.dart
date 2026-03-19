@@ -163,8 +163,9 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalHeight = constraints.maxHeight;
-        final topHeight = totalHeight * 0.55;
-        final bottomHeight = totalHeight * 0.45;
+        // 更合理的分配比例，如果总高度较小，优先保证底部 UI 空间
+        final bottomHeight = totalHeight > 500 ? totalHeight * 0.45 : totalHeight * 0.68;
+        final topHeight = totalHeight - bottomHeight;
 
         return Stack(
           children: [

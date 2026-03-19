@@ -5,11 +5,13 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import androidx.camera.core.ImageProxy
 import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.framework.image.MPImage
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizer
-import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerOptions
+import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
 import kotlin.math.acos
 import kotlin.math.max
 import kotlin.math.min
@@ -31,22 +33,23 @@ class GestureRecognizerHelper(private val context: Context) {
             .setModelAssetPath("gesture_recognizer.task")
             .setDelegate(Delegate.GPU)
 
-        val options = GestureRecognizerOptions.builder()
+        val options = GestureRecognizer.GestureRecognizerOptions.builder()
             .setBaseOptions(baseOptionsBuilder.build())
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumHands(2)
-            .setResultListener { result, _ ->
+            .setResultListener { result: GestureRecognizerResult, _: MPImage ->
                 val gesture = result.gestures().firstOrNull()?.firstOrNull()
                 val gestureName = gesture?.categoryName() ?: ""
                 val score = gesture?.score()?.toDouble() ?: 0.0
 
-                val landmarks = result.handLandmarks().firstOrNull()?.map { lm ->
-                    mapOf("x" to lm.x(), "y" to lm.y(), "z" to lm.z())
-                } ?: emptyList<Map<String, Float>>()
+                val handLandmarks = result.landmarks().firstOrNull()
+                val landmarks = handLandmarks?.map { lm: NormalizedLandmark ->
+                    mapOf("x" to lm.x().toDouble(), "y" to lm.y().toDouble(), "z" to lm.z().toDouble())
+                } ?: emptyList<Map<String, Double>>()
 
                 val detectedByModel = gestureName == "Open_Palm" && score >= 0.75
                 val detectedByFallback = if (!detectedByModel) {
-                    isOpenPalmByLandmarks(result.handLandmarks().firstOrNull())
+                    isOpenPalmByLandmarks(handLandmarks)
                 } else {
                     false
                 }
@@ -96,7 +99,7 @@ class GestureRecognizerHelper(private val context: Context) {
         return consecutiveCount >= 3
     }
 
-    private fun isOpenPalmByLandmarks(landmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>?): Boolean {
+    private fun isOpenPalmByLandmarks(landmarks: List<NormalizedLandmark>?): Boolean {
         if (landmarks == null || landmarks.size < 21) return false
 
         val thumb = isFingerExtended(landmarks, 1, 2, 3, 4)
@@ -109,7 +112,7 @@ class GestureRecognizerHelper(private val context: Context) {
     }
 
     private fun isFingerExtended(
-        landmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>,
+        landmarks: List<NormalizedLandmark>,
         mcp: Int,
         pip: Int,
         dip: Int,
@@ -125,10 +128,10 @@ class GestureRecognizerHelper(private val context: Context) {
     }
 
     private fun angleBetween(
-        a: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
-        b: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
-        c: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
-        d: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
+        a: NormalizedLandmark,
+        b: NormalizedLandmark,
+        c: NormalizedLandmark,
+        d: NormalizedLandmark,
     ): Double {
         val v1 = floatArrayOf(a.x() - b.x(), a.y() - b.y(), a.z() - b.z())
         val v2 = floatArrayOf(c.x() - b.x(), c.y() - b.y(), c.z() - b.z())
@@ -153,4 +156,3 @@ class GestureRecognizerHelper(private val context: Context) {
         recognizer = null
     }
 }
-

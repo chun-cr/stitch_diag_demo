@@ -30,10 +30,11 @@ class _FaceScanPageState extends State<FaceScanPage>
   int  _countdown       = 3;
 
   Timer?                    _timer;
-  StreamSubscription<bool>? _faceStatusSub;
+  StreamSubscription<Map<String, dynamic>>? _faceStatusSub;
   late AnimationController  _scanLineCtrl;
   late Animation<double>    _scanLineAnim;
   bool _isTransitioningToTongueScan = false;
+  List<Offset> _normalizedLandmarks = const [];
 
   @override
   void initState() {
@@ -53,9 +54,14 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (status.isGranted) {
       if (mounted) setState(() => _hasPermission = true);
       _faceStatusSub?.cancel();
-      _faceStatusSub =
-          _statusBridge.facePresenceStream().listen((hasFace) {
-        if (mounted) setState(() => _hasFaceDetected = hasFace);
+      _faceStatusSub = _statusBridge.landmarkStream().listen((payload) {
+        if (!mounted) return;
+        final hasFace = _extractHasFace(payload);
+        final landmarks = _extractNormalizedLandmarks(payload['landmarks']);
+        setState(() {
+          _hasFaceDetected = hasFace;
+          _normalizedLandmarks = landmarks;
+        });
       });
       await _statusBridge.initialize();
       await _statusBridge.startMonitoring();
@@ -98,8 +104,6 @@ class _FaceScanPageState extends State<FaceScanPage>
     _timer?.cancel();
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
-    unawaited(_statusBridge.stopMonitoring());
-    await Future.delayed(const Duration(milliseconds: 150));
 
     if (!mounted) {
       return;
@@ -113,7 +117,6 @@ class _FaceScanPageState extends State<FaceScanPage>
     _timer?.cancel();
     _faceStatusSub?.cancel();
     _scanLineCtrl.dispose();
-    unawaited(_statusBridge.stopMonitoring());
     super.dispose();
   }
 
@@ -124,7 +127,7 @@ class _FaceScanPageState extends State<FaceScanPage>
       body: Stack(
         children: [
           // 相机预览
-          if (_hasPermission) Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('face_scan_preview'))),
+          if (_hasPermission) Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('shared_camera_preview'))),
 
           // 渐变遮罩
           Positioned.fill(
@@ -329,6 +332,57 @@ class _FaceScanPageState extends State<FaceScanPage>
   }
 
   List<Widget> _buildFaceDots(double w, double h) {
+    if (_normalizedLandmarks.isNotEmpty) {
+      // 取一组关键点，避免 468 点全部渲染造成画面噪音。
+      const anchorIndices = <int>[
+        10, 152, 234, 454, 1, 2, 4, 6, 8,
+        33, 133, 362, 263, 61, 291, 13, 14, 78, 308,
+      ];
+
+      final selected = anchorIndices
+          .map((i) => i < _normalizedLandmarks.length ? _normalizedLandmarks[i] : null)
+          .whereType<Offset>()
+          .toList(growable: false);
+
+      final pointsToRender = selected.isNotEmpty
+          ? selected
+          : _normalizedLandmarks
+              .where((p) => p.dx >= 0 && p.dx <= 1 && p.dy >= 0 && p.dy <= 1)
+              .toList(growable: false)
+              .asMap()
+              .entries
+              .where((entry) => entry.key % 12 == 0)
+              .map((entry) => entry.value)
+              .take(40)
+              .toList(growable: false);
+
+      if (pointsToRender.isNotEmpty) {
+        return pointsToRender.map((p) {
+          final x = p.dx.clamp(0.0, 1.0) * w;
+          final y = p.dy.clamp(0.0, 1.0) * h;
+          return Positioned(
+            left: x - 2.5,
+            top: y - 2.5,
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _kFaceGreen.withValues(alpha: 0.9),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kFaceGreen.withValues(alpha: 0.6),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(growable: false);
+      }
+    }
+
     final positions = [
       Offset(w * 0.28, h * 0.20),
       Offset(w * 0.72, h * 0.20),
@@ -396,6 +450,34 @@ class _FaceScanPageState extends State<FaceScanPage>
         ],
       ),
     );
+  }
+
+  bool _extractHasFace(Map<String, dynamic> payload) {
+    final detected = payload['detected'];
+    if (detected is bool) return detected;
+    final landmarks = payload['landmarks'];
+    return landmarks is List && landmarks.isNotEmpty;
+  }
+
+  List<Offset> _extractNormalizedLandmarks(dynamic rawLandmarks) {
+    if (rawLandmarks is! List) return const [];
+
+    final points = <Offset>[];
+    for (final item in rawLandmarks) {
+      if (item is Map) {
+        final x = _asDouble(item['x']);
+        final y = _asDouble(item['y']);
+        if (x != null && y != null) {
+          points.add(Offset(x, y));
+        }
+      }
+    }
+    return points;
+  }
+
+  double? _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return null;
   }
 }
 

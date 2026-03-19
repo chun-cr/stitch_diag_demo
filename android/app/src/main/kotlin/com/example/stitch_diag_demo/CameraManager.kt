@@ -67,7 +67,7 @@ class CameraManager(private val context: Context) {
                 )
                 lastPreviewView?.let { previewView ->
                     preview?.setSurfaceProvider(previewView.surfaceProvider)
-                    previewView.scaleX = -1f
+                    previewView.scaleX = 1f
                 }
             } catch (exc: Exception) {
                 // Handle error
@@ -117,7 +117,7 @@ class CameraManager(private val context: Context) {
     fun setPreviewView(previewView: androidx.camera.view.PreviewView) {
         lastPreviewView = previewView
         preview?.setSurfaceProvider(previewView.surfaceProvider)
-        previewView.scaleX = -1f
+        previewView.scaleX = 1f
     }
 
     // For PlatformView
@@ -136,6 +136,8 @@ class CameraPreviewView(context: Context, private val cameraManager: CameraManag
     private val previewView = androidx.camera.view.PreviewView(context)
 
     init {
+        // 使用 TextureView 兼容模式，避免 SurfaceView 把 Flutter UI 覆盖导致叠层不可见。
+        previewView.implementationMode = androidx.camera.view.PreviewView.ImplementationMode.COMPATIBLE
         cameraManager.attachPreview(previewView)
     }
 
