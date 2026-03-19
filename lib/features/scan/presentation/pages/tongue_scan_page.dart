@@ -1,6 +1,32 @@
+// ═══════════════════════════════════════════════════════════════════
+// 修复说明（只改 State 类，其余组件不动）
+//
+// 问题 1：_owner != null assertion
+//   _requestPermission() 里权限回调后立即 startMonitoring()，
+//   stream 回调触发 setState()，但 widget 可能还处于 build 阶段
+//   或上一页面 pop 动画未结束，RenderObject 还没 attach，报错。
+//
+// 问题 2：摄像头黑屏
+//   _hasPermission=false 时 CameraPreviewWidget 不在树里，
+//   startMonitoring() 发出 tongue/startDetection 时 Platform View
+//   还不存在，命令被 pendingCommand 接住，但随后 CameraPreviewWidget
+//   插入树、Platform View 创建，此时 FaceLandmarkerViewFactory 修复
+//   后已能正确执行。然而若 startMonitoring 先于 Platform View 的
+//   layoutSubviews 发出，仍存在时序窗口。
+//
+// 修复方案：
+//   1. CameraPreviewWidget 始终渲染（不再依赖 _hasPermission 条件），
+//      保证 Platform View 在页面进入时就已存在。
+//   2. startMonitoring() 延迟到 addPostFrameCallback 里执行，
+//      确保 Platform View layoutSubviews 已完成。
+//   3. _handleStatusUpdate 内所有 setState 前严格 guard mounted。
+//   4. dispose 里先取消订阅再 stopMonitoring，避免 unmount 后回调。
+// ═══════════════════════════════════════════════════════════════════
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -11,9 +37,9 @@ import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_frame.dart';
 import '../widgets/scan_step_indicator.dart';
 
-const _kTongueRed     = Color(0xFFE88080);
-const _kBgTop         = Color(0xFF1A0E0E);
-const _kBgBottom      = Color(0xFF120A0A);
+const _kTongueRed = Color(0xFFE88080);
+const _kBgTop     = Color(0xFF1A0E0E);
+const _kBgBottom  = Color(0xFF120A0A);
 
 class TongueScanPage extends StatefulWidget {
   const TongueScanPage({super.key});
@@ -32,9 +58,9 @@ class _TongueScanPageState extends State<TongueScanPage>
   Timer? _holdTimer;
 
   bool _hasPermission = false;
-  bool _mouthPresent = false;
+  bool _mouthPresent  = false;
   bool _tongueDetected = false;
-  double _tongueScore = 0;
+  double _tongueScore  = 0;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
 
@@ -48,7 +74,10 @@ class _TongueScanPageState extends State<TongueScanPage>
     _scanAnim = Tween<double>(begin: 0.1, end: 0.88).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut),
     );
-    _requestPermission();
+    // ★ 首帧渲染完成后再请求权限，确保 Platform View 已 attach
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _requestPermission();
+    });
   }
 
   Future<void> _requestPermission() async {
@@ -64,15 +93,24 @@ class _TongueScanPageState extends State<TongueScanPage>
         _tongueScore = 0;
         _scanProgress = 0;
       });
+
       _statusSubscription?.cancel();
-      _statusSubscription = _statusBridge.statusStream().listen(_handleStatusUpdate);
-      await _statusBridge.startMonitoring();
+      _statusSubscription =
+          _statusBridge.statusStream().listen(_handleStatusUpdate);
+
+      // ★ 等当前帧（包含 CameraPreviewWidget setState 重建）完成后再 startMonitoring
+      //   此时 Platform View 的 layoutSubviews 已执行，pendingCommand 已被消费
+      SchedulerBinding.instance.addPostFrameCallback((_) async {
+        if (mounted) await _statusBridge.startMonitoring();
+      });
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('需要相机权限才能进行舌象扫描')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('需要相机权限才能进行舌象扫描')),
+      );
+    }
   }
 
   Future<void> _startScan() async {
@@ -82,6 +120,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     }
 
     _cancelHoldTracking(resetProgress: true);
+    if (!mounted) return;
     setState(() {
       _scanState = ScanState.scanning;
       _mouthPresent = false;
@@ -93,14 +132,13 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 
   void _handleStatusUpdate(TongueScanStatus status) {
-    if (!mounted || _scanState != ScanState.scanning) {
-      return;
-    }
+    // ★ 严格 guard，防止 unmount 后回调触发 setState
+    if (!mounted || _scanState != ScanState.scanning) return;
 
     setState(() {
-      _mouthPresent = status.mouthPresent;
-      _tongueDetected = status.tongueDetected;
-      _tongueScore = status.tongueOutScore;
+      _mouthPresent    = status.mouthPresent;
+      _tongueDetected  = status.tongueDetected;
+      _tongueScore     = status.tongueOutScore;
     });
 
     if (status.tongueDetected) {
@@ -111,9 +149,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 
   void _startHoldTracking() {
-    if (_holdTimer != null || _scanState != ScanState.scanning) {
-      return;
-    }
+    if (_holdTimer != null || _scanState != ScanState.scanning) return;
 
     final stopwatch = Stopwatch()..start();
     _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
@@ -133,16 +169,13 @@ class _TongueScanPageState extends State<TongueScanPage>
         return;
       }
 
-      setState(() {
-        _scanProgress = progress.clamp(0.0, 1.0);
-      });
+      setState(() => _scanProgress = progress.clamp(0.0, 1.0));
     });
   }
 
   Future<void> _completeScan() async {
     await _statusBridge.stopMonitoring();
     if (!mounted) return;
-
     setState(() {
       _scanState = ScanState.completed;
       _scanProgress = 1;
@@ -152,66 +185,45 @@ class _TongueScanPageState extends State<TongueScanPage>
   void _cancelHoldTracking({required bool resetProgress}) {
     _holdTimer?.cancel();
     _holdTimer = null;
-
     if (resetProgress && mounted) {
-      setState(() {
-        _scanProgress = 0;
-      });
+      setState(() => _scanProgress = 0);
     }
-  }
-
-  String get _statusLabel {
-    if (_scanState == ScanState.completed) {
-      return '舌头扫描完成 ✓';
-    }
-
-    if (!_hasPermission) {
-      return '需要相机权限后才能开始扫描';
-    }
-
-    if (_scanState == ScanState.idle) {
-      return '请点击下方按钮，开始舌象扫描';
-    }
-
-    if (_tongueDetected) {
-      return '已识别舌头，请保持 2 秒';
-    }
-
-    if (_mouthPresent) {
-      return '已检测到口部，请再自然伸舌';
-    }
-
-    return '请伸出舌头，对准框内';
-  }
-
-  String get _bottomIdleText {
-    if (!_hasPermission) {
-      return '授权相机后开始舌象扫描';
-    }
-
-    return '保持自然表情，正视前方';
-  }
-
-  String get _bottomScanningText {
-    if (_tongueDetected) {
-      return '舌象识别中，当前分数 ${(100 * _tongueScore).toStringAsFixed(0)}%';
-    }
-
-    if (_mouthPresent) {
-      return '已检测到口部，请将舌头自然伸出';
-    }
-
-    return '舌苔颜色正在分析...';
   }
 
   @override
   void dispose() {
     _holdTimer?.cancel();
+    // ★ 先取消订阅，再 stop，避免 stop 触发的事件回调到已 unmount 的 state
     _statusSubscription?.cancel();
+    _statusSubscription = null;
     unawaited(_statusBridge.stopMonitoring());
     _scanCtrl.dispose();
     super.dispose();
   }
+
+  // ── 文字计算（不变）──────────────────────────────────────────────
+
+  String get _statusLabel {
+    if (_scanState == ScanState.completed)  return '舌头扫描完成 ✓';
+    if (!_hasPermission)                    return '需要相机权限后才能开始扫描';
+    if (_scanState == ScanState.idle)       return '请点击下方按钮，开始舌象扫描';
+    if (_tongueDetected)                    return '已识别舌头，请保持 2 秒';
+    if (_mouthPresent)                      return '已检测到口部，请再自然伸舌';
+    return '请伸出舌头，对准框内';
+  }
+
+  String get _bottomIdleText {
+    if (!_hasPermission) return '授权相机后开始舌象扫描';
+    return '保持自然表情，正视前方';
+  }
+
+  String get _bottomScanningText {
+    if (_tongueDetected) return '舌象识别中，当前分数 ${(100 * _tongueScore).toStringAsFixed(0)}%';
+    if (_mouthPresent)   return '已检测到口部，请将舌头自然伸出';
+    return '舌苔颜色正在分析...';
+  }
+
+  // ── Build ────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +231,12 @@ class _TongueScanPageState extends State<TongueScanPage>
       backgroundColor: _kBgBottom,
       body: Stack(
         children: [
-          if (_hasPermission) const Positioned.fill(child: CameraPreviewWidget(key: ValueKey('tongue_scan_preview'))),
+          // ★ 始终渲染 CameraPreviewWidget，不再依赖 _hasPermission 条件
+          //   Platform View 在页面进入时就存在，避免 startMonitoring 时序问题
+          //   无权限时摄像头不会真正启动（底层 session 未 start），只是占位
+          const Positioned.fill(
+            child: CameraPreviewWidget(key: ValueKey('tongue_scan_preview')),
+          ),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -281,19 +298,18 @@ class _TongueScanPageState extends State<TongueScanPage>
           const Text(
             '舌象诊断',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.w700,
               color: Colors.white,
-              letterSpacing: 1,
+              letterSpacing: 2,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             '自然伸出舌头，舌面充分展开，保持 2 秒',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.55),
-              height: 1.5,
+              color: Colors.white.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -310,7 +326,6 @@ class _TongueScanPageState extends State<TongueScanPage>
         ? _kTongueRed
         : _kTongueRed.withValues(alpha: 0.45);
 
-    // 舌头扫描框：宽矮的圆角矩形，上宽下稍窄模拟口腔形状
     return Center(
       child: SizedBox(
         width: frameW,
@@ -318,7 +333,6 @@ class _TongueScanPageState extends State<TongueScanPage>
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // 外发光
             Positioned(
               top: -10, left: -10, right: -10, bottom: -10,
               child: Container(
@@ -331,71 +345,60 @@ class _TongueScanPageState extends State<TongueScanPage>
                 ),
               ),
             ),
-            // 主框（上圆下稍收）
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                   borderRadius: const BorderRadius.vertical(
-                     top: Radius.circular(80),
-                     bottom: Radius.circular(55),
-                   ),
-                   border: Border.all(
-                     color: highlightColor,
-                     width: 1.5,
-                   ),
-                 ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(80),
+                    bottom: Radius.circular(55),
+                  ),
+                  border: Border.all(color: highlightColor, width: 1.5),
+                ),
               ),
             ),
-            // 四角装饰
-            Positioned(top: -1, left: 38,  child: _ScanCorner(color: _kTongueRed, top: true,  left: true)),
-            Positioned(top: -1, right: 38, child: _ScanCorner(color: _kTongueRed, top: true,  left: false)),
+            Positioned(top: -1,    left: 38,  child: _ScanCorner(color: _kTongueRed, top: true,  left: true)),
+            Positioned(top: -1,    right: 38, child: _ScanCorner(color: _kTongueRed, top: true,  left: false)),
             Positioned(bottom: -1, left: 18,  child: _ScanCorner(color: _kTongueRed, top: false, left: true)),
             Positioned(bottom: -1, right: 18, child: _ScanCorner(color: _kTongueRed, top: false, left: false)),
-            // 中轴参考线
             Positioned(
               top: frameH * 0.4,
               left: frameW * 0.2,
               right: frameW * 0.2,
-              child: Container(
-                height: 0.5,
-                color: _kTongueRed.withValues(alpha: 0.18),
-              ),
+              child: Container(height: 0.5, color: _kTongueRed.withValues(alpha: 0.18)),
             ),
-            // 扫描线（横向）
             AnimatedBuilder(
-                animation: _scanAnim,
-                builder: (context, child) => Positioned(
-                  top: _scanAnim.value * frameH,
-                  left: 14,
-                  right: 14,
-                 child: Container(
-                   height: 1.5,
-                   decoration: BoxDecoration(
-                     gradient: LinearGradient(
-                       colors: [
-                         Colors.transparent,
-                         _kTongueRed.withValues(alpha: isActive ? 0.9 : 0.25),
-                         Colors.transparent,
-                       ],
-                      ),
+              animation: _scanAnim,
+              builder: (context, child) => Positioned(
+                top: _scanAnim.value * frameH,
+                left: 14,
+                right: 14,
+                child: Container(
+                  height: 1.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        _kTongueRed.withValues(alpha: isActive ? 0.9 : 0.25),
+                        Colors.transparent,
+                      ],
                     ),
                   ),
                 ),
+              ),
             ),
-            // 状态气泡
             Positioned(
               bottom: -44,
               left: -30,
               right: -30,
-               child: Center(
-                 child: _StatusPill(
+              child: Center(
+                child: _StatusPill(
                   label: _statusLabel,
                   color: (_scanState == ScanState.completed || _tongueDetected)
                       ? _kTongueRed
                       : _kTongueRed.withValues(alpha: 0.7),
-                 ),
-               ),
-             ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -408,11 +411,11 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _TipPill(icon: Icons.wb_sunny_outlined, label: '光线充足', color: _kTongueRed),
+          _TipPill(icon: Icons.wb_sunny_outlined,  label: '光线充足',    color: _kTongueRed),
           const SizedBox(width: 8),
-          _TipPill(icon: Icons.no_food_outlined,  label: '勿食有色食物', color: _kTongueRed),
+          _TipPill(icon: Icons.no_food_outlined,   label: '勿食有色食物', color: _kTongueRed),
           const SizedBox(width: 8),
-          _TipPill(icon: Icons.waves_outlined,    label: '舌头平伸', color: _kTongueRed),
+          _TipPill(icon: Icons.waves_outlined,     label: '舌头平伸',    color: _kTongueRed),
         ],
       ),
     );
@@ -438,9 +441,7 @@ class _TongueScanPageState extends State<TongueScanPage>
         showBuiltInFrame: false,
         autoStart: false,
         startEnabled: _hasPermission && _scanState != ScanState.scanning,
-        onStartPressed: () {
-          unawaited(_startScan());
-        },
+        onStartPressed: () { unawaited(_startScan()); },
         stateOverride: _scanState,
         progressOverride: _scanProgress,
       ),
@@ -448,7 +449,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 }
 
-// ── 共用组件（与 face_scan_page 相同，可提取到 shared widgets）──────
+// ── 共用组件（不变）────────────────────────────────────────────────
 
 class _CircleIconButton extends StatelessWidget {
   final IconData icon;
@@ -457,17 +458,17 @@ class _CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.12),
-          ),
-          child: Icon(icon, color: Colors.white, size: 18),
-        ),
-      );
+    onTap: onTap,
+    child: Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.12),
+      ),
+      child: Icon(icon, color: Colors.white, size: 18),
+    ),
+  );
 }
 
 class _StatusPill extends StatelessWidget {
@@ -477,14 +478,14 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Text(label, style: TextStyle(color: color, fontSize: 12)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.4)),
+    ),
+    child: Text(label, style: TextStyle(color: color, fontSize: 12)),
+  );
 }
 
 class _TipPill extends StatelessWidget {
@@ -495,26 +496,26 @@ class _TipPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 11),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.78),
+            fontSize: 11,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 11),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.78),
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }
 
 class _ScanCorner extends StatelessWidget {
@@ -525,12 +526,12 @@ class _ScanCorner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 24,
-        height: 24,
-        child: CustomPaint(
-          painter: _ScanCornerPainter(color: color, top: top, left: left),
-        ),
-      );
+    width: 24,
+    height: 24,
+    child: CustomPaint(
+      painter: _ScanCornerPainter(color: color, top: top, left: left),
+    ),
+  );
 }
 
 class _ScanCornerPainter extends CustomPainter {
