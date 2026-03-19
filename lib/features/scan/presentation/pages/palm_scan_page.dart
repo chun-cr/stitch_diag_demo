@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/palm_scan_status_bridge.dart';
+import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/scan_frame.dart';
 
@@ -43,7 +45,12 @@ class _PalmScanPageState extends State<PalmScanPage>
     _scanAnim = Tween<double>(begin: 0.1, end: 0.88).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut),
     );
-    _requestPermissionAndStart();
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _requestPermissionAndStart();
+      }
+    });
   }
 
   Future<void> _requestPermissionAndStart() async {
@@ -61,7 +68,8 @@ class _PalmScanPageState extends State<PalmScanPage>
           _gestureName = status.gestureName;
         });
       });
-      await _statusBridge.startMonitoring();
+
+      unawaited(_statusBridge.startMonitoring());
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('需要相机权限才能进行手掌扫描')),
@@ -81,27 +89,42 @@ class _PalmScanPageState extends State<PalmScanPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBgBottom,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_kBgTop, _kBgBottom],
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: CameraPreviewWidget(key: ValueKey('palm_scan_preview')),
           ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              _buildHeader(context),
-              _buildTitleBlock(),
-              Expanded(child: _buildFrameArea()),
-              _buildTipsStrip(),
-              _buildBottomControls(context),
-              const SizedBox(height: 40),
-            ],
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    _kBgTop.withValues(alpha: 0.9),
+                    Colors.transparent,
+                    Colors.transparent,
+                    _kBgBottom.withValues(alpha: 0.96),
+                  ],
+                  stops: const [0.0, 0.22, 0.65, 1.0],
+                ),
+              ),
+            ),
           ),
-        ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _buildHeader(context),
+                _buildTitleBlock(),
+                Expanded(child: _buildFrameArea()),
+                _buildTipsStrip(),
+                _buildBottomControls(context),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

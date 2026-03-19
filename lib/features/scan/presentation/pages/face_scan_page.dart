@@ -99,6 +99,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
     unawaited(_statusBridge.stopMonitoring());
+    await Future.delayed(const Duration(milliseconds: 150));
 
     if (!mounted) {
       return;
