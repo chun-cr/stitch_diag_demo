@@ -113,7 +113,7 @@ extension FaceLandmarkerService: FaceLandmarkerLiveStreamDelegate {
         } ?? []
 
         let blendshapes = result?.faceBlendshapes.first?.categories.reduce(into: [String: Double]()) { dict, category in
-            dict[category.categoryName()] = Double(category.score())
+            dict[category.categoryName ?? ""] = Double(category.score)
         } ?? [:]
 
         let tongueResult = TongueDetectionEvaluator.evaluate(

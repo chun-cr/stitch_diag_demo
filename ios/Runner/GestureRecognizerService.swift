@@ -67,7 +67,7 @@ final class GestureRecognizerService: NSObject {
 
     func stop() {
         cameraManager.stopSession()
-        recognizer?.close()
+        // recognizer handled by ARC
         recognizer = nil
         consecutiveCount = 0
         publishDetected(false, name: "", score: 0, landmarks: [])
@@ -83,13 +83,13 @@ final class GestureRecognizerService: NSObject {
         let gestureName = gesture?.categoryName ?? ""
         let score = Double(gesture?.score ?? 0)
 
-        let landmarks = result.handLandmarks.first?.map { landmark in
+        let landmarks: [[String: Double]] = (result.handLandmarks.first ?? []).map { landmark in
             [
                 "x": Double(landmark.x),
                 "y": Double(landmark.y),
                 "z": Double(landmark.z),
             ]
-        } ?? []
+        }
 
         let isOpenPalm = gestureName == "Open_Palm" && score >= 0.75
         if isOpenPalm {
