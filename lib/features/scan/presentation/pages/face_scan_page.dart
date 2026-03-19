@@ -123,7 +123,7 @@ class _FaceScanPageState extends State<FaceScanPage>
       body: Stack(
         children: [
           // 相机预览
-          if (_hasPermission) Positioned.fill(child: const CameraPreviewWidget()),
+          if (_hasPermission) Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('face_scan_preview'))),
 
           // 渐变遮罩
           Positioned.fill(

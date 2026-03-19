@@ -56,9 +56,17 @@ class _TongueScanPageState extends State<TongueScanPage>
     if (!mounted) return;
 
     if (status.isGranted) {
-      setState(() => _hasPermission = true);
+      setState(() {
+        _hasPermission = true;
+        _scanState = ScanState.scanning;
+        _mouthPresent = false;
+        _tongueDetected = false;
+        _tongueScore = 0;
+        _scanProgress = 0;
+      });
       _statusSubscription?.cancel();
       _statusSubscription = _statusBridge.statusStream().listen(_handleStatusUpdate);
+      await _statusBridge.startMonitoring();
       return;
     }
 
@@ -211,7 +219,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       backgroundColor: _kBgBottom,
       body: Stack(
         children: [
-          if (_hasPermission) const Positioned.fill(child: CameraPreviewWidget()),
+          if (_hasPermission) const Positioned.fill(child: CameraPreviewWidget(key: ValueKey('tongue_scan_preview'))),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
