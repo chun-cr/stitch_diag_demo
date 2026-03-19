@@ -104,7 +104,9 @@ class _FaceScanPageState extends State<FaceScanPage>
       return;
     }
 
-    context.pushReplacement(AppRoutes.scanTongue);
+    // 临时跳过舌头扫描，直接进入手势/手掌检测。
+    // context.pushReplacement(AppRoutes.scanTongue);
+    context.pushReplacement(AppRoutes.scanPalm);
   }
 
   @override
