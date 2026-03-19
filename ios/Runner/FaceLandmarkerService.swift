@@ -103,21 +103,23 @@ extension FaceLandmarkerService: FaceLandmarkerLiveStreamDelegate {
             print("FaceLandmarker error: \(error)")
         }
 
-        let firstFaceLandmarks = result?.faceLandmarks.first
-        let landmarks = firstFaceLandmarks?.map { landmark in
-            [
-                "x": Double(landmark.x),
-                "y": Double(landmark.y),
-                "z": Double(landmark.z),
-            ]
-        } ?? []
+        var landmarks: [[String: Double]] = []
+        if let firstFace = result?.faceLandmarks.first {
+            for lm in firstFace {
+                landmarks.append([
+                    "x": Double(lm.x),
+                    "y": Double(lm.y),
+                    "z": Double(lm.z)
+                ])
+            }
+        }
 
         let blendshapes = result?.faceBlendshapes.first?.categories.reduce(into: [String: Double]()) { dict, category in
             dict[category.categoryName ?? ""] = Double(category.score)
         } ?? [:]
 
         let tongueResult = TongueDetectionEvaluator.evaluate(
-            landmarks: firstFaceLandmarks,
+            landmarks: result?.faceLandmarks.first,
             blendshapes: blendshapes
         )
 

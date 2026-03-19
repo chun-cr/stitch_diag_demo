@@ -83,12 +83,15 @@ final class GestureRecognizerService: NSObject {
         let gestureName = gesture?.categoryName ?? ""
         let score = Double(gesture?.score ?? 0)
 
-        let landmarks: [[String: Double]] = (result.handLandmarks.first ?? []).map { landmark in
-            [
-                "x": Double(landmark.x),
-                "y": Double(landmark.y),
-                "z": Double(landmark.z),
-            ]
+        var landmarks: [[String: Double]] = []
+        if let firstHand = result.handLandmarks.first {
+            for lm in firstHand {
+                landmarks.append([
+                    "x": Double(lm.x),
+                    "y": Double(lm.y),
+                    "z": Double(lm.z)
+                ])
+            }
         }
 
         let isOpenPalm = gestureName == "Open_Palm" && score >= 0.75
