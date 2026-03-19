@@ -36,23 +36,32 @@ import UIKit
     methodChannel.setMethodCallHandler { call, result in
       switch call.method {
       case "face/startDetection":
+        // start 命令走 perform()，view 不存在时进入 pending 队列
         FaceLandmarkerViewFactory.shared.perform(.startFace)
         result(nil)
+
       case "face/stopDetection":
-        FaceLandmarkerViewFactory.shared.perform(.stopFace)
+        // ★ stop 命令改走 performStop()，view 不存在时直接丢弃，不写入 pending
+        FaceLandmarkerViewFactory.shared.performStop(face: true)
         result(nil)
+
       case "tongue/startDetection":
         FaceLandmarkerViewFactory.shared.perform(.startTongue)
         result(nil)
+
       case "tongue/stopDetection":
-        FaceLandmarkerViewFactory.shared.perform(.stopTongue)
+        // ★ 同上
+        FaceLandmarkerViewFactory.shared.performStop(face: false)
         result(nil)
+
       case "gesture/startDetection":
         GestureRecognizerService.shared.start()
         result(nil)
+
       case "gesture/stopDetection":
         GestureRecognizerService.shared.stop()
         result(nil)
+
       default:
         result(FlutterMethodNotImplemented)
       }
