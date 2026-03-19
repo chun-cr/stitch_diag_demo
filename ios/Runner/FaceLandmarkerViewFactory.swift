@@ -60,6 +60,8 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
 
     private(set) weak var currentView: NativeFaceScanView?
     var pendingCommand: PendingDetectionCommand?
+    // 最近一次 face stop 命中的 view。用于阻止 tongue start 误打到即将销毁的旧 view。
+    private var blockedTongueStartViewId: ObjectIdentifier?
 
     // ★ 只保留 start 类命令，stop 命令不再进入 pending 队列
     enum PendingDetectionCommand {
@@ -89,6 +91,13 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
     func perform(_ command: PendingDetectionCommand) {
         DispatchQueue.main.async {
             if let view = self.currentView, view.window != nil {
+                if case .startTongue = command,
+                   self.blockedTongueStartViewId == ObjectIdentifier(view) {
+                    // face -> tongue 跳转窗口内，若 currentView 仍是刚 stop 过的旧 face view，
+                    // 则不要立刻执行，转为 pending，等待新 view attach 后再 apply。
+                    self.pendingCommand = command
+                    return
+                }
                 command.apply(to: view)
             } else {
                 self.pendingCommand = command
@@ -111,6 +120,11 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
                 print("FaceLandmarkerViewFactory: stop ignored, no active view")
                 return
             }
+
+            if face {
+                self.blockedTongueStartViewId = ObjectIdentifier(view)
+            }
+
             face ? view.stopFaceDetection() : view.stopTongueDetection()
         }
     }
@@ -122,6 +136,9 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
                   let command = self.pendingCommand else { return }
             self.pendingCommand = nil
             command.apply(to: view)
+            if case .startTongue = command {
+                self.blockedTongueStartViewId = nil
+            }
         }
     }
 }
@@ -189,6 +206,7 @@ final class NativeFaceScanView: UIView {
 
     private func stopDetectionIfIdle() {
         guard !isFaceDetectionActive && !isTongueDetectionActive else { return }
+        print("CameraManager: stopDetectionIfIdle — stopping session")
         cameraManager.stopSession()
         faceLandmarkerService.close()
     }

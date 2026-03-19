@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/palm_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
@@ -12,8 +11,6 @@ import '../widgets/scan_step_indicator.dart';
 import '../widgets/scan_frame.dart';
 
 const _kPalmPurple     = Color(0xFF9B8EF0);
-const _kPalmPurpleDeep = Color(0xFF4A3DB0);
-const _kPalmPurpleMid  = Color(0xFF6B5ED4);
 const _kBgTop          = Color(0xFF0E1520);
 const _kBgBottom       = Color(0xFF090E18);
 
@@ -233,7 +230,7 @@ class _PalmScanPageState extends State<PalmScanPage>
             // 扫描线（纵向，从左到右）
             AnimatedBuilder(
               animation: _scanAnim,
-              builder: (_, __) => Positioned(
+              builder: (context, child) => Positioned(
                 left: _scanAnim.value * frameW,
                 top: 12,
                 bottom: 12,
