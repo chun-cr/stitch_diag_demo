@@ -93,7 +93,6 @@ final class FaceLandmarkerService: NSObject {
     }
 
     func close() {
-        faceLandmarker?.close()
         faceLandmarker = nil
     }
 }
@@ -113,7 +112,7 @@ extension FaceLandmarkerService: FaceLandmarkerLiveStreamDelegate {
             ]
         } ?? []
 
-        let blendshapes = result?.faceBlendshapes.first?.categories().reduce(into: [String: Double]()) { dict, category in
+        let blendshapes = result?.faceBlendshapes.first?.categories.reduce(into: [String: Double]()) { dict, category in
             dict[category.categoryName()] = Double(category.score())
         } ?? [:]
 

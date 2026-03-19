@@ -20,7 +20,7 @@ final class CameraManager: NSObject {
 
     func attachPreview(to view: UIView) {
         let previewLayer: AVCaptureVideoPreviewLayer
-        if let existingLayer = previewLayer {
+        if let existingLayer = self.previewLayer {
             previewLayer = existingLayer
         } else {
             let newLayer = AVCaptureVideoPreviewLayer(session: session)
