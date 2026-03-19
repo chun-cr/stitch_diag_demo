@@ -98,14 +98,13 @@ class _FaceScanPageState extends State<FaceScanPage>
     _timer?.cancel();
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
-    await _statusBridge.stopMonitoring();
+    unawaited(_statusBridge.stopMonitoring());
 
     if (!mounted) {
       return;
     }
 
-    // 临时跳过舌头扫描，直接进入手势/手掌检测。
-    // context.pushReplacement(AppRoutes.scanTongue);
+    context.pushReplacement(AppRoutes.scanTongue);
     context.pushReplacement(AppRoutes.scanPalm);
   }
 
