@@ -39,17 +39,28 @@ final class CameraManager: NSObject {
 
     func startSession() {
         sessionQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self = self else { return }
             self.configureSessionIfNeeded()
-            guard self.configured, !self.session.isRunning else { return }
+            if self.session.isRunning {
+                print("CameraManager: Session already running.")
+                return
+            }
+            print("CameraManager: Starting session...")
             self.session.startRunning()
+            print("CameraManager: Session started isRunning=\(self.session.isRunning)")
         }
     }
 
     func stopSession() {
         sessionQueue.async { [weak self] in
-            guard let self, self.session.isRunning else { return }
+            guard let self = self else { return }
+            if !self.session.isRunning {
+                print("CameraManager: Session already stopped.")
+                return
+            }
+            print("CameraManager: Stopping session...")
             self.session.stopRunning()
+            print("CameraManager: Session stopped.")
         }
     }
 

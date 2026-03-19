@@ -19,7 +19,8 @@ final class FaceLandmarkerService: NSObject {
     private var latestImageSize: CGSize = .zero
     weak var delegate: FaceLandmarkerServiceDelegate?
 
-    // Keep a monotonic timestamp for LIVE_STREAM (required by MediaPipe).
+    private let workQueue = DispatchQueue(label: "com.example.stitch_diag_demo.facelandmarker")
+    private var isInitializing = false
     private var timestampMs: Int = 0
 
     override init() {
@@ -28,53 +29,55 @@ final class FaceLandmarkerService: NSObject {
     }
 
     func start() {
-        if faceLandmarker == nil {
-            setupLandmarker()
-        }
+        setupLandmarker()
     }
 
     private func setupLandmarker() {
-        guard let modelPath = ModelAssetLocator.pathInBundle(name: "face_landmarker", ext: "task") else {
-            assertionFailure("Missing face_landmarker.task in app bundle. Add it under assets/models/ and rebuild.")
-            return
+        workQueue.async { [weak self] in
+            guard let self = self, self.faceLandmarker == nil, !self.isInitializing else { return }
+            self.isInitializing = true
+            
+            guard let modelPath = ModelAssetLocator.pathInBundle(name: "face_landmarker", ext: "task") else {
+                assertionFailure("Missing face_landmarker.task in app bundle. Add it under assets/models/ and rebuild.")
+                self.isInitializing = false
+                return
+            }
+
+            let options = FaceLandmarkerOptions()
+            options.runningMode = .liveStream
+            options.numFaces = 1
+            options.minFaceDetectionConfidence = 0.7
+            options.minFacePresenceConfidence = 0.7
+            options.minTrackingConfidence = 0.7
+            options.faceLandmarkerLiveStreamDelegate = self
+            options.outputFaceBlendshapes = true
+            options.baseOptions.modelAssetPath = modelPath
+
+            self.faceLandmarker = try? FaceLandmarker(options: options)
+            self.isInitializing = false
         }
-
-        let options = FaceLandmarkerOptions()
-        // Fix: must be LIVE_STREAM for continuous frames
-        options.runningMode = .liveStream
-        // Fix: ensure at least 1 face is requested
-        options.numFaces = 1
-        options.minFaceDetectionConfidence = 0.7
-        options.minFacePresenceConfidence = 0.7
-        options.minTrackingConfidence = 0.7
-        // Fix: delegate must be set for LIVE_STREAM callbacks
-        options.faceLandmarkerLiveStreamDelegate = self
-        options.outputFaceBlendshapes = true
-        options.baseOptions.modelAssetPath = modelPath
-
-        faceLandmarker = try? FaceLandmarker(options: options)
     }
 
     func detectAsync(sampleBuffer: CMSampleBuffer) {
-        guard let faceLandmarker = faceLandmarker else { return }
+        workQueue.async { [weak self] in
+            guard let self = self, let faceLandmarker = self.faceLandmarker else { return }
 
-        // Fix: MPImage must be created from CMSampleBuffer with correct orientation
-        let orientation = imageOrientationForCurrentDevice()
-        guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
+            let orientation = self.imageOrientationForCurrentDevice()
+            guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
 
-        if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-            latestImageSize = CGSize(
-                width: CVPixelBufferGetWidth(pixelBuffer),
-                height: CVPixelBufferGetHeight(pixelBuffer)
+            if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+                self.latestImageSize = CGSize(
+                    width: CVPixelBufferGetWidth(pixelBuffer),
+                    height: CVPixelBufferGetHeight(pixelBuffer)
+                )
+            }
+
+            self.timestampMs += 1
+            try? faceLandmarker.detectAsync(
+                image: image,
+                timestampInMilliseconds: self.timestampMs
             )
         }
-
-        // Fix: Live stream requires monotonically increasing timestamp
-        timestampMs += 1
-        try? faceLandmarker.detectAsync(
-            image: image,
-            timestampInMilliseconds: timestampMs
-        )
     }
 
     private func imageOrientationForCurrentDevice() -> UIImage.Orientation {

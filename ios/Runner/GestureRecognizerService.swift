@@ -34,6 +34,9 @@ final class GestureRecognizerService: NSObject {
     private var timestampMs: Int = 0
     private var consecutiveCount = 0
 
+    private let workQueue = DispatchQueue(label: "com.example.stitch_diag_demo.gesturerecognizer")
+    private var isInitializing = false
+
     private override init() {
         super.init()
         cameraManager.delegate = self
@@ -41,25 +44,29 @@ final class GestureRecognizerService: NSObject {
     }
 
     private func setupRecognizer() {
-        guard let modelPath = ModelAssetLocator.pathInBundle(name: "gesture_recognizer", ext: "task") else {
-            assertionFailure("Missing gesture_recognizer.task in app bundle. Add it under assets/models/ and rebuild.")
-            return
+        workQueue.async { [weak self] in
+            guard let self = self, self.recognizer == nil, !self.isInitializing else { return }
+            self.isInitializing = true
+            
+            guard let modelPath = ModelAssetLocator.pathInBundle(name: "gesture_recognizer", ext: "task") else {
+                assertionFailure("Missing gesture_recognizer.task in app bundle. Add it under assets/models/ and rebuild.")
+                self.isInitializing = false
+                return
+            }
+
+            let options = GestureRecognizerOptions()
+            options.runningMode = .liveStream
+            options.numHands = 2
+            options.gestureRecognizerLiveStreamDelegate = self
+            options.baseOptions.modelAssetPath = modelPath
+
+            self.recognizer = try? GestureRecognizer(options: options)
+            self.isInitializing = false
         }
-
-        let options = GestureRecognizerOptions()
-        options.runningMode = .liveStream
-        options.numHands = 2
-        options.gestureRecognizerLiveStreamDelegate = self
-        options.baseOptions.modelAssetPath = modelPath
-
-        recognizer = try? GestureRecognizer(options: options)
     }
 
     func start() {
-        if recognizer == nil {
-            setupRecognizer()
-        }
-
+        setupRecognizer()
         timestampMs = 0
         consecutiveCount = 0
         cameraManager.startSession()
@@ -67,8 +74,9 @@ final class GestureRecognizerService: NSObject {
 
     func stop() {
         cameraManager.stopSession()
-        // recognizer handled by ARC
-        recognizer = nil
+        workQueue.async { [weak self] in
+            self?.recognizer = nil
+        }
         consecutiveCount = 0
         publishDetected(false, name: "", score: 0, landmarks: [])
     }
@@ -125,13 +133,15 @@ final class GestureRecognizerService: NSObject {
 
 extension GestureRecognizerService: CameraManagerDelegate {
     func didOutput(sampleBuffer: CMSampleBuffer) {
-        guard let recognizer = recognizer else { return }
+        workQueue.async { [weak self] in
+            guard let self = self, let recognizer = self.recognizer else { return }
 
-        let orientation = imageOrientationForCurrentDevice()
-        guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
+            let orientation = self.imageOrientationForCurrentDevice()
+            guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
 
-        timestampMs += 1
-        try? recognizer.recognizeAsync(image: image, timestampInMilliseconds: timestampMs)
+            self.timestampMs += 1
+            try? recognizer.recognizeAsync(image: image, timestampInMilliseconds: self.timestampMs)
+        }
     }
 }
 
