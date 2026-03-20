@@ -8,11 +8,11 @@ import '../widgets/camera_preview_widget.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/face_scan_status_bridge.dart';
 
-const _kFaceGreen     = Color(0xFF7EC8A0);
-const _kFaceGreenDeep = Color(0xFF2A6A50);
-const _kFaceGreenMid  = Color(0xFF348960);
-const _kBgTop         = Color(0xFF0D1F17);
-const _kBgBottom      = Color(0xFF0A1510);
+// ── 颜色系（与 scan_guide_page 绿色体系一致）
+const _kGreen = Color(0xFF2D6A4F);
+const _kGreenLight = Color(0xFF3DAB78);
+const _kGreenMid = Color(0xFF2D8A5E);
+const _kGreenGlow = Color(0xFF7EC8A0);
 
 class FaceScanPage extends StatefulWidget {
   const FaceScanPage({super.key});
@@ -24,16 +24,16 @@ class _FaceScanPageState extends State<FaceScanPage>
     with SingleTickerProviderStateMixin {
   final FaceScanStatusBridge _statusBridge = FaceScanStatusBridge();
 
-  bool _hasPermission   = false;
+  bool _hasPermission = false;
   bool _hasFaceDetected = false;
-  bool _isScanning      = false;
-  int  _countdown       = 3;
+  bool _isScanning = false;
+  int _countdown = 3;
+  bool _isTransitioning = false;
 
-  Timer?                    _timer;
+  Timer? _timer;
   StreamSubscription<Map<String, dynamic>>? _faceStatusSub;
-  late AnimationController  _scanLineCtrl;
-  late Animation<double>    _scanLineAnim;
-  bool _isTransitioningToTongueScan = false;
+  late AnimationController _scanLineCtrl;
+  late Animation<double> _scanLineAnim;
   List<Offset> _normalizedLandmarks = const [];
 
   @override
@@ -43,9 +43,10 @@ class _FaceScanPageState extends State<FaceScanPage>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _scanLineAnim = Tween<double>(begin: 0.12, end: 0.84).animate(
-      CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut),
-    );
+    _scanLineAnim = Tween<double>(
+      begin: 0.1,
+      end: 0.88,
+    ).animate(CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut));
     _requestPermissionAndStart();
   }
 
@@ -67,23 +68,23 @@ class _FaceScanPageState extends State<FaceScanPage>
       await _statusBridge.startMonitoring();
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('需要相机权限才能进行面部扫描')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('需要相机权限才能进行面部扫描')));
       }
     }
   }
 
   void _startScan() {
     if (!_hasFaceDetected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先将面部对准椭圆框内')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先将面部对准椭圆框内')));
       return;
     }
     setState(() {
       _isScanning = true;
-      _countdown  = 3;
+      _countdown = 3;
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_countdown > 1) {
@@ -96,19 +97,12 @@ class _FaceScanPageState extends State<FaceScanPage>
   }
 
   Future<void> _navigateToTongueScan() async {
-    if (_isTransitioningToTongueScan || !mounted) {
-      return;
-    }
-
-    _isTransitioningToTongueScan = true;
+    if (_isTransitioning || !mounted) return;
+    _isTransitioning = true;
     _timer?.cancel();
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
-
-    if (!mounted) {
-      return;
-    }
-
+    if (!mounted) return;
     context.pushReplacement(AppRoutes.scanTongue);
   }
 
@@ -120,60 +114,59 @@ class _FaceScanPageState extends State<FaceScanPage>
     super.dispose();
   }
 
+  // ─── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBgBottom,
+      backgroundColor: const Color(0xFFF4F1EB),
       body: Stack(
         children: [
-          // 相机预览
-          if (_hasPermission) Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('shared_camera_preview'))),
+          // 米色背景纹理（与 scan_guide_page 一致）
+          Positioned.fill(child: CustomPaint(painter: _BgPainter())),
 
-          // 渐变遮罩
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    _kBgTop.withValues(alpha: 0.88),
-                    Colors.transparent,
-                    Colors.transparent,
-                    _kBgBottom.withValues(alpha: 0.95),
-                  ],
-                  stops: const [0.0, 0.22, 0.65, 1.0],
-                ),
-              ),
-            ),
-          ),
-
-          // UI
           SafeArea(
+            bottom: false,
             child: Column(
               children: [
-                _buildHeader(),
-                _buildTitleBlock(),
-                Expanded(child: _buildFrameArea()),
-                _buildTipsStrip(),
-                _buildBottomControls(),
-                const SizedBox(height: 36),
+                // ── 顶部引导卡 ──
+                _buildTopGuideCard(),
+                // ── 中间拍摄区 ──
+                Expanded(child: _buildCameraArea()),
+                // ── 底部提示卡 ──
+                _buildBottomCard(),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
               ],
             ),
           ),
 
-          // 倒计时
+          // 倒计时覆盖层
           if (_isScanning && _countdown > 0)
             Container(
-              color: Colors.black.withValues(alpha: 0.45),
+              color: Colors.black.withValues(alpha: 0.55),
               child: Center(
-                child: Text(
-                  '$_countdown',
-                  style: const TextStyle(
-                    fontSize: 120,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_countdown',
+                      style: const TextStyle(
+                        fontSize: 110,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '请保持不动',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withValues(alpha: 0.8),
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -182,207 +175,370 @@ class _FaceScanPageState extends State<FaceScanPage>
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Row(
-        children: [
-          _CircleIconButton(
-            icon: Icons.arrow_back_ios_new,
-            onTap: () => context.pop(),
+  // ─── 顶部引导卡 ───────────────────────────────────────────────────────────
+
+  Widget _buildTopGuideCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kGreen.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: _kGreen.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          const Expanded(
-            child: Center(child: ScanStepIndicator(currentStep: 0)),
-          ),
-          const SizedBox(width: 40),
         ],
       ),
-    );
-  }
-
-  Widget _buildTitleBlock() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Column(
         children: [
-          const Text(
-            '面部望诊',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: 1,
+          // 顶栏：返回 + 步骤指示器
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 16, 6),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 16,
+                    color: Color(0xFF3A3028),
+                  ),
+                  onPressed: () {
+                    unawaited(_statusBridge.stopMonitoring());
+                    context.pop();
+                  },
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+                const Expanded(
+                  child: Center(child: ScanStepIndicator(currentStep: 0)),
+                ),
+                const SizedBox(width: 40),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '将面部置于椭圆框内，保持正视，自然表情',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.55),
-              height: 1.5,
+          // 分隔线
+          Divider(height: 1, color: _kGreen.withValues(alpha: 0.08)),
+          // 标题内容
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+            child: Row(
+              children: [
+                // 图标
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5EE),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _kGreen.withValues(alpha: 0.15)),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(
+                        Icons.face_retouching_natural_outlined,
+                        size: 26,
+                        color: _kGreen,
+                      ),
+                      Positioned(
+                        right: 4,
+                        top: 4,
+                        child: Container(
+                          width: 15,
+                          height: 15,
+                          decoration: const BoxDecoration(
+                            color: _kGreen,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Text(
+                              '1',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            '面部望诊',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E1810),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _kGreen.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '面诊',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: _kGreen,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '将面部置于椭圆框内，保持正视，自然放松表情',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: const Color(
+                            0xFF3A3028,
+                          ).withValues(alpha: 0.58),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
+          ),
+          // 底部说明条
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5EE).withValues(alpha: 0.6),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  size: 12,
+                  color: _kGreen.withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '通过面部气色判断脏腑盛衰，观察神、色、形、态',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _kGreen.withValues(alpha: 0.75),
+                    letterSpacing: 0.2,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFrameArea() {
+  // ─── 中间拍摄区 ──────────────────────────────────────────────────────────
+
+  Widget _buildCameraArea() {
+    return Stack(
+      children: [
+        // 相机预览（始终渲染）
+        Positioned.fill(
+          child: ClipRect(
+            child: const CameraPreviewWidget(
+              key: ValueKey('shared_camera_preview'),
+              mirror: true,
+            ),
+          ),
+        ),
+        // 渐变遮罩（上下淡出，融入米色背景）
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                  Colors.transparent,
+                  Colors.transparent,
+                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                ],
+                stops: const [0.0, 0.18, 0.78, 1.0],
+              ),
+            ),
+          ),
+        ),
+        // 椭圆扫描框（上移，让下半屏留给底部卡）
+        Align(alignment: const Alignment(0, -0.25), child: _buildOvalFrame()),
+      ],
+    );
+  }
+
+  Widget _buildOvalFrame() {
     const frameW = 210.0;
     const frameH = 262.0;
 
-    return Center(
-      child: SizedBox(
-        width: frameW,
-        height: frameH,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // 外发光晕
-            Positioned(
-              top: -10, left: -10, right: -10, bottom: -10,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: _kFaceGreen.withValues(alpha: 0.12),
-                    width: 14,
-                  ),
+    return SizedBox(
+      width: frameW,
+      height: frameH,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // 外发光晕
+          Positioned(
+            top: -10,
+            left: -10,
+            right: -10,
+            bottom: -10,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: _kGreen.withValues(alpha: 0.1),
+                  width: 12,
                 ),
               ),
             ),
-            // 主椭圆框
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: _hasFaceDetected
-                        ? _kFaceGreen
-                        : _kFaceGreen.withValues(alpha: 0.4),
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-            // 内圈虚线
-            Positioned(
-              top: 10, left: 10, right: 10, bottom: 10,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: _kFaceGreen.withValues(alpha: 0.18),
-                    width: 1,
-                  ),
-                ),
-              ),
-            ),
-            // 四角装饰
-            Positioned(top: -1, left: 24,  child: _ScanCorner(color: _kFaceGreen, top: true,  left: true)),
-            Positioned(top: -1, right: 24, child: _ScanCorner(color: _kFaceGreen, top: true,  left: false)),
-            Positioned(bottom: -1, left: 24,  child: _ScanCorner(color: _kFaceGreen, top: false, left: true)),
-            Positioned(bottom: -1, right: 24, child: _ScanCorner(color: _kFaceGreen, top: false, left: false)),
-            // 扫描线
-            AnimatedBuilder(
-              animation: _scanLineAnim,
-              builder: (_, __) => Positioned(
-                top: _scanLineAnim.value * frameH,
-                left: 18,
-                right: 18,
-                child: Container(
-                  height: 1.5,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        _kFaceGreen.withValues(alpha: 0.85),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // 关键点装饰
-            ..._buildFaceDots(frameW, frameH),
-            // 状态气泡
-            Positioned(
-              bottom: -44,
-              left: -40,
-              right: -40,
-              child: Center(
-                child: _StatusPill(
-                  label: _hasPermission
-                      ? (_hasFaceDetected ? '面部已就位 ✓' : '请将面部对准框内')
-                      : '需要相机权限',
+          ),
+          // 主椭圆框
+          Positioned.fill(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
                   color: _hasFaceDetected
-                      ? _kFaceGreen
-                      : _kFaceGreen.withValues(alpha: 0.55),
+                      ? _kGreenLight
+                      : _kGreen.withValues(alpha: 0.5),
+                  width: 2,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          // 内圈细线
+          Positioned(
+            top: 10,
+            left: 10,
+            right: 10,
+            bottom: 10,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: _kGreen.withValues(alpha: 0.15),
+                  width: 1,
+                ),
+              ),
+            ),
+          ),
+          // 四角装饰
+          Positioned(
+            top: -1,
+            left: 24,
+            child: _ScanCorner(color: _kGreenLight, top: true, left: true),
+          ),
+          Positioned(
+            top: -1,
+            right: 24,
+            child: _ScanCorner(color: _kGreenLight, top: true, left: false),
+          ),
+          Positioned(
+            bottom: -1,
+            left: 24,
+            child: _ScanCorner(color: _kGreenLight, top: false, left: true),
+          ),
+          Positioned(
+            bottom: -1,
+            right: 24,
+            child: _ScanCorner(color: _kGreenLight, top: false, left: false),
+          ),
+          // 扫描线
+          AnimatedBuilder(
+            animation: _scanLineAnim,
+            builder: (_, __) => Positioned(
+              top: _scanLineAnim.value * frameH,
+              left: 18,
+              right: 18,
+              child: Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      _kGreenLight.withValues(alpha: 0.85),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // 人脸关键点
+          ..._buildFaceDots(frameW, frameH),
+          // 状态气泡（椭圆框正下方）
+          Positioned(
+            bottom: -44,
+            left: -40,
+            right: -40,
+            child: Center(
+              child: _StatusPill(
+                label: _hasPermission
+                    ? (_hasFaceDetected ? '面部已就位 ✓' : '请将面部对准框内')
+                    : '需要相机权限',
+                detected: _hasFaceDetected,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   List<Widget> _buildFaceDots(double w, double h) {
     if (_normalizedLandmarks.isNotEmpty) {
-      // 取一组关键点，避免 468 点全部渲染造成画面噪音。
-      const anchorIndices = <int>[
-        10, 152, 234, 454, 1, 2, 4, 6, 8,
-        33, 133, 362, 263, 61, 291, 13, 14, 78, 308,
-      ];
-
-      final selected = anchorIndices
-          .map((i) => i < _normalizedLandmarks.length ? _normalizedLandmarks[i] : null)
-          .whereType<Offset>()
-          .toList(growable: false);
-
-      final pointsToRender = selected.isNotEmpty
-          ? selected
-          : _normalizedLandmarks
-              .where((p) => p.dx >= 0 && p.dx <= 1 && p.dy >= 0 && p.dy <= 1)
-              .toList(growable: false)
-              .asMap()
-              .entries
-              .where((entry) => entry.key % 12 == 0)
-              .map((entry) => entry.value)
-              .take(40)
-              .toList(growable: false);
-
-      if (pointsToRender.isNotEmpty) {
-        return pointsToRender.map((p) {
-          final x = p.dx.clamp(0.0, 1.0) * w;
-          final y = p.dy.clamp(0.0, 1.0) * h;
-          return Positioned(
-            left: x - 2.5,
-            top: y - 2.5,
-            child: Container(
-              width: 5,
-              height: 5,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _kFaceGreen.withValues(alpha: 0.9),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kFaceGreen.withValues(alpha: 0.6),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
+      // 渲染全部 478 个关键点，展现高精度面部网格
+      return _normalizedLandmarks.map((p) {
+        // 由于我们在 CameraPreviewWidget 应用了镜像，关键点也需要同步镜像
+        final mirroredX = (1.0 - p.dx.clamp(0.0, 1.0)) * w;
+        final y = p.dy.clamp(0.0, 1.0) * h;
+        return Positioned(
+          left: mirroredX - 1,
+          top: y - 1,
+          child: Container(
+            width: 2,
+            height: 2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _kGreenLight.withValues(alpha: 0.6), // 降低亮度，避免密集恐惧
             ),
-          );
-        }).toList(growable: false);
-      }
+          ),
+        );
+      }).toList();
     }
 
+    // 占位引导点（当未检测到人脸时）
     final positions = [
       Offset(w * 0.28, h * 0.20),
       Offset(w * 0.72, h * 0.20),
@@ -390,67 +546,135 @@ class _FaceScanPageState extends State<FaceScanPage>
       Offset(w * 0.34, h * 0.66),
       Offset(w * 0.66, h * 0.66),
     ];
-    return positions.map((p) {
-      return Positioned(
-        left: p.dx - 3,
-        top: p.dy - 3,
-        child: Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _kFaceGreen.withValues(alpha: 0.55),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  Widget _buildTipsStrip() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _TipPill(icon: Icons.wb_sunny_outlined,       label: '光线充足', color: _kFaceGreen),
-          const SizedBox(width: 8),
-          _TipPill(icon: Icons.face_retouching_off,     label: '不要化妆', color: _kFaceGreen),
-          const SizedBox(width: 8),
-          _TipPill(icon: Icons.remove_red_eye_outlined, label: '正视前方', color: _kFaceGreen),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomControls() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Column(
-        children: [
-          if (!_isScanning)
-            _GradientButton(
-              label: '开始面部扫描',
-              colors: const [_kFaceGreenDeep, _kFaceGreenMid],
-              enabled: _hasPermission && _hasFaceDetected,
-              onTap: _startScan,
-            ),
-          const SizedBox(height: 12),
-           TextButton(
-            onPressed: () {
-              unawaited(_navigateToTongueScan());
-            },
-             child: Text(
-               '跳过此步骤',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.38),
-                fontSize: 13,
+    return positions
+        .map(
+          (p) => Positioned(
+            left: p.dx - 3,
+            top: p.dy - 3,
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _kGreen.withValues(alpha: 0.3),
               ),
             ),
           ),
+        )
+        .toList();
+  }
+
+  // ─── 底部提示卡 ──────────────────────────────────────────────────────────
+
+  Widget _buildBottomCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kGreen.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: _kGreen.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Tips 行
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: const [
+                _TipItem(icon: Icons.wb_sunny_outlined, label: '光线充足'),
+                _TipItem(icon: Icons.face_retouching_off, label: '不要化妆'),
+                _TipItem(icon: Icons.remove_red_eye_outlined, label: '正视前方'),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: _kGreen.withValues(alpha: 0.08)),
+          // 按钮区
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+            child: Column(
+              children: [
+                if (!_isScanning)
+                  _buildPrimaryButton(
+                    label: '开始面部扫描',
+                    enabled: _hasPermission && _hasFaceDetected,
+                    onTap: _startScan,
+                  ),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () => unawaited(_navigateToTongueScan()),
+                  child: Text(
+                    '跳过此步骤',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: const Color(0xFF3A3028).withValues(alpha: 0.35),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+
+  Widget _buildPrimaryButton({
+    required String label,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          gradient: enabled
+              ? const LinearGradient(
+                  colors: [Color(0xFF1D5E40), _kGreenMid, _kGreenLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: enabled ? null : const Color(0xFFE0DDD8),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: _kGreen.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: enabled ? Colors.white : const Color(0xFF9A9590),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── 工具方法 ───────────────────────────────────────────────────────────
 
   bool _extractHasFace(Map<String, dynamic> payload) {
     final detected = payload['detected'];
@@ -459,161 +683,125 @@ class _FaceScanPageState extends State<FaceScanPage>
     return landmarks is List && landmarks.isNotEmpty;
   }
 
-  List<Offset> _extractNormalizedLandmarks(dynamic rawLandmarks) {
-    if (rawLandmarks is! List) return const [];
-
+  List<Offset> _extractNormalizedLandmarks(dynamic raw) {
+    if (raw is! List) return const [];
     final points = <Offset>[];
-    for (final item in rawLandmarks) {
+    for (final item in raw) {
       if (item is Map) {
         final x = _asDouble(item['x']);
         final y = _asDouble(item['y']);
-        if (x != null && y != null) {
-          points.add(Offset(x, y));
-        }
+        if (x != null && y != null) points.add(Offset(x, y));
       }
     }
     return points;
   }
 
-  double? _asDouble(dynamic value) {
-    if (value is num) return value.toDouble();
-    return null;
-  }
+  double? _asDouble(dynamic v) => v is num ? v.toDouble() : null;
 }
 
-// ── 共用组件 ─────────────────────────────────────────────────────────
+// ── 共用小组件 ─────────────────────────────────────────────────────────────
 
-class _CircleIconButton extends StatelessWidget {
+/// Tips 条目（图标 + 文字，竖向排列）
+class _TipItem extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
-  const _CircleIconButton({required this.icon, required this.onTap});
+  final String label;
+  const _TipItem({required this.icon, required this.label});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.12),
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5EE),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.15),
           ),
-          child: Icon(icon, color: Colors.white, size: 18),
         ),
-      );
+        child: Icon(icon, size: 18, color: const Color(0xFF2D6A4F)),
+      ),
+      const SizedBox(height: 5),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
+  );
 }
 
 class _StatusPill extends StatelessWidget {
   final String label;
-  final Color color;
-  const _StatusPill({required this.label, required this.color});
+  final bool detected;
+  const _StatusPill({required this.label, required this.detected});
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.92),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: detected
+            ? const Color(0xFF2D6A4F).withValues(alpha: 0.5)
+            : const Color(0xFF2D6A4F).withValues(alpha: 0.25),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
         ),
-        child: Text(label, style: TextStyle(color: color, fontSize: 12)),
-      );
+      ],
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: detected
+            ? const Color(0xFF2D6A4F)
+            : const Color(0xFF3A3028).withValues(alpha: 0.6),
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
 }
 
-class _TipPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _TipPill({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 11),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.78),
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _GradientButton extends StatelessWidget {
-  final String label;
-  final List<Color> colors;
-  final bool enabled;
-  final VoidCallback onTap;
-  const _GradientButton({
-    required this.label, required this.colors,
-    required this.enabled, required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: double.infinity,
-          height: 52,
-          decoration: BoxDecoration(
-            gradient: enabled
-                ? LinearGradient(
-                    colors: colors,
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  )
-                : null,
-            color: enabled ? null : Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(26),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: enabled ? Colors.white : Colors.white38,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-/// 四角扫描框装饰
 class _ScanCorner extends StatelessWidget {
   final Color color;
   final bool top;
   final bool left;
-  const _ScanCorner({required this.color, required this.top, required this.left});
+  const _ScanCorner({
+    required this.color,
+    required this.top,
+    required this.left,
+  });
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 24,
-        height: 24,
-        child: CustomPaint(
-          painter: _ScanCornerPainter(color: color, top: top, left: left),
-        ),
-      );
+    width: 24,
+    height: 24,
+    child: CustomPaint(
+      painter: _ScanCornerPainter(color: color, top: top, left: left),
+    ),
+  );
 }
 
 class _ScanCornerPainter extends CustomPainter {
   final Color color;
   final bool top;
   final bool left;
-  const _ScanCornerPainter({required this.color, required this.top, required this.left});
+  const _ScanCornerPainter({
+    required this.color,
+    required this.top,
+    required this.left,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -643,7 +831,9 @@ class _ScanCornerPainter extends CustomPainter {
       path.moveTo(0, size.height);
       path.lineTo(size.width - r, size.height);
       path.arcToPoint(
-          Offset(size.width, size.height - r), radius: const Radius.circular(r));
+        Offset(size.width, size.height - r),
+        radius: const Radius.circular(r),
+      );
       path.lineTo(size.width, 0);
     }
     canvas.drawPath(path, p);
@@ -651,4 +841,53 @@ class _ScanCornerPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ScanCornerPainter o) => false;
+}
+
+// ── 背景画布（与 scan_guide_page 完全一致）──────────────────────────────────
+
+class _BgPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final topPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(1.2, -0.8),
+        radius: 0.9,
+        colors: [
+          const Color(0xFF2D6A4F).withValues(alpha: 0.06),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), topPaint);
+
+    final bottomPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-1.1, 1.3),
+        radius: 0.85,
+        colors: [
+          const Color(0xFF6B5B95).withValues(alpha: 0.05),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bottomPaint);
+
+    final sealPaint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.04)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(Offset(size.width - 20, 60), 52, sealPaint);
+    canvas.drawCircle(Offset(size.width - 20, 60), 42, sealPaint);
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.025)
+      ..strokeWidth = 0.5;
+    for (double x = 0; x < size.width; x += 28) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (double y = 0; y < size.height; y += 28) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter _) => false;
 }

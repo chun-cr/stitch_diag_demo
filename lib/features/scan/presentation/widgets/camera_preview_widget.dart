@@ -5,15 +5,22 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 class CameraPreviewWidget extends StatelessWidget {
-  const CameraPreviewWidget({super.key});
+  final bool mirror;
+
+  const CameraPreviewWidget({
+    super.key,
+    this.mirror = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     const String viewType = 'com.yourapp.face_scan/camera_preview';
     final Map<String, dynamic> creationParams = <String, dynamic>{};
 
+    Widget? view;
+
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return PlatformViewLink(
+      view = PlatformViewLink(
         viewType: viewType,
         surfaceFactory: (context, controller) {
           return AndroidViewSurface(
@@ -38,7 +45,7 @@ class CameraPreviewWidget extends StatelessWidget {
         },
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return UiKitView(
+      view = UiKitView(
         viewType: viewType,
         layoutDirection: TextDirection.ltr,
         creationParams: creationParams,
@@ -46,11 +53,19 @@ class CameraPreviewWidget extends StatelessWidget {
       );
     }
 
-    return Center(
+    view ??= Center(
       child: Text(
         '$defaultTargetPlatform is not supported yet for camera preview.',
         style: const TextStyle(color: Colors.white),
       ),
     );
+
+    return mirror
+        ? Transform.scale(
+            scaleX: -1.0,
+            alignment: Alignment.center,
+            child: view,
+          )
+        : view;
   }
 }

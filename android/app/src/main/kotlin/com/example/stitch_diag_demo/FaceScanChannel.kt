@@ -164,6 +164,7 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
             "tongueDetected" to (data["tongueDetected"] as? Boolean ?: false),
             "tongueOutScore" to ((data["tongueOutScore"] as? Number)?.toDouble() ?: 0.0),
             "mouthLandmarks" to (data["mouthLandmarks"] as? List<*> ?: emptyList<Any>()),
+            "landmarks" to (data["landmarks"] as? List<*> ?: emptyList<Any>()),
         )
 
         (context as? MainActivity)?.runOnUiThread {

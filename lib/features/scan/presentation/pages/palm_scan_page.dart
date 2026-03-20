@@ -1,18 +1,28 @@
+// ═══════════════════════════════════════════════════════════════════
+// 修复说明（重做 UI 以匹配全站风格，并修复 ScanFrame 布局崩溃）
+//
+// UI 架构：三层分割
+//   顶部引导卡  → 步骤指示器 + 标题 + 中医说明
+//   中间拍摄区  → 相机预览 + 手掌轮廓引导
+//   底部提示卡  → Tips + 操作按钮 + 跳过
+// ═══════════════════════════════════════════════════════════════════
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import '../../../../core/router/app_router.dart';
 import '../services/palm_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
-import '../widgets/scan_frame.dart';
 
-const _kPalmPurple     = Color(0xFF9B8EF0);
-const _kBgTop          = Color(0xFF0E1520);
-const _kBgBottom       = Color(0xFF090E18);
+// ── 颜色（手掌用偏紫的藤萝色，兼容米色背景）
+const _kAccent      = Color(0xFF6B5B95); // 沉稳紫（主色）
+const _kAccentLight = Color(0xFF9B8EF0); // 亮紫色（点缀）
+const _kBgColor     = Color(0xFFF4F1EB); // 宣纸米色
 
 class PalmScanPage extends StatefulWidget {
   const PalmScanPage({super.key});
@@ -26,10 +36,12 @@ class _PalmScanPageState extends State<PalmScanPage>
   late AnimationController _scanCtrl;
   late Animation<double>   _scanAnim;
   StreamSubscription<PalmScanStatus>? _statusSubscription;
-  bool _hasPermission = false;
-  bool _readyToScan = false;
-  bool _handPresent = false;
-  String _gestureName = '';
+
+  bool   _hasPermission  = false;
+  bool   _handPresent    = false;
+  bool   _readyToScan    = false;
+  String _gestureName    = '';
+  bool   _isTransitioning = false;
 
   @override
   void initState() {
@@ -38,15 +50,12 @@ class _PalmScanPageState extends State<PalmScanPage>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    // 水平扫描（左→右）
     _scanAnim = Tween<double>(begin: 0.1, end: 0.88).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut),
     );
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _requestPermissionAndStart();
-      }
+      if (mounted) _requestPermissionAndStart();
     });
   }
 
@@ -65,7 +74,6 @@ class _PalmScanPageState extends State<PalmScanPage>
           _gestureName = status.gestureName;
         });
       });
-
       unawaited(_statusBridge.startMonitoring());
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,47 +85,52 @@ class _PalmScanPageState extends State<PalmScanPage>
   @override
   void dispose() {
     _statusSubscription?.cancel();
-    unawaited(_statusBridge.stopMonitoring());
+    // 只有彻底销毁时（如返回主页）才发指令停止，跳转时不发
+    // unawaited(_statusBridge.stopMonitoring()); 
     _scanCtrl.dispose();
     super.dispose();
   }
 
+  Future<void> _navigateToReport() async {
+    if (_isTransitioning || !mounted) return;
+    _isTransitioning = true;
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
+    // 手掌是最后一步，这里可以考虑发停止
+    unawaited(_statusBridge.stopMonitoring());
+    context.pushReplacement(AppRoutes.reportAnalysis);
+  }
+
+  // ── 文案 ─────────────────────────────────────────────────────────
+
+  String _statusText() {
+    if (!_hasPermission) return '等待权限';
+    if (_readyToScan)    return '手掌已就位 ✓';
+    if (_handPresent) {
+      return _gestureName.isEmpty ? '请展平手掌，掌心朝上' : '检测到：$_gestureName';
+    }
+    return '请将手掌放入框内';
+  }
+
+  // ─── Build ───────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBgBottom,
+      backgroundColor: _kBgColor,
       body: Stack(
         children: [
-          const Positioned.fill(
-            child: CameraPreviewWidget(key: ValueKey('palm_scan_preview')),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    _kBgTop.withValues(alpha: 0.9),
-                    Colors.transparent,
-                    Colors.transparent,
-                    _kBgBottom.withValues(alpha: 0.96),
-                  ],
-                  stops: const [0.0, 0.22, 0.65, 1.0],
-                ),
-              ),
-            ),
-          ),
+          // 背景画卷
+          Positioned.fill(child: CustomPaint(painter: _BgPainter())),
+          
           SafeArea(
             bottom: false,
             child: Column(
               children: [
-                _buildHeader(context),
-                _buildTitleBlock(),
-                Expanded(child: _buildFrameArea()),
-                _buildTipsStrip(),
-                _buildBottomControls(context),
-                const SizedBox(height: 40),
+                _buildTopGuideCard(),
+                Expanded(child: _buildCameraArea()),
+                _buildBottomCard(),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
               ],
             ),
           ),
@@ -126,195 +139,249 @@ class _PalmScanPageState extends State<PalmScanPage>
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Row(
-        children: [
-          _CircleIconButton(
-            icon: Icons.arrow_back_ios_new,
-            onTap: () => context.pop(),
+  // ─── 顶部引导卡 ─────────────────────────────────────────────────────
+
+  Widget _buildTopGuideCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kAccent.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: _kAccent.withValues(alpha: 0.07),
+            blurRadius: 16, offset: const Offset(0, 4),
           ),
-          const Expanded(
-            child: Center(child: ScanStepIndicator(currentStep: 2)),
-          ),
-          const SizedBox(width: 40),
         ],
       ),
-    );
-  }
-
-  Widget _buildTitleBlock() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Column(
         children: [
-          const Text(
-            '手掌经络',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: 1,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 16, 6),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 16, color: Color(0xFF3A3028)),
+                  onPressed: () {
+                    unawaited(_statusBridge.stopMonitoring());
+                    context.pop();
+                  },
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+                const Expanded(child: Center(child: ScanStepIndicator(currentStep: 2))),
+                const SizedBox(width: 40),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '将手掌展开置于框内，掌心朝上，手指自然分开',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.55),
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFrameArea() {
-    const frameW = 200.0;
-    const frameH = 265.0;
-
-    return Center(
-      child: SizedBox(
-        width: frameW,
-        height: frameH,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // 外发光
-            Positioned(
-              top: -10, left: -10, right: -10, bottom: -10,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: _kPalmPurple.withValues(alpha: 0.08),
-                    width: 12,
-                  ),
-                ),
-              ),
-            ),
-            // 主矩形虚线框
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: _kPalmPurple.withValues(alpha: 0.38),
-                    width: 1.5,
-                  ),
-                ),
-              ),
-            ),
-            // 网格线
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                width: frameW,
-                height: frameH,
-                child: CustomPaint(painter: _GridPainter(color: _kPalmPurple)),
-              ),
-            ),
-            // 四角装饰
-            Positioned(top: -1, left: -1,   child: _ScanCorner(color: _kPalmPurple, top: true,  left: true)),
-            Positioned(top: -1, right: -1,  child: _ScanCorner(color: _kPalmPurple, top: true,  left: false)),
-            Positioned(bottom: -1, left: -1,  child: _ScanCorner(color: _kPalmPurple, top: false, left: true)),
-            Positioned(bottom: -1, right: -1, child: _ScanCorner(color: _kPalmPurple, top: false, left: false)),
-            // 手掌轮廓（引导图）
-            Positioned.fill(
-              child: CustomPaint(painter: _HandOutlinePainter(color: _kPalmPurple)),
-            ),
-            // 扫描线（纵向，从左到右）
-            AnimatedBuilder(
-              animation: _scanAnim,
-              builder: (context, child) => Positioned(
-                left: _scanAnim.value * frameW,
-                top: 12,
-                bottom: 12,
-                child: Container(
-                  width: 1.5,
+          Divider(height: 1, color: _kAccent.withValues(alpha: 0.08)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 52, height: 52,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        _kPalmPurple.withValues(alpha: 0.9),
-                        Colors.transparent,
-                      ],
-                    ),
+                    color: const Color(0xFFF2F0F7),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _kAccent.withValues(alpha: 0.15)),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(Icons.pan_tool_outlined, size: 26, color: _kAccent),
+                      Positioned(
+                        right: 4, top: 4,
+                        child: Container(
+                          width: 15, height: 15,
+                          decoration: const BoxDecoration(color: _kAccent, shape: BoxShape.circle),
+                          child: const Center(
+                            child: Text('3', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text('手掌经络', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1E1810), letterSpacing: 0.5)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(color: _kAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                            child: const Text('掌诊', style: TextStyle(fontSize: 10, color: _kAccent, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('将手掌展开置于框内，掌心朝上，手指自然分开', style: TextStyle(fontSize: 12, color: const Color(0xFF3A3028).withValues(alpha: 0.58), height: 1.4)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F0F7).withValues(alpha: 0.6),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 12, color: _kAccent.withValues(alpha: 0.6)),
+                const SizedBox(width: 6),
+                Text('观察手掌纹路、色泽、形态，推断五脏六腑之病理', style: TextStyle(fontSize: 11, color: _kAccent.withValues(alpha: 0.75), letterSpacing: 0.2, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 中间拍摄区 ─────────────────────────────────────────────────────
+
+  Widget _buildCameraArea() {
+    return Stack(
+      children: [
+        Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('palm_camera_preview'))),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_kBgColor.withValues(alpha: 0.55), Colors.transparent, Colors.transparent, _kBgColor.withValues(alpha: 0.55)],
+                stops: const [0.0, 0.18, 0.78, 1.0],
+              ),
+            ),
+          ),
+        ),
+        Align(
+          alignment: const Alignment(0, -0.1),
+          child: _buildPalmFrame(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPalmFrame() {
+    const frameW = 190.0;
+    const frameH = 260.0;
+    final highlightColor = _readyToScan ? _kAccentLight : _kAccent.withValues(alpha: 0.45);
+
+    return SizedBox(
+      width: frameW,
+      height: frameH,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -10, left: -10, right: -10, bottom: -10,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: _kAccent.withValues(alpha: 0.08), width: 12),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: highlightColor, width: 1.5),
+              ),
+              child: CustomPaint(painter: _HandOutlinePainter(color: highlightColor)),
+            ),
+          ),
+          Positioned(top: -1, left: -1,   child: _ScanCorner(color: highlightColor, top: true,  left: true)),
+          Positioned(top: -1, right: -1,  child: _ScanCorner(color: highlightColor, top: true,  left: false)),
+          Positioned(bottom: -1, left: -1,  child: _ScanCorner(color: highlightColor, top: false, left: true)),
+          Positioned(bottom: -1, right: -1, child: _ScanCorner(color: highlightColor, top: false, left: false)),
+          
+          AnimatedBuilder(
+            animation: _scanAnim,
+            builder: (context, child) => Positioned(
+              left: _scanAnim.value * frameW, top: 12, bottom: 12,
+              child: Container(
+                width: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, highlightColor.withValues(alpha: 0.85), Colors.transparent],
                   ),
                 ),
               ),
             ),
-            // 状态气泡
-            Positioned(
-              bottom: -44,
-              left: -30,
-              right: -30,
-              child: Center(
-                child: _StatusPill(
-                  label: _statusText(),
-                  color: _kPalmPurple.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
 
-  Widget _buildTipsStrip() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _TipPill(icon: Icons.wb_sunny_outlined,    label: '光线充足',  color: _kPalmPurple),
-          const SizedBox(width: 8),
-          _TipPill(icon: Icons.pan_tool_outlined,    label: '手掌展平',  color: _kPalmPurple),
-          const SizedBox(width: 8),
-          _TipPill(icon: Icons.do_not_touch_outlined, label: '保持稳定', color: _kPalmPurple),
+          Positioned(
+            bottom: -44, left: -40, right: -40,
+            child: Center(
+              child: _StatusPill(label: _statusText(), detected: _readyToScan),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomControls(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+  // ─── 底部提示卡 ─────────────────────────────────────────────────────
+
+  Widget _buildBottomCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kAccent.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: _kAccent.withValues(alpha: 0.07),
+            blurRadius: 16, offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ScanFrame(
-            frameShape: FrameShape.rectangle,
-            frameWidth: 200,
-            frameHeight: 260,
-            themeColor: const Color(0xFF9B8EF0),
-            hints: const ['手掌展开', '保持平稳', '光线充足'],
-            titleText: '请将手掌展开对准框内',
-            bottomTextIdle: '保持自然表情，正视前方',
-            bottomTextScanning: '手掌纹路正在识别...',
-            bottomTextCompleted: '手掌扫描完成 ✓',
-            startButtonLabel: '开始手掌扫描',
-            nextRoute: AppRoutes.reportAnalysis,
-            nextButtonLabel: '查看分析报告',
-            skipRoute: AppRoutes.reportAnalysis,
-            showBuiltInFrame: false,
-            autoStart: false,
-            startEnabled: _hasPermission && _readyToScan,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: const [
+                _TipItem(icon: Icons.wb_sunny_outlined, label: '光线充足'),
+                _TipItem(icon: Icons.pan_tool_outlined, label: '手掌展平'),
+                _TipItem(icon: Icons.do_not_touch_outlined, label: '保持稳定'),
+              ],
+            ),
           ),
-          TextButton(
-            onPressed: () => context.push(AppRoutes.reportAnalysis),
-            child: Text(
-              '跳过此步骤',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.38),
-                fontSize: 13,
-              ),
+          Divider(height: 1, color: _kAccent.withValues(alpha: 0.08)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+            child: Column(
+              children: [
+                _buildPrimaryButton(
+                  label: '完成扫描并查看报告',
+                  enabled: _hasPermission,
+                  onTap: _navigateToReport,
+                ),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: _navigateToReport,
+                  child: Text('跳过此步骤', style: TextStyle(fontSize: 13, color: const Color(0xFF3A3028).withValues(alpha: 0.35), letterSpacing: 0.3)),
+                ),
+              ],
             ),
           ),
         ],
@@ -322,159 +389,62 @@ class _PalmScanPageState extends State<PalmScanPage>
     );
   }
 
-  String _statusText() {
-    if (!_hasPermission) {
-      return '需要相机权限才能开始识别';
-    }
-    if (_readyToScan) {
-      return '已识别到有效手掌，可点击开始扫描';
-    }
-    if (_handPresent) {
-      return _gestureName.isEmpty
-          ? '请保持掌心朝上，手指自然分开'
-          : '当前手势：$_gestureName，请调整为掌心朝上';
-    }
-    return '请将手掌放入识别区域';
-  }
-}
-
-// ── 网格 Painter ─────────────────────────────────────────────────────
-class _GridPainter extends CustomPainter {
-  final Color color;
-  const _GridPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = color.withValues(alpha: 0.08)
-      ..strokeWidth = 0.5;
-    for (int i = 1; i < 3; i++) {
-      final x = size.width * i / 3;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
-    }
-    for (int i = 1; i < 4; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GridPainter o) => false;
-}
-
-// ── 手掌轮廓引导 Painter ──────────────────────────────────────────────
-class _HandOutlinePainter extends CustomPainter {
-  final Color color;
-  const _HandOutlinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = color.withValues(alpha: 0.1)
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-
-    final sw = size.width;
-    final sh = size.height;
-
-    // 简化手掌轮廓路径（比例坐标）
-    final path = Path()
-      ..moveTo(sw * 0.50, sh * 0.98)
-      ..cubicTo(sw * 0.28, sh * 0.98, sw * 0.14, sh * 0.88, sw * 0.14, sh * 0.72)
-      ..lineTo(sw * 0.14, sh * 0.44)
-      ..cubicTo(sw * 0.14, sh * 0.40, sw * 0.17, sh * 0.37, sw * 0.21, sh * 0.37)
-      ..cubicTo(sw * 0.25, sh * 0.37, sw * 0.28, sh * 0.40, sw * 0.28, sh * 0.44)
-      ..lineTo(sw * 0.28, sh * 0.30)
-      ..cubicTo(sw * 0.28, sh * 0.26, sw * 0.31, sh * 0.23, sw * 0.35, sh * 0.23)
-      ..cubicTo(sw * 0.39, sh * 0.23, sw * 0.42, sh * 0.26, sw * 0.42, sh * 0.30)
-      ..lineTo(sw * 0.42, sh * 0.24)
-      ..cubicTo(sw * 0.42, sh * 0.20, sw * 0.45, sh * 0.17, sw * 0.49, sh * 0.17)
-      ..cubicTo(sw * 0.53, sh * 0.17, sw * 0.56, sh * 0.20, sw * 0.56, sh * 0.24)
-      ..lineTo(sw * 0.56, sh * 0.26)
-      ..cubicTo(sw * 0.56, sh * 0.22, sw * 0.59, sh * 0.19, sw * 0.63, sh * 0.19)
-      ..cubicTo(sw * 0.67, sh * 0.19, sw * 0.70, sh * 0.22, sw * 0.70, sh * 0.26)
-      ..lineTo(sw * 0.70, sh * 0.32)
-      ..cubicTo(sw * 0.70, sh * 0.28, sw * 0.73, sh * 0.26, sw * 0.77, sh * 0.27)
-      ..cubicTo(sw * 0.81, sh * 0.28, sw * 0.84, sh * 0.31, sw * 0.84, sh * 0.36)
-      ..lineTo(sw * 0.84, sh * 0.56)
-      ..cubicTo(sw * 0.86, sh * 0.62, sw * 0.86, sh * 0.68, sw * 0.86, sh * 0.72)
-      ..cubicTo(sw * 0.86, sh * 0.88, sw * 0.72, sh * 0.98, sw * 0.50, sh * 0.98)
-      ..close();
-
-    canvas.drawPath(path, p);
-  }
-
-  @override
-  bool shouldRepaint(_HandOutlinePainter o) => false;
-}
-
-// ── 共用组件 ─────────────────────────────────────────────────────────
-
-class _CircleIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _CircleIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.12),
-          ),
-          child: Icon(icon, color: Colors.white, size: 18),
+  Widget _buildPrimaryButton({required String label, required bool enabled, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity, height: 52,
+        decoration: BoxDecoration(
+          gradient: enabled ? const LinearGradient(colors: [Color(0xFF4B3E75), _kAccent, _kAccentLight], begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
+          color: enabled ? null : const Color(0xFFE0DDD8),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: enabled ? [BoxShadow(color: _kAccent.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))] : null,
         ),
-      );
+        child: Center(child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 1.5))),
+      ),
+    );
+  }
+}
+
+// ── 共用小组件 ─────────────────────────────────────────────────────────────
+
+class _TipItem extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  const _TipItem({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 38, height: 38,
+        decoration: BoxDecoration(color: const Color(0xFFF2F0F7), shape: BoxShape.circle, border: Border.all(color: const Color(0xFF6B5B95).withValues(alpha: 0.15))),
+        child: Icon(icon, size: 18, color: const Color(0xFF6B5B95)),
+      ),
+      const SizedBox(height: 5),
+      Text(label, style: TextStyle(fontSize: 10, color: const Color(0xFF3A3028).withValues(alpha: 0.6), fontWeight: FontWeight.w500)),
+    ],
+  );
 }
 
 class _StatusPill extends StatelessWidget {
   final String label;
-  final Color color;
-  const _StatusPill({required this.label, required this.color});
+  final bool   detected;
+  const _StatusPill({required this.label, required this.detected});
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Text(label, style: TextStyle(color: color, fontSize: 12)),
-      );
-}
-
-class _TipPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  const _TipPill({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 11),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.78),
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.92),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: detected ? const Color(0xFF6B5B95).withValues(alpha: 0.5) : const Color(0xFF6B5B95).withValues(alpha: 0.25)),
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+    ),
+    child: Text(label, style: TextStyle(color: detected ? const Color(0xFF6B5B95) : const Color(0xFF3A3028).withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w500)),
+  );
 }
 
 class _ScanCorner extends StatelessWidget {
@@ -484,13 +454,9 @@ class _ScanCorner extends StatelessWidget {
   const _ScanCorner({required this.color, required this.top, required this.left});
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 24,
-        height: 24,
-        child: CustomPaint(
-          painter: _ScanCornerPainter(color: color, top: top, left: left),
-        ),
-      );
+  Widget build(BuildContext context) => SizedBox( width: 24, height: 24,
+    child: CustomPaint(painter: _ScanCornerPainter(color: color, top: top, left: left)),
+  );
 }
 
 class _ScanCornerPainter extends CustomPainter {
@@ -498,14 +464,9 @@ class _ScanCornerPainter extends CustomPainter {
   final bool top;
   final bool left;
   const _ScanCornerPainter({required this.color, required this.top, required this.left});
-
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final p = Paint()..color = color..strokeWidth = 3..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
     const r = 8.0;
     final path = Path();
     if (top && left) {
@@ -523,13 +484,306 @@ class _ScanCornerPainter extends CustomPainter {
     } else {
       path.moveTo(0, size.height);
       path.lineTo(size.width - r, size.height);
-      path.arcToPoint(Offset(size.width, size.height - r),
-          radius: const Radius.circular(r));
+      path.arcToPoint(Offset(size.width, size.height - r), radius: const Radius.circular(r));
       path.lineTo(size.width, 0);
     }
     canvas.drawPath(path, p);
   }
-
   @override
   bool shouldRepaint(_ScanCornerPainter o) => false;
+}
+
+class _BgPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final topPaint = Paint()..shader = RadialGradient(center: const Alignment(1.2, -0.8), radius: 0.9, colors: [const Color(0xFF2D6A4F).withValues(alpha: 0.06), Colors.transparent]).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), topPaint);
+    final bottomPaint = Paint()..shader = RadialGradient(center: const Alignment(-1.1, 1.3), radius: 0.85, colors: [const Color(0xFF6B5B95).withValues(alpha: 0.05), Colors.transparent]).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bottomPaint);
+    final sealPaint = Paint()..color = const Color(0xFF2D6A4F).withValues(alpha: 0.04)..style = PaintingStyle.stroke..strokeWidth = 1;
+    canvas.drawCircle(Offset(size.width - 20, 60), 52, sealPaint);
+    canvas.drawCircle(Offset(size.width - 20, 60), 42, sealPaint);
+    final gridPaint = Paint()..color = const Color(0xFF2D6A4F).withValues(alpha: 0.025)..strokeWidth = 0.5;
+    for (double x = 0; x < size.width; x += 28) { canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint); }
+    for (double y = 0; y < size.height; y += 28) { canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint); }
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
+/// 真实手掌轮廓引导图
+///
+/// 掌心朝上，五指张开（拇指向左外展，其余四指向上自然展开）
+/// 路径分两部分绘制：
+///   1. 半透明填充层 → 给用户一个直观的"手影"
+///   2. 描边轮廓层   → 清晰勾勒边缘
+class _HandOutlinePainter extends CustomPainter {
+  final Color color;
+  const _HandOutlinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sw = size.width;
+    final sh = size.height;
+
+    // ── 构建完整手掌路径 ──────────────────────────────────────────────
+    //
+    // 坐标系：(0,0) = 左上角，掌心朝上（手腕在下方）
+    //
+    // 结构：从手腕右侧出发，逆时针绕一圈
+    //   右侧手腕 → 小指外侧 → 小指尖 → 小指内侧
+    //   → 无名指 → 中指（最高） → 食指 → 拇指外展 → 左侧手腕
+    //   → 手腕弧线底部 → 闭合
+    //
+    final path = Path();
+
+    // 手腕右侧入口
+    path.moveTo(sw * 0.74, sh * 0.97);
+
+    // ── 手掌右侧 & 小指 ─────────────────────────────────────────────
+    // 手掌右缘向上
+    path.cubicTo(
+      sw * 0.80, sh * 0.97,
+      sw * 0.84, sh * 0.90,
+      sw * 0.84, sh * 0.80,
+    );
+    // 小指底部右侧
+    path.cubicTo(
+      sw * 0.84, sh * 0.74,
+      sw * 0.85, sh * 0.68,
+      sw * 0.86, sh * 0.62,
+    );
+    // 小指右侧向尖端
+    path.cubicTo(
+      sw * 0.87, sh * 0.55,
+      sw * 0.87, sh * 0.48,
+      sw * 0.86, sh * 0.43,
+    );
+    // 小指尖（圆弧）
+    path.cubicTo(
+      sw * 0.86, sh * 0.39,
+      sw * 0.84, sh * 0.37,
+      sw * 0.82, sh * 0.37,
+    );
+    path.cubicTo(
+      sw * 0.80, sh * 0.37,
+      sw * 0.78, sh * 0.39,
+      sw * 0.78, sh * 0.43,
+    );
+    // 小指左侧向下
+    path.cubicTo(
+      sw * 0.77, sh * 0.48,
+      sw * 0.77, sh * 0.54,
+      sw * 0.77, sh * 0.58,
+    );
+    // 小指与无名指之间的指蹼
+    path.cubicTo(
+      sw * 0.77, sh * 0.63,
+      sw * 0.76, sh * 0.65,
+      sw * 0.75, sh * 0.66,
+    );
+
+    // ── 无名指 ──────────────────────────────────────────────────────
+    // 无名指底部左侧 → 向上
+    path.cubicTo(
+      sw * 0.74, sh * 0.65,
+      sw * 0.73, sh * 0.60,
+      sw * 0.73, sh * 0.54,
+    );
+    // 无名指右侧
+    path.cubicTo(
+      sw * 0.73, sh * 0.44,
+      sw * 0.73, sh * 0.36,
+      sw * 0.72, sh * 0.30,
+    );
+    // 无名指尖（圆弧）
+    path.cubicTo(
+      sw * 0.72, sh * 0.26,
+      sw * 0.70, sh * 0.24,
+      sw * 0.68, sh * 0.24,
+    );
+    path.cubicTo(
+      sw * 0.66, sh * 0.24,
+      sw * 0.64, sh * 0.26,
+      sw * 0.64, sh * 0.30,
+    );
+    // 无名指左侧向下
+    path.cubicTo(
+      sw * 0.63, sh * 0.36,
+      sw * 0.63, sh * 0.44,
+      sw * 0.63, sh * 0.54,
+    );
+    // 无名指与中指之间的指蹼
+    path.cubicTo(
+      sw * 0.63, sh * 0.60,
+      sw * 0.62, sh * 0.63,
+      sw * 0.61, sh * 0.64,
+    );
+
+    // ── 中指（最长，居中）───────────────────────────────────────────
+    path.cubicTo(
+      sw * 0.60, sh * 0.63,
+      sw * 0.59, sh * 0.57,
+      sw * 0.59, sh * 0.51,
+    );
+    // 中指右侧
+    path.cubicTo(
+      sw * 0.59, sh * 0.40,
+      sw * 0.59, sh * 0.28,
+      sw * 0.58, sh * 0.21,
+    );
+    // 中指尖（圆弧，最高点）
+    path.cubicTo(
+      sw * 0.58, sh * 0.16,
+      sw * 0.56, sh * 0.14,
+      sw * 0.54, sh * 0.14,
+    );
+    path.cubicTo(
+      sw * 0.52, sh * 0.14,
+      sw * 0.50, sh * 0.16,
+      sw * 0.50, sh * 0.21,
+    );
+    // 中指左侧向下
+    path.cubicTo(
+      sw * 0.49, sh * 0.28,
+      sw * 0.49, sh * 0.40,
+      sw * 0.49, sh * 0.51,
+    );
+    // 中指与食指之间的指蹼
+    path.cubicTo(
+      sw * 0.49, sh * 0.58,
+      sw * 0.48, sh * 0.62,
+      sw * 0.47, sh * 0.63,
+    );
+
+    // ── 食指 ────────────────────────────────────────────────────────
+    path.cubicTo(
+      sw * 0.46, sh * 0.62,
+      sw * 0.45, sh * 0.56,
+      sw * 0.45, sh * 0.50,
+    );
+    // 食指右侧
+    path.cubicTo(
+      sw * 0.45, sh * 0.40,
+      sw * 0.44, sh * 0.30,
+      sw * 0.43, sh * 0.24,
+    );
+    // 食指尖（圆弧）
+    path.cubicTo(
+      sw * 0.43, sh * 0.19,
+      sw * 0.41, sh * 0.17,
+      sw * 0.39, sh * 0.17,
+    );
+    path.cubicTo(
+      sw * 0.37, sh * 0.17,
+      sw * 0.35, sh * 0.19,
+      sw * 0.35, sh * 0.24,
+    );
+    // 食指左侧向下
+    path.cubicTo(
+      sw * 0.34, sh * 0.30,
+      sw * 0.33, sh * 0.42,
+      sw * 0.33, sh * 0.52,
+    );
+    // 食指与拇指之间的虎口
+    path.cubicTo(
+      sw * 0.33, sh * 0.60,
+      sw * 0.31, sh * 0.66,
+      sw * 0.28, sh * 0.68,
+    );
+
+    // ── 拇指（向左外展）─────────────────────────────────────────────
+    // 虎口过渡到拇指根部
+    path.cubicTo(
+      sw * 0.25, sh * 0.70,
+      sw * 0.21, sh * 0.70,
+      sw * 0.18, sh * 0.68,
+    );
+    // 拇指向左上方伸出
+    path.cubicTo(
+      sw * 0.14, sh * 0.65,
+      sw * 0.10, sh * 0.60,
+      sw * 0.08, sh * 0.54,
+    );
+    // 拇指尖（圆弧）
+    path.cubicTo(
+      sw * 0.06, sh * 0.49,
+      sw * 0.06, sh * 0.45,
+      sw * 0.08, sh * 0.42,
+    );
+    path.cubicTo(
+      sw * 0.10, sh * 0.39,
+      sw * 0.13, sh * 0.38,
+      sw * 0.16, sh * 0.40,
+    );
+    // 拇指右侧（内侧）向下回掌
+    path.cubicTo(
+      sw * 0.19, sh * 0.42,
+      sw * 0.22, sh * 0.48,
+      sw * 0.23, sh * 0.55,
+    );
+    path.cubicTo(
+      sw * 0.24, sh * 0.62,
+      sw * 0.24, sh * 0.70,
+      sw * 0.24, sh * 0.77,
+    );
+
+    // ── 手腕左侧 & 底部弧线 ─────────────────────────────────────────
+    path.cubicTo(
+      sw * 0.24, sh * 0.87,
+      sw * 0.26, sh * 0.94,
+      sw * 0.30, sh * 0.97,
+    );
+    // 手腕底部弧线（连回起点）
+    path.cubicTo(
+      sw * 0.40, sh * 1.00,
+      sw * 0.60, sh * 1.00,
+      sw * 0.74, sh * 0.97,
+    );
+
+    path.close();
+
+    // ── 1. 半透明填充（给用户直观的手影感）────────────────────────
+    final fillPaint = Paint()
+      ..color = color.withValues(alpha: 0.07)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+
+    // ── 2. 清晰描边轮廓 ────────────────────────────────────────────
+    final strokePaint = Paint()
+      ..color       = color.withValues(alpha: 0.55)
+      ..strokeWidth = 1.8
+      ..style       = PaintingStyle.stroke
+      ..strokeJoin  = StrokeJoin.round
+      ..strokeCap   = StrokeCap.round;
+    canvas.drawPath(path, strokePaint);
+
+    // ── 3. 掌心纹路（三条主纹，仅描边）────────────────────────────
+    final linePaint = Paint()
+      ..color       = color.withValues(alpha: 0.22)
+      ..strokeWidth = 0.9
+      ..style       = PaintingStyle.stroke
+      ..strokeCap   = StrokeCap.round;
+
+    // 生命线（虎口到手腕，左弧）
+    final lifeLine = Path()
+      ..moveTo(sw * 0.30, sh * 0.67)
+      ..cubicTo(sw * 0.32, sh * 0.73, sw * 0.33, sh * 0.82, sw * 0.35, sh * 0.93);
+    canvas.drawPath(lifeLine, linePaint);
+
+    // 感情线（横跨掌心上部）
+    final heartLine = Path()
+      ..moveTo(sw * 0.35, sh * 0.68)
+      ..cubicTo(sw * 0.45, sh * 0.66, sw * 0.60, sh * 0.65, sw * 0.74, sh * 0.70);
+    canvas.drawPath(heartLine, linePaint);
+
+    // 智慧线（中间斜线）
+    final headLine = Path()
+      ..moveTo(sw * 0.33, sh * 0.72)
+      ..cubicTo(sw * 0.44, sh * 0.73, sw * 0.56, sh * 0.76, sw * 0.68, sh * 0.80);
+    canvas.drawPath(headLine, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(_HandOutlinePainter o) => o.color != color;
 }

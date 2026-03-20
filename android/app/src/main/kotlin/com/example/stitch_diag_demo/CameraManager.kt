@@ -33,30 +33,47 @@ class CameraManager(private val context: Context) {
         this.listener = l
     }
 
+    private var currentSelector: CameraSelector? = null
+
     fun startCamera() {
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            preview = Preview.Builder().build()
-
-            analysisUseCase = ImageAnalysis.Builder()
-                .setTargetResolution(android.util.Size(640, 480))
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-
-            imageCapture = ImageCapture.Builder()
-                .setTargetResolution(android.util.Size(1280, 720))
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
-
-            analysisUseCase?.setAnalyzer(backgroundExecutor) { imageProxy ->
-                listener?.invoke(imageProxy)
-                imageProxy.close()
-            }
-
-            val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-
             try {
+                val cameraProvider = cameraProviderFuture.get()
+
+                val cameraSelector = if (mode == "gesture") {
+                    CameraSelector.DEFAULT_BACK_CAMERA
+                } else {
+                    CameraSelector.DEFAULT_FRONT_CAMERA
+                }
+
+                // 核心：防止重复绑定导致抖动。
+                if (currentSelector == cameraSelector && preview != null && cameraProvider.isBound(preview!!)) {
+                    android.util.Log.d("CameraManager", "Camera already bound, skipping to prevent jitter.")
+                    lastPreviewView?.scaleX = 1f
+                    return@addListener
+                }
+
+                currentSelector = cameraSelector
+
+                preview = Preview.Builder()
+                    .setTargetResolution(android.util.Size(1280, 720))
+                    .build()
+
+                analysisUseCase = ImageAnalysis.Builder()
+                    .setTargetResolution(android.util.Size(640, 480))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+
+                imageCapture = ImageCapture.Builder()
+                    .setTargetResolution(android.util.Size(1280, 720))
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
+
+                analysisUseCase?.setAnalyzer(backgroundExecutor) { imageProxy ->
+                    listener?.invoke(imageProxy)
+                    imageProxy.close()
+                }
+
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
                     context as androidx.lifecycle.LifecycleOwner,
@@ -65,20 +82,24 @@ class CameraManager(private val context: Context) {
                     analysisUseCase,
                     imageCapture
                 )
+                
                 lastPreviewView?.let { previewView ->
                     preview?.setSurfaceProvider(previewView.surfaceProvider)
                     previewView.scaleX = 1f
                 }
             } catch (exc: Exception) {
-                // Handle error
+                android.util.Log.e("CameraManager", "Start camera failed", exc)
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
     fun stopCamera() {
-        val cameraProvider = cameraProviderFuture.get()
-        cameraProvider.unbindAll()
-        imageCapture = null
+        try {
+            val cameraProvider = cameraProviderFuture.get()
+            cameraProvider.unbindAll()
+            imageCapture = null
+            currentSelector = null
+        } catch (exc: Exception) {}
     }
 
     fun takePhoto(outputFile: java.io.File, onSuccess: (String) -> Unit, onError: (String) -> Unit) {

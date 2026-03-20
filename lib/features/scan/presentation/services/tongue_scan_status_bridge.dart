@@ -6,11 +6,13 @@ class TongueScanStatus {
   final bool tongueDetected;
   final double tongueOutScore;
   final int mouthLandmarkCount;
+  final List<dynamic> landmarks;
 
   const TongueScanStatus({
     required this.tongueDetected,
     required this.tongueOutScore,
     required this.mouthLandmarkCount,
+    this.landmarks = const [],
   });
 
   bool get mouthPresent => mouthLandmarkCount > 0;
@@ -21,16 +23,19 @@ class TongueScanStatus {
         tongueDetected: false,
         tongueOutScore: 0,
         mouthLandmarkCount: 0,
+        landmarks: [],
       );
     }
 
     final data = Map<dynamic, dynamic>.from(event);
     final mouthLandmarks = data['mouthLandmarks'];
+    final landmarks = data['landmarks'] as List? ?? [];
 
     return TongueScanStatus(
       tongueDetected: data['tongueDetected'] as bool? ?? false,
       tongueOutScore: (data['tongueOutScore'] as num?)?.toDouble() ?? 0,
       mouthLandmarkCount: mouthLandmarks is List ? mouthLandmarks.length : 0,
+      landmarks: landmarks,
     );
   }
 }
