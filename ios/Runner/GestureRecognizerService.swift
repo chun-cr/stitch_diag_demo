@@ -38,11 +38,12 @@ final class GestureRecognizerService: NSObject {
     static let shared = GestureRecognizerService()
 
     private var recognizer: GestureRecognizer?
-    private var timestampMs: Int = 0
     private var consecutiveCount = 0
 
     private let workQueue = DispatchQueue(label: "com.example.stitch_diag_demo.gesturerecognizer")
     private var isInitializing = false
+    private var isDetectionInFlight = false
+    private var pendingSampleBuffer: CMSampleBuffer?
 
     private override init() {
         super.init()
@@ -78,12 +79,13 @@ final class GestureRecognizerService: NSObject {
 
     func start() {
         setupRecognizer()
-        timestampMs = 0
         consecutiveCount = 0
     }
 
     func stop() {
         consecutiveCount = 0
+        pendingSampleBuffer = nil
+        isDetectionInFlight = false
         publishDetected(false, name: "", score: 0, landmarks: [])
     }
 
@@ -181,6 +183,33 @@ final class GestureRecognizerService: NSObject {
     private func imageOrientationForCurrentDevice() -> UIImage.Orientation {
         return CameraManager.shared.currentPosition == .front ? .leftMirrored : .right
     }
+
+    private func processPendingSampleBufferIfNeeded() {
+        guard !isDetectionInFlight,
+              let recognizer = recognizer,
+              let sampleBuffer = pendingSampleBuffer else { return }
+
+        pendingSampleBuffer = nil
+        isDetectionInFlight = true
+
+        let orientation = imageOrientationForCurrentDevice()
+        guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else {
+            isDetectionInFlight = false
+            return
+        }
+
+        let timestampMs = Self.timestampInMilliseconds(for: sampleBuffer)
+        try? recognizer.recognizeAsync(image: image, timestampInMilliseconds: timestampMs)
+    }
+
+    private static func timestampInMilliseconds(for sampleBuffer: CMSampleBuffer) -> Int {
+        let presentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let seconds = CMTimeGetSeconds(presentationTime)
+        if seconds.isFinite && seconds >= 0 {
+            return Int(seconds * 1000)
+        }
+        return Int(Date().timeIntervalSince1970 * 1000)
+    }
 }
 
 extension GestureRecognizerService {
@@ -191,13 +220,9 @@ extension GestureRecognizerService {
                 self.setupRecognizer()
                 return
             }
-            guard let recognizer = self.recognizer else { return }
 
-            let orientation = self.imageOrientationForCurrentDevice()
-            guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
-
-            self.timestampMs += 1
-            try? recognizer.recognizeAsync(image: image, timestampInMilliseconds: self.timestampMs)
+            self.pendingSampleBuffer = sampleBuffer
+            self.processPendingSampleBufferIfNeeded()
         }
     }
 }
@@ -209,6 +234,12 @@ extension GestureRecognizerService: GestureRecognizerLiveStreamDelegate {
         timestampInMilliseconds: Int,
         error: Error?
     ) {
+        workQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.isDetectionInFlight = false
+            self.processPendingSampleBufferIfNeeded()
+        }
+
         if let error = error {
             print("GestureRecognizer error: \(error)")
         }
