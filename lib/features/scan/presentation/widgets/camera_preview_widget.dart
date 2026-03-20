@@ -5,12 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 class CameraPreviewWidget extends StatelessWidget {
-  final bool mirror;
-
-  const CameraPreviewWidget({
-    super.key,
-    this.mirror = false,
-  });
+  const CameraPreviewWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +55,6 @@ class CameraPreviewWidget extends StatelessWidget {
       ),
     );
 
-    return mirror
-        ? Transform.scale(
-            scaleX: -1.0,
-            alignment: Alignment.center,
-            child: view,
-          )
-        : view;
+    return view;
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -368,7 +369,6 @@ class _FaceScanPageState extends State<FaceScanPage>
           child: ClipRect(
             child: const CameraPreviewWidget(
               key: ValueKey('shared_camera_preview'),
-              mirror: true,
             ),
           ),
         ),
@@ -520,8 +520,10 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (_normalizedLandmarks.isNotEmpty) {
       // 渲染全部 478 个关键点，展现高精度面部网格
       return _normalizedLandmarks.map((p) {
-        // 由于我们在 CameraPreviewWidget 应用了镜像，关键点也需要同步镜像
-        final mirroredX = (1.0 - p.dx.clamp(0.0, 1.0)) * w;
+        // 根据平台适配：Android 的 TextureView 未镜像，所以经过 Transform.scale 后，点必须翻转
+        // iOS 的原生流已经是镜像，所以点直接映射即可。
+        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+        final mirroredX = isAndroid ? (1.0 - p.dx.clamp(0.0, 1.0)) * w : p.dx.clamp(0.0, 1.0) * w;
         final y = p.dy.clamp(0.0, 1.0) * h;
         return Positioned(
           left: mirroredX - 1,

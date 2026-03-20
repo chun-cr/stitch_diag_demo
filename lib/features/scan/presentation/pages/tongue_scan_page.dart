@@ -14,6 +14,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -413,7 +414,6 @@ class _TongueScanPageState extends State<TongueScanPage>
         Positioned.fill(
           child: const CameraPreviewWidget(
             key: ValueKey('shared_camera_preview'),
-            mirror: true,
           ),
         ),
         // 渐变遮罩（上下融入米色背景）
@@ -563,8 +563,10 @@ class _TongueScanPageState extends State<TongueScanPage>
   List<Widget> _buildFaceDots(double w, double h) {
     if (_normalizedLandmarks.isNotEmpty) {
       return _normalizedLandmarks.map((p) {
-        // 由于我们在 CameraPreviewWidget 应用了镜像，关键点也需要同步镜像
-        final mirroredX = (1.0 - p.dx.clamp(0.0, 1.0)) * w;
+        // 根据平台适配：Android 的 TextureView 未镜像，所以经过 Transform.scale 后，点必须翻转
+        // iOS 的原生流已经是镜像，所以点直接映射即可。
+        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+        final mirroredX = isAndroid ? (1.0 - p.dx.clamp(0.0, 1.0)) * w : p.dx.clamp(0.0, 1.0) * w;
         final y = p.dy.clamp(0.0, 1.0) * h;
         return Positioned(
           left: mirroredX - 0.8,
