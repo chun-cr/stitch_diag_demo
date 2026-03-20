@@ -12,28 +12,28 @@ final visionManagerProvider = Provider<VisionManager>((ref) {
 });
 
 final visionStateProvider = StateNotifierProvider<VisionStateNotifier, VisionState>((ref) {
-  return VisionStateNotifier(ref.read);
+  return VisionStateNotifier(ref);
 });
 
 class VisionStateNotifier extends StateNotifier<VisionState> {
-  VisionStateNotifier(this._read)
+  VisionStateNotifier(this._ref)
       : super(const VisionState(mode: VisionMode.faceOnly, isDetecting: false));
 
-  final Reader _read;
+  final Ref _ref;
 
   Future<void> setMode(VisionMode mode) async {
     if (state.mode == mode) return;
-    await _read(visionManagerProvider).stopDetection(state.mode);
+    await _ref.read(visionManagerProvider).stopDetection(state.mode);
     state = state.copyWith(mode: mode, isDetecting: false);
   }
 
   Future<void> start() async {
-    await _read(visionManagerProvider).startDetection(state.mode);
+    await _ref.read(visionManagerProvider).startDetection(state.mode);
     state = state.copyWith(isDetecting: true);
   }
 
   Future<void> stop() async {
-    await _read(visionManagerProvider).stopDetection(state.mode);
+    await _ref.read(visionManagerProvider).stopDetection(state.mode);
     state = state.copyWith(isDetecting: false);
   }
 }

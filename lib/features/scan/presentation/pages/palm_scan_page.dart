@@ -17,12 +17,15 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/palm_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
+import '../widgets/hand_landmark_overlay.dart';
 import '../widgets/scan_step_indicator.dart';
 
 // ── 颜色（手掌用偏紫的藤萝色，兼容米色背景）
 const _kAccent      = Color(0xFF6B5B95); // 沉稳紫（主色）
 const _kAccentLight = Color(0xFF9B8EF0); // 亮紫色（点缀）
 const _kBgColor     = Color(0xFFF4F1EB); // 宣纸米色
+
+enum PalmScanState { idle, scanning, completed }
 
 class PalmScanPage extends StatefulWidget {
   const PalmScanPage({super.key});
@@ -33,15 +36,21 @@ class PalmScanPage extends StatefulWidget {
 class _PalmScanPageState extends State<PalmScanPage>
     with SingleTickerProviderStateMixin {
   final PalmScanStatusBridge _statusBridge = PalmScanStatusBridge();
+  static const Duration _requiredHoldDuration = Duration(seconds: 2);
+  static const Duration _postSuccessDelay = Duration(milliseconds: 450);
   late AnimationController _scanCtrl;
   late Animation<double>   _scanAnim;
   StreamSubscription<PalmScanStatus>? _statusSubscription;
+  Timer? _holdTimer;
 
   bool   _hasPermission  = false;
   bool   _handPresent    = false;
   bool   _readyToScan    = false;
   String _gestureName    = '';
   bool   _isTransitioning = false;
+  double _scanProgress = 0;
+  PalmScanState _scanState = PalmScanState.idle;
+  List<Offset> _handLandmarks = const [];
 
   @override
   void initState() {
@@ -64,7 +73,14 @@ class _PalmScanPageState extends State<PalmScanPage>
     if (!mounted) return;
 
     if (status.isGranted) {
-      setState(() => _hasPermission = true);
+      setState(() {
+        _hasPermission = true;
+        _scanState = PalmScanState.scanning;
+        _handPresent = false;
+        _readyToScan = false;
+        _gestureName = '';
+        _scanProgress = 0;
+      });
       _statusSubscription?.cancel();
       _statusSubscription = _statusBridge.statusStream().listen((status) {
         if (!mounted) return;
@@ -72,7 +88,15 @@ class _PalmScanPageState extends State<PalmScanPage>
           _handPresent = status.handPresent;
           _readyToScan = status.readyToScan;
           _gestureName = status.gestureName;
+          _handLandmarks = status.landmarks;
         });
+
+        if (_scanState != PalmScanState.scanning) return;
+        if (status.readyToScan) {
+          _startHoldTracking();
+        } else {
+          _cancelHoldTracking(resetProgress: true);
+        }
       });
       unawaited(_statusBridge.startMonitoring());
     } else {
@@ -85,6 +109,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   @override
   void dispose() {
     _statusSubscription?.cancel();
+    _holdTimer?.cancel();
     // 只有彻底销毁时（如返回主页）才发指令停止，跳转时不发
     // unawaited(_statusBridge.stopMonitoring());
     _scanCtrl.dispose();
@@ -94,6 +119,8 @@ class _PalmScanPageState extends State<PalmScanPage>
   Future<void> _navigateToReport() async {
     if (_isTransitioning || !mounted) return;
     _isTransitioning = true;
+    _holdTimer?.cancel();
+    _holdTimer = null;
     _statusSubscription?.cancel();
     _statusSubscription = null;
     // 手掌是最后一步，这里可以考虑发停止
@@ -101,11 +128,60 @@ class _PalmScanPageState extends State<PalmScanPage>
     context.pushReplacement(AppRoutes.reportAnalysis);
   }
 
+  void _startHoldTracking() {
+    if (_holdTimer != null || _scanState != PalmScanState.scanning) return;
+    final stopwatch = Stopwatch()..start();
+    _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted || _scanState != PalmScanState.scanning) {
+        timer.cancel();
+        _holdTimer = null;
+        return;
+      }
+
+      final progress =
+          stopwatch.elapsedMilliseconds / _requiredHoldDuration.inMilliseconds;
+      if (progress >= 1) {
+        timer.cancel();
+        _holdTimer = null;
+        _completeScan();
+        return;
+      }
+
+      setState(() => _scanProgress = progress.clamp(0.0, 1.0));
+    });
+  }
+
+  void _cancelHoldTracking({required bool resetProgress}) {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    if (resetProgress && mounted) {
+      setState(() => _scanProgress = 0);
+    }
+  }
+
+  void _completeScan() {
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
+    unawaited(_statusBridge.stopMonitoring());
+    if (!mounted) return;
+    setState(() {
+      _scanState = PalmScanState.completed;
+      _scanProgress = 1;
+    });
+    unawaited(_navigateToReportAfterDelay());
+  }
+
+  Future<void> _navigateToReportAfterDelay() async {
+    await Future<void>.delayed(_postSuccessDelay);
+    await _navigateToReport();
+  }
+
   // ── 文案 ─────────────────────────────────────────────────────────
 
   String _statusText() {
     if (!_hasPermission) return '等待权限';
-    if (_readyToScan)    return '手掌已就位 ✓';
+    if (_scanState == PalmScanState.completed) return '手掌扫描完成 ✓';
+    if (_readyToScan) return '已识别张开手掌，请保持 2 秒';
     if (_handPresent) {
       return _gestureName.isEmpty ? '请展平手掌，掌心朝上' : '检测到：$_gestureName';
     }
@@ -255,6 +331,12 @@ class _PalmScanPageState extends State<PalmScanPage>
       children: [
         Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('palm_camera_preview'))),
         Positioned.fill(
+          child: HandLandmarkOverlay(
+            normalizedLandmarks: _handLandmarks,
+            mirrored: false,
+          ),
+        ),
+        Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -277,7 +359,9 @@ class _PalmScanPageState extends State<PalmScanPage>
   Widget _buildPalmFrame() {
     const frameW = 190.0;
     const frameH = 260.0;
-    final highlightColor = _readyToScan ? _kAccentLight : _kAccent.withValues(alpha: 0.45);
+    final highlightColor = (_readyToScan || _scanState == PalmScanState.completed)
+        ? _kAccentLight
+        : _kAccent.withValues(alpha: 0.45);
 
     return SizedBox(
       width: frameW,
@@ -328,9 +412,19 @@ class _PalmScanPageState extends State<PalmScanPage>
           Positioned(
             bottom: -44, left: -40, right: -40,
             child: Center(
-              child: _StatusPill(label: _statusText(), detected: _readyToScan),
+              child: _StatusPill(
+                label: _statusText(),
+                detected: _readyToScan || _scanState == PalmScanState.completed,
+              ),
             ),
           ),
+          if (_scanState == PalmScanState.scanning && _readyToScan)
+            Positioned(
+              bottom: -80,
+              left: frameW * 0.18,
+              right: frameW * 0.18,
+              child: _ScanProgressBar(progress: _scanProgress),
+            ),
         ],
       ),
     );
@@ -372,8 +466,10 @@ class _PalmScanPageState extends State<PalmScanPage>
             child: Column(
               children: [
                 _buildPrimaryButton(
-                  label: '完成扫描并查看报告',
-                  enabled: _hasPermission,
+                  label: _scanState == PalmScanState.completed
+                      ? '即将查看报告'
+                      : '请张开手掌并保持 2 秒',
+                  enabled: false,
                   onTap: _navigateToReport,
                 ),
                 const SizedBox(height: 10),
@@ -443,7 +539,43 @@ class _StatusPill extends StatelessWidget {
       border: Border.all(color: detected ? const Color(0xFF6B5B95).withValues(alpha: 0.5) : const Color(0xFF6B5B95).withValues(alpha: 0.25)),
       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
     ),
-    child: Text(label, style: TextStyle(color: detected ? const Color(0xFF6B5B95) : const Color(0xFF3A3028).withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w500)),
+  child: Text(label, style: TextStyle(color: detected ? const Color(0xFF6B5B95) : const Color(0xFF3A3028).withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w500)),
+  );
+}
+
+class _ScanProgressBar extends StatelessWidget {
+  final double progress;
+  const _ScanProgressBar({required this.progress});
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      Container(
+        height: 4,
+        decoration: BoxDecoration(
+          color: _kAccent.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      FractionallySizedBox(
+        widthFactor: progress.clamp(0.0, 1.0),
+        child: Container(
+          height: 4,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_kAccent, _kAccentLight],
+            ),
+            borderRadius: BorderRadius.circular(2),
+            boxShadow: [
+              BoxShadow(
+                color: _kAccent.withValues(alpha: 0.45),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
   );
 }
 

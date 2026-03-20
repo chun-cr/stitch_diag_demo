@@ -16,7 +16,10 @@ class FaceDetectionPage extends StatefulWidget {
 
 class _FaceDetectionPageState extends State<FaceDetectionPage> {
   final FaceScanStatusBridge _bridge = FaceScanStatusBridge();
+  StreamSubscription? _subscription;
   bool _hasPermission = false;
+  List<Offset> _landmarks = const [];
+  Size _imageSize = Size.zero;
 
   @override
   void initState() {
@@ -28,6 +31,15 @@ class _FaceDetectionPageState extends State<FaceDetectionPage> {
     final status = await Permission.camera.request();
     if (status.isGranted) {
       if (mounted) setState(() => _hasPermission = true);
+      _subscription = _bridge.landmarkStream().listen((payload) {
+        if (!mounted) return;
+        final landmarks = _extractNormalizedLandmarks(payload['landmarks']);
+        final imageSize = _extractImageSize(payload);
+        setState(() {
+          _landmarks = landmarks;
+          _imageSize = imageSize;
+        });
+      });
       await _bridge.startMonitoring();
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,8 +48,28 @@ class _FaceDetectionPageState extends State<FaceDetectionPage> {
     }
   }
 
+  List<Offset> _extractNormalizedLandmarks(dynamic landmarks) {
+    if (landmarks is! List) return const [];
+    return landmarks.map((e) {
+      if (e is Map) {
+        return Offset(
+          (e['x'] as num?)?.toDouble() ?? 0,
+          (e['y'] as num?)?.toDouble() ?? 0,
+        );
+      }
+      return Offset.zero;
+    }).toList();
+  }
+
+  Size _extractImageSize(Map<String, dynamic> payload) {
+    final width = (payload['imageWidth'] as num?)?.toDouble() ?? 0;
+    final height = (payload['imageHeight'] as num?)?.toDouble() ?? 0;
+    return Size(width, height);
+  }
+
   @override
   void dispose() {
+    _subscription?.cancel();
     unawaited(_bridge.stopMonitoring());
     super.dispose();
   }
@@ -52,7 +84,10 @@ class _FaceDetectionPageState extends State<FaceDetectionPage> {
           if (_hasPermission)
             Positioned.fill(
               child: IgnorePointer(
-                child: FaceLandmarkOverlay(bridge: _bridge),
+                child: FaceLandmarkOverlay(
+                  normalizedLandmarks: _landmarks,
+                  imageSize: _imageSize,
+                ),
               ),
             ),
           SafeArea(

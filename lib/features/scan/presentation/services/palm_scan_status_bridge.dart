@@ -8,12 +8,14 @@ class PalmScanStatus {
   final bool gestureDetected;
   final String gestureName;
   final double score;
+  final List<Offset> landmarks;
 
   const PalmScanStatus({
     required this.handPresent,
     required this.gestureDetected,
     required this.gestureName,
     required this.score,
+    this.landmarks = const [],
   });
 
   bool get readyToScan => handPresent && gestureDetected;
@@ -25,17 +27,32 @@ class PalmScanStatus {
         gestureDetected: false,
         gestureName: '',
         score: 0,
+        landmarks: [],
       );
     }
 
     final data = Map<dynamic, dynamic>.from(event);
     final handLandmarks = data['handLandmarks'];
+    final landmarks = <Offset>[];
+
+    if (handLandmarks is List) {
+      for (final point in handLandmarks) {
+        if (point is Map) {
+          final x = (point['x'] as num?)?.toDouble();
+          final y = (point['y'] as num?)?.toDouble();
+          if (x != null && y != null) {
+            landmarks.add(Offset(x, y));
+          }
+        }
+      }
+    }
 
     return PalmScanStatus(
       handPresent: handLandmarks is List && handLandmarks.isNotEmpty,
       gestureDetected: data['gestureDetected'] as bool? ?? false,
       gestureName: data['gestureName'] as String? ?? '',
       score: (data['score'] as num?)?.toDouble() ?? 0,
+      landmarks: landmarks,
     );
   }
 }
@@ -56,7 +73,8 @@ class PalmScanStatusBridge {
             a.handPresent == b.handPresent &&
             a.gestureDetected == b.gestureDetected &&
             a.gestureName == b.gestureName &&
-            a.score == b.score);
+            a.score == b.score &&
+            a.landmarks.length == b.landmarks.length);
   }
 
   Future<void> startMonitoring() {

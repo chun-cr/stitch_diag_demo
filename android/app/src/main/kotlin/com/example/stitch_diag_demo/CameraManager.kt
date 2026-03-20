@@ -35,6 +35,11 @@ class CameraManager(private val context: Context) {
 
     private var currentSelector: CameraSelector? = null
 
+    private fun applyPreviewTransform() {
+        val isFrontCamera = currentSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+        lastPreviewView?.scaleX = if (isFrontCamera) -1f else 1f
+    }
+
     fun startCamera() {
         cameraProviderFuture.addListener({
             try {
@@ -49,7 +54,7 @@ class CameraManager(private val context: Context) {
                 // 核心：防止重复绑定导致抖动。
                 if (currentSelector == cameraSelector && preview != null && cameraProvider.isBound(preview!!)) {
                     android.util.Log.d("CameraManager", "Camera already bound, skipping to prevent jitter.")
-                    lastPreviewView?.scaleX = 1f
+                    applyPreviewTransform()
                     return@addListener
                 }
 
@@ -85,7 +90,7 @@ class CameraManager(private val context: Context) {
                 
                 lastPreviewView?.let { previewView ->
                     preview?.setSurfaceProvider(previewView.surfaceProvider)
-                    previewView.scaleX = 1f
+                    applyPreviewTransform()
                 }
             } catch (exc: Exception) {
                 android.util.Log.e("CameraManager", "Start camera failed", exc)
@@ -138,7 +143,7 @@ class CameraManager(private val context: Context) {
     fun setPreviewView(previewView: androidx.camera.view.PreviewView) {
         lastPreviewView = previewView
         preview?.setSurfaceProvider(previewView.surfaceProvider)
-        previewView.scaleX = 1f
+        applyPreviewTransform()
     }
 
     // For PlatformView

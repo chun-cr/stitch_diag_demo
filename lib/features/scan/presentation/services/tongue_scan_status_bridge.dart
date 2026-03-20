@@ -7,12 +7,16 @@ class TongueScanStatus {
   final double tongueOutScore;
   final int mouthLandmarkCount;
   final List<dynamic> landmarks;
+  final double imageWidth;
+  final double imageHeight;
 
   const TongueScanStatus({
     required this.tongueDetected,
     required this.tongueOutScore,
     required this.mouthLandmarkCount,
     this.landmarks = const [],
+    this.imageWidth = 0,
+    this.imageHeight = 0,
   });
 
   bool get mouthPresent => mouthLandmarkCount > 0;
@@ -24,6 +28,8 @@ class TongueScanStatus {
         tongueOutScore: 0,
         mouthLandmarkCount: 0,
         landmarks: [],
+        imageWidth: 0,
+        imageHeight: 0,
       );
     }
 
@@ -36,6 +42,8 @@ class TongueScanStatus {
       tongueOutScore: (data['tongueOutScore'] as num?)?.toDouble() ?? 0,
       mouthLandmarkCount: mouthLandmarks is List ? mouthLandmarks.length : 0,
       landmarks: landmarks,
+      imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
+      imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
     );
   }
 }

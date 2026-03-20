@@ -21,6 +21,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/tongue_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
+import '../widgets/face_landmark_overlay.dart';
 import '../widgets/scan_step_indicator.dart';
 
 // ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
@@ -43,6 +44,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     with SingleTickerProviderStateMixin {
   final TongueScanStatusBridge _statusBridge = TongueScanStatusBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
+  static const Duration _postSuccessDelay = Duration(milliseconds: 450);
 
   late AnimationController _scanCtrl;
   late Animation<double> _scanAnim;
@@ -54,6 +56,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _tongueDetected = false;
   double _tongueScore = 0;
   List<Offset> _normalizedLandmarks = const [];
+  Size _sourceImageSize = Size.zero;
   double _scanProgress = 0;
   int _countdown = 3;
   ScanState _scanState = ScanState.idle;
@@ -131,6 +134,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       _tongueDetected = status.tongueDetected;
       _tongueScore = status.tongueOutScore;
       _normalizedLandmarks = landmarks;
+      _sourceImageSize = Size(status.imageWidth, status.imageHeight);
     });
     if (status.tongueDetected) {
       _startHoldTracking();
@@ -169,6 +173,13 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.completed;
       _scanProgress = 1;
     });
+    unawaited(_navigateToPalmScan());
+  }
+
+  Future<void> _navigateToPalmScan() async {
+    await Future<void>.delayed(_postSuccessDelay);
+    if (!mounted) return;
+    context.pushReplacement(AppRoutes.scanPalm);
   }
 
   void _cancelHoldTracking({required bool resetProgress}) {
@@ -416,6 +427,14 @@ class _TongueScanPageState extends State<TongueScanPage>
             key: ValueKey('shared_camera_preview'),
           ),
         ),
+        if (defaultTargetPlatform == TargetPlatform.android)
+          Positioned.fill(
+            child: FaceLandmarkOverlay(
+              normalizedLandmarks: _normalizedLandmarks,
+              imageSize: _sourceImageSize,
+              mirrored: true,
+            ),
+          ),
         // 渐变遮罩（上下融入米色背景）
         Positioned.fill(
           child: DecoratedBox(
@@ -553,36 +572,9 @@ class _TongueScanPageState extends State<TongueScanPage>
               ),
             ),
           ),
-          // 全量面部描点（478个点）
-          ..._buildFaceDots(frameW, frameH),
         ],
       ),
     );
-  }
-
-  List<Widget> _buildFaceDots(double w, double h) {
-    if (_normalizedLandmarks.isNotEmpty) {
-      return _normalizedLandmarks.map((p) {
-        // 根据平台适配：Android 的 TextureView 未镜像，所以经过 Transform.scale 后，点必须翻转
-        // iOS 的原生流已经是镜像，所以点直接映射即可。
-        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-        final mirroredX = isAndroid ? (1.0 - p.dx.clamp(0.0, 1.0)) * w : p.dx.clamp(0.0, 1.0) * w;
-        final y = p.dy.clamp(0.0, 1.0) * h;
-        return Positioned(
-          left: mirroredX - 0.8,
-          top: y - 0.8,
-          child: Container(
-            width: 1.6,
-            height: 1.6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _kRed.withValues(alpha: 0.5),
-            ),
-          ),
-        );
-      }).toList();
-    }
-    return const [];
   }
 
   // ─── 底部提示卡 ─────────────────────────────────────────────────────

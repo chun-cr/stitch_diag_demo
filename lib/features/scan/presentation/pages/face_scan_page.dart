@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/camera_preview_widget.dart';
+import '../widgets/face_landmark_overlay.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/face_scan_status_bridge.dart';
 
@@ -36,6 +37,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   late AnimationController _scanLineCtrl;
   late Animation<double> _scanLineAnim;
   List<Offset> _normalizedLandmarks = const [];
+  Size _sourceImageSize = Size.zero;
 
   @override
   void initState() {
@@ -60,9 +62,11 @@ class _FaceScanPageState extends State<FaceScanPage>
         if (!mounted) return;
         final hasFace = _extractHasFace(payload);
         final landmarks = _extractNormalizedLandmarks(payload['landmarks']);
+        final imageSize = _extractImageSize(payload);
         setState(() {
           _hasFaceDetected = hasFace;
           _normalizedLandmarks = landmarks;
+          _sourceImageSize = imageSize;
         });
       });
       await _statusBridge.initialize();
@@ -372,6 +376,14 @@ class _FaceScanPageState extends State<FaceScanPage>
             ),
           ),
         ),
+        if (defaultTargetPlatform == TargetPlatform.android)
+          Positioned.fill(
+            child: FaceLandmarkOverlay(
+              normalizedLandmarks: _normalizedLandmarks,
+              imageSize: _sourceImageSize,
+              mirrored: true,
+            ),
+          ),
         // 渐变遮罩（上下淡出，融入米色背景）
         Positioned.fill(
           child: DecoratedBox(
@@ -495,8 +507,6 @@ class _FaceScanPageState extends State<FaceScanPage>
               ),
             ),
           ),
-          // 人脸关键点
-          ..._buildFaceDots(frameW, frameH),
           // 状态气泡（椭圆框正下方）
           Positioned(
             bottom: -44,
@@ -514,56 +524,6 @@ class _FaceScanPageState extends State<FaceScanPage>
         ],
       ),
     );
-  }
-
-  List<Widget> _buildFaceDots(double w, double h) {
-    if (_normalizedLandmarks.isNotEmpty) {
-      // 渲染全部 478 个关键点，展现高精度面部网格
-      return _normalizedLandmarks.map((p) {
-        // 根据平台适配：Android 的 TextureView 未镜像，所以经过 Transform.scale 后，点必须翻转
-        // iOS 的原生流已经是镜像，所以点直接映射即可。
-        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-        final mirroredX = isAndroid ? (1.0 - p.dx.clamp(0.0, 1.0)) * w : p.dx.clamp(0.0, 1.0) * w;
-        final y = p.dy.clamp(0.0, 1.0) * h;
-        return Positioned(
-          left: mirroredX - 1,
-          top: y - 1,
-          child: Container(
-            width: 2,
-            height: 2,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _kGreenLight.withValues(alpha: 0.6), // 降低亮度，避免密集恐惧
-            ),
-          ),
-        );
-      }).toList();
-    }
-
-    // 占位引导点（当未检测到人脸时）
-    final positions = [
-      Offset(w * 0.28, h * 0.20),
-      Offset(w * 0.72, h * 0.20),
-      Offset(w * 0.50, h * 0.52),
-      Offset(w * 0.34, h * 0.66),
-      Offset(w * 0.66, h * 0.66),
-    ];
-    return positions
-        .map(
-          (p) => Positioned(
-            left: p.dx - 3,
-            top: p.dy - 3,
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _kGreen.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-        )
-        .toList();
   }
 
   // ─── 底部提示卡 ──────────────────────────────────────────────────────────
@@ -696,6 +656,15 @@ class _FaceScanPageState extends State<FaceScanPage>
       }
     }
     return points;
+  }
+
+  Size _extractImageSize(Map<String, dynamic> payload) {
+    final width = _asDouble(payload['imageWidth']);
+    final height = _asDouble(payload['imageHeight']);
+    if (width == null || height == null || width <= 0 || height <= 0) {
+      return Size.zero;
+    }
+    return Size(width, height);
   }
 
   double? _asDouble(dynamic v) => v is num ? v.toDouble() : null;
