@@ -162,18 +162,25 @@ final class NativeFaceScanPlatformView: NSObject, FlutterPlatformView {
 
 // ─── NativeFaceScanView ───────────────────────────────────────────
 final class NativeFaceScanView: UIView {
+    private enum DetectionMode {
+        case idle
+        case face
+        case tongue
+        case gesture
+    }
+
     private let cameraManager = CameraManager.shared
-    private let faceLandmarkerService = FaceLandmarkerService()
+    private var faceLandmarkerService: FaceLandmarkerService?
     private let overlayView = FaceOverlayView()
-    private var isFaceDetectionActive = false
-    private var isTongueDetectionActive = false
-    private var isGestureDetectionActive = false
+    private var activeMode: DetectionMode = .idle
+    private var pendingMode: DetectionMode?
+    private var isTransitioning = false
+    private var transitionTargetMode: DetectionMode?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .black
         cameraManager.delegate = self
-        faceLandmarkerService.delegate = self
         overlayView.backgroundColor = .clear
         overlayView.isUserInteractionEnabled = false
         addSubview(overlayView)
@@ -189,61 +196,148 @@ final class NativeFaceScanView: UIView {
     }
 
     func startFaceDetection() {
-        isFaceDetectionActive = true
-        faceLandmarkerService.start()
-        cameraManager.startSession()
+        transition(to: .face)
     }
 
     func stopFaceDetection() {
-        isFaceDetectionActive = false
-        stopDetectionIfIdle()
+        stop(mode: .face)
     }
 
     func startTongueDetection() {
-        isTongueDetectionActive = true
-        faceLandmarkerService.start()
-        cameraManager.startSession()
+        transition(to: .tongue)
     }
 
     func stopTongueDetection() {
-        isTongueDetectionActive = false
-        TongueDetectionStreamHandler.shared.publish(
-            payload: TongueDetectionEvaluator.Result.empty.payload)
-        stopDetectionIfIdle()
+        stop(mode: .tongue)
     }
 
     func startGestureDetection() {
-        isGestureDetectionActive = true
-        GestureRecognizerService.shared.start()
-        cameraManager.startSession(isBackCamera: true) // We might need to handle camera position!
+        transition(to: .gesture)
     }
 
     func stopGestureDetection() {
-        isGestureDetectionActive = false
-        GestureRecognizerService.shared.stop()
-        stopDetectionIfIdle()
+        stop(mode: .gesture)
     }
 
-    private func stopDetectionIfIdle() {
-        guard !isFaceDetectionActive && !isTongueDetectionActive && !isGestureDetectionActive else { return }
-        print("CameraManager: stopDetectionIfIdle — stopping session")
-        cameraManager.stopSession()
-        faceLandmarkerService.close()
+    private func stop(mode: DetectionMode) {
+        if activeMode == mode {
+            transition(to: .idle)
+            return
+        }
+
+        if isTransitioning && transitionTargetMode == mode {
+            pendingMode = .idle
+        }
+    }
+
+    private func transition(to nextMode: DetectionMode) {
+        DispatchQueue.main.async {
+            if self.isTransitioning {
+                self.pendingMode = nextMode
+                return
+            }
+            if self.activeMode == nextMode {
+                return
+            }
+
+            self.isTransitioning = true
+            let currentMode = self.activeMode
+            self.transitionTargetMode = nextMode
+            self.activeMode = .idle
+            self.deactivate(currentMode) {
+                self.activate(nextMode)
+            }
+        }
+    }
+
+    private func deactivate(_ mode: DetectionMode, completion: @escaping () -> Void) {
+        switch mode {
+        case .idle:
+            completion()
+
+        case .face, .tongue:
+            FaceScanStatusStreamHandler.shared.publish(payload: [
+                "detected": false,
+                "landmarks": [],
+                "blendshapes": [:],
+                "imageWidth": 0,
+                "imageHeight": 0,
+            ])
+            TongueDetectionStreamHandler.shared.publish(
+                payload: TongueDetectionEvaluator.Result.empty.payload)
+            overlayView.draw(landmarks: [], imageSize: .zero)
+            faceLandmarkerService?.close()
+            faceLandmarkerService = nil
+            completion()
+
+        case .gesture:
+            GestureRecognizerService.shared.stop()
+            completion()
+        }
+    }
+
+    private func activate(_ mode: DetectionMode) {
+        switch mode {
+        case .idle:
+            print("CameraManager: transition -> idle, stopping session")
+            cameraManager.stopSession { [weak self] in
+                self?.finishTransition(to: .idle)
+            }
+
+        case .face, .tongue:
+            let service = ensureFaceLandmarkerService()
+            service.start()
+            cameraManager.startSession(isBackCamera: false) { [weak self] in
+                self?.finishTransition(to: mode)
+            }
+
+        case .gesture:
+            overlayView.draw(landmarks: [], imageSize: .zero)
+            GestureRecognizerService.shared.start()
+            cameraManager.startSession(isBackCamera: true) { [weak self] in
+                self?.finishTransition(to: .gesture)
+            }
+        }
+    }
+
+    private func finishTransition(to mode: DetectionMode) {
+        activeMode = mode
+        isTransitioning = false
+        transitionTargetMode = nil
+
+        if let next = pendingMode, next != mode {
+            pendingMode = nil
+            transition(to: next)
+        } else {
+            pendingMode = nil
+        }
+    }
+
+    private func ensureFaceLandmarkerService() -> FaceLandmarkerService {
+        if let existing = faceLandmarkerService {
+            return existing
+        }
+        let service = FaceLandmarkerService()
+        service.delegate = self
+        faceLandmarkerService = service
+        return service
     }
 
     deinit {
-        // Singleton manager, don't stop session here unless really idle
-        stopDetectionIfIdle()
+        faceLandmarkerService?.close()
+        GestureRecognizerService.shared.stop()
     }
 }
 
 extension NativeFaceScanView: CameraManagerDelegate {
     func didOutput(sampleBuffer: CMSampleBuffer) {
-        if isFaceDetectionActive || isTongueDetectionActive {
-            faceLandmarkerService.detectAsync(sampleBuffer: sampleBuffer)
-        }
-        if isGestureDetectionActive {
+        switch activeMode {
+        case .face, .tongue:
+            faceLandmarkerService?.detectAsync(sampleBuffer: sampleBuffer)
+        case .gesture:
             GestureRecognizerService.shared.detectAsync(sampleBuffer: sampleBuffer)
+        case .idle:
+            break
         }
     }
 }
@@ -264,14 +358,14 @@ extension NativeFaceScanView: FaceLandmarkerServiceDelegate {
             "imageWidth": imageSize.width,
             "imageHeight": imageSize.height,
         ]
-        if isFaceDetectionActive {
+        if activeMode == .face {
             FaceScanStatusStreamHandler.shared.publish(payload: facePayload)
             let points = landmarks.map { CGPoint(x: $0["x"] ?? 0, y: $0["y"] ?? 0) }
             overlayView.draw(landmarks: points, imageSize: imageSize)
         } else {
             overlayView.draw(landmarks: [], imageSize: .zero)
         }
-        if isTongueDetectionActive {
+        if activeMode == .tongue {
             TongueDetectionStreamHandler.shared.publish(payload: tongueResult.payload)
         }
     }

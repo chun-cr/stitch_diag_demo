@@ -26,7 +26,6 @@ final class FaceLandmarkerService: NSObject {
 
     override init() {
         super.init()
-        setupLandmarker()
     }
 
     func start() {
@@ -127,6 +126,9 @@ final class FaceLandmarkerService: NSObject {
 
     func close() {
         faceLandmarker = nil
+        pendingSampleBuffer = nil
+        isDetectionInFlight = false
+        isInitializing = false
     }
 }
 

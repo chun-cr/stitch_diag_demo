@@ -41,7 +41,7 @@ final class CameraManager: NSObject {
         previewLayer?.frame = bounds
     }
 
-    func startSession(isBackCamera: Bool = false) {
+    func startSession(isBackCamera: Bool = false, completion: (() -> Void)? = nil) {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             let desiredPosition: AVCaptureDevice.Position = isBackCamera ? .back : .front
@@ -57,24 +57,36 @@ final class CameraManager: NSObject {
             
             if self.session.isRunning {
                 print("CameraManager: Session already running.")
+                if let completion {
+                    DispatchQueue.main.async { completion() }
+                }
                 return
             }
             print("CameraManager: Starting session... (Position: \(self.currentPosition.rawValue))")
             self.session.startRunning()
             print("CameraManager: Session started isRunning=\(self.session.isRunning)")
+            if let completion {
+                DispatchQueue.main.async { completion() }
+            }
         }
     }
 
-    func stopSession() {
+    func stopSession(completion: (() -> Void)? = nil) {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             if !self.session.isRunning {
                 print("CameraManager: Session already stopped.")
+                if let completion {
+                    DispatchQueue.main.async { completion() }
+                }
                 return
             }
             print("CameraManager: Stopping session...")
             self.session.stopRunning()
             print("CameraManager: Session stopped.")
+            if let completion {
+                DispatchQueue.main.async { completion() }
+            }
         }
     }
 
