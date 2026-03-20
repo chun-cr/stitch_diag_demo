@@ -269,7 +269,7 @@ class _ReportHeroSpace extends StatelessWidget {
                     SafeArea(
                       child: Padding(
                         padding:
-                        const EdgeInsets.fromLTRB(22, 52, 22, 0),
+                        const EdgeInsets.fromLTRB(22, 40, 22, 0),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -344,88 +344,91 @@ class _ReportHeroSpace extends StatelessWidget {
   }
 
   Widget _buildHeroInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // 报告时间 pill
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(
-                color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
-                width: 1),
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 报告时间 pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
+                  width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.access_time_outlined,
+                    size: 11,
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.7)),
+                const SizedBox(width: 4),
+                const Text(
+                  '2025年3月14日  AI 四诊合参',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF2D6A4F),
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 8),
+          // 姓名
+          const Text(
+            '小明的健康报告',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E1810),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          // 体质标签行
+          Row(
             children: [
-              Icon(Icons.access_time_outlined,
-                  size: 11,
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.7)),
-              const SizedBox(width: 4),
-              const Text(
-                '2025年3月14日  AI 四诊合参',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF2D6A4F),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.3,
+              _HeroPill(
+                  icon: Icons.eco_outlined,
+                  label: '平和体质',
+                  active: true),
+              const SizedBox(width: 6),
+              _HeroPill(label: '气虚偏颇'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 辨证一句话
+          Row(
+            children: [
+              Container(
+                width: 2,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '脾气亏虚，运化失健。\n面色偏黄，舌淡苔白。',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF3A3028).withValues(alpha: 0.65),
+                    height: 1.55,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        // 姓名
-        const Text(
-          '小明的健康报告',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1E1810),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        // 体质标签行
-        Row(
-          children: [
-            _HeroPill(
-                icon: Icons.eco_outlined,
-                label: '平和体质',
-                active: true),
-            const SizedBox(width: 6),
-            _HeroPill(label: '气虚偏颇'),
-          ],
-        ),
-        const SizedBox(height: 10),
-        // 辨证一句话
-        Row(
-          children: [
-            Container(
-              width: 2,
-              height: 28,
-              decoration: BoxDecoration(
-                color: const Color(0xFF2D6A4F).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                '脾气亏虚，运化失健。\n面色偏黄，舌淡苔白。',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF3A3028).withValues(alpha: 0.65),
-                  height: 1.55,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -437,67 +440,70 @@ class _ReportHeroSpace extends StatelessWidget {
         final score = (78 * v).round();
         return SizedBox(
           width: 90,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 82,
-                height: 82,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CustomPaint(
-                      size: const Size(82, 82),
-                      painter: _ScoreRingPainter(progress: v * 0.78),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$score',
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF2D6A4F),
-                            height: 1,
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 82,
+                  height: 82,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CustomPaint(
+                        size: const Size(82, 82),
+                        painter: _ScoreRingPainter(progress: v * 0.78),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$score',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2D6A4F),
+                              height: 1,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          '健康分',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: Color(0xFF2D6A4F),
-                            fontWeight: FontWeight.w500,
+                          const SizedBox(height: 2),
+                          const Text(
+                            '健康分',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF2D6A4F),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
-                    width: 1,
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                child: const Text(
-                  '良好',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF2D6A4F),
-                    fontWeight: FontWeight.w700,
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Text(
+                    '良好',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF2D6A4F),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

@@ -44,40 +44,92 @@ class FaceLandmarkPainter extends CustomPainter {
 
   final Paint _pointPaint = Paint()
     ..style = PaintingStyle.fill
-    ..color = Colors.white.withValues(alpha: 0.95);
+    ..color = const Color(0xFFD7EEFF).withValues(alpha: 0.92);
 
   final Paint _glowPaint = Paint()
     ..style = PaintingStyle.fill
-    ..color = const Color(0xFF7EC8A0).withValues(alpha: 0.22)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+    ..color = const Color(0xFF7ECFFF).withValues(alpha: 0.18)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.4);
+
+  final Paint _meshPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.7
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..color = const Color(0xFF7ECFFF).withValues(alpha: 0.28);
 
   final Paint _outlinePaint = Paint()
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.7
-    ..color = const Color(0xFF3DAB78).withValues(alpha: 0.92);
+    ..strokeWidth = 1.15
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..color = const Color(0xFF8FD8FF).withValues(alpha: 0.72);
 
   final Paint _featurePaint = Paint()
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.35
-    ..color = Colors.white.withValues(alpha: 0.92);
+    ..strokeWidth = 1.0
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..color = const Color(0xFFC8E9FF).withValues(alpha: 0.82);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (normalizedLandmarks.isEmpty) return;
 
     final mapped = _mapToView(size);
+    final visibleEntries = mapped.asMap().entries
+        .where((entry) => !FaceMeshContours.hiddenPointIndices.contains(entry.key))
+        .toList(growable: false);
 
-    for (final entry in mapped.asMap().entries) {
-      if (FaceMeshContours.hiddenPointIndices.contains(entry.key)) continue;
+    _drawSoftMesh(canvas, size, visibleEntries);
+
+    for (final entry in visibleEntries) {
       final point = entry.value;
-      canvas.drawCircle(point, 2.4, _glowPaint);
-      canvas.drawCircle(point, 1.45, _pointPaint);
+      canvas.drawCircle(point, 1.7, _glowPaint);
+      canvas.drawCircle(point, 0.9, _pointPaint);
     }
 
     _drawSegments(canvas, mapped, _outlinePaint, FaceMeshContours.faceOutline);
     _drawSegments(canvas, mapped, _featurePaint, FaceMeshContours.lipsOuter);
     _drawSegments(canvas, mapped, _featurePaint, FaceMeshContours.lipsInner);
     _drawSegments(canvas, mapped, _featurePaint, FaceMeshContours.noseBridge);
+  }
+
+  void _drawSoftMesh(
+    Canvas canvas,
+    Size size,
+    List<MapEntry<int, Offset>> visibleEntries,
+  ) {
+    if (visibleEntries.length < 2) return;
+
+    final maxDistance = (size.shortestSide * 0.085).clamp(18.0, 42.0);
+    final maxDistanceSquared = maxDistance * maxDistance;
+    final drawnSegments = <String>{};
+
+    for (var i = 0; i < visibleEntries.length; i++) {
+      final origin = visibleEntries[i].value;
+      final neighbors = <({int index, double distanceSquared})>[];
+
+      for (var j = i + 1; j < visibleEntries.length; j++) {
+        final target = visibleEntries[j].value;
+        final dx = origin.dx - target.dx;
+        final dy = origin.dy - target.dy;
+        final distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared > maxDistanceSquared || distanceSquared < 6) continue;
+        neighbors.add((index: j, distanceSquared: distanceSquared));
+      }
+
+      neighbors.sort((a, b) => a.distanceSquared.compareTo(b.distanceSquared));
+      for (final neighbor in neighbors.take(3)) {
+        final startIndex = visibleEntries[i].key;
+        final endIndex = visibleEntries[neighbor.index].key;
+        final segmentKey = startIndex < endIndex
+            ? '$startIndex-$endIndex'
+            : '$endIndex-$startIndex';
+        if (!drawnSegments.add(segmentKey)) continue;
+        canvas.drawLine(origin, visibleEntries[neighbor.index].value, _meshPaint);
+      }
+    }
   }
 
   List<Offset> _mapToView(Size viewSize) {

@@ -14,7 +14,6 @@ import '../services/face_scan_status_bridge.dart';
 const _kGreen = Color(0xFF2D6A4F);
 const _kGreenLight = Color(0xFF3DAB78);
 const _kGreenMid = Color(0xFF2D8A5E);
-const _kGreenGlow = Color(0xFF7EC8A0);
 
 class FaceScanPage extends StatefulWidget {
   const FaceScanPage({super.key});
@@ -489,7 +488,7 @@ class _FaceScanPageState extends State<FaceScanPage>
           // 扫描线
           AnimatedBuilder(
             animation: _scanLineAnim,
-            builder: (_, __) => Positioned(
+            builder: (context, child) => Positioned(
               top: _scanLineAnim.value * frameH,
               left: 18,
               right: 18,

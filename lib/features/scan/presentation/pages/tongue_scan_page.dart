@@ -14,14 +14,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../services/tongue_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
-import '../widgets/face_landmark_overlay.dart';
 import '../widgets/scan_step_indicator.dart';
 
 // ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
@@ -30,7 +28,6 @@ enum ScanState { idle, scanning, completed }
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
 const _kAccent = Color(0xFF0D7A5A); // 主强调色
 const _kAccentLight = Color(0xFF3DAB78); // 按钮渐变亮端
-const _kAccentGlow = Color(0xFF7EC8A0); // 扫描线 / 框高亮
 const _kRed = Color(0xFFE88080); // 舌象状态色（保留原设计）
 const _kBgColor = Color(0xFFF4F1EB); // 宣纸米色
 
@@ -54,11 +51,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _hasPermission = false;
   bool _mouthPresent = false;
   bool _tongueDetected = false;
-  double _tongueScore = 0;
-  List<Offset> _normalizedLandmarks = const [];
-  Size _sourceImageSize = Size.zero;
   double _scanProgress = 0;
-  int _countdown = 3;
   ScanState _scanState = ScanState.idle;
 
   @override
@@ -91,7 +84,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.scanning;
       _mouthPresent = false;
       _tongueDetected = false;
-      _tongueScore = 0;
       _scanProgress = 0;
     });
     _statusSubscription?.cancel();
@@ -112,7 +104,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.scanning;
       _mouthPresent = false;
       _tongueDetected = false;
-      _tongueScore = 0;
     });
     unawaited(_statusBridge.startMonitoring());
   }
@@ -120,21 +111,9 @@ class _TongueScanPageState extends State<TongueScanPage>
   void _handleStatusUpdate(TongueScanStatus status) {
     if (!mounted || _scanState != ScanState.scanning) return;
 
-    final landmarks = <Offset>[];
-    for (final points in status.landmarks) {
-      if (points is Map) {
-        final x = (points['x'] as num?)?.toDouble();
-        final y = (points['y'] as num?)?.toDouble();
-        if (x != null && y != null) landmarks.add(Offset(x, y));
-      }
-    }
-
     setState(() {
       _mouthPresent = status.mouthPresent;
       _tongueDetected = status.tongueDetected;
-      _tongueScore = status.tongueOutScore;
-      _normalizedLandmarks = landmarks;
-      _sourceImageSize = Size(status.imageWidth, status.imageHeight);
     });
     if (status.tongueDetected) {
       _startHoldTracking();
@@ -427,14 +406,6 @@ class _TongueScanPageState extends State<TongueScanPage>
             key: ValueKey('shared_camera_preview'),
           ),
         ),
-        if (defaultTargetPlatform == TargetPlatform.android)
-          Positioned.fill(
-            child: FaceLandmarkOverlay(
-              normalizedLandmarks: _normalizedLandmarks,
-              imageSize: _sourceImageSize,
-              mirrored: true,
-            ),
-          ),
         // 渐变遮罩（上下融入米色背景）
         Positioned.fill(
           child: DecoratedBox(

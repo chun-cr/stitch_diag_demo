@@ -266,11 +266,13 @@ extension NativeFaceScanView: FaceLandmarkerServiceDelegate {
         ]
         if isFaceDetectionActive {
             FaceScanStatusStreamHandler.shared.publish(payload: facePayload)
+            let points = landmarks.map { CGPoint(x: $0["x"] ?? 0, y: $0["y"] ?? 0) }
+            overlayView.draw(landmarks: points, imageSize: imageSize)
+        } else {
+            overlayView.draw(landmarks: [], imageSize: .zero)
         }
         if isTongueDetectionActive {
             TongueDetectionStreamHandler.shared.publish(payload: tongueResult.payload)
         }
-        let points = landmarks.map { CGPoint(x: $0["x"] ?? 0, y: $0["y"] ?? 0) }
-        overlayView.draw(landmarks: points, imageSize: imageSize)
     }
 }

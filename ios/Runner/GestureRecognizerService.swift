@@ -66,7 +66,12 @@ final class GestureRecognizerService: NSObject {
             options.gestureRecognizerLiveStreamDelegate = self
             options.baseOptions.modelAssetPath = modelPath
 
-            self.recognizer = try? GestureRecognizer(options: options)
+            do {
+                self.recognizer = try GestureRecognizer(options: options)
+            } catch {
+                self.recognizer = nil
+                print("GestureRecognizer init failed: \(error)")
+            }
             self.isInitializing = false
         }
     }
@@ -78,9 +83,6 @@ final class GestureRecognizerService: NSObject {
     }
 
     func stop() {
-        workQueue.async { [weak self] in
-            self?.recognizer = nil
-        }
         consecutiveCount = 0
         publishDetected(false, name: "", score: 0, landmarks: [])
     }
@@ -184,7 +186,12 @@ final class GestureRecognizerService: NSObject {
 extension GestureRecognizerService {
     func detectAsync(sampleBuffer: CMSampleBuffer) {
         workQueue.async { [weak self] in
-            guard let self = self, let recognizer = self.recognizer else { return }
+            guard let self = self else { return }
+            if self.recognizer == nil {
+                self.setupRecognizer()
+                return
+            }
+            guard let recognizer = self.recognizer else { return }
 
             let orientation = self.imageOrientationForCurrentDevice()
             guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
