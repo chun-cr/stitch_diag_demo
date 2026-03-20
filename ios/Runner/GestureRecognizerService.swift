@@ -29,7 +29,6 @@ final class GestureStreamHandler: NSObject, FlutterStreamHandler {
 final class GestureRecognizerService: NSObject {
     static let shared = GestureRecognizerService()
 
-    private let cameraManager = CameraManager()
     private var recognizer: GestureRecognizer?
     private var timestampMs: Int = 0
     private var consecutiveCount = 0
@@ -39,7 +38,6 @@ final class GestureRecognizerService: NSObject {
 
     private override init() {
         super.init()
-        cameraManager.delegate = self
         setupRecognizer()
     }
 
@@ -69,11 +67,9 @@ final class GestureRecognizerService: NSObject {
         setupRecognizer()
         timestampMs = 0
         consecutiveCount = 0
-        cameraManager.startSession()
     }
 
     func stop() {
-        cameraManager.stopSession()
         workQueue.async { [weak self] in
             self?.recognizer = nil
         }
@@ -127,12 +123,12 @@ final class GestureRecognizerService: NSObject {
     }
 
     private func imageOrientationForCurrentDevice() -> UIImage.Orientation {
-        return .leftMirrored
+        return CameraManager.shared.currentPosition == .front ? .leftMirrored : .right
     }
 }
 
-extension GestureRecognizerService: CameraManagerDelegate {
-    func didOutput(sampleBuffer: CMSampleBuffer) {
+extension GestureRecognizerService {
+    func detectAsync(sampleBuffer: CMSampleBuffer) {
         workQueue.async { [weak self] in
             guard let self = self, let recognizer = self.recognizer else { return }
 

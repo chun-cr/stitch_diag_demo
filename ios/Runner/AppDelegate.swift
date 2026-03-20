@@ -55,11 +55,11 @@ import UIKit
         result(nil)
 
       case "gesture/startDetection":
-        GestureRecognizerService.shared.start()
+        FaceLandmarkerViewFactory.shared.perform(.startGesture)
         result(nil)
 
       case "gesture/stopDetection":
-        GestureRecognizerService.shared.stop()
+        FaceLandmarkerViewFactory.shared.performStop(mode: "gesture")
         result(nil)
 
       default:

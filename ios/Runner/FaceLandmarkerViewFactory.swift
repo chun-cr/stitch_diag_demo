@@ -67,11 +67,13 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
     enum PendingDetectionCommand {
         case startFace
         case startTongue
+        case startGesture
 
         func apply(to view: NativeFaceScanView) {
             switch self {
             case .startFace:   view.startFaceDetection()
             case .startTongue: view.startTongueDetection()
+            case .startGesture: view.startGestureDetection()
             }
         }
     }
@@ -106,14 +108,16 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
     }
 
     // ★ stop 命令独立入口：view 不存在直接丢弃，不写入 pendingCommand
-    func performStop(face: Bool) {
+    func performStop(mode: String) {
         DispatchQueue.main.async {
             // 顺手清掉同类型的残留 start pending，防止 stop 之后
             // 新 view 进来把旧 start 重新触发
-            if face {
+            if mode == "face" {
                 if case .startFace = self.pendingCommand { self.pendingCommand = nil }
-            } else {
+            } else if mode == "tongue" {
                 if case .startTongue = self.pendingCommand { self.pendingCommand = nil }
+            } else if mode == "gesture" {
+                if case .startGesture = self.pendingCommand { self.pendingCommand = nil }
             }
 
             guard let view = self.currentView, view.window != nil else {
@@ -121,11 +125,14 @@ final class FaceLandmarkerViewFactory: NSObject, FlutterPlatformViewFactory {
                 return
             }
 
-            if face {
+            if mode == "face" {
                 self.blockedTongueStartViewId = ObjectIdentifier(view)
+                view.stopFaceDetection()
+            } else if mode == "tongue" {
+                view.stopTongueDetection()
+            } else if mode == "gesture" {
+                view.stopGestureDetection()
             }
-
-            face ? view.stopFaceDetection() : view.stopTongueDetection()
         }
     }
 
@@ -155,11 +162,12 @@ final class NativeFaceScanPlatformView: NSObject, FlutterPlatformView {
 
 // ─── NativeFaceScanView ───────────────────────────────────────────
 final class NativeFaceScanView: UIView {
-    private let cameraManager = CameraManager()
+    private let cameraManager = CameraManager.shared
     private let faceLandmarkerService = FaceLandmarkerService()
     private let overlayView = FaceOverlayView()
     private var isFaceDetectionActive = false
     private var isTongueDetectionActive = false
+    private var isGestureDetectionActive = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -204,22 +212,39 @@ final class NativeFaceScanView: UIView {
         stopDetectionIfIdle()
     }
 
+    func startGestureDetection() {
+        isGestureDetectionActive = true
+        GestureRecognizerService.shared.start()
+        cameraManager.startSession(isBackCamera: true) // We might need to handle camera position!
+    }
+
+    func stopGestureDetection() {
+        isGestureDetectionActive = false
+        GestureRecognizerService.shared.stop()
+        stopDetectionIfIdle()
+    }
+
     private func stopDetectionIfIdle() {
-        guard !isFaceDetectionActive && !isTongueDetectionActive else { return }
+        guard !isFaceDetectionActive && !isTongueDetectionActive && !isGestureDetectionActive else { return }
         print("CameraManager: stopDetectionIfIdle — stopping session")
         cameraManager.stopSession()
         faceLandmarkerService.close()
     }
 
     deinit {
-        cameraManager.stopSession()
-        faceLandmarkerService.close()
+        // Singleton manager, don't stop session here unless really idle
+        stopDetectionIfIdle()
     }
 }
 
 extension NativeFaceScanView: CameraManagerDelegate {
     func didOutput(sampleBuffer: CMSampleBuffer) {
-        faceLandmarkerService.detectAsync(sampleBuffer: sampleBuffer)
+        if isFaceDetectionActive || isTongueDetectionActive {
+            faceLandmarkerService.detectAsync(sampleBuffer: sampleBuffer)
+        }
+        if isGestureDetectionActive {
+            GestureRecognizerService.shared.detectAsync(sampleBuffer: sampleBuffer)
+        }
     }
 }
 

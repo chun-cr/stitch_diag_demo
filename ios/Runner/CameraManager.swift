@@ -6,6 +6,7 @@ protocol CameraManagerDelegate: AnyObject {
 }
 
 final class CameraManager: NSObject {
+    static let shared = CameraManager()
     weak var delegate: CameraManagerDelegate?
 
     private let session = AVCaptureSession()
@@ -13,39 +14,54 @@ final class CameraManager: NSObject {
     private let videoOutput = AVCaptureVideoDataOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var configured = false
+    private(set) var currentPosition: AVCaptureDevice.Position = .front
 
-    override init() {
+    private override init() {
         super.init()
     }
 
     func attachPreview(to view: UIView) {
-        let previewLayer: AVCaptureVideoPreviewLayer
+        let layer: AVCaptureVideoPreviewLayer
         if let existingLayer = self.previewLayer {
-            previewLayer = existingLayer
+            layer = existingLayer
+            if layer.superlayer != view.layer {
+                layer.removeFromSuperlayer()
+                view.layer.insertSublayer(layer, at: 0)
+            }
         } else {
-            let newLayer = AVCaptureVideoPreviewLayer(session: session)
-            newLayer.videoGravity = .resizeAspectFill
-            view.layer.insertSublayer(newLayer, at: 0)
-            self.previewLayer = newLayer
-            previewLayer = newLayer
+            layer = AVCaptureVideoPreviewLayer(session: session)
+            layer.videoGravity = .resizeAspectFill
+            view.layer.insertSublayer(layer, at: 0)
+            self.previewLayer = layer
         }
-
-        previewLayer.frame = view.bounds
+        layer.frame = view.bounds
     }
 
     func layoutPreview(in bounds: CGRect) {
         previewLayer?.frame = bounds
     }
 
-    func startSession() {
+    private var currentPosition: AVCaptureDevice.Position = .front
+    
+    func startSession(isBackCamera: Bool = false) {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
+            let desiredPosition: AVCaptureDevice.Position = isBackCamera ? .back : .front
+            
+            if self.configured && self.currentPosition != desiredPosition {
+                // Camera position changed, need to reconfigure
+                self.session.stopRunning()
+                self.configured = false
+            }
+            
+            self.currentPosition = desiredPosition
             self.configureSessionIfNeeded()
+            
             if self.session.isRunning {
                 print("CameraManager: Session already running.")
                 return
             }
-            print("CameraManager: Starting session...")
+            print("CameraManager: Starting session... (Position: \(self.currentPosition.rawValue))")
             self.session.startRunning()
             print("CameraManager: Session started isRunning=\(self.session.isRunning)")
         }
@@ -74,8 +90,12 @@ final class CameraManager: NSObject {
             session.commitConfiguration()
         }
 
+        // Clear existing inputs and outputs to re-configure cleanly
+        session.inputs.forEach { session.removeInput($0) }
+        session.outputs.forEach { session.removeOutput($0) }
+
         guard
-            let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
+            let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.currentPosition),
             let input = try? AVCaptureDeviceInput(device: device),
             session.canAddInput(input)
         else {
@@ -98,7 +118,8 @@ final class CameraManager: NSObject {
 
         if let connection = videoOutput.connection(with: .video) {
             if connection.isVideoMirroringSupported {
-                connection.isVideoMirrored = true
+                // Front camera should be mirrored for 'selfie' look, Back camera (for gestures) should not
+                connection.isVideoMirrored = (self.currentPosition == .front)
             }
             if connection.isVideoOrientationSupported {
                 connection.videoOrientation = .portrait
