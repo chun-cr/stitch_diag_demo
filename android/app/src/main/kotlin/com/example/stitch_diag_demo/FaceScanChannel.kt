@@ -135,6 +135,18 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                 )
                 result.success(null)
             }
+            "tongue/capture" -> {
+                val file = java.io.File(context.cacheDir, "tongue_${System.currentTimeMillis()}.jpg")
+                cameraManager.takePhoto(file, { path ->
+                    (context as? MainActivity)?.runOnUiThread {
+                        result.success(path)
+                    }
+                }, { error ->
+                    (context as? MainActivity)?.runOnUiThread {
+                        result.error("CAPTURE_FAILED", error, null)
+                    }
+                })
+            }
             else -> result.notImplemented()
         }
     }

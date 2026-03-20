@@ -12,6 +12,7 @@ final class CameraManager: NSObject {
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.example.stitch_diag_demo.camera.session")
     private let videoOutput = AVCaptureVideoDataOutput()
+    private let photoOutput = AVCapturePhotoOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var configured = false
     private(set) var currentPosition: AVCaptureDevice.Position = .front
@@ -90,6 +91,24 @@ final class CameraManager: NSObject {
         }
     }
 
+    private var photoCompletion: ((String?) -> Void)?
+    func capturePhoto(completion: @escaping (String?) -> Void) {
+        sessionQueue.async {
+            guard self.session.isRunning else {
+                completion(nil)
+                return
+            }
+            self.photoCompletion = completion
+            let settings = AVCapturePhotoSettings()
+            if let connection = self.photoOutput.connection(with: .video) {
+                if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
+                }
+            }
+            self.photoOutput.capturePhoto(with: settings, delegate: self)
+        }
+    }
+
     private func configureSessionIfNeeded() {
         guard !configured else { return }
 
@@ -120,11 +139,10 @@ final class CameraManager: NSObject {
         ]
         videoOutput.setSampleBufferDelegate(self, queue: sessionQueue)
 
-        guard session.canAddOutput(videoOutput) else {
-            return
-        }
-
         session.addOutput(videoOutput)
+
+        guard session.canAddOutput(photoOutput) else { return }
+        session.addOutput(photoOutput)
 
         if let connection = videoOutput.connection(with: .video) {
             if connection.isVideoMirroringSupported {
@@ -147,5 +165,25 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         from connection: AVCaptureConnection
     ) {
         delegate?.didOutput(sampleBuffer: sampleBuffer)
+    }
+}
+
+extension CameraManager: AVCapturePhotoCaptureDelegate {
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        guard error == nil, let data = photo.fileDataRepresentation() else {
+            photoCompletion?(nil)
+            return
+        }
+        
+        let fileName = "tongue_\(Int(Date().timeIntervalSince1970)).jpg"
+        let path = NSTemporaryDirectory() + fileName
+        let url = URL(fileURLWithPath: path)
+        
+        do {
+            try data.write(to: url)
+            photoCompletion?(path)
+        } catch {
+            photoCompletion?(nil)
+        }
     }
 }

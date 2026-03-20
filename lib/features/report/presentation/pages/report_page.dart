@@ -344,12 +344,10 @@ class _ReportHeroSpace extends StatelessWidget {
   }
 
   Widget _buildHeroInfo() {
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
           // 报告时间 pill
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -428,8 +426,7 @@ class _ReportHeroSpace extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildScoreBadge() {

@@ -219,6 +219,18 @@ final class NativeFaceScanView: UIView {
         stop(mode: .gesture)
     }
 
+    func capturePhoto(onSuccess: @escaping (String) -> Void, onError: @escaping (String) -> Void) {
+        cameraManager.capturePhoto { path in
+            DispatchQueue.main.async {
+                if let path = path {
+                    onSuccess(path)
+                } else {
+                    onError("Photo capture failed")
+                }
+            }
+        }
+    }
+
     private func stop(mode: DetectionMode) {
         if activeMode == mode {
             transition(to: .idle)

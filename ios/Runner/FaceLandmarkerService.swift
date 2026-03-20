@@ -73,18 +73,10 @@ final class FaceLandmarkerService: NSObject {
     }
 
     private func imageOrientationForCurrentDevice() -> UIImage.Orientation {
-        let isFrontCamera = CameraManager.shared.currentPosition == .front
-        let deviceOrientation = UIDevice.current.orientation
-        switch deviceOrientation {
-        case .landscapeLeft:
-            return isFrontCamera ? .upMirrored : .up
-        case .landscapeRight:
-            return isFrontCamera ? .downMirrored : .down
-        case .portraitUpsideDown:
-            return isFrontCamera ? .rightMirrored : .left
-        default:
-            return isFrontCamera ? .leftMirrored : .right
-        }
+        // Since CameraManager already sets connection.videoOrientation = .portrait,
+        // the buffer is delivered upright.
+        // If mirroring is done by AVFoundation, we just pass .up.
+        return .up
     }
 
     private func processPendingSampleBufferIfNeeded() {
