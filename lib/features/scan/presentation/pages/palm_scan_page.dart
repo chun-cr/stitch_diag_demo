@@ -86,7 +86,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   void dispose() {
     _statusSubscription?.cancel();
     // 只有彻底销毁时（如返回主页）才发指令停止，跳转时不发
-    // unawaited(_statusBridge.stopMonitoring()); 
+    // unawaited(_statusBridge.stopMonitoring());
     _scanCtrl.dispose();
     super.dispose();
   }
@@ -122,7 +122,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         children: [
           // 背景画卷
           Positioned.fill(child: CustomPaint(painter: _BgPainter())),
-          
+
           SafeArea(
             bottom: false,
             child: Column(
@@ -308,7 +308,7 @@ class _PalmScanPageState extends State<PalmScanPage>
           Positioned(top: -1, right: -1,  child: _ScanCorner(color: highlightColor, top: true,  left: false)),
           Positioned(bottom: -1, left: -1,  child: _ScanCorner(color: highlightColor, top: false, left: true)),
           Positioned(bottom: -1, right: -1, child: _ScanCorner(color: highlightColor, top: false, left: false)),
-          
+
           AnimatedBuilder(
             animation: _scanAnim,
             builder: (context, child) => Positioned(
@@ -511,9 +511,9 @@ class _BgPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter _) => false;
 }
 
-/// 真实手掌轮廓引导图
+/// 右手手心朝上的手掌轮廓引导图
 ///
-/// 掌心朝上，五指张开（拇指向左外展，其余四指向上自然展开）
+/// 掌心朝上，五指张开（拇指向右外展，其余四指向上自然展开）
 /// 路径分两部分绘制：
 ///   1. 半透明填充层 → 给用户一个直观的"手影"
 ///   2. 描边轮廓层   → 清晰勾勒边缘
@@ -526,219 +526,218 @@ class _HandOutlinePainter extends CustomPainter {
     final sw = size.width;
     final sh = size.height;
 
-    // ── 构建完整手掌路径 ──────────────────────────────────────────────
+    // ── 构建完整右手手掌路径 ──────────────────────────────────────────────
     //
     // 坐标系：(0,0) = 左上角，掌心朝上（手腕在下方）
     //
-    // 结构：从手腕右侧出发，逆时针绕一圈
-    //   右侧手腕 → 小指外侧 → 小指尖 → 小指内侧
-    //   → 无名指 → 中指（最高） → 食指 → 拇指外展 → 左侧手腕
+    // 结构：从手腕左侧出发，逆时针绕一圈
+    //   左侧手腕 → 拇指外侧 → 拇指尖 → 拇指内侧
+    //   → 食指 → 中指（最高） → 无名指 → 小指 → 右侧手腕
     //   → 手腕弧线底部 → 闭合
     //
     final path = Path();
 
-    // 手腕右侧入口
-    path.moveTo(sw * 0.74, sh * 0.97);
+    // 手腕左侧入口
+    path.moveTo(sw * 0.26, sh * 0.97);
 
-    // ── 手掌右侧 & 小指 ─────────────────────────────────────────────
-    // 手掌右缘向上
+    // ── 手掌左侧 & 拇指 ─────────────────────────────────────────────
+    // 手掌左缘向上
     path.cubicTo(
-      sw * 0.80, sh * 0.97,
-      sw * 0.84, sh * 0.90,
-      sw * 0.84, sh * 0.80,
+      sw * 0.20, sh * 0.97,
+      sw * 0.16, sh * 0.90,
+      sw * 0.16, sh * 0.80,
     );
-    // 小指底部右侧
+    // 拇指底部左侧
     path.cubicTo(
-      sw * 0.84, sh * 0.74,
-      sw * 0.85, sh * 0.68,
-      sw * 0.86, sh * 0.62,
+      sw * 0.16, sh * 0.74,
+      sw * 0.15, sh * 0.68,
+      sw * 0.14, sh * 0.62,
     );
-    // 小指右侧向尖端
+    // 拇指左侧向尖端
     path.cubicTo(
-      sw * 0.87, sh * 0.55,
-      sw * 0.87, sh * 0.48,
-      sw * 0.86, sh * 0.43,
+      sw * 0.13, sh * 0.55,
+      sw * 0.13, sh * 0.48,
+      sw * 0.14, sh * 0.43,
     );
-    // 小指尖（圆弧）
+    // 拇指尖（圆弧）
     path.cubicTo(
-      sw * 0.86, sh * 0.39,
-      sw * 0.84, sh * 0.37,
-      sw * 0.82, sh * 0.37,
-    );
-    path.cubicTo(
-      sw * 0.80, sh * 0.37,
-      sw * 0.78, sh * 0.39,
-      sw * 0.78, sh * 0.43,
-    );
-    // 小指左侧向下
-    path.cubicTo(
-      sw * 0.77, sh * 0.48,
-      sw * 0.77, sh * 0.54,
-      sw * 0.77, sh * 0.58,
-    );
-    // 小指与无名指之间的指蹼
-    path.cubicTo(
-      sw * 0.77, sh * 0.63,
-      sw * 0.76, sh * 0.65,
-      sw * 0.75, sh * 0.66,
-    );
-
-    // ── 无名指 ──────────────────────────────────────────────────────
-    // 无名指底部左侧 → 向上
-    path.cubicTo(
-      sw * 0.74, sh * 0.65,
-      sw * 0.73, sh * 0.60,
-      sw * 0.73, sh * 0.54,
-    );
-    // 无名指右侧
-    path.cubicTo(
-      sw * 0.73, sh * 0.44,
-      sw * 0.73, sh * 0.36,
-      sw * 0.72, sh * 0.30,
-    );
-    // 无名指尖（圆弧）
-    path.cubicTo(
-      sw * 0.72, sh * 0.26,
-      sw * 0.70, sh * 0.24,
-      sw * 0.68, sh * 0.24,
+      sw * 0.14, sh * 0.39,
+      sw * 0.16, sh * 0.37,
+      sw * 0.18, sh * 0.37,
     );
     path.cubicTo(
-      sw * 0.66, sh * 0.24,
-      sw * 0.64, sh * 0.26,
-      sw * 0.64, sh * 0.30,
+      sw * 0.20, sh * 0.37,
+      sw * 0.22, sh * 0.39,
+      sw * 0.22, sh * 0.43,
     );
-    // 无名指左侧向下
+    // 拇指右侧向下
     path.cubicTo(
-      sw * 0.63, sh * 0.36,
-      sw * 0.63, sh * 0.44,
-      sw * 0.63, sh * 0.54,
+      sw * 0.23, sh * 0.48,
+      sw * 0.23, sh * 0.54,
+      sw * 0.23, sh * 0.58,
     );
-    // 无名指与中指之间的指蹼
+    // 拇指与食指之间的虎口
     path.cubicTo(
-      sw * 0.63, sh * 0.60,
-      sw * 0.62, sh * 0.63,
-      sw * 0.61, sh * 0.64,
-    );
-
-    // ── 中指（最长，居中）───────────────────────────────────────────
-    path.cubicTo(
-      sw * 0.60, sh * 0.63,
-      sw * 0.59, sh * 0.57,
-      sw * 0.59, sh * 0.51,
-    );
-    // 中指右侧
-    path.cubicTo(
-      sw * 0.59, sh * 0.40,
-      sw * 0.59, sh * 0.28,
-      sw * 0.58, sh * 0.21,
-    );
-    // 中指尖（圆弧，最高点）
-    path.cubicTo(
-      sw * 0.58, sh * 0.16,
-      sw * 0.56, sh * 0.14,
-      sw * 0.54, sh * 0.14,
-    );
-    path.cubicTo(
-      sw * 0.52, sh * 0.14,
-      sw * 0.50, sh * 0.16,
-      sw * 0.50, sh * 0.21,
-    );
-    // 中指左侧向下
-    path.cubicTo(
-      sw * 0.49, sh * 0.28,
-      sw * 0.49, sh * 0.40,
-      sw * 0.49, sh * 0.51,
-    );
-    // 中指与食指之间的指蹼
-    path.cubicTo(
-      sw * 0.49, sh * 0.58,
-      sw * 0.48, sh * 0.62,
-      sw * 0.47, sh * 0.63,
+      sw * 0.23, sh * 0.63,
+      sw * 0.24, sh * 0.65,
+      sw * 0.25, sh * 0.66,
     );
 
     // ── 食指 ────────────────────────────────────────────────────────
     path.cubicTo(
-      sw * 0.46, sh * 0.62,
-      sw * 0.45, sh * 0.56,
-      sw * 0.45, sh * 0.50,
+      sw * 0.26, sh * 0.65,
+      sw * 0.27, sh * 0.60,
+      sw * 0.27, sh * 0.54,
     );
-    // 食指右侧
+    // 食指左侧
     path.cubicTo(
-      sw * 0.45, sh * 0.40,
-      sw * 0.44, sh * 0.30,
-      sw * 0.43, sh * 0.24,
+      sw * 0.27, sh * 0.44,
+      sw * 0.27, sh * 0.36,
+      sw * 0.28, sh * 0.30,
     );
     // 食指尖（圆弧）
     path.cubicTo(
-      sw * 0.43, sh * 0.19,
-      sw * 0.41, sh * 0.17,
-      sw * 0.39, sh * 0.17,
+      sw * 0.28, sh * 0.26,
+      sw * 0.30, sh * 0.24,
+      sw * 0.32, sh * 0.24,
     );
     path.cubicTo(
-      sw * 0.37, sh * 0.17,
-      sw * 0.35, sh * 0.19,
-      sw * 0.35, sh * 0.24,
+      sw * 0.34, sh * 0.24,
+      sw * 0.36, sh * 0.26,
+      sw * 0.36, sh * 0.30,
     );
-    // 食指左侧向下
+    // 食指右侧向下
     path.cubicTo(
-      sw * 0.34, sh * 0.30,
-      sw * 0.33, sh * 0.42,
-      sw * 0.33, sh * 0.52,
+      sw * 0.37, sh * 0.36,
+      sw * 0.37, sh * 0.44,
+      sw * 0.37, sh * 0.54,
     );
-    // 食指与拇指之间的虎口
+    // 食指与中指之间的指蹼
     path.cubicTo(
-      sw * 0.33, sh * 0.60,
-      sw * 0.31, sh * 0.66,
-      sw * 0.28, sh * 0.68,
-    );
-
-    // ── 拇指（向左外展）─────────────────────────────────────────────
-    // 虎口过渡到拇指根部
-    path.cubicTo(
-      sw * 0.25, sh * 0.70,
-      sw * 0.21, sh * 0.70,
-      sw * 0.18, sh * 0.68,
-    );
-    // 拇指向左上方伸出
-    path.cubicTo(
-      sw * 0.14, sh * 0.65,
-      sw * 0.10, sh * 0.60,
-      sw * 0.08, sh * 0.54,
-    );
-    // 拇指尖（圆弧）
-    path.cubicTo(
-      sw * 0.06, sh * 0.49,
-      sw * 0.06, sh * 0.45,
-      sw * 0.08, sh * 0.42,
-    );
-    path.cubicTo(
-      sw * 0.10, sh * 0.39,
-      sw * 0.13, sh * 0.38,
-      sw * 0.16, sh * 0.40,
-    );
-    // 拇指右侧（内侧）向下回掌
-    path.cubicTo(
-      sw * 0.19, sh * 0.42,
-      sw * 0.22, sh * 0.48,
-      sw * 0.23, sh * 0.55,
-    );
-    path.cubicTo(
-      sw * 0.24, sh * 0.62,
-      sw * 0.24, sh * 0.70,
-      sw * 0.24, sh * 0.77,
+      sw * 0.37, sh * 0.60,
+      sw * 0.38, sh * 0.63,
+      sw * 0.39, sh * 0.64,
     );
 
-    // ── 手腕左侧 & 底部弧线 ─────────────────────────────────────────
+    // ── 中指（最长，居中）───────────────────────────────────────────
     path.cubicTo(
-      sw * 0.24, sh * 0.87,
-      sw * 0.26, sh * 0.94,
-      sw * 0.30, sh * 0.97,
+      sw * 0.40, sh * 0.63,
+      sw * 0.41, sh * 0.57,
+      sw * 0.41, sh * 0.51,
+    );
+    // 中指左侧
+    path.cubicTo(
+      sw * 0.41, sh * 0.40,
+      sw * 0.41, sh * 0.28,
+      sw * 0.42, sh * 0.21,
+    );
+    // 中指尖（圆弧，最高点）
+    path.cubicTo(
+      sw * 0.42, sh * 0.16,
+      sw * 0.44, sh * 0.14,
+      sw * 0.46, sh * 0.14,
+    );
+    path.cubicTo(
+      sw * 0.48, sh * 0.14,
+      sw * 0.50, sh * 0.16,
+      sw * 0.50, sh * 0.21,
+    );
+    // 中指右侧向下
+    path.cubicTo(
+      sw * 0.51, sh * 0.28,
+      sw * 0.51, sh * 0.40,
+      sw * 0.51, sh * 0.51,
+    );
+    // 中指与无名指之间的指蹼
+    path.cubicTo(
+      sw * 0.51, sh * 0.58,
+      sw * 0.52, sh * 0.62,
+      sw * 0.53, sh * 0.63,
+    );
+
+    // ── 无名指 ──────────────────────────────────────────────────────
+    path.cubicTo(
+      sw * 0.54, sh * 0.62,
+      sw * 0.55, sh * 0.56,
+      sw * 0.55, sh * 0.50,
+    );
+    // 无名指左侧
+    path.cubicTo(
+      sw * 0.55, sh * 0.40,
+      sw * 0.56, sh * 0.30,
+      sw * 0.57, sh * 0.24,
+    );
+    // 无名指尖（圆弧）
+    path.cubicTo(
+      sw * 0.57, sh * 0.19,
+      sw * 0.59, sh * 0.17,
+      sw * 0.61, sh * 0.17,
+    );
+    path.cubicTo(
+      sw * 0.63, sh * 0.17,
+      sw * 0.65, sh * 0.19,
+      sw * 0.65, sh * 0.24,
+    );
+    // 无名指右侧向下
+    path.cubicTo(
+      sw * 0.66, sh * 0.30,
+      sw * 0.67, sh * 0.42,
+      sw * 0.67, sh * 0.52,
+    );
+    // 无名指与小指之间的指蹼
+    path.cubicTo(
+      sw * 0.67, sh * 0.60,
+      sw * 0.69, sh * 0.66,
+      sw * 0.72, sh * 0.68,
+    );
+
+    // ── 小指 ────────────────────────────────────────────────────────
+    // 小指底部左侧 → 向上
+    path.cubicTo(
+      sw * 0.75, sh * 0.70,
+      sw * 0.79, sh * 0.70,
+      sw * 0.82, sh * 0.68,
+    );
+    // 小指左侧向尖端
+    path.cubicTo(
+      sw * 0.86, sh * 0.65,
+      sw * 0.90, sh * 0.60,
+      sw * 0.92, sh * 0.54,
+    );
+    // 小指尖（圆弧）
+    path.cubicTo(
+      sw * 0.94, sh * 0.49,
+      sw * 0.94, sh * 0.45,
+      sw * 0.92, sh * 0.42,
+    );
+    path.cubicTo(
+      sw * 0.90, sh * 0.39,
+      sw * 0.87, sh * 0.38,
+      sw * 0.84, sh * 0.40,
+    );
+    // 小指右侧（内侧）向下回掌
+    path.cubicTo(
+      sw * 0.81, sh * 0.42,
+      sw * 0.78, sh * 0.48,
+      sw * 0.77, sh * 0.55,
+    );
+    path.cubicTo(
+      sw * 0.76, sh * 0.62,
+      sw * 0.76, sh * 0.70,
+      sw * 0.76, sh * 0.77,
+    );
+
+    // ── 手腕右侧 & 底部弧线 ─────────────────────────────────────────
+    path.cubicTo(
+      sw * 0.76, sh * 0.87,
+      sw * 0.74, sh * 0.94,
+      sw * 0.70, sh * 0.97,
     );
     // 手腕底部弧线（连回起点）
     path.cubicTo(
-      sw * 0.40, sh * 1.00,
       sw * 0.60, sh * 1.00,
-      sw * 0.74, sh * 0.97,
+      sw * 0.40, sh * 1.00,
+      sw * 0.26, sh * 0.97,
     );
 
     path.close();
@@ -765,22 +764,22 @@ class _HandOutlinePainter extends CustomPainter {
       ..style       = PaintingStyle.stroke
       ..strokeCap   = StrokeCap.round;
 
-    // 生命线（虎口到手腕，左弧）
+    // 生命线（虎口到手腕，右弧）
     final lifeLine = Path()
-      ..moveTo(sw * 0.30, sh * 0.67)
-      ..cubicTo(sw * 0.32, sh * 0.73, sw * 0.33, sh * 0.82, sw * 0.35, sh * 0.93);
+      ..moveTo(sw * 0.70, sh * 0.67)
+      ..cubicTo(sw * 0.68, sh * 0.73, sw * 0.67, sh * 0.82, sw * 0.65, sh * 0.93);
     canvas.drawPath(lifeLine, linePaint);
 
     // 感情线（横跨掌心上部）
     final heartLine = Path()
-      ..moveTo(sw * 0.35, sh * 0.68)
-      ..cubicTo(sw * 0.45, sh * 0.66, sw * 0.60, sh * 0.65, sw * 0.74, sh * 0.70);
+      ..moveTo(sw * 0.65, sh * 0.68)
+      ..cubicTo(sw * 0.55, sh * 0.66, sw * 0.40, sh * 0.65, sw * 0.26, sh * 0.70);
     canvas.drawPath(heartLine, linePaint);
 
     // 智慧线（中间斜线）
     final headLine = Path()
-      ..moveTo(sw * 0.33, sh * 0.72)
-      ..cubicTo(sw * 0.44, sh * 0.73, sw * 0.56, sh * 0.76, sw * 0.68, sh * 0.80);
+      ..moveTo(sw * 0.67, sh * 0.72)
+      ..cubicTo(sw * 0.56, sh * 0.73, sw * 0.44, sh * 0.76, sw * 0.32, sh * 0.80);
     canvas.drawPath(headLine, linePaint);
   }
 
