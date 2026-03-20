@@ -41,7 +41,7 @@ final class CameraManager: NSObject {
         previewLayer?.frame = bounds
     }
 
-    private var currentPosition: AVCaptureDevice.Position = .front
+//    private var currentPosition: AVCaptureDevice.Position = .front
     
     func startSession(isBackCamera: Bool = false) {
         sessionQueue.async { [weak self] in
