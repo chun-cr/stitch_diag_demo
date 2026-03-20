@@ -12,6 +12,13 @@ private func vectorAngle(_ v1: SIMD3<Double>, _ v2: SIMD3<Double>) -> Double {
     return acos(cosValue) * 180 / .pi
 }
 
+private func pointDistance(_ a: NormalizedLandmark, _ b: NormalizedLandmark) -> Double {
+    let dx = Double(a.x - b.x)
+    let dy = Double(a.y - b.y)
+    let dz = Double(a.z - b.z)
+    return sqrt(dx * dx + dy * dy + dz * dz)
+}
+
 final class GestureStreamHandler: NSObject, FlutterStreamHandler {
     static let shared = GestureStreamHandler()
 
@@ -98,6 +105,7 @@ final class GestureRecognizerService: NSObject {
         let gesture = result.gestures.first?.first
         let gestureName = gesture?.categoryName ?? ""
         let score = Double(gesture?.score ?? 0)
+        let normalizedGestureName = normalizeGestureName(gestureName)
 
         var landmarks: [[String: Double]] = []
         if let firstHand = result.landmarks.first {
@@ -110,7 +118,7 @@ final class GestureRecognizerService: NSObject {
             }
         }
 
-        let detectedByModel = gestureName == "Open_Palm" && score >= 0.75
+        let detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
         let detectedByFallback = !detectedByModel && isOpenPalmByLandmarks(result.landmarks.first)
         let isOpenPalm = detectedByModel || detectedByFallback
         if isOpenPalm {
@@ -129,13 +137,31 @@ final class GestureRecognizerService: NSObject {
     private func isOpenPalmByLandmarks(_ landmarks: [NormalizedLandmark]?) -> Bool {
         guard let landmarks, landmarks.count >= 21 else { return false }
 
-        let thumb = isFingerExtended(landmarks, mcp: 1, pip: 2, dip: 3, tip: 4)
+        let thumb = isThumbExtended(landmarks)
         let index = isFingerExtended(landmarks, mcp: 5, pip: 6, dip: 7, tip: 8)
         let middle = isFingerExtended(landmarks, mcp: 9, pip: 10, dip: 11, tip: 12)
         let ring = isFingerExtended(landmarks, mcp: 13, pip: 14, dip: 15, tip: 16)
         let pinky = isFingerExtended(landmarks, mcp: 17, pip: 18, dip: 19, tip: 20)
 
         return thumb && index && middle && ring && pinky
+    }
+
+    private func isThumbExtended(_ landmarks: [NormalizedLandmark]) -> Bool {
+        let thumbAngle = angleBetween(
+            landmarks[1],
+            landmarks[2],
+            landmarks[3],
+            landmarks[4]
+        )
+
+        let tipToIndexMcp = pointDistance(landmarks[4], landmarks[5])
+        let ipToIndexMcp = pointDistance(landmarks[3], landmarks[5])
+        let tipToWrist = pointDistance(landmarks[4], landmarks[0])
+        let mcpToWrist = pointDistance(landmarks[2], landmarks[0])
+
+        return thumbAngle > 135 &&
+            tipToIndexMcp > ipToIndexMcp * 1.08 &&
+            tipToWrist > mcpToWrist * 1.1
     }
 
     private func isFingerExtended(
@@ -167,6 +193,14 @@ final class GestureRecognizerService: NSObject {
         let angle1 = vectorAngle(v1, v2)
         let angle2 = vectorAngle(v2, v3)
         return (angle1 + angle2) / 2
+    }
+
+    private func normalizeGestureName(_ name: String) -> String {
+        return name.uppercased().replacingOccurrences(
+            of: "[^A-Z]",
+            with: "",
+            options: .regularExpression
+        )
     }
 
     private func publishDetected(_ detected: Bool, name: String, score: Double, landmarks: [[String: Double]]) {

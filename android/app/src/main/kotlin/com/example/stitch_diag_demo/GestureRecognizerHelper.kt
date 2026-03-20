@@ -41,13 +41,14 @@ class GestureRecognizerHelper(private val context: Context) {
                 val gesture = result.gestures().firstOrNull()?.firstOrNull()
                 val gestureName = gesture?.categoryName() ?: ""
                 val score = gesture?.score()?.toDouble() ?: 0.0
+                val normalizedGestureName = normalizeGestureName(gestureName)
 
                 val handLandmarks = result.landmarks().firstOrNull()
                 val landmarks = handLandmarks?.map { lm: NormalizedLandmark ->
                     mapOf("x" to lm.x().toDouble(), "y" to lm.y().toDouble(), "z" to lm.z().toDouble())
                 } ?: emptyList<Map<String, Double>>()
 
-                val detectedByModel = gestureName == "Open_Palm" && score >= 0.75
+                val detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
                 val detectedByFallback = if (!detectedByModel) {
                     isOpenPalmByLandmarks(handLandmarks)
                 } else {
@@ -102,13 +103,31 @@ class GestureRecognizerHelper(private val context: Context) {
     private fun isOpenPalmByLandmarks(landmarks: List<NormalizedLandmark>?): Boolean {
         if (landmarks == null || landmarks.size < 21) return false
 
-        val thumb = isFingerExtended(landmarks, 1, 2, 3, 4)
+        val thumb = isThumbExtended(landmarks)
         val index = isFingerExtended(landmarks, 5, 6, 7, 8)
         val middle = isFingerExtended(landmarks, 9, 10, 11, 12)
         val ring = isFingerExtended(landmarks, 13, 14, 15, 16)
         val pinky = isFingerExtended(landmarks, 17, 18, 19, 20)
 
         return thumb && index && middle && ring && pinky
+    }
+
+    private fun isThumbExtended(landmarks: List<NormalizedLandmark>): Boolean {
+        val thumbAngle = angleBetween(
+            landmarks[1],
+            landmarks[2],
+            landmarks[3],
+            landmarks[4],
+        )
+
+        val tipToIndexMcp = distance(landmarks[4], landmarks[5])
+        val ipToIndexMcp = distance(landmarks[3], landmarks[5])
+        val tipToWrist = distance(landmarks[4], landmarks[0])
+        val mcpToWrist = distance(landmarks[2], landmarks[0])
+
+        return thumbAngle > 135 &&
+            tipToIndexMcp > ipToIndexMcp * 1.08 &&
+            tipToWrist > mcpToWrist * 1.1
     }
 
     private fun isFingerExtended(
@@ -149,6 +168,17 @@ class GestureRecognizerHelper(private val context: Context) {
         val denom = max(1e-6, (mag1 * mag2).toDouble())
         val cos = min(1.0, max(-1.0, dot / denom))
         return Math.toDegrees(acos(cos))
+    }
+
+    private fun distance(a: NormalizedLandmark, b: NormalizedLandmark): Double {
+        val dx = (a.x() - b.x()).toDouble()
+        val dy = (a.y() - b.y()).toDouble()
+        val dz = (a.z() - b.z()).toDouble()
+        return sqrt(dx * dx + dy * dy + dz * dz)
+    }
+
+    private fun normalizeGestureName(name: String): String {
+        return name.uppercase().replace(Regex("[^A-Z]"), "")
     }
 
     fun close() {
