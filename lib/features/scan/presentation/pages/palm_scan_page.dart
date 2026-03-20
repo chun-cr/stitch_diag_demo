@@ -182,10 +182,33 @@ class _PalmScanPageState extends State<PalmScanPage>
     if (!_hasPermission) return '等待权限';
     if (_scanState == PalmScanState.completed) return '手掌扫描完成 ✓';
     if (_readyToScan) return '已识别张开手掌，请保持 2 秒';
+    final localizedGesture = _localizedGestureName(_gestureName);
+    if (localizedGesture.isNotEmpty) return '检测到：$localizedGesture';
     if (_handPresent) {
-      return _gestureName.isEmpty ? '请展平手掌，掌心朝上' : '检测到：$_gestureName';
+      return '请展平手掌，掌心朝上';
     }
     return '请将手掌放入框内';
+  }
+
+  String _localizedGestureName(String rawName) {
+    switch (rawName) {
+      case 'Open_Palm':
+        return '张开手掌';
+      case 'Closed_Fist':
+        return '握拳';
+      case 'Victory':
+        return '比耶';
+      case 'Thumb_Up':
+        return '竖起拇指';
+      case 'Thumb_Down':
+        return '拇指向下';
+      case 'Pointing_Up':
+        return '食指向上';
+      case 'ILoveYou':
+        return '我爱你手势';
+      default:
+        return rawName;
+    }
   }
 
   // ─── Build ───────────────────────────────────────────────────────

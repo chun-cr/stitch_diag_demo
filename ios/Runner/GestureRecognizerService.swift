@@ -4,6 +4,14 @@ import AVFoundation
 import MediaPipeTasksVision
 import Flutter
 
+private func vectorAngle(_ v1: SIMD3<Double>, _ v2: SIMD3<Double>) -> Double {
+    let dot = simd_dot(v1, v2)
+    let mag1 = max(1e-6, simd_length(v1))
+    let mag2 = max(1e-6, simd_length(v2))
+    let cosValue = min(1.0, max(-1.0, dot / (mag1 * mag2)))
+    return acos(cosValue) * 180 / .pi
+}
+
 final class GestureStreamHandler: NSObject, FlutterStreamHandler {
     static let shared = GestureStreamHandler()
 
@@ -98,7 +106,9 @@ final class GestureRecognizerService: NSObject {
             }
         }
 
-        let isOpenPalm = gestureName == "Open_Palm" && score >= 0.75
+        let detectedByModel = gestureName == "Open_Palm" && score >= 0.75
+        let detectedByFallback = !detectedByModel && isOpenPalmByLandmarks(result.landmarks.first)
+        let isOpenPalm = detectedByModel || detectedByFallback
         if isOpenPalm {
             consecutiveCount += 1
         } else {
@@ -108,7 +118,51 @@ final class GestureRecognizerService: NSObject {
         }
 
         let detected = consecutiveCount >= 3
-        publishDetected(detected, name: "Open_Palm", score: score, landmarks: landmarks)
+        let finalScore = detectedByModel ? score : (detectedByFallback ? 0.75 : score)
+        publishDetected(detected, name: "Open_Palm", score: finalScore, landmarks: landmarks)
+    }
+
+    private func isOpenPalmByLandmarks(_ landmarks: [NormalizedLandmark]?) -> Bool {
+        guard let landmarks, landmarks.count >= 21 else { return false }
+
+        let thumb = isFingerExtended(landmarks, mcp: 1, pip: 2, dip: 3, tip: 4)
+        let index = isFingerExtended(landmarks, mcp: 5, pip: 6, dip: 7, tip: 8)
+        let middle = isFingerExtended(landmarks, mcp: 9, pip: 10, dip: 11, tip: 12)
+        let ring = isFingerExtended(landmarks, mcp: 13, pip: 14, dip: 15, tip: 16)
+        let pinky = isFingerExtended(landmarks, mcp: 17, pip: 18, dip: 19, tip: 20)
+
+        return thumb && index && middle && ring && pinky
+    }
+
+    private func isFingerExtended(
+        _ landmarks: [NormalizedLandmark],
+        mcp: Int,
+        pip: Int,
+        dip: Int,
+        tip: Int
+    ) -> Bool {
+        let angle = angleBetween(
+            landmarks[mcp],
+            landmarks[pip],
+            landmarks[dip],
+            landmarks[tip]
+        )
+        return angle > 160
+    }
+
+    private func angleBetween(
+        _ a: NormalizedLandmark,
+        _ b: NormalizedLandmark,
+        _ c: NormalizedLandmark,
+        _ d: NormalizedLandmark
+    ) -> Double {
+        let v1 = SIMD3<Double>(Double(a.x - b.x), Double(a.y - b.y), Double(a.z - b.z))
+        let v2 = SIMD3<Double>(Double(c.x - b.x), Double(c.y - b.y), Double(c.z - b.z))
+        let v3 = SIMD3<Double>(Double(d.x - c.x), Double(d.y - c.y), Double(d.z - c.z))
+
+        let angle1 = vectorAngle(v1, v2)
+        let angle2 = vectorAngle(v2, v3)
+        return (angle1 + angle2) / 2
     }
 
     private func publishDetected(_ detected: Bool, name: String, score: Double, landmarks: [[String: Double]]) {

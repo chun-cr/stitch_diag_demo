@@ -68,13 +68,7 @@ class PalmScanStatusBridge {
 
     return _gestureEvents
         .receiveBroadcastStream()
-        .map(PalmScanStatus.fromEvent)
-        .distinct((a, b) =>
-            a.handPresent == b.handPresent &&
-            a.gestureDetected == b.gestureDetected &&
-            a.gestureName == b.gestureName &&
-            a.score == b.score &&
-            a.landmarks.length == b.landmarks.length);
+        .map(PalmScanStatus.fromEvent);
   }
 
   Future<void> startMonitoring() {
