@@ -42,7 +42,7 @@ import UIKit
 
       case "face/stopDetection":
         // ★ stop 命令改走 performStop()，view 不存在时直接丢弃，不写入 pending
-        FaceLandmarkerViewFactory.shared.performStop(face: true)
+        FaceLandmarkerViewFactory.shared.performStop(mode: "face")
         result(nil)
 
       case "tongue/startDetection":
@@ -51,7 +51,7 @@ import UIKit
 
       case "tongue/stopDetection":
         // ★ 同上
-        FaceLandmarkerViewFactory.shared.performStop(face: false)
+        FaceLandmarkerViewFactory.shared.performStop(mode: "tongue")
         result(nil)
 
       case "gesture/startDetection":
