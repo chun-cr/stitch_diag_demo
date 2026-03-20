@@ -181,7 +181,19 @@ final class GestureRecognizerService: NSObject {
     }
 
     private func imageOrientationForCurrentDevice() -> UIImage.Orientation {
-        return CameraManager.shared.currentPosition == .front ? .leftMirrored : .right
+        let isFrontCamera = CameraManager.shared.currentPosition == .front
+        let deviceOrientation = UIDevice.current.orientation
+
+        switch deviceOrientation {
+        case .landscapeLeft:
+            return isFrontCamera ? .upMirrored : .up
+        case .landscapeRight:
+            return isFrontCamera ? .downMirrored : .down
+        case .portraitUpsideDown:
+            return isFrontCamera ? .rightMirrored : .left
+        default:
+            return isFrontCamera ? .leftMirrored : .right
+        }
     }
 
     private func processPendingSampleBufferIfNeeded() {
