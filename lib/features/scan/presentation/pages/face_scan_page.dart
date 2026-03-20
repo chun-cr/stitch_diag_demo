@@ -563,12 +563,18 @@ class _FaceScanPageState extends State<FaceScanPage>
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(
               children: [
-                if (!_isScanning)
-                  _buildPrimaryButton(
-                    label: '开始面部扫描',
-                    enabled: _hasPermission && _hasFaceDetected,
-                    onTap: _startScan,
+                IgnorePointer(
+                  ignoring: _isScanning,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: _isScanning ? 0 : 1,
+                    child: _buildPrimaryButton(
+                      label: '开始面部扫描',
+                      enabled: _hasPermission && _hasFaceDetected,
+                      onTap: _startScan,
+                    ),
                   ),
+                ),
                 const SizedBox(height: 10),
                 GestureDetector(
                   onTap: () => unawaited(_navigateToTongueScan()),

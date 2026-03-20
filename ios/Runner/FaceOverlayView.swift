@@ -3,10 +3,22 @@ import UIKit
 final class FaceOverlayView: UIView {
     private var landmarks: [CGPoint] = []
     private var imageSize: CGSize = .zero
+    private var consecutiveMisses = 0
+    private let maxMissesBeforeClear = 3
 
     func draw(landmarks: [CGPoint], imageSize: CGSize) {
-        self.landmarks = landmarks
-        self.imageSize = imageSize
+        if landmarks.isEmpty {
+            consecutiveMisses += 1
+            if consecutiveMisses >= maxMissesBeforeClear {
+                self.landmarks = []
+                self.imageSize = .zero
+            }
+        } else {
+            consecutiveMisses = 0
+            self.landmarks = landmarks
+            self.imageSize = imageSize
+        }
+
         DispatchQueue.main.async {
             self.setNeedsDisplay()
         }

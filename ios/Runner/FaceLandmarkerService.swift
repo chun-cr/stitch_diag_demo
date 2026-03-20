@@ -21,7 +21,8 @@ final class FaceLandmarkerService: NSObject {
 
     private let workQueue = DispatchQueue(label: "com.example.stitch_diag_demo.facelandmarker")
     private var isInitializing = false
-    private var timestampMs: Int = 0
+    private var isDetectionInFlight = false
+    private var pendingSampleBuffer: CMSampleBuffer?
 
     override init() {
         super.init()
@@ -60,39 +61,68 @@ final class FaceLandmarkerService: NSObject {
 
     func detectAsync(sampleBuffer: CMSampleBuffer) {
         workQueue.async { [weak self] in
-            guard let self = self, let faceLandmarker = self.faceLandmarker else { return }
+            guard let self = self else { return }
 
-            let orientation = self.imageOrientationForCurrentDevice()
-            guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
-
-            if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-                self.latestImageSize = CGSize(
-                    width: CVPixelBufferGetWidth(pixelBuffer),
-                    height: CVPixelBufferGetHeight(pixelBuffer)
-                )
+            if self.faceLandmarker == nil {
+                self.setupLandmarker()
+                return
             }
 
-            self.timestampMs += 1
-            try? faceLandmarker.detectAsync(
-                image: image,
-                timestampInMilliseconds: self.timestampMs
-            )
+            self.pendingSampleBuffer = sampleBuffer
+            self.processPendingSampleBufferIfNeeded()
         }
     }
 
     private func imageOrientationForCurrentDevice() -> UIImage.Orientation {
-        // Front camera: use `.right` for portrait, adjust for other orientations
+        let isFrontCamera = CameraManager.shared.currentPosition == .front
         let deviceOrientation = UIDevice.current.orientation
         switch deviceOrientation {
         case .landscapeLeft:
-            return .up
+            return isFrontCamera ? .upMirrored : .up
         case .landscapeRight:
-            return .down
+            return isFrontCamera ? .downMirrored : .down
         case .portraitUpsideDown:
-            return .left
+            return isFrontCamera ? .rightMirrored : .left
         default:
-            return .right
+            return isFrontCamera ? .leftMirrored : .right
         }
+    }
+
+    private func processPendingSampleBufferIfNeeded() {
+        guard !isDetectionInFlight,
+              let faceLandmarker = faceLandmarker,
+              let sampleBuffer = pendingSampleBuffer else { return }
+
+        pendingSampleBuffer = nil
+        isDetectionInFlight = true
+
+        let orientation = imageOrientationForCurrentDevice()
+        guard let image = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else {
+            isDetectionInFlight = false
+            return
+        }
+
+        if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            latestImageSize = CGSize(
+                width: CVPixelBufferGetWidth(pixelBuffer),
+                height: CVPixelBufferGetHeight(pixelBuffer)
+            )
+        }
+
+        let timestampMs = Self.timestampInMilliseconds(for: sampleBuffer)
+        try? faceLandmarker.detectAsync(
+            image: image,
+            timestampInMilliseconds: timestampMs
+        )
+    }
+
+    private static func timestampInMilliseconds(for sampleBuffer: CMSampleBuffer) -> Int {
+        let presentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let seconds = CMTimeGetSeconds(presentationTime)
+        if seconds.isFinite && seconds >= 0 {
+            return Int(seconds * 1000)
+        }
+        return Int(Date().timeIntervalSince1970 * 1000)
     }
 
     func close() {
@@ -102,6 +132,12 @@ final class FaceLandmarkerService: NSObject {
 
 extension FaceLandmarkerService: FaceLandmarkerLiveStreamDelegate {
     func faceLandmarker(_ faceLandmarker: FaceLandmarker, didFinishDetection result: FaceLandmarkerResult?, timestampInMilliseconds: Int, error: Error?) {
+        workQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.isDetectionInFlight = false
+            self.processPendingSampleBufferIfNeeded()
+        }
+
         if let error = error {
             print("FaceLandmarker error: \(error)")
         }
