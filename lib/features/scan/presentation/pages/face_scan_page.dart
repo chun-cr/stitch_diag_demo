@@ -375,12 +375,12 @@ class _FaceScanPageState extends State<FaceScanPage>
             ),
           ),
         ),
-        if (_normalizedLandmarks.isNotEmpty)
+        if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)
           Positioned.fill(
             child: FaceLandmarkOverlay(
               normalizedLandmarks: _normalizedLandmarks,
               imageSize: _sourceImageSize,
-              mirrored: defaultTargetPlatform == TargetPlatform.android,
+              mirrored: true,
             ),
           ),
         // 渐变遮罩（上下淡出，融入米色背景）

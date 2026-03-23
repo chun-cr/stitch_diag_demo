@@ -82,13 +82,13 @@ class _FaceDetectionPageState extends State<FaceDetectionPage> {
       body: Stack(
         children: [
           if (_hasPermission) const Positioned.fill(child: CameraPreviewWidget()),
-          if (_hasPermission)
+          if (_hasPermission && defaultTargetPlatform == TargetPlatform.android)
             Positioned.fill(
               child: IgnorePointer(
                 child: FaceLandmarkOverlay(
                   normalizedLandmarks: _landmarks,
                   imageSize: _imageSize,
-                  mirrored: defaultTargetPlatform == TargetPlatform.android,
+                  mirrored: true,
                 ),
               ),
             ),
