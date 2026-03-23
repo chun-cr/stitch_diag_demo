@@ -51,6 +51,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   double _scanProgress = 0;
   PalmScanState _scanState = PalmScanState.idle;
   List<Offset> _handLandmarks = const [];
+  Size? _imageSize;
 
   @override
   void initState() {
@@ -89,6 +90,7 @@ class _PalmScanPageState extends State<PalmScanPage>
           _readyToScan = status.readyToScan;
           _gestureName = status.gestureName;
           _handLandmarks = status.landmarks;
+          _imageSize = Size(status.imageWidth, status.imageHeight);
         });
 
         if (_scanState != PalmScanState.scanning) return;
@@ -356,6 +358,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         Positioned.fill(
           child: HandLandmarkOverlay(
             normalizedLandmarks: _handLandmarks,
+            imageSize: _imageSize,
             mirrored: false,
           ),
         ),

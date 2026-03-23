@@ -4,10 +4,12 @@ class HandLandmarkOverlay extends StatelessWidget {
   const HandLandmarkOverlay({
     super.key,
     required this.normalizedLandmarks,
+    this.imageSize,
     this.mirrored = false,
   });
 
   final List<Offset> normalizedLandmarks;
+  final Size? imageSize;
   final bool mirrored;
 
   @override
@@ -19,6 +21,7 @@ class HandLandmarkOverlay extends StatelessWidget {
         child: CustomPaint(
           painter: HandLandmarkPainter(
             normalizedLandmarks: normalizedLandmarks,
+            imageSize: imageSize,
             mirrored: mirrored,
           ),
           size: Size.infinite,
@@ -31,10 +34,12 @@ class HandLandmarkOverlay extends StatelessWidget {
 class HandLandmarkPainter extends CustomPainter {
   HandLandmarkPainter({
     required this.normalizedLandmarks,
+    this.imageSize,
     required this.mirrored,
   });
 
   final List<Offset> normalizedLandmarks;
+  final Size? imageSize;
   final bool mirrored;
 
   final Paint _pointPaint = Paint()
@@ -73,16 +78,37 @@ class HandLandmarkPainter extends CustomPainter {
   }
 
   List<Offset> _mapToView(Size viewSize) {
+    if (imageSize == null || imageSize == Size.zero) {
+      return normalizedLandmarks.map((p) {
+        final x = (mirrored ? 1 - p.dx : p.dx).clamp(0.0, 1.0) * viewSize.width;
+        final y = p.dy.clamp(0.0, 1.0) * viewSize.height;
+        return Offset(x, y);
+      }).toList(growable: false);
+    }
+
+    final double sourceWidth = imageSize!.width;
+    final double sourceHeight = imageSize!.height;
+    
+    final double scaleX = viewSize.width / sourceWidth;
+    final double scaleY = viewSize.height / sourceHeight;
+    final double scale = scaleX > scaleY ? scaleX : scaleY;
+
+    final double scaledWidth = sourceWidth * scale;
+    final double scaledHeight = sourceHeight * scale;
+    final double dx = (viewSize.width - scaledWidth) / 2;
+    final double dy = (viewSize.height - scaledHeight) / 2;
+
     return normalizedLandmarks.map((p) {
-      final x = (mirrored ? 1 - p.dx : p.dx).clamp(0.0, 1.0) * viewSize.width;
-      final y = p.dy.clamp(0.0, 1.0) * viewSize.height;
-      return Offset(x, y);
+      final double rawX = (mirrored ? 1 - p.dx : p.dx) * sourceWidth;
+      final double rawY = p.dy * sourceHeight;
+      return Offset(dx + rawX * scale, dy + rawY * scale);
     }).toList(growable: false);
   }
 
   @override
   bool shouldRepaint(HandLandmarkPainter oldDelegate) {
     return oldDelegate.normalizedLandmarks != normalizedLandmarks ||
+        oldDelegate.imageSize != imageSize ||
         oldDelegate.mirrored != mirrored;
   }
 }

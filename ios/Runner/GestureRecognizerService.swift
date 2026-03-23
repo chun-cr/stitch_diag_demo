@@ -51,6 +51,7 @@ final class GestureRecognizerService: NSObject {
     private var isInitializing = false
     private var isDetectionInFlight = false
     private var pendingSampleBuffer: CMSampleBuffer?
+    private var latestImageSize: CGSize = .zero
 
     private override init() {
         super.init()
@@ -120,7 +121,7 @@ final class GestureRecognizerService: NSObject {
         consecutiveCount = 0
         pendingSampleBuffer = nil
         isDetectionInFlight = false
-        publishDetected(false, name: "", score: 0, landmarks: [])
+        publishDetected(false, name: "", score: 0, landmarks: [], imageSize: latestImageSize)
     }
 
     private var frameCount = 0
@@ -132,7 +133,7 @@ final class GestureRecognizerService: NSObject {
             if frameCount % 30 == 0 {
                 print("GestureRecognizerService: handleResult called with nil result (frame #\(frameCount))")
             }
-            publishDetected(false, name: "", score: 0, landmarks: [])
+            publishDetected(false, name: "", score: 0, landmarks: [], imageSize: latestImageSize)
             return
         }
 
@@ -164,13 +165,13 @@ final class GestureRecognizerService: NSObject {
             consecutiveCount += 1
         } else {
             consecutiveCount = 0
-            publishDetected(false, name: gestureName, score: score, landmarks: landmarks)
+            publishDetected(false, name: gestureName, score: score, landmarks: landmarks, imageSize: latestImageSize)
             return
         }
 
         let detected = consecutiveCount >= 3
         let finalScore = detectedByModel ? score : (detectedByFallback ? 0.75 : score)
-        publishDetected(detected, name: "Open_Palm", score: finalScore, landmarks: landmarks)
+        publishDetected(detected, name: "Open_Palm", score: finalScore, landmarks: landmarks, imageSize: latestImageSize)
     }
 
     private func isOpenPalmByLandmarks(_ landmarks: [NormalizedLandmark]?) -> Bool {
@@ -242,13 +243,15 @@ final class GestureRecognizerService: NSObject {
         )
     }
 
-    private func publishDetected(_ detected: Bool, name: String, score: Double, landmarks: [[String: Double]]) {
+    private func publishDetected(_ detected: Bool, name: String, score: Double, landmarks: [[String: Double]], imageSize: CGSize) {
         GestureStreamHandler.shared.publish(
             payload: [
                 "gestureDetected": detected,
                 "gestureName": name,
                 "score": score,
                 "handLandmarks": landmarks,
+                "imageWidth": Double(imageSize.width),
+                "imageHeight": Double(imageSize.height)
             ]
         )
     }
@@ -272,6 +275,8 @@ final class GestureRecognizerService: NSObject {
             isDetectionInFlight = false
             return
         }
+
+        latestImageSize = CGSize(width: image.width, height: image.height)
 
         let timestampMs = Self.timestampInMilliseconds(for: sampleBuffer)
         do {

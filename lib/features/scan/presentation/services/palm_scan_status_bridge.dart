@@ -8,6 +8,8 @@ class PalmScanStatus {
   final bool gestureDetected;
   final String gestureName;
   final double score;
+  final double imageWidth;
+  final double imageHeight;
   final List<Offset> landmarks;
 
   const PalmScanStatus({
@@ -15,6 +17,8 @@ class PalmScanStatus {
     required this.gestureDetected,
     required this.gestureName,
     required this.score,
+    this.imageWidth = 0,
+    this.imageHeight = 0,
     this.landmarks = const [],
   });
 
@@ -27,6 +31,8 @@ class PalmScanStatus {
         gestureDetected: false,
         gestureName: '',
         score: 0,
+        imageWidth: 0,
+        imageHeight: 0,
         landmarks: [],
       );
     }
@@ -52,6 +58,8 @@ class PalmScanStatus {
       gestureDetected: data['gestureDetected'] as bool? ?? false,
       gestureName: data['gestureName'] as String? ?? '',
       score: (data['score'] as num?)?.toDouble() ?? 0,
+      imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
+      imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
       landmarks: landmarks,
     );
   }

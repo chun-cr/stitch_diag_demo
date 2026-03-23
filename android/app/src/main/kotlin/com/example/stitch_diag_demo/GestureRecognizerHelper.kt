@@ -67,6 +67,8 @@ class GestureRecognizerHelper(private val context: Context) {
                         "gestureName" to finalName,
                         "score" to finalScore,
                         "handLandmarks" to landmarks,
+                        "imageWidth" to mpImage.width.toDouble(),
+                        "imageHeight" to mpImage.height.toDouble()
                     )
                 )
             }
