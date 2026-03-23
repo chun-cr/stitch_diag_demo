@@ -54,50 +54,84 @@ final class GestureRecognizerService: NSObject {
 
     private override init() {
         super.init()
+        print("GestureRecognizerService: init called")
         setupRecognizer()
     }
 
     private func setupRecognizer() {
         workQueue.async { [weak self] in
-            guard let self = self, self.recognizer == nil, !self.isInitializing else { return }
+            guard let self = self, self.recognizer == nil, !self.isInitializing else {
+                print("GestureRecognizerService: setupRecognizer skipped (recognizer=\(self?.recognizer != nil ? "exists" : "nil"), isInitializing=\(self?.isInitializing ?? false))")
+                return
+            }
             self.isInitializing = true
             
             guard let modelPath = ModelAssetLocator.pathInBundle(name: "gesture_recognizer", ext: "task") else {
-                assertionFailure("Missing gesture_recognizer.task in app bundle. Add it under assets/models/ and rebuild.")
+                print("GestureRecognizerService: ❌ gesture_recognizer.task NOT FOUND in bundle")
+                // Also check if the file exists via FileManager for diagnostics
+                let bundlePath = Bundle.main.bundlePath
+                print("GestureRecognizerService: main bundle path = \(bundlePath)")
+                if let frameworks = Bundle.allFrameworks.first(where: { $0.bundlePath.contains("App.framework") }) {
+                    print("GestureRecognizerService: App.framework path = \(frameworks.bundlePath)")
+                    // List flutter_assets/assets/models/ contents for diagnostics
+                    let modelsDir = frameworks.bundlePath + "/flutter_assets/assets/models"
+                    if let contents = try? FileManager.default.contentsOfDirectory(atPath: modelsDir) {
+                        print("GestureRecognizerService: models dir contents = \(contents)")
+                    } else {
+                        print("GestureRecognizerService: models dir not found or empty at \(modelsDir)")
+                    }
+                } else {
+                    print("GestureRecognizerService: App.framework NOT FOUND in allFrameworks")
+                }
                 self.isInitializing = false
                 return
             }
 
+            print("GestureRecognizerService: ✅ Model found at: \(modelPath)")
+
             let options = GestureRecognizerOptions()
             options.runningMode = .liveStream
             options.numHands = 2
+            options.minHandDetectionConfidence = 0.4
+            options.minHandPresenceConfidence = 0.4
+            options.minTrackingConfidence = 0.4
             options.gestureRecognizerLiveStreamDelegate = self
             options.baseOptions.modelAssetPath = modelPath
 
             do {
                 self.recognizer = try GestureRecognizer(options: options)
+                print("GestureRecognizerService: ✅ GestureRecognizer created successfully")
             } catch {
                 self.recognizer = nil
-                print("GestureRecognizer init failed: \(error)")
+                print("GestureRecognizerService: ❌ GestureRecognizer init FAILED: \(error)")
             }
             self.isInitializing = false
         }
     }
 
     func start() {
+        print("GestureRecognizerService: start() called")
         setupRecognizer()
         consecutiveCount = 0
     }
 
     func stop() {
+        print("GestureRecognizerService: stop() called")
         consecutiveCount = 0
         pendingSampleBuffer = nil
         isDetectionInFlight = false
         publishDetected(false, name: "", score: 0, landmarks: [])
     }
 
+    private var frameCount = 0
+
     private func handleResult(result: GestureRecognizerResult?) {
+        frameCount += 1
+
         guard let result = result else {
+            if frameCount % 30 == 0 {
+                print("GestureRecognizerService: handleResult called with nil result (frame #\(frameCount))")
+            }
             publishDetected(false, name: "", score: 0, landmarks: [])
             return
         }
@@ -116,6 +150,11 @@ final class GestureRecognizerService: NSObject {
                     "z": Double(lm.z)
                 ])
             }
+        }
+
+        // Debug logging every 30 frames
+        if frameCount % 30 == 0 {
+            print("GestureRecognizerService: frame #\(frameCount) — gestures=\(result.gestures.count), landmarks=\(result.landmarks.count), name=\(gestureName), score=\(score), landmarkPoints=\(landmarks.count)")
         }
 
         let detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
@@ -249,9 +288,17 @@ final class GestureRecognizerService: NSObject {
 }
 
 extension GestureRecognizerService {
+    private static var detectLogCount = 0
+
     func detectAsync(sampleBuffer: CMSampleBuffer) {
         workQueue.async { [weak self] in
             guard let self = self else { return }
+
+            GestureRecognizerService.detectLogCount += 1
+            if GestureRecognizerService.detectLogCount % 60 == 1 {
+                print("GestureRecognizerService: detectAsync frame #\(GestureRecognizerService.detectLogCount), recognizer=\(self.recognizer != nil ? "ready" : "nil"), isDetectionInFlight=\(self.isDetectionInFlight)")
+            }
+
             if self.recognizer == nil {
                 self.setupRecognizer()
                 return
@@ -277,7 +324,7 @@ extension GestureRecognizerService: GestureRecognizerLiveStreamDelegate {
         }
 
         if let error = error {
-            print("GestureRecognizer error: \(error)")
+            print("GestureRecognizerService: ❌ delegate error: \(error)")
         }
 
         handleResult(result: result)
