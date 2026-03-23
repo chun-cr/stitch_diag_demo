@@ -3,8 +3,8 @@ import MediaPipeTasksVision
 
 enum TongueDetectionEvaluator {
     private static let mouthIndices = [13, 14, 17, 37, 267, 269, 270, 291]
-    private static let tongueThreshold = 0.5
-    private static let jawOpenThreshold = 0.35
+    private static let tongueThreshold = 0.3
+    private static let jawOpenThreshold = 0.25
     private static let lowerLipIndex = 17
     private static let chinIndex = 152
 

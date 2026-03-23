@@ -46,9 +46,9 @@ final class FaceLandmarkerService: NSObject {
             let options = FaceLandmarkerOptions()
             options.runningMode = .liveStream
             options.numFaces = 1
-            options.minFaceDetectionConfidence = 0.7
-            options.minFacePresenceConfidence = 0.7
-            options.minTrackingConfidence = 0.7
+            options.minFaceDetectionConfidence = 0.5
+            options.minFacePresenceConfidence = 0.5
+            options.minTrackingConfidence = 0.5
             options.faceLandmarkerLiveStreamDelegate = self
             options.outputFaceBlendshapes = true
             options.baseOptions.modelAssetPath = modelPath
@@ -101,10 +101,15 @@ final class FaceLandmarkerService: NSObject {
         }
 
         let timestampMs = Self.timestampInMilliseconds(for: sampleBuffer)
-        try? faceLandmarker.detectAsync(
-            image: image,
-            timestampInMilliseconds: timestampMs
-        )
+        do {
+            try faceLandmarker.detectAsync(
+                image: image,
+                timestampInMilliseconds: timestampMs
+            )
+        } catch {
+            print("FaceLandmarkerService: ❌ detectAsync threw: \(error)")
+            isDetectionInFlight = false
+        }
     }
 
     private static func timestampInMilliseconds(for sampleBuffer: CMSampleBuffer) -> Int {

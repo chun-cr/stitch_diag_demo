@@ -59,13 +59,7 @@ class TongueScanStatusBridge {
 
     return _tongueEvents
         .receiveBroadcastStream()
-        .map(TongueScanStatus.fromEvent)
-        .distinct(
-          (a, b) =>
-              a.tongueDetected == b.tongueDetected &&
-              a.tongueOutScore == b.tongueOutScore &&
-              a.mouthLandmarkCount == b.mouthLandmarkCount,
-        );
+        .map(TongueScanStatus.fromEvent);
   }
 
   Future<void> startMonitoring() {
