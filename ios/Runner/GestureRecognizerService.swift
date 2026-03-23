@@ -274,8 +274,14 @@ final class GestureRecognizerService: NSObject {
         }
 
         let timestampMs = Self.timestampInMilliseconds(for: sampleBuffer)
-        try? recognizer.recognizeAsync(image: image, timestampInMilliseconds: timestampMs)
+        do {
+            try recognizer.recognizeAsync(image: image, timestampInMilliseconds: timestampMs)
+        } catch {
+            print("GestureRecognizerService: ❌ recognizeAsync threw: \(error)")
+            isDetectionInFlight = false
+        }
     }
+
 
     private static func timestampInMilliseconds(for sampleBuffer: CMSampleBuffer) -> Int {
         let presentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
@@ -313,7 +319,7 @@ extension GestureRecognizerService {
 extension GestureRecognizerService: GestureRecognizerLiveStreamDelegate {
     func gestureRecognizer(
         _ gestureRecognizer: GestureRecognizer,
-        didFinishRecognition result: GestureRecognizerResult?,
+        didFinishGestureRecognition result: GestureRecognizerResult?,
         timestampInMilliseconds: Int,
         error: Error?
     ) {
