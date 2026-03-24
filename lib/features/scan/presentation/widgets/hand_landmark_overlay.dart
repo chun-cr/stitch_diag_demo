@@ -44,19 +44,25 @@ class HandLandmarkPainter extends CustomPainter {
 
   final Paint _pointPaint = Paint()
     ..style = PaintingStyle.fill
-    ..color = Colors.white.withValues(alpha: 0.96);
+    ..color = Colors.white;
 
   final Paint _glowPaint = Paint()
     ..style = PaintingStyle.fill
-    ..color = const Color(0xFFB7A8FF).withValues(alpha: 0.22)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+    ..color = const Color(0xFF00E5FF).withValues(alpha: 0.3)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
 
   final Paint _bonePaint = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.0
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round
-    ..color = const Color(0xFF9B8EF0).withValues(alpha: 0.92);
+    ..color = const Color(0xFF00E5FF).withValues(alpha: 0.85);
+
+  final Paint _netPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -64,6 +70,7 @@ class HandLandmarkPainter extends CustomPainter {
 
     final points = _mapToView(size);
 
+    // 1. 绘制基本骨架 (Standard bones)
     for (final connection in HandMeshConnections.all) {
       final start = connection.$1;
       final end = connection.$2;
@@ -71,9 +78,31 @@ class HandLandmarkPainter extends CustomPainter {
       canvas.drawLine(points[start], points[end], _bonePaint);
     }
 
+    // 2. 将离得近的描点连起来 (Dynamic proximity mesh)
+    final maxDist = size.width * 0.18; // 动态连接的阈值距离
+    final maxDistSq = maxDist * maxDist;
+
+    for (int i = 0; i < points.length; i++) {
+      for (int j = i + 1; j < points.length; j++) {
+        // 跳过已经是基本骨架的固定连接，避免重复绘制
+        final isBone = HandMeshConnections.all.any((c) =>
+            (c.$1 == i && c.$2 == j) || (c.$1 == j && c.$2 == i));
+        if (isBone) continue;
+
+        final distSq = (points[i] - points[j]).distanceSquared;
+        if (distSq < maxDistSq) {
+          // 根据距离渐变透明度，越近线越清晰
+          final ratio = 1.0 - (distSq / maxDistSq);
+          _netPaint.color = const Color(0xFF00E5FF).withValues(alpha: 0.6 * ratio);
+          canvas.drawLine(points[i], points[j], _netPaint);
+        }
+      }
+    }
+
+    // 3. 绘制节点 (Landmark points)
     for (final point in points) {
-      canvas.drawCircle(point, 2.8, _glowPaint);
-      canvas.drawCircle(point, 1.7, _pointPaint);
+      canvas.drawCircle(point, 4.0, _glowPaint);
+      canvas.drawCircle(point, 1.8, _pointPaint);
     }
   }
 

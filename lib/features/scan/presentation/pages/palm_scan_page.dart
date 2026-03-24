@@ -524,10 +524,7 @@ class _PalmScanPageState extends State<PalmScanPage>
               duration: const Duration(milliseconds: 300),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: highlightColor, width: 0.8),
-              ),
-              child: CustomPaint(
-                painter: _HandOutlinePainter(color: highlightColor),
+                border: Border.all(color: highlightColor.withValues(alpha: 0.3), width: 0.8),
               ),
             ),
           ),
@@ -930,137 +927,7 @@ class _BgPainter extends CustomPainter {
 
 // ── 手绘画笔：手掌轮廓引导图 ─────────────────────────────────────────────────────
 
-class _HandOutlinePainter extends CustomPainter {
-  final Color color;
-  const _HandOutlinePainter({required this.color});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final sw = size.width;
-    final sh = size.height;
-
-    // 平移与缩放居排版设定
-    final scale = 1.04;
-    double tx(double x) => sw * (x * scale - 0.11);
-    double ty(double y) => sh * (y * scale + 0.10);
-
-    final path = Path();
-
-    // ── 1. 左外缘：掌缘更顺直，减弱卡通外鼓 ──────────────────────
-    path.moveTo(tx(0.30), ty(0.84));
-    path.cubicTo(tx(0.22), ty(0.76), tx(0.19), ty(0.62), tx(0.21), ty(0.51));
-
-    // ── 2. 小指：顶部拉平，取消明显凸起 ───────────────────────────
-    path.cubicTo(tx(0.20), ty(0.42), tx(0.19), ty(0.35), tx(0.19), ty(0.30));
-    // 指尖平滑过渡，无凸起
-    path.cubicTo(tx(0.19), ty(0.26), tx(0.24), ty(0.25), tx(0.26), ty(0.28));
-    path.cubicTo(tx(0.27), ty(0.34), tx(0.29), ty(0.41), tx(0.31), ty(0.47));
-    // 指蹼 1：过渡更浅
-    path.cubicTo(tx(0.32), ty(0.50), tx(0.33), ty(0.50), tx(0.35), ty(0.47));
-
-    // ── 3. 无名指：更修长，顶端更平顺 ────────────────────────────
-    path.cubicTo(tx(0.35), ty(0.36), tx(0.35), ty(0.24), tx(0.35), ty(0.18));
-    // 指尖平滑过渡
-    path.cubicTo(tx(0.35), ty(0.14), tx(0.40), ty(0.13), tx(0.42), ty(0.17));
-    path.cubicTo(tx(0.43), ty(0.25), tx(0.44), ty(0.35), tx(0.45), ty(0.44));
-    // 指蹼 2
-    path.cubicTo(tx(0.46), ty(0.47), tx(0.47), ty(0.47), tx(0.49), ty(0.44));
-
-    // ── 4. 中指：保留最高点，但去掉鼓包感 ─────────────────────────
-    path.cubicTo(tx(0.49), ty(0.32), tx(0.50), ty(0.19), tx(0.50), ty(0.11));
-    // 指尖平滑过渡
-    path.cubicTo(tx(0.50), ty(0.07), tx(0.55), ty(0.07), tx(0.57), ty(0.11));
-    path.cubicTo(tx(0.58), ty(0.19), tx(0.59), ty(0.32), tx(0.59), ty(0.43));
-    // 指蹼 3
-    path.cubicTo(tx(0.60), ty(0.46), tx(0.61), ty(0.46), tx(0.63), ty(0.44));
-
-    // ── 5. 食指：靠虎口更收，减弱独立突起 ───────────────────────
-    path.cubicTo(tx(0.64), ty(0.34), tx(0.65), ty(0.22), tx(0.66), ty(0.17));
-    // 指尖平滑过渡
-    path.cubicTo(tx(0.67), ty(0.13), tx(0.71), ty(0.13), tx(0.72), ty(0.18));
-    path.cubicTo(tx(0.73), ty(0.29), tx(0.72), ty(0.40), tx(0.71), ty(0.49));
-    // 虎口：更贴近食指，收窄拇指间距
-    path.cubicTo(tx(0.71), ty(0.53), tx(0.73), ty(0.54), tx(0.75), ty(0.53));
-
-    // ── 6. 大拇指：更瘦、更贴近手掌，取消肥厚球形感 ───────────────
-    // 靠近食指的内侧边缘
-    path.cubicTo(tx(0.78), ty(0.48), tx(0.82), ty(0.45), tx(0.86), ty(0.44));
-    // 指尖平滑过渡，更修长
-    path.cubicTo(tx(0.90), ty(0.43), tx(0.91), ty(0.52), tx(0.88), ty(0.56));
-    // 大鱼际下缘向手腕回归
-    path.cubicTo(tx(0.85), ty(0.66), tx(0.79), ty(0.74), tx(0.71), ty(0.84));
-
-    path.lineTo(tx(0.28), ty(0.84));
-    path.close();
-
-    // 背景填充
-    final fillPaint = Paint()
-      ..color = color.withValues(alpha: 0.03)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(path, fillPaint);
-
-    // 主边缘描边
-    final strokePaint = Paint()
-      ..color = color.withValues(alpha: 0.85)
-      ..strokeWidth = 1.8
-      ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, strokePaint);
-
-    // ── 8. 掌纹及指关节点缀 ─────────────────
-    final creasePaint = Paint()
-      ..color = color.withValues(alpha: 0.5)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round
-      ..strokeCap = StrokeCap.round;
-
-    final lifeLine = Path()
-      ..moveTo(tx(0.75), ty(0.58))
-      ..cubicTo(tx(0.66), ty(0.64), tx(0.56), ty(0.75), tx(0.58), ty(0.84));
-    canvas.drawPath(lifeLine, creasePaint);
-
-    final headLine = Path()
-      ..moveTo(tx(0.73), ty(0.59))
-      ..cubicTo(tx(0.60), ty(0.60), tx(0.45), ty(0.66), tx(0.38), ty(0.76));
-    canvas.drawPath(headLine, creasePaint);
-
-    final heartLine = Path()
-      ..moveTo(tx(0.28), ty(0.60))
-      ..cubicTo(tx(0.40), ty(0.58), tx(0.54), ty(0.50), tx(0.64), ty(0.48));
-    canvas.drawPath(heartLine, creasePaint);
-
-    // 关节纹理修饰
-    final jointPaint = Paint()
-      ..color = color.withValues(alpha: 0.35)
-      ..strokeWidth = 0.8
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    void drawJoint(double x1, double y1, double x2, double y2) {
-      final p = Path();
-      p.moveTo(tx(x1), ty(y1));
-      p.quadraticBezierTo(
-        tx((x1 + x2) / 2),
-        ty((y1 + y2) / 2 + 0.005),
-        tx(x2),
-        ty(y2),
-      );
-      canvas.drawPath(p, jointPaint);
-    }
-
-    // 微调至新手指标度
-    drawJoint(0.21, 0.37, 0.25, 0.38);
-    drawJoint(0.37, 0.26, 0.41, 0.26);
-    drawJoint(0.52, 0.19, 0.56, 0.19);
-    drawJoint(0.67, 0.24, 0.71, 0.25);
-    drawJoint(0.83, 0.50, 0.87, 0.49);
-  }
-
-  @override
-  bool shouldRepaint(_HandOutlinePainter o) => o.color != color;
-}
 
 // ── 手掌方向/距离提示气泡 ─────────────────────────────────────────────────────
 
