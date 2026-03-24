@@ -28,7 +28,7 @@ class AppRoutes {
 
 // ─── 路由配置 ─────────────────────────────────────────────────────
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.login, // 默认启动页改为登录页
+  initialLocation: AppRoutes.home, // 默认启动页改为首页
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
