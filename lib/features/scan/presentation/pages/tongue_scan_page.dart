@@ -28,7 +28,6 @@ enum ScanState { idle, scanning, completed }
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
 const _kAccent = Color(0xFF0D7A5A); // 主强调色
 const _kAccentLight = Color(0xFF3DAB78); // 按钮渐变亮端
-const _kRed = Color(0xFFE88080); // 舌象状态色（保留原设计）
 const _kBgColor = Color(0xFFF4F1EB); // 宣纸米色
 
 class TongueScanPage extends StatefulWidget {
@@ -38,13 +37,15 @@ class TongueScanPage extends StatefulWidget {
 }
 
 class _TongueScanPageState extends State<TongueScanPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TongueScanStatusBridge _statusBridge = TongueScanStatusBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
 
   late AnimationController _scanCtrl;
   late Animation<double> _scanAnim;
+  late AnimationController _breatheCtrl;
+  late Animation<double> _breatheAnim;
   StreamSubscription<TongueScanStatus>? _statusSubscription;
   Timer? _holdTimer;
 
@@ -66,6 +67,14 @@ class _TongueScanPageState extends State<TongueScanPage>
       begin: 0.1,
       end: 0.88,
     ).animate(CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
+    
+    _breatheCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _breatheAnim = Tween<double>(begin: 0.6, end: 1.0)
+        .animate(CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut));
+        
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) _requestPermission();
     });
@@ -191,6 +200,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   void dispose() {
     _holdTimer?.cancel();
     _scanCtrl.dispose();
+    _breatheCtrl.dispose();
     _statusSubscription?.cancel();
     _statusSubscription = null;
     super.dispose();
@@ -416,45 +426,45 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: const CameraPreviewWidget(
-            key: ValueKey('shared_camera_preview'),
-          ),
-        ),
-        // 渐变遮罩（上下融入米色背景）
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  _kBgColor.withValues(alpha: 0.55),
-                  Colors.transparent,
-                  Colors.transparent,
-                  _kBgColor.withValues(alpha: 0.55),
-                ],
-                stops: const [0.0, 0.18, 0.78, 1.0],
-              ),
+    return LayoutBuilder(builder: (context, constraints) {
+      final cx = constraints.maxWidth / 2;
+      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.15) / 2;
+      final radius = constraints.maxWidth * 0.42;
+
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: const CameraPreviewWidget(
+              key: ValueKey('shared_camera_preview'),
             ),
           ),
-        ),
-        // 舌形扫描框（稍上移）
-        Align(alignment: const Alignment(0, -0.2), child: _buildTongueFrame()),
-      ],
-    );
+          Positioned.fill(
+            child: _CircleMask(
+              center: Offset(cx, cy),
+              radius: radius,
+              bgColor: _kBgColor,
+            ),
+          ),
+          Align(
+            alignment: const Alignment(0, -0.15),
+            child: _buildTongueFrame(),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildTongueFrame() {
-    const frameW = 230.0;
-    const frameH = 155.0;
+    const frameW = 200.0;
+    const frameH = 240.0;
     final isActive = _scanState == ScanState.scanning;
     final isCompleted = _scanState == ScanState.completed;
-    final highlightColor = (isCompleted || _tongueDetected)
-        ? _kRed
-        : _kRed.withValues(alpha: 0.5);
+    final isAligned = _tongueDetected;
+
+    final outerColor = const Color(0xFF7EC8A0);
+    final innerColor = (isCompleted || isAligned)
+        ? const Color(0xFF4CAF50)
+        : const Color(0xFFE55D5D);
 
     return SizedBox(
       width: frameW,
@@ -462,63 +472,64 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 外发光晕
+          // 左侧：自然伸出 提示
           Positioned(
-            top: -10,
-            left: -10,
-            right: -10,
-            bottom: -10,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(90),
-                border: Border.all(
-                  color: _kRed.withValues(alpha: 0.08),
-                  width: 12,
-                ),
-              ),
-            ),
-          ),
-          // 主口形框（上圆下扁）
-          Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(80),
-                  bottom: Radius.circular(55),
-                ),
-                border: Border.all(color: highlightColor, width: 1.5),
-              ),
-            ),
-          ),
-          // 四角装饰
-          Positioned(
-            top: -1,
-            left: 38,
-            child: _ScanCorner(color: _kRed, top: true, left: true),
-          ),
-          Positioned(
-            top: -1,
-            right: 38,
-            child: _ScanCorner(color: _kRed, top: true, left: false),
-          ),
-          Positioned(
-            bottom: -1,
-            left: 18,
-            child: _ScanCorner(color: _kRed, top: false, left: true),
-          ),
-          Positioned(
-            bottom: -1,
-            right: 18,
-            child: _ScanCorner(color: _kRed, top: false, left: false),
-          ),
-          // 水平参考线
-          Positioned(
+            left: -80,
             top: frameH * 0.4,
-            left: frameW * 0.2,
-            right: frameW * 0.2,
-            child: Container(height: 0.5, color: _kRed.withValues(alpha: 0.18)),
+            child: const _SideGuidanceIcon(
+                icon: Icons.face_retouching_natural, label: '自然\n伸出'),
           ),
+          // 右侧：舌面平伸 提示
+          Positioned(
+            right: -80,
+            top: frameH * 0.4,
+            child: const _SideGuidanceIcon(
+                icon: Icons.horizontal_rule_rounded, label: '舌面\n平伸'),
+          ),
+
+          // 容错区 (外层)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _BionicTonguePainter(
+                color: outerColor.withValues(alpha: 0.6),
+                strokeWidth: 1.0,
+                fillColor: outerColor.withValues(alpha: 0.05),
+                scale: 1.15,
+              ),
+            ),
+          ),
+
+          // 精准区 (内层) 带有呼吸动画及对齐后反馈
+          Positioned.fill(
+            child: AnimatedBuilder(
+                animation: _breatheAnim,
+                builder: (context, child) {
+                  final opacity =
+                      (!isAligned && !isCompleted) ? _breatheAnim.value : 1.0;
+                  final haloProgress = isCompleted ? 1.0 : 0.0;
+
+                  return TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: haloProgress.toDouble()),
+                      duration: const Duration(milliseconds: 500),
+                      builder: (context, haloVal, _) {
+                        return Opacity(
+                          opacity: opacity,
+                          child: CustomPaint(
+                            painter: _BionicTonguePainter(
+                              color: innerColor,
+                              strokeWidth: 1.5,
+                              drawNodes: isAligned || isCompleted,
+                              nodeSize:
+                                  (isAligned && !isCompleted) ? 6.0 : 4.0,
+                              haloOpacity: haloVal,
+                              haloColor: const Color(0xFF7EC8A0),
+                            ),
+                          ),
+                        );
+                      });
+                }),
+          ),
+
           // 扫描线
           AnimatedBuilder(
             animation: _scanAnim,
@@ -532,7 +543,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      _kRed.withValues(alpha: isActive ? 0.85 : 0.2),
+                      innerColor.withValues(alpha: isActive ? 0.85 : 0.2),
                       Colors.transparent,
                     ],
                   ),
@@ -540,7 +551,8 @@ class _TongueScanPageState extends State<TongueScanPage>
               ),
             ),
           ),
-          // 进度弧（检测到舌头时显示）
+
+          // 进度条（底部）
           if (_scanState == ScanState.scanning && _tongueDetected)
             Positioned(
               bottom: -52,
@@ -548,9 +560,10 @@ class _TongueScanPageState extends State<TongueScanPage>
               right: frameW * 0.2,
               child: _ScanProgressBar(progress: _scanProgress),
             ),
+
           // 状态气泡
           Positioned(
-            bottom: _tongueDetected ? -80 : -48,
+            bottom: _tongueDetected ? -90 : -48,
             left: -40,
             right: -40,
             child: Center(
@@ -558,7 +571,8 @@ class _TongueScanPageState extends State<TongueScanPage>
                   ? _TongueDirectionPill(direction: _mouthDirection)
                   : _StatusPill(
                       label: _statusLabel,
-                      detected: _tongueDetected || (_scanState == ScanState.completed),
+                      detected: _tongueDetected ||
+                          (_scanState == ScanState.completed),
                     ),
             ),
           ),
@@ -802,75 +816,6 @@ class _StatusPill extends StatelessWidget {
   );
 }
 
-class _ScanCorner extends StatelessWidget {
-  final Color color;
-  final bool top;
-  final bool left;
-  const _ScanCorner({
-    required this.color,
-    required this.top,
-    required this.left,
-  });
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 24,
-    height: 24,
-    child: CustomPaint(
-      painter: _ScanCornerPainter(color: color, top: top, left: left),
-    ),
-  );
-}
-
-class _ScanCornerPainter extends CustomPainter {
-  final Color color;
-  final bool top;
-  final bool left;
-  const _ScanCornerPainter({
-    required this.color,
-    required this.top,
-    required this.left,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    const r = 8.0;
-    final path = Path();
-    if (top && left) {
-      path.moveTo(0, size.height);
-      path.lineTo(0, r);
-      path.arcToPoint(Offset(r, 0), radius: const Radius.circular(r));
-      path.lineTo(size.width, 0);
-    } else if (top) {
-      path.moveTo(0, 0);
-      path.lineTo(size.width - r, 0);
-      path.arcToPoint(Offset(size.width, r), radius: const Radius.circular(r));
-      path.lineTo(size.width, size.height);
-    } else if (left) {
-      path.moveTo(0, 0);
-      path.lineTo(0, size.height - r);
-      path.arcToPoint(Offset(r, size.height), radius: const Radius.circular(r));
-      path.lineTo(size.width, size.height);
-    } else {
-      path.moveTo(0, size.height);
-      path.lineTo(size.width - r, size.height);
-      path.arcToPoint(
-        Offset(size.width, size.height - r),
-        radius: const Radius.circular(r),
-      );
-      path.lineTo(size.width, 0);
-    }
-    canvas.drawPath(path, p);
-  }
-
-  @override
-  bool shouldRepaint(_ScanCornerPainter o) => false;
-}
 
 // ── 背景画布（与 scan_guide_page 完全一致）──────────────────────────────────
 
@@ -919,6 +864,158 @@ class _BgPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
+// ── 舌状扫描相关 Painter 及 Widget ──────────────────────────────────────────
+
+class _CircleMask extends StatelessWidget {
+  final Offset center;
+  final double radius;
+  final Color bgColor;
+
+  const _CircleMask({
+    required this.center,
+    required this.radius,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _CircleMaskPainter(center: center, radius: radius, bgColor: bgColor),
+    );
+  }
+}
+
+class _CircleMaskPainter extends CustomPainter {
+  final Offset center;
+  final double radius;
+  final Color bgColor;
+
+  _CircleMaskPainter({required this.center, required this.radius, required this.bgColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final circlePath = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
+    final fullPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final maskPath = Path.combine(PathOperation.difference, fullPath, circlePath);
+    canvas.drawPath(maskPath, Paint()..color = bgColor); // 不透明边缘遮罩
+  }
+
+  @override
+  bool shouldRepaint(_CircleMaskPainter old) =>
+      old.center != center || old.radius != radius;
+}
+
+class _BionicTonguePainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final Color? fillColor;
+  final double scale;
+  final bool drawNodes;
+  final double nodeSize;
+  final double haloOpacity;
+  final Color haloColor;
+
+  _BionicTonguePainter({
+    required this.color,
+    this.strokeWidth = 1.5,
+    this.fillColor,
+    this.scale = 1.0,
+    this.drawNodes = false,
+    this.nodeSize = 4.0,
+    this.haloOpacity = 0.0,
+    this.haloColor = Colors.transparent,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.scale(scale);
+    canvas.translate(-cx, -cy);
+
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+
+    path.moveTo(w * 0.5, h * 0.12);
+    path.cubicTo(w * 0.65, h * 0.05, w * 0.85, h * 0.05, w * 0.9, h * 0.25);
+    path.cubicTo(w * 0.95, h * 0.5, w * 0.9, h * 0.75, w * 0.75, h * 0.9);
+    path.cubicTo(w * 0.6, h * 1.0, w * 0.4, h * 1.0, w * 0.25, h * 0.9);
+    path.cubicTo(w * 0.1, h * 0.75, w * 0.05, h * 0.5, w * 0.1, h * 0.25);
+    path.cubicTo(w * 0.15, h * 0.05, w * 0.35, h * 0.05, w * 0.5, h * 0.12);
+    path.close();
+
+    if (haloOpacity > 0) {
+      final haloPaint = Paint()
+        ..color = haloColor.withValues(alpha: haloOpacity * 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 14.0
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
+      canvas.drawPath(path, haloPaint);
+    }
+
+    if (fillColor != null) {
+      canvas.drawPath(path, Paint()..color = fillColor!);
+    }
+
+    final strokePaint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, strokePaint);
+
+    if (drawNodes) {
+      final nodePaint = Paint()..color = color;
+      final nodes = [
+        Offset(w * 0.18, h * 0.18),
+        Offset(w * 0.82, h * 0.18),
+        Offset(w * 0.2, h * 0.8),
+        Offset(w * 0.8, h * 0.8),
+      ];
+      for (final pt in nodes) {
+        canvas.drawCircle(pt, nodeSize, nodePaint);
+      }
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_BionicTonguePainter old) => true;
+}
+
+class _SideGuidanceIcon extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _SideGuidanceIcon({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: const Color(0xFF4B3E75).withValues(alpha: 0.8), size: 22),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF4B3E75).withValues(alpha: 0.8),
+            fontSize: 10,
+            height: 1.3,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ── 方向引导气泡 ────────────────────────────────────────────────────────────
