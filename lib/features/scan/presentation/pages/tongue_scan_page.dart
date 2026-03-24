@@ -428,8 +428,10 @@ class _TongueScanPageState extends State<TongueScanPage>
   Widget _buildCameraArea() {
     return LayoutBuilder(builder: (context, constraints) {
       final cx = constraints.maxWidth / 2;
-      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.15) / 2;
-      final radius = constraints.maxWidth * 0.42;
+      // 下移圆心，避免被上方引导层遮挡
+      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.1) / 2;
+      // 缩小圆圈半径
+      final radius = constraints.maxWidth * 0.36;
 
       return Stack(
         children: [
@@ -446,7 +448,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Align(
-            alignment: const Alignment(0, -0.15),
+            alignment: const Alignment(0, -0.1),
             child: _buildTongueFrame(),
           ),
         ],
@@ -472,21 +474,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 左侧：自然伸出 提示
-          Positioned(
-            left: -80,
-            top: frameH * 0.4,
-            child: const _SideGuidanceIcon(
-                icon: Icons.face_retouching_natural, label: '自然\n伸出'),
-          ),
-          // 右侧：舌面平伸 提示
-          Positioned(
-            right: -80,
-            top: frameH * 0.4,
-            child: const _SideGuidanceIcon(
-                icon: Icons.horizontal_rule_rounded, label: '舌面\n平伸'),
-          ),
-
           // 容错区 (外层)
           Positioned.fill(
             child: CustomPaint(
@@ -555,7 +542,7 @@ class _TongueScanPageState extends State<TongueScanPage>
           // 进度条（底部）
           if (_scanState == ScanState.scanning && _tongueDetected)
             Positioned(
-              bottom: -52,
+              bottom: -66,
               left: frameW * 0.2,
               right: frameW * 0.2,
               child: _ScanProgressBar(progress: _scanProgress),
@@ -563,7 +550,7 @@ class _TongueScanPageState extends State<TongueScanPage>
 
           // 状态气泡
           Positioned(
-            bottom: _tongueDetected ? -90 : -48,
+            bottom: -48,
             left: -40,
             right: -40,
             child: Center(
@@ -990,33 +977,6 @@ class _BionicTonguePainter extends CustomPainter {
   bool shouldRepaint(_BionicTonguePainter old) => true;
 }
 
-class _SideGuidanceIcon extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _SideGuidanceIcon({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: const Color(0xFF4B3E75).withValues(alpha: 0.8), size: 22),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: const Color(0xFF4B3E75).withValues(alpha: 0.8),
-            fontSize: 10,
-            height: 1.3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 // ── 方向引导气泡 ────────────────────────────────────────────────────────────
 
