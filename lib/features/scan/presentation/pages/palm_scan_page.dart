@@ -385,50 +385,34 @@ class _PalmScanPageState extends State<PalmScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return LayoutBuilder(builder: (context, constraints) {
-      const frameW = 190.0;
-      const frameH = 260.0;
-      final cx = constraints.maxWidth / 2;
-      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.1) / 2;
-
-      return Stack(
-        children: [
-          Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('palm_camera_preview'))),
-          Positioned.fill(
-            child: HandLandmarkOverlay(
-              normalizedLandmarks: _handLandmarks,
-              imageSize: _imageSize,
-              mirrored: false,
-            ),
+    return Stack(
+      children: [
+        Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('palm_camera_preview'))),
+        Positioned.fill(
+          child: HandLandmarkOverlay(
+            normalizedLandmarks: _handLandmarks,
+            imageSize: _imageSize,
+            mirrored: false,
           ),
-          // 矩形框外遇罩（只显示框内画面）
-          Positioned.fill(
-            child: _PalmRectMask(
-              center: Offset(cx, cy),
-              width: frameW,
-              height: frameH,
-              bgColor: _kBgColor,
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [_kBgColor.withValues(alpha: 0.55), Colors.transparent, Colors.transparent, _kBgColor.withValues(alpha: 0.55)],
-                  stops: const [0.0, 0.18, 0.78, 1.0],
-                ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_kBgColor.withValues(alpha: 0.55), Colors.transparent, Colors.transparent, _kBgColor.withValues(alpha: 0.55)],
+                stops: const [0.0, 0.18, 0.78, 1.0],
               ),
             ),
           ),
-          Align(
-            alignment: const Alignment(0, -0.1),
-            child: _buildPalmFrame(),
-          ),
-        ],
-      );
-    });
+        ),
+        Align(
+          alignment: const Alignment(0, -0.1),
+          child: _buildPalmFrame(),
+        ),
+      ],
+    );
   }
 
   Widget _buildPalmFrame() {
@@ -994,63 +978,6 @@ class _HandOutlinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HandOutlinePainter o) => o.color != color;
-}
-
-// ── 手掌区域矩形遮罩 ──────────────────────────────────────────────────────────────
-
-class _PalmRectMask extends StatelessWidget {
-  final Offset center;
-  final double width;
-  final double height;
-  final Color bgColor;
-
-  const _PalmRectMask({
-    required this.center,
-    required this.width,
-    required this.height,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _PalmRectMaskPainter(
-        center: center,
-        width: width,
-        height: height,
-        bgColor: bgColor,
-      ),
-    );
-  }
-}
-
-class _PalmRectMaskPainter extends CustomPainter {
-  final Offset center;
-  final double width;
-  final double height;
-  final Color bgColor;
-
-  const _PalmRectMaskPainter({
-    required this.center,
-    required this.width,
-    required this.height,
-    required this.bgColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCenter(center: center, width: width, height: height);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(18));
-    final roundedPath = Path()..addRRect(rrect);
-    final fullPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final maskPath = Path.combine(PathOperation.difference, fullPath, roundedPath);
-    canvas.drawPath(maskPath, Paint()..color = bgColor.withValues(alpha: 0.92));
-  }
-
-  @override
-  bool shouldRepaint(_PalmRectMaskPainter o) =>
-      o.center != center || o.width != width || o.height != height;
 }
 
 // ── 手掌方向/距离提示气泡 ─────────────────────────────────────────────────────

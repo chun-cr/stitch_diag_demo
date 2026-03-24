@@ -367,63 +367,46 @@ class _FaceScanPageState extends State<FaceScanPage>
   // ─── 中间拍摄区 ──────────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return LayoutBuilder(builder: (context, constraints) {
-      const frameW = 210.0;
-      const frameH = 262.0;
-      // 椭圆框在拍摄区的中心偏移（Alignment(0, -0.25)）
-      final cx = constraints.maxWidth / 2;
-      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.25) / 2;
-
-      return Stack(
-        children: [
-          // 相机预览（始终渲染）
+    return Stack(
+      children: [
+        // 相机预览（始终渲染）
+        Positioned.fill(
+          child: ClipRect(
+            child: const CameraPreviewWidget(
+              key: ValueKey('shared_camera_preview'),
+            ),
+          ),
+        ),
+        if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)
           Positioned.fill(
-            child: ClipRect(
-              child: const CameraPreviewWidget(
-                key: ValueKey('shared_camera_preview'),
+            child: FaceLandmarkOverlay(
+              normalizedLandmarks: _normalizedLandmarks,
+              imageSize: _sourceImageSize,
+              mirrored: true,
+            ),
+          ),
+        // 渐变遮罩（上下淡出，融入米色背景）
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                  Colors.transparent,
+                  Colors.transparent,
+                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                ],
+                stops: const [0.0, 0.18, 0.78, 1.0],
               ),
             ),
           ),
-          if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)
-            Positioned.fill(
-              child: FaceLandmarkOverlay(
-                normalizedLandmarks: _normalizedLandmarks,
-                imageSize: _sourceImageSize,
-                mirrored: true,
-              ),
-            ),
-          // 椭圆区域之外的遮罩（只显示椭圆内画面）
-          Positioned.fill(
-            child: _OvalMaskPainter(
-              ovalCenter: Offset(cx, cy),
-              ovalWidth: frameW,
-              ovalHeight: frameH,
-              bgColor: const Color(0xFFF4F1EB),
-            ),
-          ),
-          // 渐变遮罩（上下淡出，融入米色背景）
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFFF4F1EB).withValues(alpha: 0.55),
-                    Colors.transparent,
-                    Colors.transparent,
-                    const Color(0xFFF4F1EB).withValues(alpha: 0.55),
-                  ],
-                  stops: const [0.0, 0.18, 0.78, 1.0],
-                ),
-              ),
-            ),
-          ),
-          // 椭圆扫描框（上移，让下半屏留给底部卡）
-          Align(alignment: const Alignment(0, -0.25), child: _buildOvalFrame()),
-        ],
-      );
-    });
+        ),
+        // 椭圆扫描框（上移，让下半屏留给底部卡）
+        Align(alignment: const Alignment(0, -0.25), child: _buildOvalFrame()),
+      ],
+    );
   }
 
   Widget _buildOvalFrame() {
@@ -907,68 +890,6 @@ class _BgPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
-}
-
-// ── 椭圆遮罩：将椭圆区域之外填充背景色 ──────────────────────────────────────
-
-class _OvalMaskPainter extends StatelessWidget {
-  final Offset ovalCenter;
-  final double ovalWidth;
-  final double ovalHeight;
-  final Color bgColor;
-
-  const _OvalMaskPainter({
-    required this.ovalCenter,
-    required this.ovalWidth,
-    required this.ovalHeight,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _OvalMaskCustomPainter(
-        ovalCenter: ovalCenter,
-        ovalWidth: ovalWidth,
-        ovalHeight: ovalHeight,
-        bgColor: bgColor,
-      ),
-    );
-  }
-}
-
-class _OvalMaskCustomPainter extends CustomPainter {
-  final Offset ovalCenter;
-  final double ovalWidth;
-  final double ovalHeight;
-  final Color bgColor;
-
-  const _OvalMaskCustomPainter({
-    required this.ovalCenter,
-    required this.ovalWidth,
-    required this.ovalHeight,
-    required this.bgColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCenter(
-      center: ovalCenter,
-      width: ovalWidth,
-      height: ovalHeight,
-    );
-    final ovalPath = Path()..addOval(rect);
-    final fullPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final maskPath = Path.combine(PathOperation.difference, fullPath, ovalPath);
-    canvas.drawPath(maskPath, Paint()..color = bgColor.withValues(alpha: 0.92));
-  }
-
-  @override
-  bool shouldRepaint(_OvalMaskCustomPainter old) =>
-      old.ovalCenter != ovalCenter ||
-      old.ovalWidth != ovalWidth ||
-      old.ovalHeight != ovalHeight;
 }
 
 // ── 方向引导气泡 ──────────────────────────────────────────────────────────────

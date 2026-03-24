@@ -416,51 +416,35 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return LayoutBuilder(builder: (context, constraints) {
-      const frameW = 230.0;
-      const frameH = 155.0;
-      final cx = constraints.maxWidth / 2;
-      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.2) / 2;
-
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: const CameraPreviewWidget(
-              key: ValueKey('shared_camera_preview'),
-            ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: const CameraPreviewWidget(
+            key: ValueKey('shared_camera_preview'),
           ),
-          // 椭圆区域之外的遮罩（只显示框内画面）
-          Positioned.fill(
-            child: _TongueEllipseMask(
-              center: Offset(cx, cy),
-              width: frameW,
-              height: frameH,
-              bgColor: _kBgColor,
-            ),
-          ),
-          // 渐变遮罩（上下融入米色背景）
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    _kBgColor.withValues(alpha: 0.55),
-                    Colors.transparent,
-                    Colors.transparent,
-                    _kBgColor.withValues(alpha: 0.55),
-                  ],
-                  stops: const [0.0, 0.18, 0.78, 1.0],
-                ),
+        ),
+        // 渐变遮罩（上下融入米色背景）
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  _kBgColor.withValues(alpha: 0.55),
+                  Colors.transparent,
+                  Colors.transparent,
+                  _kBgColor.withValues(alpha: 0.55),
+                ],
+                stops: const [0.0, 0.18, 0.78, 1.0],
               ),
             ),
           ),
-          // 舌形扫描框（稍上移）
-          Align(alignment: const Alignment(0, -0.2), child: _buildTongueFrame()),
-        ],
-      );
-    });
+        ),
+        // 舌形扫描框（稍上移）
+        Align(alignment: const Alignment(0, -0.2), child: _buildTongueFrame()),
+      ],
+    );
   }
 
   Widget _buildTongueFrame() {
@@ -935,68 +919,6 @@ class _BgPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
-}
-
-// ── 舒形局部陰影遮罩 ────────────────────────────────────────────────────────
-
-class _TongueEllipseMask extends StatelessWidget {
-  final Offset center;
-  final double width;
-  final double height;
-  final Color bgColor;
-
-  const _TongueEllipseMask({
-    required this.center,
-    required this.width,
-    required this.height,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _TongueEllipseMaskPainter(
-        center: center,
-        width: width,
-        height: height,
-        bgColor: bgColor,
-      ),
-    );
-  }
-}
-
-class _TongueEllipseMaskPainter extends CustomPainter {
-  final Offset center;
-  final double width;
-  final double height;
-  final Color bgColor;
-
-  const _TongueEllipseMaskPainter({
-    required this.center,
-    required this.width,
-    required this.height,
-    required this.bgColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 使用色差路径抓取屠灬形区域外的所有内容
-    final rect = Rect.fromCenter(
-      center: center,
-      width: width,
-      height: height,
-    );
-    final ellipsePath = Path()..addOval(rect);
-    final fullPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final maskPath =
-        Path.combine(PathOperation.difference, fullPath, ellipsePath);
-    canvas.drawPath(maskPath, Paint()..color = bgColor.withValues(alpha: 0.92));
-  }
-
-  @override
-  bool shouldRepaint(_TongueEllipseMaskPainter o) =>
-      o.center != center || o.width != width || o.height != height;
 }
 
 // ── 方向引导气泡 ────────────────────────────────────────────────────────────
