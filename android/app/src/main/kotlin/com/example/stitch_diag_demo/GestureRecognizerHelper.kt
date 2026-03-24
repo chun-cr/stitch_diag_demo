@@ -37,7 +37,7 @@ class GestureRecognizerHelper(private val context: Context) {
             .setBaseOptions(baseOptionsBuilder.build())
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumHands(2)
-            .setResultListener { result: GestureRecognizerResult, _: MPImage ->
+            .setResultListener { result: GestureRecognizerResult, mpImage: MPImage ->
                 val gesture = result.gestures().firstOrNull()?.firstOrNull()
                 val gestureName = gesture?.categoryName() ?: ""
                 val score = gesture?.score()?.toDouble() ?: 0.0

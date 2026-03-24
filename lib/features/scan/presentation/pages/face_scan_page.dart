@@ -72,12 +72,6 @@ class _FaceScanPageState extends State<FaceScanPage>
       });
       await _statusBridge.initialize();
       await _statusBridge.startMonitoring();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('需要相机权限才能进行面部扫描')));
-      }
     }
   }
 

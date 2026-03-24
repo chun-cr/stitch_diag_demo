@@ -36,8 +36,9 @@ class CameraManager(private val context: Context) {
     private var currentSelector: CameraSelector? = null
 
     private fun applyPreviewTransform() {
-        val isFrontCamera = currentSelector == CameraSelector.DEFAULT_FRONT_CAMERA
-        lastPreviewView?.scaleX = if (isFrontCamera) -1f else 1f
+        // CameraX PreviewView automatically handles mirroring for the front camera.
+        // Overriding scaleX to -1f actually un-mirrors it.
+        lastPreviewView?.scaleX = 1f
     }
 
     fun startCamera() {

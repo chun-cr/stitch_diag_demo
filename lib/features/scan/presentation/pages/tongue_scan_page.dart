@@ -83,12 +83,6 @@ class _TongueScanPageState extends State<TongueScanPage>
   Future<void> _requestPermission() async {
     final status = await Permission.camera.request();
     if (!mounted) return;
-    if (!status.isGranted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('需要相机权限才能进行舌象扫描')));
-      return;
-    }
     setState(() {
       _hasPermission = true;
       _scanState = ScanState.scanning;
