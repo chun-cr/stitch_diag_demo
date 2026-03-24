@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class TongueScanStatus {
@@ -9,6 +10,8 @@ class TongueScanStatus {
   final List<dynamic> landmarks;
   final double imageWidth;
   final double imageHeight;
+  /// 嘴部中心归一化坐标（0~1），无数据时为 null
+  final Offset? mouthCenter;
 
   const TongueScanStatus({
     required this.tongueDetected,
@@ -17,6 +20,7 @@ class TongueScanStatus {
     this.landmarks = const [],
     this.imageWidth = 0,
     this.imageHeight = 0,
+    this.mouthCenter,
   });
 
   bool get mouthPresent => mouthLandmarkCount > 0;
@@ -37,6 +41,25 @@ class TongueScanStatus {
     final mouthLandmarks = data['mouthLandmarks'];
     final landmarks = data['landmarks'] as List? ?? [];
 
+    // 计算嘴部中心点
+    Offset? mouthCenter;
+    if (mouthLandmarks is List && mouthLandmarks.isNotEmpty) {
+      double sumX = 0, sumY = 0;
+      int count = 0;
+      for (final pt in mouthLandmarks) {
+        if (pt is Map) {
+          final x = (pt['x'] as num?)?.toDouble();
+          final y = (pt['y'] as num?)?.toDouble();
+          if (x != null && y != null) {
+            sumX += x;
+            sumY += y;
+            count++;
+          }
+        }
+      }
+      if (count > 0) mouthCenter = Offset(sumX / count, sumY / count);
+    }
+
     return TongueScanStatus(
       tongueDetected: data['tongueDetected'] as bool? ?? false,
       tongueOutScore: (data['tongueOutScore'] as num?)?.toDouble() ?? 0,
@@ -44,6 +67,7 @@ class TongueScanStatus {
       landmarks: landmarks,
       imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
       imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
+      mouthCenter: mouthCenter,
     );
   }
 }

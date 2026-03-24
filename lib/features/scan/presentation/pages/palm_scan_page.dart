@@ -52,6 +52,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   PalmScanState _scanState = PalmScanState.idle;
   List<Offset> _handLandmarks = const [];
   Size? _imageSize;
+  String _palmHint = ''; // 距离 / 方向提示
 
   @override
   void initState() {
@@ -91,6 +92,7 @@ class _PalmScanPageState extends State<PalmScanPage>
           _gestureName = status.gestureName;
           _handLandmarks = status.landmarks;
           _imageSize = Size(status.imageWidth, status.imageHeight);
+          _palmHint = status.handPresent ? _computePalmHint(status.landmarks) : '';
         });
 
         if (_scanState != PalmScanState.scanning) return;
@@ -176,6 +178,37 @@ class _PalmScanPageState extends State<PalmScanPage>
   Future<void> _navigateToReportAfterDelay() async {
     await Future<void>.delayed(_postSuccessDelay);
     await _navigateToReport();
+  }
+
+  /// 根据手部 21 个 landmark 的包围盒大小判断距离，并检测中心偏移。
+  /// 归一化坐标 (0~1).小 = 太远，大 = 太近。
+  String _computePalmHint(List<Offset> lm) {
+    if (lm.isEmpty) return '';
+    double minX = 1, maxX = 0, minY = 1, maxY = 0;
+    for (final p in lm) {
+      if (p.dx < minX) minX = p.dx;
+      if (p.dx > maxX) maxX = p.dx;
+      if (p.dy < minY) minY = p.dy;
+      if (p.dy > maxY) maxY = p.dy;
+    }
+    final bboxW = maxX - minX;
+    final bboxH = maxY - minY;
+    final bboxArea = bboxW * bboxH;
+    // 面积闾值：对觓线占自归一化画幅的比例
+    if (bboxArea < 0.04) return '手掂太远，请靠近一点';
+    if (bboxArea > 0.40) return '手掂太近，请离远一点';
+    // 居中检测
+    final cx = (minX + maxX) / 2;
+    final cy = (minY + maxY) / 2;
+    const threshold = 0.15;
+    final dx = cx - 0.5;
+    final dy = cy - 0.5;
+    if (dx.abs() >= dy.abs() && dx.abs() > threshold) {
+      return dx > 0 ? '← 请向左移动' : '→ 请向右移动';
+    } else if (dy.abs() > threshold) {
+      return dy > 0 ? '↑ 请向上移动' : '↓ 请向下移动';
+    }
+    return '';
   }
 
   // ── 文案 ─────────────────────────────────────────────────────────
@@ -352,34 +385,50 @@ class _PalmScanPageState extends State<PalmScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return Stack(
-      children: [
-        Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('palm_camera_preview'))),
-        Positioned.fill(
-          child: HandLandmarkOverlay(
-            normalizedLandmarks: _handLandmarks,
-            imageSize: _imageSize,
-            mirrored: false,
+    return LayoutBuilder(builder: (context, constraints) {
+      const frameW = 190.0;
+      const frameH = 260.0;
+      final cx = constraints.maxWidth / 2;
+      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.1) / 2;
+
+      return Stack(
+        children: [
+          Positioned.fill(child: const CameraPreviewWidget(key: ValueKey('palm_camera_preview'))),
+          Positioned.fill(
+            child: HandLandmarkOverlay(
+              normalizedLandmarks: _handLandmarks,
+              imageSize: _imageSize,
+              mirrored: false,
+            ),
           ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [_kBgColor.withValues(alpha: 0.55), Colors.transparent, Colors.transparent, _kBgColor.withValues(alpha: 0.55)],
-                stops: const [0.0, 0.18, 0.78, 1.0],
+          // 矩形框外遇罩（只显示框内画面）
+          Positioned.fill(
+            child: _PalmRectMask(
+              center: Offset(cx, cy),
+              width: frameW,
+              height: frameH,
+              bgColor: _kBgColor,
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_kBgColor.withValues(alpha: 0.55), Colors.transparent, Colors.transparent, _kBgColor.withValues(alpha: 0.55)],
+                  stops: const [0.0, 0.18, 0.78, 1.0],
+                ),
               ),
             ),
           ),
-        ),
-        Align(
-          alignment: const Alignment(0, -0.1),
-          child: _buildPalmFrame(),
-        ),
-      ],
-    );
+          Align(
+            alignment: const Alignment(0, -0.1),
+            child: _buildPalmFrame(),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildPalmFrame() {
@@ -436,12 +485,14 @@ class _PalmScanPageState extends State<PalmScanPage>
           ),
 
           Positioned(
-            bottom: -44, left: -40, right: -40,
+            bottom: -48, left: -40, right: -40,
             child: Center(
-              child: _StatusPill(
-                label: _statusText(),
-                detected: _readyToScan || _scanState == PalmScanState.completed,
-              ),
+              child: _palmHint.isNotEmpty && !_readyToScan
+                  ? _PalmDirectionPill(hint: _palmHint)
+                  : _StatusPill(
+                      label: _statusText(),
+                      detected: _readyToScan || _scanState == PalmScanState.completed,
+                    ),
             ),
           ),
           if (_scanState == PalmScanState.scanning && _readyToScan)
@@ -943,4 +994,99 @@ class _HandOutlinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HandOutlinePainter o) => o.color != color;
+}
+
+// ── 手掌区域矩形遮罩 ──────────────────────────────────────────────────────────────
+
+class _PalmRectMask extends StatelessWidget {
+  final Offset center;
+  final double width;
+  final double height;
+  final Color bgColor;
+
+  const _PalmRectMask({
+    required this.center,
+    required this.width,
+    required this.height,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _PalmRectMaskPainter(
+        center: center,
+        width: width,
+        height: height,
+        bgColor: bgColor,
+      ),
+    );
+  }
+}
+
+class _PalmRectMaskPainter extends CustomPainter {
+  final Offset center;
+  final double width;
+  final double height;
+  final Color bgColor;
+
+  const _PalmRectMaskPainter({
+    required this.center,
+    required this.width,
+    required this.height,
+    required this.bgColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromCenter(center: center, width: width, height: height);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(18));
+    final roundedPath = Path()..addRRect(rrect);
+    final fullPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final maskPath = Path.combine(PathOperation.difference, fullPath, roundedPath);
+    canvas.drawPath(maskPath, Paint()..color = bgColor.withValues(alpha: 0.92));
+  }
+
+  @override
+  bool shouldRepaint(_PalmRectMaskPainter o) =>
+      o.center != center || o.width != width || o.height != height;
+}
+
+// ── 手掌方向/距离提示气泡 ─────────────────────────────────────────────────────
+
+class _PalmDirectionPill extends StatelessWidget {
+  final String hint;
+  const _PalmDirectionPill({required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: Container(
+        key: ValueKey(hint),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF8C42).withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF8C42).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Text(
+          hint,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
 }

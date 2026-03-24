@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 
 // ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
@@ -77,7 +79,10 @@ class _LoginPageState extends State<LoginPage>
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+      context.go(AppRoutes.home);
+    }
   }
 
   @override

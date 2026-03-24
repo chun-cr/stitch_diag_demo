@@ -53,6 +53,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _tongueDetected = false;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
+  String _mouthDirection = ''; // 方向提示
 
   @override
   void initState() {
@@ -114,11 +115,28 @@ class _TongueScanPageState extends State<TongueScanPage>
     setState(() {
       _mouthPresent = status.mouthPresent;
       _tongueDetected = status.tongueDetected;
+      _mouthDirection = (status.mouthPresent && !status.tongueDetected)
+          ? _computeMouthDirection(status.mouthCenter)
+          : '';
     });
     if (status.tongueDetected) {
       _startHoldTracking();
     } else {
       _cancelHoldTracking(resetProgress: true);
+    }
+  }
+
+  /// 根据嘴部中心（已归一化）0~1 计算偏移方向
+  String _computeMouthDirection(Offset? center) {
+    if (center == null) return '';
+    const threshold = 0.12;
+    final dx = center.dx - 0.5;
+    final dy = center.dy - 0.5;
+    if (dx.abs() < threshold && dy.abs() < threshold) return '';
+    if (dx.abs() >= dy.abs()) {
+      return dx > 0 ? '← 请向左移动' : '→ 请向右移动';
+    } else {
+      return dy > 0 ? '↑ 请向上移动' : '↓ 请向下移动';
     }
   }
 
@@ -398,36 +416,51 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return Stack(
-      children: [
-        // 相机预览（始终渲染，保证 Platform View 存在）
-        Positioned.fill(
-          child: const CameraPreviewWidget(
-            key: ValueKey('shared_camera_preview'),
+    return LayoutBuilder(builder: (context, constraints) {
+      const frameW = 230.0;
+      const frameH = 155.0;
+      final cx = constraints.maxWidth / 2;
+      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.2) / 2;
+
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: const CameraPreviewWidget(
+              key: ValueKey('shared_camera_preview'),
+            ),
           ),
-        ),
-        // 渐变遮罩（上下融入米色背景）
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  _kBgColor.withValues(alpha: 0.55),
-                  Colors.transparent,
-                  Colors.transparent,
-                  _kBgColor.withValues(alpha: 0.55),
-                ],
-                stops: const [0.0, 0.18, 0.78, 1.0],
+          // 椭圆区域之外的遮罩（只显示框内画面）
+          Positioned.fill(
+            child: _TongueEllipseMask(
+              center: Offset(cx, cy),
+              width: frameW,
+              height: frameH,
+              bgColor: _kBgColor,
+            ),
+          ),
+          // 渐变遮罩（上下融入米色背景）
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    _kBgColor.withValues(alpha: 0.55),
+                    Colors.transparent,
+                    Colors.transparent,
+                    _kBgColor.withValues(alpha: 0.55),
+                  ],
+                  stops: const [0.0, 0.18, 0.78, 1.0],
+                ),
               ),
             ),
           ),
-        ),
-        // 舌形扫描框（稍上移）
-        Align(alignment: const Alignment(0, -0.2), child: _buildTongueFrame()),
-      ],
-    );
+          // 舌形扫描框（稍上移）
+          Align(alignment: const Alignment(0, -0.2), child: _buildTongueFrame()),
+        ],
+      );
+    });
   }
 
   Widget _buildTongueFrame() {
@@ -533,14 +566,16 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           // 状态气泡
           Positioned(
-            bottom: _tongueDetected ? -80 : -44,
+            bottom: _tongueDetected ? -80 : -48,
             left: -40,
             right: -40,
             child: Center(
-              child: _StatusPill(
-                label: _statusLabel,
-                detected: _tongueDetected || isCompleted,
-              ),
+              child: _mouthDirection.isNotEmpty && !_tongueDetected
+                  ? _TongueDirectionPill(direction: _mouthDirection)
+                  : _StatusPill(
+                      label: _statusLabel,
+                      detected: _tongueDetected || (_scanState == ScanState.completed),
+                    ),
             ),
           ),
         ],
@@ -900,4 +935,104 @@ class _BgPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
+// ── 舒形局部陰影遮罩 ────────────────────────────────────────────────────────
+
+class _TongueEllipseMask extends StatelessWidget {
+  final Offset center;
+  final double width;
+  final double height;
+  final Color bgColor;
+
+  const _TongueEllipseMask({
+    required this.center,
+    required this.width,
+    required this.height,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _TongueEllipseMaskPainter(
+        center: center,
+        width: width,
+        height: height,
+        bgColor: bgColor,
+      ),
+    );
+  }
+}
+
+class _TongueEllipseMaskPainter extends CustomPainter {
+  final Offset center;
+  final double width;
+  final double height;
+  final Color bgColor;
+
+  const _TongueEllipseMaskPainter({
+    required this.center,
+    required this.width,
+    required this.height,
+    required this.bgColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 使用色差路径抓取屠灬形区域外的所有内容
+    final rect = Rect.fromCenter(
+      center: center,
+      width: width,
+      height: height,
+    );
+    final ellipsePath = Path()..addOval(rect);
+    final fullPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final maskPath =
+        Path.combine(PathOperation.difference, fullPath, ellipsePath);
+    canvas.drawPath(maskPath, Paint()..color = bgColor.withValues(alpha: 0.92));
+  }
+
+  @override
+  bool shouldRepaint(_TongueEllipseMaskPainter o) =>
+      o.center != center || o.width != width || o.height != height;
+}
+
+// ── 方向引导气泡 ────────────────────────────────────────────────────────────
+
+class _TongueDirectionPill extends StatelessWidget {
+  final String direction;
+  const _TongueDirectionPill({required this.direction});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: Container(
+        key: ValueKey(direction),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF8C42).withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF8C42).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Text(
+          direction,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
 }

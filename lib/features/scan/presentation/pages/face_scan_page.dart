@@ -37,6 +37,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   late Animation<double> _scanLineAnim;
   List<Offset> _normalizedLandmarks = const [];
   Size _sourceImageSize = Size.zero;
+  String _faceDirection = ''; // 位置引导文字（空 = 居中或无脸）
 
   @override
   void initState() {
@@ -66,6 +67,7 @@ class _FaceScanPageState extends State<FaceScanPage>
           _hasFaceDetected = hasFace;
           _normalizedLandmarks = landmarks;
           _sourceImageSize = imageSize;
+          _faceDirection = hasFace ? _computeFaceDirection(landmarks) : '';
         });
       });
       await _statusBridge.initialize();
@@ -365,46 +367,63 @@ class _FaceScanPageState extends State<FaceScanPage>
   // ─── 中间拍摄区 ──────────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return Stack(
-      children: [
-        // 相机预览（始终渲染）
-        Positioned.fill(
-          child: ClipRect(
-            child: const CameraPreviewWidget(
-              key: ValueKey('shared_camera_preview'),
-            ),
-          ),
-        ),
-        if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)
+    return LayoutBuilder(builder: (context, constraints) {
+      const frameW = 210.0;
+      const frameH = 262.0;
+      // 椭圆框在拍摄区的中心偏移（Alignment(0, -0.25)）
+      final cx = constraints.maxWidth / 2;
+      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.25) / 2;
+
+      return Stack(
+        children: [
+          // 相机预览（始终渲染）
           Positioned.fill(
-            child: FaceLandmarkOverlay(
-              normalizedLandmarks: _normalizedLandmarks,
-              imageSize: _sourceImageSize,
-              mirrored: true,
-            ),
-          ),
-        // 渐变遮罩（上下淡出，融入米色背景）
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
-                  Colors.transparent,
-                  Colors.transparent,
-                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
-                ],
-                stops: const [0.0, 0.18, 0.78, 1.0],
+            child: ClipRect(
+              child: const CameraPreviewWidget(
+                key: ValueKey('shared_camera_preview'),
               ),
             ),
           ),
-        ),
-        // 椭圆扫描框（上移，让下半屏留给底部卡）
-        Align(alignment: const Alignment(0, -0.25), child: _buildOvalFrame()),
-      ],
-    );
+          if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)
+            Positioned.fill(
+              child: FaceLandmarkOverlay(
+                normalizedLandmarks: _normalizedLandmarks,
+                imageSize: _sourceImageSize,
+                mirrored: true,
+              ),
+            ),
+          // 椭圆区域之外的遮罩（只显示椭圆内画面）
+          Positioned.fill(
+            child: _OvalMaskPainter(
+              ovalCenter: Offset(cx, cy),
+              ovalWidth: frameW,
+              ovalHeight: frameH,
+              bgColor: const Color(0xFFF4F1EB),
+            ),
+          ),
+          // 渐变遮罩（上下淡出，融入米色背景）
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                    Colors.transparent,
+                    Colors.transparent,
+                    const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                  ],
+                  stops: const [0.0, 0.18, 0.78, 1.0],
+                ),
+              ),
+            ),
+          ),
+          // 椭圆扫描框（上移，让下半屏留给底部卡）
+          Align(alignment: const Alignment(0, -0.25), child: _buildOvalFrame()),
+        ],
+      );
+    });
   }
 
   Widget _buildOvalFrame() {
@@ -508,16 +527,18 @@ class _FaceScanPageState extends State<FaceScanPage>
           ),
           // 状态气泡（椭圆框正下方）
           Positioned(
-            bottom: -44,
+            bottom: -48,
             left: -40,
             right: -40,
             child: Center(
-              child: _StatusPill(
-                label: _hasPermission
-                    ? (_hasFaceDetected ? '面部已就位 ✓' : '请将面部对准框内')
-                    : '需要相机权限',
-                detected: _hasFaceDetected,
-              ),
+              child: _faceDirection.isNotEmpty
+                  ? _DirectionPill(direction: _faceDirection)
+                  : _StatusPill(
+                      label: _hasPermission
+                          ? (_hasFaceDetected ? '面部已就位 ✓' : '请将面部对准框内')
+                          : '需要相机权限',
+                      detected: _hasFaceDetected,
+                    ),
             ),
           ),
         ],
@@ -648,6 +669,26 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (detected is bool) return detected;
     final landmarks = payload['landmarks'];
     return landmarks is List && landmarks.isNotEmpty;
+  }
+
+  /// 根据鼻尖点（index 4）相对于归一化中心 (0.5, 0.5) 的偏移，返回方向提示文字。
+  /// 已居中时返回空字符串。
+  String _computeFaceDirection(List<Offset> landmarks) {
+    if (landmarks.length <= 4) return '';
+    // MediaPipe FaceMesh 鼻尖点 index = 4（0-based）
+    final nose = landmarks[4];
+    const threshold = 0.12; // 超过 12% 中心偏移才提示
+    final dx = nose.dx - 0.5; // 正 = 右，负 = 左
+    final dy = nose.dy - 0.5; // 正 = 下，负 = 上
+    final adx = dx.abs();
+    final ady = dy.abs();
+    if (adx < threshold && ady < threshold) return '';
+    // 优先水平方向（镜像：画面中鼻子偏右表示需要向左）
+    if (adx >= ady) {
+      return dx > 0 ? '← 请向左移动' : '→ 请向右移动';
+    } else {
+      return dy > 0 ? '↑ 请向上移动' : '↓ 请向下移动';
+    }
   }
 
   List<Offset> _extractNormalizedLandmarks(dynamic raw) {
@@ -866,4 +907,104 @@ class _BgPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
+// ── 椭圆遮罩：将椭圆区域之外填充背景色 ──────────────────────────────────────
+
+class _OvalMaskPainter extends StatelessWidget {
+  final Offset ovalCenter;
+  final double ovalWidth;
+  final double ovalHeight;
+  final Color bgColor;
+
+  const _OvalMaskPainter({
+    required this.ovalCenter,
+    required this.ovalWidth,
+    required this.ovalHeight,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _OvalMaskCustomPainter(
+        ovalCenter: ovalCenter,
+        ovalWidth: ovalWidth,
+        ovalHeight: ovalHeight,
+        bgColor: bgColor,
+      ),
+    );
+  }
+}
+
+class _OvalMaskCustomPainter extends CustomPainter {
+  final Offset ovalCenter;
+  final double ovalWidth;
+  final double ovalHeight;
+  final Color bgColor;
+
+  const _OvalMaskCustomPainter({
+    required this.ovalCenter,
+    required this.ovalWidth,
+    required this.ovalHeight,
+    required this.bgColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromCenter(
+      center: ovalCenter,
+      width: ovalWidth,
+      height: ovalHeight,
+    );
+    final ovalPath = Path()..addOval(rect);
+    final fullPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final maskPath = Path.combine(PathOperation.difference, fullPath, ovalPath);
+    canvas.drawPath(maskPath, Paint()..color = bgColor.withValues(alpha: 0.92));
+  }
+
+  @override
+  bool shouldRepaint(_OvalMaskCustomPainter old) =>
+      old.ovalCenter != ovalCenter ||
+      old.ovalWidth != ovalWidth ||
+      old.ovalHeight != ovalHeight;
+}
+
+// ── 方向引导气泡 ──────────────────────────────────────────────────────────────
+
+class _DirectionPill extends StatelessWidget {
+  final String direction;
+  const _DirectionPill({required this.direction});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: Container(
+        key: ValueKey(direction),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF8C42).withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF8C42).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Text(
+          direction,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
 }
