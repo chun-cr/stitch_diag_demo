@@ -105,18 +105,18 @@ class _ReportPageState extends State<ReportPage>
         padding: const EdgeInsets.only(left: 12),
         child: GestureDetector(
           onTap: () => Navigator.maybePop(context),
-          // child: AnimatedContainer(
-          //   duration: const Duration(milliseconds: 200),
-          //   width: 28,
-          //   height: 28,
-          //   margin: const EdgeInsets.symmetric(vertical: 8),
-          //   decoration: BoxDecoration(
-          //     color: iconBgColor,
-          //     shape: BoxShape.circle,
-          //     border: Border.all(color: iconBorderColor, width: 1),
-          //   ),
-          //   child: Icon(Icons.arrow_back_ios_new, size: 15, color: iconColor),
-          // ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: iconBorderColor, width: 1),
+            ),
+            child: Icon(Icons.arrow_back_ios_new, size: 15, color: iconColor),
+          ),
         ),
       ),
       actions: [

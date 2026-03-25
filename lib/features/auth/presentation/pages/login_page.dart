@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/theme/app_colors.dart';
 
 // ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
 // primary      = Color(0xFF2D6A4F)  墨绿
@@ -39,6 +38,8 @@ class _LoginPageState extends State<LoginPage>
   @override
   void initState() {
     super.initState();
+    _emailCtrl.text = 'preview@mai-ai.local';
+    _passCtrl.text = 'preview123';
     _breatheController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -76,10 +77,17 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _onLogin() async {
+    if (_emailCtrl.text.trim().isEmpty) {
+      _emailCtrl.text = 'preview@mai-ai.local';
+    }
+    if (_passCtrl.text.trim().isEmpty) {
+      _passCtrl.text = 'preview123';
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
+      setPreviewAuthenticated(true);
       setState(() => _isLoading = false);
       context.go(AppRoutes.home);
     }
@@ -113,6 +121,8 @@ class _LoginPageState extends State<LoginPage>
                       const SizedBox(height: 28),
                       _buildSectionDivider(),
                       const SizedBox(height: 24),
+                      _buildPreviewHint(),
+                      const SizedBox(height: 16),
                       _buildEmailField(),
                       const SizedBox(height: 14),
                       _buildPasswordField(),
@@ -409,6 +419,39 @@ class _LoginPageState extends State<LoginPage>
             Colors.transparent,
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewHint() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF3E0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFC9A84C).withValues(alpha: 0.22),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.visibility_outlined,
+            size: 18,
+            color: const Color(0xFFC9A84C).withValues(alpha: 0.9),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '当前为开发预览模式，默认已填充演示账号，点击登录即可进入首页。',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.5,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

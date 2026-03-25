@@ -451,8 +451,8 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 
   Widget _buildTongueFrame() {
-    const frameW = 200.0;
-    const frameH = 240.0;
+    const frameW = 180.0;
+    const frameH = 216.0;
     final isActive = _scanState == ScanState.scanning;
     final isCompleted = _scanState == ScanState.completed;
     final isAligned = _tongueDetected;
@@ -475,7 +475,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                 color: outerColor.withValues(alpha: 0.6),
                 strokeWidth: 1.0,
                 fillColor: outerColor.withValues(alpha: 0.05),
-                scale: 1.15,
+                scale: 1.06,
               ),
             ),
           ),
@@ -499,6 +499,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                             painter: _BionicTonguePainter(
                               color: innerColor,
                               strokeWidth: 1.5,
+                              scale: 0.92,
                               drawNodes: isAligned || isCompleted,
                               nodeSize:
                                   (isAligned && !isCompleted) ? 6.0 : 4.0,

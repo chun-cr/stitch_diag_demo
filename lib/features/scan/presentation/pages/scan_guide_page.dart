@@ -475,7 +475,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '请在自然光线充足处进行，扫描前清洁面部，保持放松自然状态',
+                  '请在自然光线充足处进行，扫描前清洁面部，取下帽子、眼镜等饰品，保持放松自然状态',
                   style: TextStyle(
                     fontSize: 11.5,
                     height: 1.5,
@@ -516,7 +516,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                   color: const Color(0xFF3A3028).withValues(alpha: 0.4)),
               const SizedBox(width: 5),
               Text(
-                '预计 3 分钟完成 · 请在光线充足处进行',
+                '预计 2 分钟完成 · 请在光线充足处进行',
                 style: TextStyle(
                   fontSize: 12,
                   color: const Color(0xFF3A3028).withValues(alpha: 0.4),

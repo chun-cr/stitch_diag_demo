@@ -26,10 +26,36 @@ class AppRoutes {
   static const profile = '/profile';
 }
 
+final ValueNotifier<bool> _previewAuthState = ValueNotifier<bool>(false);
+
+bool get isPreviewAuthenticated => _previewAuthState.value;
+
+void setPreviewAuthenticated(bool value) {
+  if (_previewAuthState.value == value) {
+    return;
+  }
+  _previewAuthState.value = value;
+}
+
 // ─── 路由配置 ─────────────────────────────────────────────────────
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.home, // 默认启动页改为首页
+  initialLocation: AppRoutes.login,
   debugLogDiagnostics: true,
+  refreshListenable: _previewAuthState,
+  redirect: (context, state) {
+    final isAuthRoute = state.matchedLocation == AppRoutes.login ||
+        state.matchedLocation == AppRoutes.register;
+
+    if (!isPreviewAuthenticated && !isAuthRoute) {
+      return AppRoutes.login;
+    }
+
+    if (isPreviewAuthenticated && isAuthRoute) {
+      return AppRoutes.home;
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(
       path: AppRoutes.home,
