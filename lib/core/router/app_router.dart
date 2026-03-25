@@ -71,7 +71,15 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.scan,
-      builder: (context, state) => const ScanGuidePage(),
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        child: const ScanGuidePage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return child;
+        },
+      ),
     ),
     GoRoute(
       path: AppRoutes.scanFace,

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 abstract class VisionChannelBridge {
-  Stream<bool> facePresenceStream();
+  Stream<bool> facePresenceStream();  //人脸是否存在的流
 
   Future<void> initialize();
 

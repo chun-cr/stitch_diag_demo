@@ -116,13 +116,9 @@ class _LoginPageState extends State<LoginPage>
                       _buildBrandRow(),
                       const SizedBox(height: 36),
                       _buildHeroVisual(),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       _buildHeroText(),
-                      const SizedBox(height: 28),
-                      _buildSectionDivider(),
-                      const SizedBox(height: 24),
-                      _buildPreviewHint(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       _buildEmailField(),
                       const SizedBox(height: 14),
                       _buildPasswordField(),
@@ -352,37 +348,6 @@ class _LoginPageState extends State<LoginPage>
             _ornamentLine(),
           ],
         ),
-        const SizedBox(height: 14),
-        RichText(
-          textAlign: TextAlign.center,
-          text: const TextSpan(
-            style: TextStyle(
-              fontSize: 26,
-              color: Color(0xFF1E1810),
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-              height: 1.25,
-            ),
-            children: [
-              TextSpan(text: '智能体质'),
-              TextSpan(
-                text: '诊断',
-                style: TextStyle(color: Color(0xFF2D6A4F)),
-              ),
-              TextSpan(text: '\n从面部开始'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'AI 面诊 · 舌象分析 · 经络调理\n三分钟生成专属健康报告',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
-            height: 1.7,
-          ),
-        ),
       ],
     );
   }
@@ -419,39 +384,6 @@ class _LoginPageState extends State<LoginPage>
             Colors.transparent,
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPreviewHint() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF3E0),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFC9A84C).withValues(alpha: 0.22),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.visibility_outlined,
-            size: 18,
-            color: const Color(0xFFC9A84C).withValues(alpha: 0.9),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '当前为开发预览模式，默认已填充演示账号，点击登录即可进入首页。',
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.5,
-                color: const Color(0xFF3A3028).withValues(alpha: 0.8),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -645,7 +577,7 @@ class _LoginPageState extends State<LoginPage>
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () => context.push(AppRoutes.register),
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size.zero,

@@ -1,6 +1,7 @@
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_router.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 // ══════════════════════════════════════════════════════════════════
 //  ReportPage  —  AI 健康分析报告
@@ -95,29 +96,62 @@ class _ReportPageState extends State<ReportPage>
         : const Color(0xFF2D6A4F).withValues(alpha: 0.2);
 
     return SliverAppBar(
-      expandedHeight: 270,
+      expandedHeight: 292,
       pinned: true,
       backgroundColor: const Color(0xFFF4F1EB),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 12),
-        child: GestureDetector(
-          onTap: () => Navigator.maybePop(context),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 36,
-            height: 36,
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: iconBorderColor, width: 1),
+      leading: Builder(
+        builder: (context) {
+          final settings =
+              context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+          final minExtent = settings?.minExtent;
+          final maxExtent = settings?.maxExtent;
+          final currentExtent = settings?.currentExtent;
+
+          final progress =
+              minExtent != null &&
+                  maxExtent != null &&
+                  currentExtent != null &&
+                  maxExtent > minExtent
+              ? ((currentExtent - minExtent) / (maxExtent - minExtent))
+                    .clamp(0.0, 1.0)
+              : 1.0;
+
+          final backButtonOpacity = ((progress - 0.45) / 0.2).clamp(0.0, 1.0);
+          final hideBackButton = backButtonOpacity <= 0.01;
+
+          return AnimatedOpacity(
+            duration: const Duration(milliseconds: 120),
+            opacity: backButtonOpacity,
+            child: IgnorePointer(
+              ignoring: hideBackButton,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: GestureDetector(
+                  onTap: () => context.go(AppRoutes.home),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 36,
+                    height: 36,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: iconBgColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: iconBorderColor, width: 1),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 15,
+                      color: iconColor,
+                    ),
+                  ),
+                ),
+              ),
             ),
-            child: Icon(Icons.arrow_back_ios_new, size: 15, color: iconColor),
-          ),
-        ),
+          );
+        },
       ),
       actions: [
         Container(
@@ -269,7 +303,7 @@ class _ReportHeroSpace extends StatelessWidget {
                     SafeArea(
                       child: Padding(
                         padding:
-                        const EdgeInsets.fromLTRB(22, 40, 22, 0),
+                        const EdgeInsets.fromLTRB(22, 62, 22, 0),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -348,85 +382,66 @@ class _ReportHeroSpace extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-          // 报告时间 pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
-                  width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.access_time_outlined,
-                    size: 11,
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.7)),
-                const SizedBox(width: 4),
-                const Text(
-                  '2025年3月14日  AI 四诊合参',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF2D6A4F),
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          // 姓名
-          const Text(
-            '小明的健康报告',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1E1810),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 体质标签行
-          Row(
-            children: [
-              _HeroPill(
-                  icon: Icons.eco_outlined,
-                  label: '平和体质',
-                  active: true),
-              const SizedBox(width: 6),
-              _HeroPill(label: '气虚偏颇'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // 辨证一句话
-          Row(
-            children: [
-              Container(
-                width: 2,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        // 1. 拆除胶囊框，改为极简文本 + 优雅的圆点分割
+        Row(
+          children: [
+            Icon(Icons.description_outlined,
+                size: 12,
+                color: const Color(0xFF2D6A4F).withValues(alpha: 0.6)),
+            const SizedBox(width: 6),
+            Text(
+              '2025.03.14  ·  AI 四诊合参',
+              style: TextStyle(
+                fontSize: 11,
+                color: const Color(0xFF2D6A4F).withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '脾气亏虚，运化失健。\n面色偏黄，舌淡苔白。',
-                  style: TextStyle(
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 2. 放大主标题，建立绝对的视觉焦点
+        const Text(
+          '小明的健康报告',
+          style: TextStyle(
+            fontSize: 24, // 从 18 放大到 24
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1E1810),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // 3. 标签去描边：主标签用微底色，次要标签直接变文本
+        Row(
+          children: [
+            _HeroPill(label: '平和质', active: true), // 新版去掉了边框
+            const SizedBox(width: 10),
+            Text(
+                '气虚偏颇',
+                style: TextStyle(
                     fontSize: 12,
-                    color: const Color(0xFF3A3028).withValues(alpha: 0.65),
-                    height: 1.55,
-                  ),
-                ),
-              ),
-            ],
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E1810).withValues(alpha: 0.6)
+                )
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // 4. 移除生硬的左侧粗线，通过行高和颜色营造呼吸感
+        Text(
+          '脾气亏虚，运化失健。面色偏黄，舌淡苔白。',
+          style: TextStyle(
+            fontSize: 12.5,
+            color: const Color(0xFF3A3028).withValues(alpha: 0.7),
+            height: 1.6,
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   Widget _buildScoreBadge() {
@@ -478,25 +493,34 @@ class _ReportHeroSpace extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(
-                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Text(
-                    '良好',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF2D6A4F),
-                      fontWeight: FontWeight.w700,
-                    ),
+                const SizedBox(height: 8),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(
+                //       horizontal: 10, vertical: 4),
+                //   decoration: BoxDecoration(
+                //     color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+                //     borderRadius: BorderRadius.circular(99),
+                //     border: Border.all(
+                //       color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
+                //       width: 1,
+                //     ),
+                //   ),
+                //   child: const Text(
+                //     '良好',
+                //     style: TextStyle(
+                //       fontSize: 10,
+                //       color: Color(0xFF2D6A4F),
+                //       fontWeight: FontWeight.w700,
+                //     ),
+                //   ),
+                // ),
+                Text(
+                  '体质状况 良好',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
                   ),
                 ),
               ],
@@ -510,46 +534,31 @@ class _ReportHeroSpace extends StatelessWidget {
 
 class _HeroPill extends StatelessWidget {
   final String label;
-  final IconData? icon;
   final bool active;
 
-  const _HeroPill({required this.label, this.icon, this.active = false});
+  const _HeroPill({required this.label, this.active = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
+        // 核心：去除 border，使用透明度极低的纯净底色
         color: active
-            ? const Color(0xFF2D6A4F).withValues(alpha: 0.12)
-            : const Color(0xFF2D6A4F).withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(
-          color: active
-              ? const Color(0xFF2D6A4F).withValues(alpha: 0.28)
-              : const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-          width: 1,
-        ),
+            ? const Color(0xFF2D6A4F).withValues(alpha: 0.1)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(6), // 用小圆角替代呆板的大胶囊
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 10, color: const Color(0xFF2D6A4F)),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: active
-                  ? const Color(0xFF2D6A4F)
-                  : const Color(0xFF2D6A4F).withValues(alpha: 0.7),
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          color: active
+              ? const Color(0xFF2D6A4F)
+              : const Color(0xFF2D6A4F).withValues(alpha: 0.6),
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -602,7 +611,6 @@ class _Tab1Overview extends StatelessWidget {
             icon: Icons.analytics_outlined,
             iconColor: Color(0xFF2D6A4F),
             title: '三诊评分',
-            tag: 'AI 分析',
           ),
           const SizedBox(height: 14),
           Row(
@@ -718,55 +726,66 @@ class _Tab1Overview extends StatelessWidget {
             icon: Icons.description_outlined,
             iconColor: Color(0xFFC9A84C),
             title: '辨证摘要',
-            tag: 'AI 辨证',
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(13),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF3E0),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
-                  width: 1),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                        width: 3,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFC9A84C),
-                          borderRadius: BorderRadius.circular(2),
-                        )),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        '辨证：脾气亏虚，运化失健。面色偏黄，舌淡苔白，脉象细缓，气短乏力，食欲欠佳。证属脾虚气弱，兼有湿邪内阻。',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF8B6914),
-                          height: 1.7,
-                        ),
+          Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 1.5,
+                    height: 52,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC9A84C).withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      '辨证：脾气亏虚，运化失健。面色偏黄，舌淡苔白，脉象细缓，气短乏力，食欲欠佳。证属脾虚气弱，兼有湿邪内阻。',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6E5830),
+                        height: 1.8,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF3A3028).withValues(alpha: 0.52),
+                      height: 1.4,
+                    ),
+                    children: const [
+                      TextSpan(
+                        text: '平和质',
+                        style: TextStyle(color: Color(0xFF0D7A5A)),
+                      ),
+                      TextSpan(text: '  ·  '),
+                      TextSpan(
+                        text: '气虚偏颇',
+                        style: TextStyle(color: Color(0xFF2D6A4F)),
+                      ),
+                      TextSpan(text: '  ·  '),
+                      TextSpan(
+                        text: '脾胃虚弱',
+                        style: TextStyle(color: Color(0xFFC9A84C)),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _DiagTag(label: '平和质', color: const Color(0xFF0D7A5A)),
-                    const SizedBox(width: 6),
-                    _DiagTag(label: '气虚偏颇', color: const Color(0xFF2D6A4F)),
-                    const SizedBox(width: 6),
-                    _DiagTag(label: '脾胃虚弱', color: const Color(0xFFC9A84C)),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -958,34 +977,51 @@ class _Tab2Constitution extends StatelessWidget {
             tag: '平和 · 气虚偏颇',
           ),
           const SizedBox(height: 14),
-          // 体质雷达图占位
-          Container(
+          SizedBox(
             height: 160,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6B5B95).withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: const Color(0xFF6B5B95).withValues(alpha: 0.12),
-                  width: 1),
-            ),
-            child: Center(
-              child: CustomPaint(
-                size: const Size(140, 140),
-                painter: _ConstitutionRadarPainter(),
-              ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF8FC7A5).withValues(alpha: 0.16),
+                        const Color(0xFFC9A84C).withValues(alpha: 0.05),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.48, 1.0],
+                    ),
+                  ),
+                ),
+                CustomPaint(
+                  size: const Size(140, 140),
+                  painter: _ConstitutionRadarPainter(),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
-          // 九种体质评分列表
-          ..._constitutionScores.map((c) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _ConstitutionScoreRow(
-              label: c.$1,
-              score: c.$2,
-              color: c.$3,
-              isMain: c.$4,
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D6A4F).withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(14),
             ),
-          )),
+            child: Column(
+              children: _constitutionScores.map((c) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ConstitutionScoreRow(
+                  label: c.$1,
+                  score: c.$2,
+                  color: c.$3,
+                  isMain: c.$4,
+                ),
+              )).toList(),
+            ),
+          ),
         ],
       ),
     );
@@ -1096,25 +1132,39 @@ class _Tab2Constitution extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: d.$3.withValues(alpha: 0.05),
+                color: d.$3.withValues(alpha: 0.035),
                 borderRadius: BorderRadius.circular(11),
-                border: Border.all(
-                    color: d.$3.withValues(alpha: 0.15), width: 1),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(d.$4, size: 17, color: d.$3),
+                  Container(
+                    width: 2,
+                    height: 30,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      color: d.$3.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(d.$1,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: d.$3,
-                            )),
+                        Row(
+                          children: [
+                            Icon(d.$4, size: 14, color: d.$3.withValues(alpha: 0.82)),
+                            const SizedBox(width: 6),
+                            Text(d.$1,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: d.$3,
+                                )),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
                         Text(d.$2,
                             style: TextStyle(
                               fontSize: 11,
@@ -1160,21 +1210,20 @@ class _Tab2Constitution extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 18,
-                  height: 18,
-                  margin: const EdgeInsets.only(top: 1),
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(top: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFB05A5A)
+                    color: const Color(0xFFB08B5A)
                         .withValues(alpha: 0.12),
                     shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.close,
-                        size: 11,
-                        color: Color(0xFFB05A5A)),
+                    border: Border.all(
+                      color: const Color(0xFFB08B5A).withValues(alpha: 0.55),
+                      width: 1,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: RichText(
                     text: TextSpan(
@@ -1351,18 +1400,13 @@ class _Tab3Therapy extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.07),
-                      borderRadius: BorderRadius.circular(11),
-                      border: Border.all(
-                        color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-                        width: 1,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Icon(
+                      t.$2,
+                      size: 18,
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.82),
                     ),
-                    child: Icon(t.$2, size: 18, color: const Color(0xFF2D6A4F)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1401,7 +1445,6 @@ class _Tab3Therapy extends StatelessWidget {
     const seasons = [
       _SeasonData(
         name: '春',
-        emoji: '🌱',
         color: Color(0xFF2D6A4F),
         lightColor: Color(0xFFE8F5EE),
         advice: '春季养肝，适当增酸。多食韭菜、菠菜，舒展筋骨，早起散步以助阳气升发。',
@@ -1409,7 +1452,6 @@ class _Tab3Therapy extends StatelessWidget {
       ),
       _SeasonData(
         name: '夏',
-        emoji: '☀️',
         color: Color(0xFFD4794A),
         lightColor: Color(0xFFFAEDE7),
         advice: '夏季养心，注意清热。适当食用莲子、薏仁，午间小憩，避免大汗伤气。',
@@ -1417,7 +1459,6 @@ class _Tab3Therapy extends StatelessWidget {
       ),
       _SeasonData(
         name: '秋',
-        emoji: '🍂',
         color: Color(0xFFC9A84C),
         lightColor: Color(0xFFFAF3E0),
         advice: '秋季养肺，以润为主。多食梨、百合、银耳，早睡早起，收敛精气。',
@@ -1425,7 +1466,6 @@ class _Tab3Therapy extends StatelessWidget {
       ),
       _SeasonData(
         name: '冬',
-        emoji: '❄️',
         color: Color(0xFF4A7FA8),
         lightColor: Color(0xFFE4EDF5),
         advice: '冬季养肾，以藏为要。适食黑芝麻、核桃、羊肉，早卧晚起，固护肾阳。',
@@ -1449,86 +1489,69 @@ class _Tab3Therapy extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Container(
                 decoration: BoxDecoration(
-                  color: s.lightColor,
+                  color: s.lightColor.withValues(alpha: 0.36),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: s.color.withValues(alpha: 0.15), width: 1),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // 季节色条 + 名字
-                        Container(
-                          width: 48,
-                          decoration: BoxDecoration(
-                            color: s.color.withValues(alpha: 0.15),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                s.emoji,
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                s.name,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: s.color,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ],
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2, right: 12),
+                        child: Text(
+                          s.name,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: s.color.withValues(alpha: 0.92),
+                            letterSpacing: 1,
+                            fontFamily: 'serif',
                           ),
                         ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                                12, 12, 12, 12),
-                            child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.advice,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: const Color(0xFF1E1810)
+                                    .withValues(alpha: 0.8),
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  s.advice,
+                                  '○',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: const Color(0xFF1E1810)
-                                        .withValues(alpha: 0.8),
-                                    height: 1.6,
+                                    fontSize: 10,
+                                    color: s.color.withValues(alpha: 0.58),
+                                    height: 1.4,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Icon(Icons.do_not_disturb_alt_outlined,
-                                        size: 11,
-                                        color: s.color
-                                            .withValues(alpha: 0.6)),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        s.avoid,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: s.color.withValues(
-                                              alpha: 0.7),
-                                        ),
-                                      ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    s.avoid,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: s.color.withValues(alpha: 0.68),
+                                      height: 1.5,
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1677,22 +1700,23 @@ class _Tab4Advice extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 7),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 5, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: f.$4.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                  SizedBox(
+                    width: 34,
                     child: Text(
                       f.$1,
-                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: f.$4,
                       ),
+                    ),
+                  ),
+                  Text(
+                    '|',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: f.$4.withValues(alpha: 0.45),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1824,27 +1848,27 @@ class _Tab4Advice extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFB05A5A)
+                color: const Color(0xFF8B6914)
                     .withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(99),
-                border: Border.all(
-                  color: const Color(0xFFB05A5A)
-                      .withValues(alpha: 0.2),
-                  width: 1,
-                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.close,
-                      size: 10,
-                      color: Color(0xFFB05A5A)),
+                  const Text(
+                    '·',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF8B6914),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     a,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFB05A5A),
+                      color: Color(0xFF8B6914),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2074,43 +2098,100 @@ class _CardHeader extends StatelessWidget {
         ),
         const SizedBox(width: 9),
         Flexible(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1E1810),
-              letterSpacing: 0.5,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E1810),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                TextSpan(text: title),
+                if (tag != null)
+                  TextSpan(
+                    text: ' · $tag',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: iconColor.withValues(alpha: 0.72),
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+              ],
             ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
         ),
-        if (tag != null) ...[
-          const SizedBox(width: 7),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF3E0),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: const Color(0xFFC9A84C).withValues(alpha: 0.3),
-                width: 1,
+      ],
+    );
+  }
+}
+
+/// 柔和连续渐变进度条
+class _SoftGradientProgressBar extends StatelessWidget {
+  final double value;
+  final double height;
+  final bool emphasize;
+  final Color? trackColor;
+  final List<Color>? fillColors;
+
+  const _SoftGradientProgressBar({
+    required this.value,
+    this.height = 4,
+    this.emphasize = false,
+    this.trackColor,
+    this.fillColors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = value.clamp(0.0, 1.0);
+    final radius = Radius.circular(height);
+
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: trackColor ??
+            (emphasize
+                ? const Color(0xFFF6F7F2)
+                : const Color(0xFFF8F7F3)),
+        borderRadius: BorderRadius.all(radius),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.all(radius),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: progress == 0 ? 0 : progress,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: fillColors ?? const [
+                    Color(0xFFD9EBDD),
+                    Color(0xFFAED2B8),
+                    Color(0xFF79B18C),
+                  ],
+                  stops: [0.0, 0.55, 1.0],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF79B18C).withValues(alpha: 0.12),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
-            ),
-            child: Text(
-              tag!,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Color(0xFFC9A84C),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
+              child: const SizedBox.expand(),
             ),
           ),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }
@@ -2136,11 +2217,10 @@ class _DiagScoreCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: color.withValues(alpha: 0.025),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.14), width: 1),
       ),
       child: Column(
         children: [
@@ -2168,25 +2248,13 @@ class _DiagScoreCell extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            '/ 100',
-            style: TextStyle(
-              fontSize: 9,
-              color: color.withValues(alpha: 0.5),
-            ),
-          ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 8),
           AnimatedBuilder(
             animation: anim,
-            builder: (_, __) => ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: score * anim.value,
-                backgroundColor: color.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                minHeight: 4,
-              ),
+            builder: (_, __) => _SoftGradientProgressBar(
+              value: score * anim.value,
+              height: 4,
+              emphasize: true,
             ),
           ),
           const SizedBox(height: 5),
@@ -2238,56 +2306,29 @@ class _WuxingBars extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: d.$2,
-                    backgroundColor: d.$3.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(d.$3),
-                    minHeight: 6,
-                  ),
+                child: _SoftGradientProgressBar(
+                  value: d.$2,
+                  height: 4,
+                  emphasize: true,
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                '${(d.$2 * 100).round()}',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: d.$3,
+              SizedBox(
+                width: 28,
+                child: Text(
+                  '${(d.$2 * 100).round()}',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2D6A4F),
+                  ),
                 ),
               ),
             ],
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-/// 辨证体质标签
-class _DiagTag extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _DiagTag({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
     );
   }
 }
@@ -2367,6 +2408,8 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
 
   @override
   Widget build(BuildContext context) {
+    final isSecondaryLow = !widget.isMain && widget.score < 0.28;
+
     return Row(
       children: [
         if (widget.isMain)
@@ -2392,7 +2435,9 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
                   : FontWeight.w400,
               color: widget.isMain
                   ? const Color(0xFF1E1810)
-                  : const Color(0xFFA09080),
+                  : (isSecondaryLow
+                      ? const Color(0xFFA09080).withValues(alpha: 0.72)
+                      : const Color(0xFFA09080)),
             ),
           ),
         ),
@@ -2400,31 +2445,41 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
         Expanded(
           child: AnimatedBuilder(
             animation: _anim,
-            builder: (_, __) => ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: widget.score * _anim.value,
-                backgroundColor:
-                widget.color.withValues(alpha: 0.1),
-                valueColor:
-                AlwaysStoppedAnimation<Color>(widget.color),
-                minHeight: widget.isMain ? 7 : 5,
-              ),
+            builder: (_, __) => _SoftGradientProgressBar(
+              value: widget.score * _anim.value,
+              height: widget.isMain ? 4 : 3,
+              emphasize: widget.isMain,
+              trackColor: isSecondaryLow
+                  ? Colors.transparent
+                  : null,
+              fillColors: widget.isMain
+                  ? const [
+                      Color(0xFFD7EFD9),
+                      Color(0xFFA9D6B5),
+                      Color(0xFF74B58A),
+                    ]
+                  : null,
             ),
           ),
         ),
         const SizedBox(width: 8),
-        AnimatedBuilder(
-          animation: _anim,
-          builder: (_, __) => Text(
-            '${(widget.score * _anim.value * 100).round()}',
-            style: TextStyle(
-              fontSize: 11,
+        SizedBox(
+          width: 28,
+          child: AnimatedBuilder(
+            animation: _anim,
+            builder: (_, __) => Text(
+              '${(widget.score * _anim.value * 100).round()}',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
               fontWeight:
-              widget.isMain ? FontWeight.w700 : FontWeight.w400,
-              color: widget.isMain
-                  ? widget.color
-                  : const Color(0xFFA09080),
+                    widget.isMain ? FontWeight.w700 : FontWeight.w400,
+                color: widget.isMain
+                    ? const Color(0xFF2D6A4F)
+                    : (isSecondaryLow
+                        ? const Color(0xFFA09080).withValues(alpha: 0.7)
+                        : const Color(0xFF6E8E7A)),
+              ),
             ),
           ),
         ),
@@ -2444,90 +2499,80 @@ class _AcuPointCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: point.color.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: point.color.withValues(alpha: 0.14), width: 1),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(13),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 左色条
-              Container(
-                width: 4,
-                decoration: BoxDecoration(color: point.color),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: point.color.withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(99),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: point.color,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              point.name,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 1,
-                              ),
-                            ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          point.name,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: point.color,
+                            letterSpacing: 0.6,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            point.meridian,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: point.color.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 12,
-                              color: const Color(0xFFA09080)),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              point.location,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFFA09080),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        point.effect,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: const Color(0xFF3A3028)
-                              .withValues(alpha: 0.7),
-                          height: 1.5,
                         ),
+                        const SizedBox(width: 8),
+                        Text(
+                          point.meridian,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: point.color.withValues(alpha: 0.68),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 12,
+                            color: const Color(0xFFA09080)),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            point.location,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFFA09080),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      point.effect,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF3A3028)
+                            .withValues(alpha: 0.7),
+                        height: 1.5,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -2550,9 +2595,8 @@ class _FoodChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
+        color: color.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2614,10 +2658,6 @@ class _ProductCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: product.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: product.color.withValues(alpha: 0.15),
-                  width: 1,
-                ),
               ),
               child: Icon(product.icon,
                   size: 24, color: product.color),
@@ -2640,21 +2680,12 @@ class _ProductCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // 标签
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: product.color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          product.tag,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: product.color,
-                          ),
+                      Text(
+                        product.tag,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: product.color.withValues(alpha: 0.68),
                         ),
                       ),
                     ],
@@ -2698,23 +2729,18 @@ class _ProductCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                product.color,
-                                product.color
-                                    .withValues(alpha: 0.75)
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
                             borderRadius: BorderRadius.circular(99),
+                            border: Border.all(
+                              color: product.color.withValues(alpha: 0.22),
+                              width: 1,
+                            ),
                           ),
-                          child: const Text(
-                            '了解详情',
+                          child: Text(
+                            '了解详情 >',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: product.color.withValues(alpha: 0.82),
                             ),
                           ),
                         ),
@@ -2753,7 +2779,6 @@ class _AcuPoint {
 
 class _SeasonData {
   final String name;
-  final String emoji;
   final Color color;
   final Color lightColor;
   final String advice;
@@ -2761,7 +2786,6 @@ class _SeasonData {
 
   const _SeasonData({
     required this.name,
-    required this.emoji,
     required this.color,
     required this.lightColor,
     required this.advice,
@@ -2871,47 +2895,25 @@ class _HeroBgFillPainter extends CustomPainter {
 class _HeroDecorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // 右上柔光圆（浅色背景上用白色光晕增加层次）
+    // 保留右上角的纯白光晕，增加通透感
     canvas.drawCircle(
       Offset(size.width * 0.85, -20),
-      110,
+      120,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.45)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35),
+        ..color = Colors.white.withValues(alpha: 0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40),
     );
-    // 左下柔光圆
+    // 保留左下角的微绿光晕，平衡画面
     canvas.drawCircle(
       Offset(-20, size.height * 0.9),
-      80,
+      90,
       Paint()
-        ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.07)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25),
+        ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.05)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30),
     );
-    // 右侧八卦环（深绿细线，与浅色背景协调）
-    final cx = size.width - 28.0;
-    final cy = size.height * 0.5;
-    const r = 62.0;
-    final p = Paint()
-      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.09)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    canvas.drawCircle(Offset(cx, cy), r, p);
-    canvas.drawCircle(
-        Offset(cx, cy),
-        r * 0.82,
-        p..color = const Color(0xFF2D6A4F).withValues(alpha: 0.055));
-    for (int i = 0; i < 8; i++) {
-      final a = i * math.pi / 4;
-      canvas.drawLine(
-        Offset(cx + math.cos(a) * r * 0.82,
-            cy + math.sin(a) * r * 0.82),
-        Offset(cx + math.cos(a) * r,
-            cy + math.sin(a) * r),
-        Paint()
-          ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.09)
-          ..strokeWidth = 1,
-      );
-    }
+
+    // 彻底删除了那些突兀的线条 (canvas.drawLine 和 canvas.drawCircle)
+    // 背景变得极其干净、柔和，这才是"新中式禅意"
   }
 
   @override
@@ -2926,6 +2928,22 @@ class _ConstitutionRadarPainter extends CustomPainter {
     final r = size.width / 2 - 8;
     const sides = 9;
 
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r * 0.72,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFF8FC7A5).withValues(alpha: 0.16),
+            const Color(0xFFC9A84C).withValues(alpha: 0.05),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.58, 1.0],
+        ).createShader(
+          Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.9),
+        ),
+      );
+
     // 背景网格
     for (int ring = 1; ring <= 4; ring++) {
       final rr = r * ring / 4;
@@ -2934,8 +2952,11 @@ class _ConstitutionRadarPainter extends CustomPainter {
         final angle = i * 2 * math.pi / sides - math.pi / 2;
         final x = cx + math.cos(angle) * rr;
         final y = cy + math.sin(angle) * rr;
-        if (i == 0) path.moveTo(x, y);
-        else path.lineTo(x, y);
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
       }
       path.close();
       canvas.drawPath(
@@ -2957,8 +2978,11 @@ class _ConstitutionRadarPainter extends CustomPainter {
       final rr = r * scores[i];
       final x = cx + math.cos(angle) * rr;
       final y = cy + math.sin(angle) * rr;
-      if (i == 0) dataPath.moveTo(x, y);
-      else dataPath.lineTo(x, y);
+      if (i == 0) {
+        dataPath.moveTo(x, y);
+      } else {
+        dataPath.lineTo(x, y);
+      }
     }
     dataPath.close();
 

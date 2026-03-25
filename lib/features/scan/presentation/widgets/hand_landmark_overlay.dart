@@ -68,6 +68,9 @@ class HandLandmarkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (normalizedLandmarks.length < 21) return;
 
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+
     final points = _mapToView(size);
 
     // 1. 绘制基本骨架 (Standard bones)
@@ -104,6 +107,8 @@ class HandLandmarkPainter extends CustomPainter {
       canvas.drawCircle(point, 4.0, _glowPaint);
       canvas.drawCircle(point, 1.8, _pointPaint);
     }
+
+    canvas.restore();
   }
 
   List<Offset> _mapToView(Size viewSize) {

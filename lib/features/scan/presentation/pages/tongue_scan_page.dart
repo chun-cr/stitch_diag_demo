@@ -422,8 +422,8 @@ class _TongueScanPageState extends State<TongueScanPage>
   Widget _buildCameraArea() {
     return LayoutBuilder(builder: (context, constraints) {
       final cx = constraints.maxWidth / 2;
-      // 下移圆心，避免被上方引导层遮挡
-      final cy = constraints.maxHeight / 2 + constraints.maxHeight * (-0.1) / 2;
+      // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
+      final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
       // 缩小圆圈半径
       final radius = constraints.maxWidth * 0.36;
 
@@ -442,7 +442,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Align(
-            alignment: const Alignment(0, -0.1),
+            alignment: const Alignment(0, 0.18),
             child: _buildTongueFrame(),
           ),
         ],
@@ -451,8 +451,8 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 
   Widget _buildTongueFrame() {
-    const frameW = 180.0;
-    const frameH = 216.0;
+    const frameW = 160.0;
+    const frameH = 192.0;
     final isActive = _scanState == ScanState.scanning;
     final isCompleted = _scanState == ScanState.completed;
     final isAligned = _tongueDetected;

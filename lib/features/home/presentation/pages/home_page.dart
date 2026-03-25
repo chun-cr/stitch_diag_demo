@@ -94,6 +94,8 @@ class _MainShellState extends State<MainShell> {
         onTap: (i) {
           if (i == 1) {
             context.push(AppRoutes.scan);
+          } else if (i == 2) {
+            context.push(AppRoutes.report);
           } else {
             setState(() => _currentIndex = i);
           }
@@ -264,9 +266,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _scoreController;
   late Animation<double> _scoreAnim;
+  late AnimationController _scanRevealController;
+  Offset? _scanRevealCenter;
+  bool _showScanReveal = false;
 
   @override
   void initState() {
@@ -279,6 +284,10 @@ class _HomePageState extends State<HomePage>
       parent: _scoreController,
       curve: Curves.easeOutCubic,
     );
+    _scanRevealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) _scoreController.forward();
     });
@@ -287,53 +296,100 @@ class _HomePageState extends State<HomePage>
   @override
   void dispose() {
     _scoreController.dispose();
+    _scanRevealController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleScanReveal(Offset globalCenter) async {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    setState(() {
+      _scanRevealCenter = renderBox.globalToLocal(globalCenter);
+      _showScanReveal = true;
+    });
+
+    try {
+      await _scanRevealController.forward().orCancel;
+      if (!mounted) return;
+      await context.push(AppRoutes.scan);
+    } on TickerCanceled {
+      return;
+    } finally {
+      if (mounted) {
+        _scanRevealController.reset();
+        setState(() {
+          _showScanReveal = false;
+          _scanRevealCenter = null;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.softBg,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(),
-          SliverToBoxAdapter(
-            child: Transform.translate(
-              offset: const Offset(0, -16),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.softBg,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(28),
-                    topRight: Radius.circular(28),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(painter: _HomeBgPainter()),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildQuickScan(),
-                          const SizedBox(height: 20),
-                          _buildLastReport(),
-                          const SizedBox(height: 20),
-                          _buildFunctionGrid(),
-                          const SizedBox(height: 20),
-                          _buildHealthTips(),
-                          const SizedBox(height: 8),
-                        ],
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(),
+              SliverToBoxAdapter(
+                child: Transform.translate(
+                  offset: const Offset(0, -16),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: AppColors.softBg,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(28),
+                        topRight: Radius.circular(28),
                       ),
                     ),
-                  ],
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CustomPaint(painter: _HomeBgPainter()),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildQuickScan(),
+                              const SizedBox(height: 20),
+                              _buildLastReport(),
+                              const SizedBox(height: 20),
+                              _buildFunctionGrid(),
+                              const SizedBox(height: 20),
+                              _buildHealthTips(),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_showScanReveal && _scanRevealCenter != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _scanRevealController,
+                  builder: (context, _) => CustomPaint(
+                    painter: _ScanRevealPainter(
+                      progress: Curves.easeInCubic.transform(
+                        _scanRevealController.value,
+                      ),
+                      center: _scanRevealCenter!,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -342,7 +398,7 @@ class _HomePageState extends State<HomePage>
   // ── Sliver App Bar ──────────────────────────────────────────────
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 248,
+      expandedHeight: 228,
       pinned: true,
       backgroundColor: AppColors.softBg,
       surfaceTintColor: Colors.transparent,
@@ -553,46 +609,8 @@ class _HomePageState extends State<HomePage>
             }),
           ),
           const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => context.push(AppRoutes.scan),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(
-                    Icons.play_circle_outline,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    '开始全套智能检测',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          _MorphingScanCTA(
+            onMorphCompleted: _handleScanReveal,
           ),
         ],
       ),
@@ -660,7 +678,7 @@ class _HomePageState extends State<HomePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle(title: '功能导航'),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -742,7 +760,7 @@ class _HeroFlexibleSpace extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const expandedH = 248.0;
+        const expandedH = 228.0;
         final collapsedH = kToolbarHeight + MediaQuery.of(context).padding.top;
 
         // progress: 1.0 = 完全展开，0.0 = 完全收起
@@ -791,9 +809,9 @@ class _HeroFlexibleSpace extends StatelessWidget {
                       ),
                       SafeArea(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(22, 52, 22, 12),
+                          padding: const EdgeInsets.fromLTRB(22, 46, 22, 8),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               // ── greeting：向上位移 + 淡入
                               Expanded(
@@ -1118,6 +1136,295 @@ class _ScoreRingPainter extends CustomPainter {
   bool shouldRepaint(_ScoreRingPainter old) => old.progress != progress;
 }
 
+class _MorphingScanCTA extends StatefulWidget {
+  final Future<void> Function(Offset globalCenter) onMorphCompleted;
+
+  const _MorphingScanCTA({required this.onMorphCompleted});
+
+  @override
+  State<_MorphingScanCTA> createState() => _MorphingScanCTAState();
+}
+
+class _MorphingScanCTAState extends State<_MorphingScanCTA>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  final GlobalKey _buttonKey = GlobalKey();
+  bool _pressed = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleTap() async {
+    if (_busy) return;
+
+    setState(() {
+      _busy = true;
+      _pressed = false;
+    });
+
+    HapticFeedback.lightImpact();
+
+    try {
+      await _controller.forward().orCancel;
+      final renderBox =
+          _buttonKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final center = renderBox.localToGlobal(renderBox.size.center(Offset.zero));
+        await widget.onMorphCompleted(center);
+      }
+    } on TickerCanceled {
+      return;
+    } finally {
+      if (mounted) {
+        _controller.reset();
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _busy ? null : (_) => setState(() => _pressed = true),
+      onTapUp: _busy ? null : (_) => setState(() => _pressed = false),
+      onTapCancel: _busy ? null : () => setState(() => _pressed = false),
+      onTap: _handleTap,
+      child: AnimatedScale(
+        scale: _pressed && !_busy ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final morph = Curves.easeInOutCubic.transform(_controller.value);
+            final textOpacity = (1 - (_controller.value * 1.8)).clamp(0.0, 1.0);
+            final loaderOpacity = ((_controller.value - 0.35) / 0.25).clamp(0.0, 1.0);
+            final shadowFactor = _pressed && !_busy ? 0.58 : (1 - 0.35 * morph);
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final fullWidth = constraints.maxWidth;
+                final width = 48 + (fullWidth - 48) * (1 - morph);
+                final radius = 14 + (24 - 14) * morph;
+
+                return Center(
+                  child: Container(
+                    key: _buttonKey,
+                    width: width,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF8FD0AB),
+                          Color(0xFF6FBE93),
+                          Color(0xFF56A97B),
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        stops: [0.0, 0.55, 1.0],
+                      ),
+                      borderRadius: BorderRadius.circular(radius),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF56A97B)
+                              .withValues(alpha: 0.24 * shadowFactor),
+                          blurRadius: 20 * shadowFactor,
+                          spreadRadius: 0.5 * shadowFactor,
+                          offset: Offset(0, 7 * shadowFactor),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF9AD7B5)
+                              .withValues(alpha: 0.12 * shadowFactor),
+                          blurRadius: 10 * shadowFactor,
+                          offset: Offset(0, 1 * shadowFactor),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Opacity(
+                          opacity: textOpacity,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.play_circle_outline,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                '开始全套智能检测',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Opacity(
+                          opacity: loaderOpacity,
+                          child: const _ZenBreathSpinner(),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ZenBreathSpinner extends StatefulWidget {
+  const _ZenBreathSpinner();
+
+  @override
+  State<_ZenBreathSpinner> createState() => _ZenBreathSpinnerState();
+}
+
+class _ZenBreathSpinnerState extends State<_ZenBreathSpinner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _controller,
+      child: SizedBox(
+        width: 22,
+        height: 22,
+        child: CustomPaint(
+          painter: _ZenBreathSpinnerPainter(),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZenBreathSpinnerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final rect = Rect.fromCircle(center: center, radius: size.width / 2 - 1.5);
+
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      math.pi * 1.4,
+      false,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.24)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..strokeCap = StrokeCap.round,
+    );
+
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      math.pi * 0.72,
+      false,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFFF8FFFB), Color(0xFFDDF3E7)],
+        ).createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ScanRevealPainter extends CustomPainter {
+  final double progress;
+  final Offset center;
+
+  const _ScanRevealPainter({required this.progress, required this.center});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final distances = [
+      (center - const Offset(0, 0)).distance,
+      (center - Offset(size.width, 0)).distance,
+      (center - Offset(0, size.height)).distance,
+      (center - Offset(size.width, size.height)).distance,
+    ];
+    final radius = distances.reduce(math.max) * progress;
+    final rect = Rect.fromCircle(center: center, radius: radius.clamp(0.0, 4000.0));
+
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFF9AD7B5).withValues(alpha: 0.98),
+            const Color(0xFF73BF98).withValues(alpha: 0.98),
+            const Color(0xFF56A97B),
+          ],
+          stops: const [0.0, 0.52, 1.0],
+        ).createShader(rect),
+    );
+
+    if (progress < 0.82) {
+      canvas.drawCircle(
+        center,
+        radius * (0.86 + 0.08 * (1 - progress)),
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.05 * (1 - progress))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScanRevealPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.center != center;
+  }
+}
+
 // ─── Scan Entry Tile ───────────────────────────────────────────────
 class _ScanEntryTile extends StatefulWidget {
   final String label;
@@ -1154,12 +1461,8 @@ class _ScanEntryTileState extends State<_ScanEntryTile> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
           decoration: BoxDecoration(
-            color: widget.color.withValues(alpha: 0.06),
+            color: widget.color.withValues(alpha: 0.035),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: widget.color.withValues(alpha: 0.16),
-              width: 1,
-            ),
           ),
           child: Column(
             children: [
@@ -1381,31 +1684,38 @@ class _CompactScore extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: AppColors.textHint),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: score / 100,
-                backgroundColor: color.withValues(alpha: 0.09),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                minHeight: 2.5,
+          Row(
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textHint,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
+              const Spacer(),
+              Text(
+                '$score',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            '$score',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
+          const SizedBox(height: 7),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: score / 100,
+              backgroundColor: color.withValues(alpha: 0.08),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 3,
             ),
           ),
         ],

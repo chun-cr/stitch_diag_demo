@@ -1,7 +1,5 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 
 class ScanGuidePage extends StatefulWidget {
@@ -15,6 +13,8 @@ class _ScanGuidePageState extends State<ScanGuidePage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late List<Animation<double>> _cardAnimations;
+  late Animation<double> _pageFade;
+  late Animation<double> _revealOverlayFade;
 
   @override
   void initState() {
@@ -33,6 +33,18 @@ class _ScanGuidePageState extends State<ScanGuidePage>
       );
     });
 
+    _pageFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.08, 0.34, curve: Curves.easeOutCubic),
+    );
+
+    _revealOverlayFade = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.24, curve: Curves.easeOutCubic),
+      ),
+    );
+
     _controller.forward();
   }
 
@@ -45,34 +57,52 @@ class _ScanGuidePageState extends State<ScanGuidePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F1EB), // 宣纸米色
+      backgroundColor: const Color(0xFF246547),
       body: Stack(
         children: [
-          // Decorative background
-          Positioned.fill(child: _buildBackground()),
+          FadeTransition(
+            opacity: _pageFade,
+            child: ColoredBox(
+              color: const Color(0xFFF4F1EB),
+              child: Stack(
+                children: [
+                  // Decorative background
+                  Positioned.fill(child: _buildBackground()),
 
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(context),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  SafeArea(
                     child: Column(
                       children: [
-                        const SizedBox(height: 4),
-                        _buildTitleSection(),
-                        const SizedBox(height: 28),
-                        _buildStepCards(),
-                        const SizedBox(height: 24),
-                        _buildInfoBanner(),
-                        const SizedBox(height: 32),
+                        _buildHeader(context),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 4),
+                                _buildTitleSection(),
+                                const SizedBox(height: 28),
+                                _buildStepCards(),
+                                const SizedBox(height: 24),
+                                _buildInfoBanner(),
+                                const SizedBox(height: 32),
+                              ],
+                            ),
+                          ),
+                        ),
+                        _buildBottomSection(context),
                       ],
                     ),
                   ),
-                ),
-                _buildBottomSection(context),
-              ],
+                ],
+              ),
+            ),
+          ),
+          IgnorePointer(
+            child: FadeTransition(
+              opacity: _revealOverlayFade,
+              child: Container(
+                color: const Color(0xFF246547),
+              ),
             ),
           ),
         ],
