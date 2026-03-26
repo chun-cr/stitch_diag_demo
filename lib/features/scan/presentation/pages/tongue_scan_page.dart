@@ -54,10 +54,10 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _hasPermission = false;
   bool _mouthPresent = false;
   bool _tongueDetected = false;
-  double _tongueOutScore = 0;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
   String _mouthDirection = ''; // 方向提示
+  List<Offset> _tongueLandmarks = const [];
   List<Offset> _mouthLandmarks = const [];
   double _imageWidth = 0;
   double _imageHeight = 0;
@@ -127,7 +127,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     setState(() {
       _mouthPresent = status.mouthPresent;
       _tongueDetected = status.tongueDetected;
-      _tongueOutScore = status.tongueOutScore;
+      _tongueLandmarks = status.tongueLandmarks;
       _mouthLandmarks = status.mouthLandmarks;
       _imageWidth = status.imageWidth;
       _imageHeight = status.imageHeight;
@@ -450,11 +450,10 @@ class _TongueScanPageState extends State<TongueScanPage>
           ),
           Positioned.fill(
             child: TongueLandmarkOverlay(
+              normalizedLandmarks: _tongueLandmarks,
               mouthLandmarks: _mouthLandmarks,
               imageSize: Size(_imageWidth, _imageHeight),
               mirrored: overlayMirrored,
-              tongueDetected: _tongueDetected,
-              tongueOutScore: _tongueOutScore,
             ),
           ),
           Positioned.fill(
