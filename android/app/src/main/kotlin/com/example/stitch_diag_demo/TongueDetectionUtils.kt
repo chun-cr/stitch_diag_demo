@@ -14,6 +14,7 @@ object TongueDetectionUtils {
         val tongueDetected: Boolean,
         val tongueOutScore: Double,
         val mouthLandmarks: List<Map<String, Double>>,
+        val mouthCenter: Map<String, Double>?,
     )
 
     fun evaluateTongue(
@@ -21,7 +22,7 @@ object TongueDetectionUtils {
         blendshapes: Map<String, Double>,
     ): TongueResult {
         if (landmarks.isNullOrEmpty()) {
-            return TongueResult(false, 0.0, emptyList())
+            return TongueResult(false, 0.0, emptyList(), null)
         }
 
         val tongueOutScore = blendshapes["tongueOut"] ?: 0.0
@@ -58,7 +59,8 @@ object TongueDetectionUtils {
         return TongueResult(
             tongueDetected = detected,
             tongueOutScore = tongueOutScore,
-            mouthLandmarks = if (center != null) mouthLandmarks + center else mouthLandmarks,
+            mouthLandmarks = mouthLandmarks,
+            mouthCenter = center,
         )
     }
 }

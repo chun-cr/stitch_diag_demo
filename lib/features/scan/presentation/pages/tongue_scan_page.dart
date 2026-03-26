@@ -12,6 +12,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -88,6 +89,9 @@ class _TongueScanPageState extends State<TongueScanPage>
   Future<void> _requestPermission() async {
     final status = await Permission.camera.request();
     if (!mounted) return;
+    if (!status.isGranted) {
+      return;
+    }
     setState(() {
       _hasPermission = true;
       _scanState = ScanState.scanning;
@@ -430,6 +434,7 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   Widget _buildCameraArea() {
     return LayoutBuilder(builder: (context, constraints) {
+      final overlayMirrored = defaultTargetPlatform == TargetPlatform.android;
       final cx = constraints.maxWidth / 2;
       // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
       final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
@@ -448,7 +453,7 @@ class _TongueScanPageState extends State<TongueScanPage>
               normalizedLandmarks: _tongueLandmarks,
               mouthLandmarks: _mouthLandmarks,
               imageSize: Size(_imageWidth, _imageHeight),
-              mirrored: true,
+              mirrored: overlayMirrored,
             ),
           ),
           Positioned.fill(

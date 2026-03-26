@@ -287,11 +287,11 @@ class _ReportHeroSpace extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFFA1C2B1),
-                      Color(0xFFA1C2B1),
-                      Color(0xFFA1C2B1),
+                      Color(0xFFFCFDFB),
+                      Color(0xFFEAF5EE),
+                      Color(0xFFD6EBDC),
                     ],
-                    stops: [0.0, 0.5, 1.0],
+                    stops: [0.0, 0.42, 1.0],
                   ),
                 ),
                 child: Stack(

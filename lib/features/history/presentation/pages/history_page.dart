@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -42,9 +42,10 @@ class DiagnosisRecord {
     DiagnosisRecord(
       id: 'r001',
       date: DateTime(2025, 3, 14),
-      constitutionType: '平和质',
+      constitutionType: '\u5e73\u548c\u8d28',
       score: 86,
-      faceImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
+      faceImageUrl:
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 86,
       riskIndexMap: const {'脾胃': 0.58, '气虚': 0.52, '湿困': 0.34},
@@ -54,7 +55,8 @@ class DiagnosisRecord {
       date: DateTime(2025, 3, 12),
       constitutionType: '气虚质',
       score: 82,
-      faceImageUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
+      faceImageUrl:
+          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
       isUnlocked: false,
       healthTrend: 82,
       riskIndexMap: const {'脾胃': 0.61, '气虚': 0.57, '湿困': 0.29},
@@ -64,7 +66,8 @@ class DiagnosisRecord {
       date: DateTime(2025, 3, 10),
       constitutionType: '平和质',
       score: 88,
-      faceImageUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
+      faceImageUrl:
+          'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 88,
       riskIndexMap: const {'脾胃': 0.54, '气虚': 0.49, '湿困': 0.25},
@@ -74,7 +77,8 @@ class DiagnosisRecord {
       date: DateTime(2025, 3, 8),
       constitutionType: '痰湿质',
       score: 78,
-      faceImageUrl: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=800&q=80',
+      faceImageUrl:
+          'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=800&q=80',
       isUnlocked: false,
       healthTrend: 78,
       riskIndexMap: const {'脾胃': 0.68, '气虚': 0.42, '湿困': 0.48},
@@ -84,7 +88,8 @@ class DiagnosisRecord {
       date: DateTime(2025, 3, 6),
       constitutionType: '平和质',
       score: 84,
-      faceImageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
+      faceImageUrl:
+          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 84,
       riskIndexMap: const {'脾胃': 0.56, '气虚': 0.46, '湿困': 0.30},
@@ -94,7 +99,8 @@ class DiagnosisRecord {
       date: DateTime(2025, 3, 4),
       constitutionType: '气虚质',
       score: 80,
-      faceImageUrl: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=800&q=80',
+      faceImageUrl:
+          'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=800&q=80',
       isUnlocked: false,
       healthTrend: 80,
       riskIndexMap: const {'脾胃': 0.60, '气虚': 0.55, '湿困': 0.32},
@@ -105,10 +111,7 @@ class DiagnosisRecord {
 class HistoryReportPage extends StatefulWidget {
   final List<DiagnosisRecord> records;
 
-  const HistoryReportPage({
-    super.key,
-    this.records = const [],
-  });
+  const HistoryReportPage({super.key, this.records = const []});
 
   @override
   State<HistoryReportPage> createState() => _HistoryReportPageState();
@@ -117,6 +120,7 @@ class HistoryReportPage extends StatefulWidget {
 class _HistoryReportPageState extends State<HistoryReportPage> {
   late final List<DiagnosisRecord> _records;
   late final Map<String, bool> _riskVisible;
+  late final Set<int> _xAxisLabelIndexes;
 
   static const _riskColors = {
     '脾胃': _kEarth,
@@ -127,16 +131,18 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
   @override
   void initState() {
     super.initState();
-    _records = (widget.records.isEmpty
-            ? DiagnosisRecord.sampleRecords
-            : widget.records)
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    _records =
+        (widget.records.isEmpty
+                ? DiagnosisRecord.sampleRecords
+                : widget.records)
+            .toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
 
     final keys = <String>{
       for (final record in _records) ...record.riskIndexMap.keys,
     };
     _riskVisible = {for (final key in keys) key: true};
+    _xAxisLabelIndexes = _buildSparseLabelIndexes(_records.length);
   }
 
   @override
@@ -190,9 +196,9 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) => _HistoryRecordCard(
                   record: _records.reversed.toList()[index],
-                  onUnlock: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('解锁功能开发中')),
-                  ),
+                  onUnlock: () => ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('解锁功能开发中'))),
                 ),
                 childCount: _records.length,
               ),
@@ -214,22 +220,12 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
             maxX: (_records.length - 1).toDouble(),
             minY: 60,
             maxY: 100,
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: false,
-              getDrawingHorizontalLine: (value) => FlLine(
-                color: const Color(0xFFEEEEEE),
-                strokeWidth: 1,
-                dashArray: [4, 4],
-              ),
+            lineTouchData: _buildTouchData(
+              valueFormatter: (value) => '${value.toInt()}分',
+              lineNameResolver: (_) => '健康指数',
             ),
-            borderData: FlBorderData(
-              show: true,
-              border: const Border(
-                left: BorderSide(color: Color(0xFFEEEEEE)),
-                bottom: BorderSide(color: Color(0xFFEEEEEE)),
-              ),
-            ),
+            gridData: _buildGridData(),
+            borderData: _buildBorderData(),
             titlesData: _buildTitlesData(),
             lineBarsData: [
               LineChartBarData(
@@ -241,28 +237,21 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                 gradient: const LinearGradient(
                   colors: [_kPrimaryGreen, _kPrimaryGreenLight],
                 ),
-                barWidth: 3,
+                barWidth: 3.2,
                 isStrokeCapRound: true,
+                curveSmoothness: 0.28,
                 belowBarData: BarAreaData(
                   show: true,
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      _kPrimaryGreenLight.withValues(alpha: 0.24),
-                      _kPrimaryGreen.withValues(alpha: 0.04),
+                      _kPrimaryGreenLight.withValues(alpha: 0.18),
+                      _kPrimaryGreen.withValues(alpha: 0.02),
                     ],
                   ),
                 ),
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
-                    radius: 4,
-                    color: _kPrimaryGreen,
-                    strokeWidth: 2,
-                    strokeColor: Colors.white,
-                  ),
-                ),
+                dotData: const FlDotData(show: false),
               ),
             ],
           ),
@@ -286,22 +275,12 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                 maxX: (_records.length - 1).toDouble(),
                 minY: 0,
                 maxY: 1,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: const Color(0xFFEEEEEE),
-                    strokeWidth: 1,
-                    dashArray: [4, 4],
-                  ),
+                lineTouchData: _buildTouchData(
+                  valueFormatter: (value) => '${(value * 100).round()}%',
+                  lineNameResolver: (bar) => _riskLabelForBar(bar),
                 ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: const Border(
-                    left: BorderSide(color: Color(0xFFEEEEEE)),
-                    bottom: BorderSide(color: Color(0xFFEEEEEE)),
-                  ),
-                ),
+                gridData: _buildGridData(),
+                borderData: _buildBorderData(),
                 titlesData: _buildTitlesData(showLeftPercent: true),
                 lineBarsData: keys
                     .where((key) => _riskVisible[key] ?? false)
@@ -309,21 +288,17 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                       (key) => LineChartBarData(
                         spots: [
                           for (var i = 0; i < _records.length; i++)
-                            FlSpot(i.toDouble(), _records[i].riskIndexMap[key] ?? 0),
+                            FlSpot(
+                              i.toDouble(),
+                              _records[i].riskIndexMap[key] ?? 0,
+                            ),
                         ],
                         isCurved: true,
                         color: _riskColors[key],
-                        barWidth: 2.5,
+                        barWidth: 2.15,
                         isStrokeCapRound: true,
-                        dotData: FlDotData(
-                          show: true,
-                          getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
-                            radius: 3.5,
-                            color: _riskColors[key] ?? _kPrimaryGreen,
-                            strokeWidth: 2,
-                            strokeColor: Colors.white,
-                          ),
-                        ),
+                        curveSmoothness: 0.22,
+                        dotData: const FlDotData(show: false),
                       ),
                     )
                     .toList(),
@@ -341,7 +316,10 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                 borderRadius: BorderRadius.circular(8),
                 onTap: () => setState(() => _riskVisible[key] = !active),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 4,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -380,31 +358,43 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
       leftTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 34,
-            interval: showLeftPercent ? 0.25 : 10,
-            getTitlesWidget: (value, meta) => Text(
-            showLeftPercent ? '${(value * 100).round()}%' : value.toInt().toString(),
-            style: const TextStyle(fontSize: 10, color: _kTextHint),
+          reservedSize: 32,
+          interval: showLeftPercent ? 0.25 : 10,
+          getTitlesWidget: (value, meta) => Text(
+            showLeftPercent
+                ? '${(value * 100).round()}%'
+                : value.toInt().toString(),
+            style: const TextStyle(
+              fontSize: 10,
+              color: _kTextHint,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 42,
+          reservedSize: 32,
           getTitlesWidget: (value, meta) {
             final index = value.toInt();
-            if (index < 0 || index >= _records.length) return const SizedBox.shrink();
-            if (index % 2 != 0) return const SizedBox.shrink();
+            if (index < 0 || index >= _records.length) {
+              return const SizedBox.shrink();
+            }
+            if (!_xAxisLabelIndexes.contains(index)) {
+              return const SizedBox.shrink();
+            }
             final label = _dateLabel(_records[index].date);
             return SideTitleWidget(
               axisSide: meta.axisSide,
-              space: 10,
-              child: Transform.rotate(
-                angle: -0.55,
-                child: Text(
-                  label,
-                  style: const TextStyle(fontSize: 10, color: _kTextHint),
+              space: 8,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: _kTextHint,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
                 ),
               ),
             );
@@ -414,10 +404,117 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
     );
   }
 
+  FlGridData _buildGridData() {
+    return FlGridData(
+      show: true,
+      drawVerticalLine: false,
+      horizontalInterval: 10,
+      getDrawingHorizontalLine: (value) => FlLine(
+        color: const Color(0xFF1E1810).withValues(alpha: 0.07),
+        strokeWidth: 0.8,
+      ),
+    );
+  }
+
+  FlBorderData _buildBorderData() {
+    return FlBorderData(
+      show: true,
+      border: Border(
+        bottom: BorderSide(
+          color: const Color(0xFF1E1810).withValues(alpha: 0.12),
+          width: 0.9,
+        ),
+      ),
+    );
+  }
+
+  LineTouchData _buildTouchData({
+    required String Function(double value) valueFormatter,
+    required String Function(LineChartBarData barData) lineNameResolver,
+  }) {
+    return LineTouchData(
+      enabled: true,
+      handleBuiltInTouches: true,
+      touchSpotThreshold: 24,
+      getTouchedSpotIndicator: (barData, spotIndexes) {
+        final color = _lineColorOf(barData);
+        return spotIndexes
+            .map(
+              (_) => TouchedSpotIndicatorData(
+                FlLine(
+                  color: color.withValues(alpha: 0.18),
+                  strokeWidth: 1,
+                  dashArray: [3, 4],
+                ),
+                FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, bar, index) =>
+                      FlDotCirclePainter(
+                        radius: 4.6,
+                        color: color,
+                        strokeWidth: 2.4,
+                        strokeColor: Colors.white,
+                      ),
+                ),
+              ),
+            )
+            .toList();
+      },
+      touchTooltipData: LineTouchTooltipData(
+        tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        tooltipMargin: 10,
+        tooltipBorder: BorderSide(
+          color: const Color(0xFF1E1810).withValues(alpha: 0.08),
+          width: 0.8,
+        ),
+        fitInsideHorizontally: true,
+        fitInsideVertically: true,
+        getTooltipColor: (_) => Colors.white.withValues(alpha: 0.96),
+        getTooltipItems: (touchedSpots) => touchedSpots.asMap().entries.map((entry) {
+          final item = entry.value;
+          final itemDate = _dateLabel(_records[item.x.toInt()].date);
+          final itemColor = _lineColorOf(item.bar);
+          final itemValueText = valueFormatter(item.y);
+          final itemLineName = lineNameResolver(item.bar);
+          final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
+          return LineTooltipItem(
+            '$itemTitle$itemLineName  $itemValueText',
+            TextStyle(
+              color: itemColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.45,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Color _lineColorOf(LineChartBarData barData) {
+    return barData.gradient?.colors.last ?? barData.color ?? _kPrimaryGreen;
+  }
+
+  String _riskLabelForBar(LineChartBarData barData) {
+    final color = _lineColorOf(barData);
+    return _riskColors.entries
+            .firstWhere(
+              (entry) => entry.value == color,
+              orElse: () => const MapEntry('风险', _kPrimaryGreen),
+            )
+            .key;
+  }
+
+  Set<int> _buildSparseLabelIndexes(int length) {
+    if (length <= 0) return const <int>{};
+    if (length == 1) return const <int>{0};
+    return <int>{0, length ~/ 2, length - 1};
+  }
+
   String _dateLabel(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
-    return '$month/$day';
+    return '$month.$day';
   }
 }
 
@@ -492,7 +589,9 @@ class _HistoryRecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: record.isUnlocked ? () => context.push(AppRoutes.reportAnalysis) : null,
+      onTap: record.isUnlocked
+          ? () => context.push(AppRoutes.reportAnalysis)
+          : null,
       child: Container(
         decoration: BoxDecoration(
           color: _kCardBg,
@@ -533,7 +632,10 @@ class _HistoryRecordCard extends StatelessWidget {
                     errorWidget: (context, url, error) => Container(
                       color: const Color(0xFFF6F1E7),
                       child: const Center(
-                        child: Icon(Icons.broken_image_outlined, color: _kTextHint),
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: _kTextHint,
+                        ),
                       ),
                     ),
                   ),
@@ -551,7 +653,10 @@ class _HistoryRecordCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: _kGreenStart.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(99),
@@ -598,7 +703,10 @@ class _HistoryRecordCard extends StatelessWidget {
                           GestureDetector(
                             onTap: onUnlock,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(99),
                                 border: Border.all(color: _kDanger, width: 1),

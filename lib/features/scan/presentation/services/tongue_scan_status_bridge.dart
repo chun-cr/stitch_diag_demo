@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class TongueScanStatus {
@@ -46,8 +45,9 @@ class TongueScanStatus {
     final tonguePoints = _extractPoints(data['landmarks']);
 
     // 计算嘴部中心点
-    Offset? mouthCenter;
-    if (mouthPoints.isNotEmpty) {
+    final explicitMouthCenter = _extractPoint(data['mouthCenter']);
+    Offset? mouthCenter = explicitMouthCenter;
+    if (mouthCenter == null && mouthPoints.isNotEmpty) {
       double sumX = 0, sumY = 0;
       for (final pt in mouthPoints) {
         sumX += pt.dx;
@@ -72,13 +72,18 @@ class TongueScanStatus {
     if (raw is! List) return const [];
     final points = <Offset>[];
     for (final item in raw) {
-      if (item is Map) {
-        final x = (item['x'] as num?)?.toDouble();
-        final y = (item['y'] as num?)?.toDouble();
-        if (x != null && y != null) points.add(Offset(x, y));
-      }
+      final point = _extractPoint(item);
+      if (point != null) points.add(point);
     }
     return points;
+  }
+
+  static Offset? _extractPoint(dynamic raw) {
+    if (raw is! Map) return null;
+    final x = (raw['x'] as num?)?.toDouble();
+    final y = (raw['y'] as num?)?.toDouble();
+    if (x == null || y == null) return null;
+    return Offset(x, y);
   }
 }
 

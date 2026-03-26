@@ -131,6 +131,10 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                         "tongueDetected" to false,
                         "tongueOutScore" to 0.0,
                         "mouthLandmarks" to emptyList<Map<String, Double>>(),
+                        "landmarks" to emptyList<Map<String, Double>>(),
+                        "imageWidth" to 0,
+                        "imageHeight" to 0,
+                        "mouthCenter" to null,
                     )
                 )
                 result.success(null)
@@ -177,6 +181,9 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
             "tongueOutScore" to ((data["tongueOutScore"] as? Number)?.toDouble() ?: 0.0),
             "mouthLandmarks" to (data["mouthLandmarks"] as? List<*> ?: emptyList<Any>()),
             "landmarks" to (data["landmarks"] as? List<*> ?: emptyList<Any>()),
+            "imageWidth" to ((data["imageWidth"] as? Number)?.toDouble() ?: 0.0),
+            "imageHeight" to ((data["imageHeight"] as? Number)?.toDouble() ?: 0.0),
+            "mouthCenter" to data["mouthCenter"],
         )
 
         (context as? MainActivity)?.runOnUiThread {

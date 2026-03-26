@@ -31,14 +31,14 @@ class AppColors {
   static const heroGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFA1C2B1), Color(0xFFA1C2B1)],
-    stops: [0.0, 1.0],
+    colors: [Color(0xFFFCFDFB), Color(0xFFEAF5EE), Color(0xFFD4E9DA)],
+    stops: [0.0, 0.38, 1.0],
   );
 
   static const primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFA1C2B1), Color(0xFFA1C2B1)],
+    colors: [Color(0xFF2F6B4F), Color(0xFF4FA276)],
   );
 }
 
@@ -1133,7 +1133,7 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                     height: 48,
                     decoration: BoxDecoration(
                       color: Color.lerp(
-                        const Color(0xFFA1C2B1),
+                        const Color(0xFF5F9878),
                         const Color(0xFFF4F1EB),
                         morph,
                       ),
@@ -1150,23 +1150,23 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                       boxShadow: [
                         BoxShadow(
                           color: Color.lerp(
-                                const Color(0xFFA1C2B1),
+                                const Color(0xFF5F9878),
                                 const Color(0xFFCFC3B1),
                                 morph,
                               )!
-                              .withValues(alpha: 0.24 * shadowFactor),
-                          blurRadius: 20 * shadowFactor,
+                              .withValues(alpha: 0.18 * shadowFactor),
+                          blurRadius: 18 * shadowFactor,
                           spreadRadius: 0.5 * shadowFactor,
-                          offset: Offset(0, 7 * shadowFactor),
+                          offset: Offset(0, 6 * shadowFactor),
                         ),
                         BoxShadow(
                           color: Color.lerp(
-                                const Color(0xFFA8D8BE),
+                                const Color(0xFFB9D8C4),
                                 const Color(0xFFF7F1E6),
                                 morph,
                               )!
-                              .withValues(alpha: 0.12 * shadowFactor),
-                          blurRadius: 10 * shadowFactor,
+                              .withValues(alpha: 0.1 * shadowFactor),
+                          blurRadius: 8 * shadowFactor,
                           offset: Offset(0, 1 * shadowFactor),
                         ),
                       ],
@@ -1518,26 +1518,45 @@ class _CompactScore extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF4CAF50),
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(999),
             child: SizedBox(
-              height: 6,
+              height: 8,
               child: Stack(
                 children: [
-                  Container(color: const Color(0xFFE8F5E9)),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8EFE9),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
                   FractionallySizedBox(
                     widthFactor: score / 100,
                     child: DecoratedBox(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFFA8D5A2), Color(0xFF4CAF50)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: const [
+                            Color(0xFFDCEEE1),
+                            Color(0xFFAFD3BB),
+                            Color(0xFF76AC88),
+                          ],
+                          stops: [0.0, 0.58, 1.0],
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF76AC88).withValues(alpha: 0.14),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ),

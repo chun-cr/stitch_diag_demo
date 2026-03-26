@@ -68,6 +68,7 @@ class FaceLandmarkerHelper(private val context: Context) {
                         "tongueDetected" to tongueData.tongueDetected,
                         "tongueOutScore" to tongueData.tongueOutScore,
                         "mouthLandmarks" to tongueData.mouthLandmarks,
+                        "mouthCenter" to tongueData.mouthCenter,
                     )
                 )
             }

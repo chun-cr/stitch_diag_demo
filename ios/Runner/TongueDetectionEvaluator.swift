@@ -11,14 +11,18 @@ enum TongueDetectionEvaluator {
     struct Result {
         let tongueDetected: Bool
         let tongueOutScore: Double
+        let landmarks: [[String: Double]]
         let mouthLandmarks: [[String: Double]]
+        let mouthCenter: [String: Double]?
         let imageWidth: Double
         let imageHeight: Double
 
         static let empty = Result(
             tongueDetected: false,
             tongueOutScore: 0,
+            landmarks: [],
             mouthLandmarks: [],
+            mouthCenter: nil,
             imageWidth: 0,
             imageHeight: 0
         )
@@ -27,7 +31,9 @@ enum TongueDetectionEvaluator {
             [
                 "tongueDetected": tongueDetected,
                 "tongueOutScore": tongueOutScore,
+                "landmarks": landmarks,
                 "mouthLandmarks": mouthLandmarks,
+                "mouthCenter": mouthCenter as Any,
                 "imageWidth": imageWidth,
                 "imageHeight": imageHeight,
             ]
@@ -45,6 +51,13 @@ enum TongueDetectionEvaluator {
 
         let tongueOutScore = blendshapes["tongueOut"] ?? 0
         let jawOpenScore = blendshapes["jawOpen"] ?? 0
+        let allLandmarks = landmarks.map {
+            [
+                "x": Double($0.x),
+                "y": Double($0.y),
+                "z": Double($0.z),
+            ]
+        }
 
         let lipChinRatio: Double = {
             guard landmarks.indices.contains(lowerLipIndex), landmarks.indices.contains(chinIndex) else {
@@ -76,7 +89,9 @@ enum TongueDetectionEvaluator {
             return Result(
                 tongueDetected: detected,
                 tongueOutScore: tongueOutScore,
+                landmarks: allLandmarks,
                 mouthLandmarks: [],
+                mouthCenter: nil,
                 imageWidth: Double(imageSize.width),
                 imageHeight: Double(imageSize.height)
             )
@@ -91,7 +106,9 @@ enum TongueDetectionEvaluator {
         return Result(
             tongueDetected: detected,
             tongueOutScore: tongueOutScore,
-            mouthLandmarks: mouthLandmarks + [center],
+            landmarks: allLandmarks,
+            mouthLandmarks: mouthLandmarks,
+            mouthCenter: center,
             imageWidth: Double(imageSize.width),
             imageHeight: Double(imageSize.height)
         )
