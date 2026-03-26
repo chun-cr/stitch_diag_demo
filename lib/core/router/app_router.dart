@@ -10,6 +10,7 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_pa
 import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
 
 // ─── 路由路径常量 ─────────────────────────────────────────────────
 class AppRoutes {
@@ -103,7 +104,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.history,
-      builder: (context, state) => const _Placeholder(label: '历史记录'),
+      builder: (context, state) => const HistoryReportPage(),
     ),
     GoRoute(
       path: AppRoutes.profile,
@@ -112,12 +113,3 @@ final appRouter = GoRouter(
   ],
 );
 
-class _Placeholder extends StatelessWidget {
-  final String label;
-  const _Placeholder({required this.label});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(label)),
-        body: Center(child: Text('$label 页面开发中')),
-      );
-}

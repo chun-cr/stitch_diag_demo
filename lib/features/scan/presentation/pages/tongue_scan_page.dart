@@ -21,6 +21,7 @@ import '../../../../core/router/app_router.dart';
 import '../services/tongue_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
+import '../widgets/tongue_landmark_overlay.dart';
 
 // ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
 enum ScanState { idle, scanning, completed }
@@ -55,6 +56,10 @@ class _TongueScanPageState extends State<TongueScanPage>
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
   String _mouthDirection = ''; // 方向提示
+  List<Offset> _tongueLandmarks = const [];
+  List<Offset> _mouthLandmarks = const [];
+  double _imageWidth = 0;
+  double _imageHeight = 0;
 
   @override
   void initState() {
@@ -118,6 +123,10 @@ class _TongueScanPageState extends State<TongueScanPage>
     setState(() {
       _mouthPresent = status.mouthPresent;
       _tongueDetected = status.tongueDetected;
+      _tongueLandmarks = status.tongueLandmarks;
+      _mouthLandmarks = status.mouthLandmarks;
+      _imageWidth = status.imageWidth;
+      _imageHeight = status.imageHeight;
       _mouthDirection = (status.mouthPresent && !status.tongueDetected)
           ? _computeMouthDirection(status.mouthCenter)
           : '';
@@ -432,6 +441,14 @@ class _TongueScanPageState extends State<TongueScanPage>
           Positioned.fill(
             child: const CameraPreviewWidget(
               key: ValueKey('shared_camera_preview'),
+            ),
+          ),
+          Positioned.fill(
+            child: TongueLandmarkOverlay(
+              normalizedLandmarks: _tongueLandmarks,
+              mouthLandmarks: _mouthLandmarks,
+              imageSize: Size(_imageWidth, _imageHeight),
+              mirrored: true,
             ),
           ),
           Positioned.fill(

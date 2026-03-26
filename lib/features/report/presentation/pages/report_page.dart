@@ -287,11 +287,11 @@ class _ReportHeroSpace extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFFEAF5EF),
-                      Color(0xFFB6DFCA),
-                      Color(0xFF7EC8A0),
+                      Color(0xFFA1C2B1),
+                      Color(0xFFA1C2B1),
+                      Color(0xFFA1C2B1),
                     ],
-                    stops: [0.0, 0.55, 1.0],
+                    stops: [0.0, 0.5, 1.0],
                   ),
                 ),
                 child: Stack(
@@ -603,113 +603,129 @@ class _Tab1Overview extends StatelessWidget {
       ('掌诊', 0.80, Color(0xFF6B5B95), Icons.back_hand_outlined, '掌纹细浅，气色平'),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.analytics_outlined,
-            iconColor: Color(0xFF2D6A4F),
-            title: '三诊评分',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '三诊评分'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              Row(
+                children: diagData.map((d) {
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                          right: d == diagData.last ? 0 : 10),
+                      child: _DiagScoreCell(
+                        label: d.$1,
+                        score: d.$2,
+                        color: d.$3,
+                        icon: d.$4,
+                        desc: d.$5,
+                        anim: scoreAnim,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: diagData.map((d) {
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                      right: d == diagData.last ? 0 : 10),
-                  child: _DiagScoreCell(
-                    label: d.$1,
-                    score: d.$2,
-                    color: d.$3,
-                    icon: d.$4,
-                    desc: d.$5,
-                    anim: scoreAnim,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   // ── 舌象 + 五行 ──────────────────────────────────────────────────
   Widget _buildTongueAndWuxing() {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 舌象缩略
-        Expanded(
-          flex: 5,
-          child: _SectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _CardHeader(
-                  icon: Icons.photo_camera_outlined,
-                  iconColor: Color(0xFF0D7A5A),
-                  title: '舌象缩图',
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    height: 90,
-                    width: double.infinity,
-                    color: const Color(0xFFE8F5EE),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sentiment_satisfied_alt_outlined,
-                              size: 32,
-                              color: const Color(0xFF0D7A5A)
-                                  .withValues(alpha: 0.5)),
-                          const SizedBox(height: 4),
-                          Text(
-                            '舌象图片',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: const Color(0xFF0D7A5A)
-                                  .withValues(alpha: 0.6),
+        const _FloatingSectionTitle(title: '体征详情'),
+        const SizedBox(height: 10),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 5,
+                child: _SectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '舌象',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E1810),
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          height: 90,
+                          width: double.infinity,
+                          color: const Color(0xFFE8F5EE),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.sentiment_satisfied_alt_outlined,
+                                    size: 32,
+                                    color: const Color(0xFF0D7A5A)
+                                        .withValues(alpha: 0.5)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '舌象图片',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: const Color(0xFF0D7A5A)
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      _InfoRow(label: '舌色', value: '淡红'),
+                      const SizedBox(height: 4),
+                      _InfoRow(label: '苔质', value: '白苔·略厚'),
+                      const SizedBox(height: 4),
+                      _InfoRow(label: '舌形', value: '正常'),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                _InfoRow(label: '舌色', value: '淡红'),
-                const SizedBox(height: 4),
-                _InfoRow(label: '苔质', value: '白苔·略厚'),
-                const SizedBox(height: 4),
-                _InfoRow(label: '舌形', value: '正常'),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        // 五行状态
-        Expanded(
-          flex: 5,
-          child: _SectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _CardHeader(
-                  icon: Icons.hexagon_outlined,
-                  iconColor: Color(0xFFC9A84C),
-                  title: '五行状态',
-                  tag: '木旺',
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 5,
+                child: _SectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        '五行 · 木旺',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E1810),
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Expanded(child: _WuxingBars()),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const _WuxingBars(),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -718,17 +734,14 @@ class _Tab1Overview extends StatelessWidget {
 
   // ── 辨证摘要 ─────────────────────────────────────────────────────
   Widget _buildDiagSummary() {
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.description_outlined,
-            iconColor: Color(0xFFC9A84C),
-            title: '辨证摘要',
-          ),
-          const SizedBox(height: 12),
-          Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '辨证摘要'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -787,8 +800,8 @@ class _Tab1Overview extends StatelessWidget {
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -966,64 +979,111 @@ class _Tab2Constitution extends StatelessWidget {
 
   // ── 体质详解 ─────────────────────────────────────────────────────
   Widget _buildConstitutionDetail() {
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.person_outline,
-            iconColor: Color(0xFF6B5B95),
-            title: '体质详解',
-            tag: '平和 · 气虚偏颇',
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 160,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF8FC7A5).withValues(alpha: 0.16),
-                        const Color(0xFFC9A84C).withValues(alpha: 0.05),
-                        Colors.transparent,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '体质详解'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 150,
+                    height: 160,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              colors: [
+                                const Color(0xFF8FC7A5).withValues(alpha: 0.16),
+                                const Color(0xFFC9A84C).withValues(alpha: 0.05),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.48, 1.0],
+                            ),
+                          ),
+                        ),
+                        CustomPaint(
+                          size: const Size(140, 140),
+                          painter: _ConstitutionRadarPainter(),
+                        ),
                       ],
-                      stops: const [0.0, 0.48, 1.0],
                     ),
                   ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '核心结论',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFA09080).withValues(alpha: 0.9),
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            '主导偏颇体质：气虚质',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E1810),
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '整体以平和质为基础，但伴有较明显的气虚倾向。雷达图中平和质与气虚质占比相对突出，说明体质底子尚可，但在劳累、饮食失调和作息紊乱时，更容易出现乏力、脾胃运化不足等表现。',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: const Color(0xFF3A3028).withValues(alpha: 0.65),
+                              height: 1.65,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                CustomPaint(
-                  size: const Size(140, 140),
-                  painter: _ConstitutionRadarPainter(),
+                child: Column(
+                  children: _constitutionScores
+                      .map((c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _ConstitutionScoreRow(
+                              label: c.$1,
+                              score: c.$2,
+                              color: c.$3,
+                              isMain: c.$4,
+                            ),
+                          ))
+                      .toList(),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.02),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              children: _constitutionScores.map((c) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _ConstitutionScoreRow(
-                  label: c.$1,
-                  score: c.$2,
-                  color: c.$3,
-                  isMain: c.$4,
-                ),
-              )).toList(),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1048,61 +1108,65 @@ class _Tab2Constitution extends StatelessWidget {
       (Icons.directions_run_outlined, '运动', '久坐少动，气血运行不畅，中气渐虚。'),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.search_outlined,
-            iconColor: Color(0xFF6B5B95),
-            title: '分析成因',
-            tag: 'AI 溯源',
-          ),
-          const SizedBox(height: 12),
-          ...causes.map(
-                (c) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '分析成因'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            children: List.generate(causes.length, (index) {
+              final c = causes[index];
+              return Column(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6B5B95).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(c.$1,
-                        size: 17, color: const Color(0xFF6B5B95)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6B5B95).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(c.$1,
+                            size: 17, color: const Color(0xFF6B5B95)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.$2,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1E1810),
+                                )),
+                            const SizedBox(height: 2),
+                            Text(c.$3,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: const Color(0xFF3A3028)
+                                      .withValues(alpha: 0.6),
+                                  height: 1.55,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c.$2,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E1810),
-                            )),
-                        const SizedBox(height: 2),
-                        Text(c.$3,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: const Color(0xFF3A3028)
-                                  .withValues(alpha: 0.6),
-                              height: 1.55,
-                            )),
-                      ],
-                    ),
-                  ),
+                  if (index < causes.length - 1) ...[
+                    const SizedBox(height: 12),
+                    const _IndentedDivider(indent: 46),
+                    const SizedBox(height: 12),
+                  ],
                 ],
-              ),
-            ),
+              );
+            }),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1115,71 +1179,71 @@ class _Tab2Constitution extends StatelessWidget {
       ('情志疾患', '焦虑、失眠、抑郁倾向', Color(0xFF7A6BA0), Icons.psychology_outlined),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.health_and_safety_outlined,
-            iconColor: Color(0xFFD4794A),
-            title: '易诱发的疾病',
-            tag: '注意预防',
-          ),
-          const SizedBox(height: 12),
-          ...diseases.map((d) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: d.$3.withValues(alpha: 0.035),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 2,
-                    height: 30,
-                    margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(
-                      color: d.$3.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '易诱发的疾病'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...diseases.map((d) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: d.$3.withValues(alpha: 0.035),
+                    borderRadius: BorderRadius.circular(11),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 2,
+                        height: 30,
+                        margin: const EdgeInsets.only(top: 2),
+                        decoration: BoxDecoration(
+                          color: d.$3.withValues(alpha: 0.72),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(d.$4, size: 14, color: d.$3.withValues(alpha: 0.82)),
-                            const SizedBox(width: 6),
-                            Text(d.$1,
+                            Row(
+                              children: [
+                                Icon(d.$4, size: 14, color: d.$3.withValues(alpha: 0.82)),
+                                const SizedBox(width: 6),
+                                Text(d.$1,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: d.$3,
+                                    )),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(d.$2,
                                 style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: d.$3,
+                                  fontSize: 11,
+                                  color: const Color(0xFF3A3028)
+                                      .withValues(alpha: 0.55),
                                 )),
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(d.$2,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: const Color(0xFF3A3028)
-                                  .withValues(alpha: 0.55),
-                            )),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          )),
-        ],
-      ),
+                ),
+              )),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1193,69 +1257,71 @@ class _Tab2Constitution extends StatelessWidget {
       ('暴饮暴食', '脾胃负担过重，运化失司'),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.do_not_disturb_alt_outlined,
-            iconColor: Color(0xFFB05A5A),
-            title: '不当的举动',
-            tag: '请注意避免',
-          ),
-          const SizedBox(height: 12),
-          ...habits.map((h) => Padding(
-            padding: const EdgeInsets.only(bottom: 7),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB08B5A)
-                        .withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFB08B5A).withValues(alpha: 0.55),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF1E1810),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '不当的举动'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            children: List.generate(habits.length, (index) {
+              final h = habits[index];
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.only(top: 6),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF8B6914),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      children: [
-                        TextSpan(
-                          text: '${h.$1}　',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF1E1810),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${h.$1}　',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF6E5830),
+                                ),
+                              ),
+                              TextSpan(
+                                text: h.$2,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF3A3028)
+                                      .withValues(alpha: 0.58),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        TextSpan(
-                          text: h.$2,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF3A3028)
-                                .withValues(alpha: 0.55),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          )),
-        ],
-      ),
+                  if (index < habits.length - 1) ...[
+                    const SizedBox(height: 12),
+                    const _IndentedDivider(indent: 18),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1314,63 +1380,62 @@ class _Tab3Therapy extends StatelessWidget {
       ),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.hub_outlined,
-            iconColor: Color(0xFF2D6A4F),
-            title: '辩证取穴',
-            tag: '4 处主穴',
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '依据脾气亏虚证型，推荐以下穴位进行艾灸或按摩调理，每日10–15分钟。',
-            style: TextStyle(
-              fontSize: 12,
-              color: const Color(0xFF3A3028).withValues(alpha: 0.55),
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ...points.map(
-                (p) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _AcuPointCard(point: p),
-            ),
-          ),
-          // 注意事项
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF3E0),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
-                  width: 1),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline,
-                    size: 14, color: Color(0xFFC9A84C)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '孕妇、皮肤破损处及月经期间请避免艾灸。操作时注意火候，防止烫伤。',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: const Color(0xFF8B6914).withValues(alpha: 0.8),
-                      height: 1.5,
-                    ),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '辩证取穴'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '依据脾气亏虚证型，推荐以下穴位进行艾灸或按摩调理，每日10–15分钟。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+                  height: 1.55,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 14),
+              ...points.map(
+                    (p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _AcuPointCard(point: p),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF3E0),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
+                      width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        size: 14, color: Color(0xFFC9A84C)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '孕妇、皮肤破损处及月经期间请避免艾灸。操作时注意火候，防止烫伤。',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: const Color(0xFF8B6914).withValues(alpha: 0.8),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1383,60 +1448,64 @@ class _Tab3Therapy extends StatelessWidget {
       ('静坐冥想', Icons.spa_outlined, '每日静坐10分钟，专注呼吸，有助于调节脾胃气机，增强正气。'),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.psychology_outlined,
-            iconColor: Color(0xFF6B5B95),
-            title: '精神养生',
-            tag: '调神固本',
-          ),
-          const SizedBox(height: 14),
-          ...tips.map(
-                (t) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '精神养生'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            children: List.generate(tips.length, (index) {
+              final t = tips[index];
+              return Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Icon(
-                      t.$2,
-                      size: 18,
-                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.82),
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Icon(
+                          t.$2,
+                          size: 18,
+                          color: const Color(0xFF2D6A4F).withValues(alpha: 0.82),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t.$1,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1E1810),
+                                  letterSpacing: 0.5,
+                                )),
+                            const SizedBox(height: 3),
+                            Text(t.$3,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: const Color(0xFF3A3028)
+                                      .withValues(alpha: 0.6),
+                                  height: 1.6,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(t.$1,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E1810),
-                              letterSpacing: 0.5,
-                            )),
-                        const SizedBox(height: 3),
-                        Text(t.$3,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: const Color(0xFF3A3028)
-                                  .withValues(alpha: 0.6),
-                              height: 1.6,
-                            )),
-                      ],
-                    ),
-                  ),
+                  if (index < tips.length - 1) ...[
+                    const SizedBox(height: 12),
+                    const _IndentedDivider(indent: 30),
+                    const SizedBox(height: 12),
+                  ],
                 ],
-              ),
-            ),
+              );
+            }),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1473,21 +1542,19 @@ class _Tab3Therapy extends StatelessWidget {
       ),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.wb_sunny_outlined,
-            iconColor: Color(0xFFC9A84C),
-            title: '四季保养',
-            tag: '顺时养生',
-          ),
-          const SizedBox(height: 14),
-          ...seasons.map(
-                (s) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Container(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '四季保养'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...seasons.map(
+                    (s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
                 decoration: BoxDecoration(
                   color: s.lightColor.withValues(alpha: 0.36),
                   borderRadius: BorderRadius.circular(14),
@@ -1554,11 +1621,13 @@ class _Tab3Therapy extends StatelessWidget {
                     ],
                   ),
                 ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1594,158 +1663,155 @@ class _Tab4Advice extends StatelessWidget {
       ('齿痕', '有', '舌边齿痕为脾虚典型表现，气虚无力运化', Color(0xFFD4794A)),
     ];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.biotech_outlined,
-            iconColor: Color(0xFF0D7A5A),
-            title: '舌象详解',
-            tag: 'AI 舌诊',
-          ),
-          const SizedBox(height: 8),
-          // 舌象大图区
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D7A5A).withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: const Color(0xFF0D7A5A).withValues(alpha: 0.12),
-                  width: 1),
-            ),
-            child: Row(
-              children: [
-                // 图片区
-                Expanded(
-                  flex: 4,
-                  child: Container(
-                    margin: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE4F7F1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.sentiment_satisfied_alt_outlined,
-                        size: 40,
-                        color: const Color(0xFF0D7A5A)
-                            .withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '舌象详解'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D7A5A).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: const Color(0xFF0D7A5A).withValues(alpha: 0.12),
+                      width: 1),
                 ),
-                // 总结
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 12, 14, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          '舌象综合评分',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFFA09080),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Container(
+                        margin: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE4F7F1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.sentiment_satisfied_alt_outlined,
+                            size: 40,
+                            color: const Color(0xFF0D7A5A)
+                                .withValues(alpha: 0.4),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 5,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 12, 14, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text(
-                              '72',
+                              '舌象综合评分',
                               style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0D7A5A),
-                                height: 1,
+                                fontSize: 11,
+                                color: Color(0xFFA09080),
                               ),
                             ),
-                            const SizedBox(width: 3),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const Text(
+                                  '72',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0D7A5A),
+                                    height: 1,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '/ 100',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: const Color(0xFF3A3028)
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
                             Text(
-                              '/ 100',
+                              '脾虚湿盛，气血偏弱',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: const Color(0xFF3A3028)
-                                    .withValues(alpha: 0.4),
+                                    .withValues(alpha: 0.6),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '脾虚湿盛，气血偏弱',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...features.map(
+                    (f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 34,
+                        child: Text(
+                          f.$1,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: f.$4,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '|',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: f.$4.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        f.$2,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E1810),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '— ${f.$3}',
                           style: TextStyle(
                             fontSize: 11,
                             color: const Color(0xFF3A3028)
-                                .withValues(alpha: 0.6),
+                                .withValues(alpha: 0.5),
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 特征列表
-          ...features.map(
-                (f) => Padding(
-              padding: const EdgeInsets.only(bottom: 7),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 34,
-                    child: Text(
-                      f.$1,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: f.$4,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '|',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: f.$4.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    f.$2,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E1810),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '— ${f.$3}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: const Color(0xFF3A3028)
-                            .withValues(alpha: 0.5),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1762,164 +1828,156 @@ class _Tab4Advice extends StatelessWidget {
 
     const avoid = ['生冷食物', '油腻厚味', '辛辣刺激', '甜腻之品', '烟酒'];
 
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardHeader(
-            icon: Icons.restaurant_menu_outlined,
-            iconColor: Color(0xFF0D7A5A),
-            title: '饮食建议',
-            tag: '食补调养',
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '脾气亏虚宜食甘温益气、健脾和胃之品，忌食寒凉生冷及难消化食物。',
-            style: TextStyle(
-              fontSize: 12,
-              color: const Color(0xFF3A3028).withValues(alpha: 0.55),
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 14),
-          // 宜食
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(title: '饮食建议'),
+        const SizedBox(height: 10),
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 3,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2D6A4F),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 7),
-              const Text(
-                '宜食',
+              const SizedBox(height: 6),
+              Text(
+                '脾气亏虚宜食甘温益气、健脾和胃之品，忌食寒凉生冷及难消化食物。',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E1810),
+                  fontSize: 12,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+                  height: 1.55,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: recommended
-                .map((r) => _FoodChip(
-              name: r.$1,
-              desc: r.$2,
-              color: r.$3,
-            ))
-                .toList(),
-          ),
-          const SizedBox(height: 14),
-          // 忌食
-          Row(
-            children: [
-              Container(
-                width: 3,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB05A5A),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 7),
-              const Text(
-                '忌食',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E1810),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: avoid
-                .map((a) => Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B6914)
-                    .withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              const SizedBox(height: 14),
+              Row(
                 children: [
-                  const Text(
-                    '·',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF8B6914),
-                      fontWeight: FontWeight.w700,
+                  Container(
+                    width: 3,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D6A4F),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    a,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF8B6914),
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 7),
+                  const Text(
+                    '宜食',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E1810),
                     ),
                   ),
                 ],
               ),
-            ))
-                .toList(),
-          ),
-          const SizedBox(height: 14),
-          // 推荐食谱
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF3E0),
-              borderRadius: BorderRadius.circular(11),
-              border: Border.all(
-                  color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
-                  width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: recommended.map((r) => _FoodChip(
+                  name: r.$1,
+                  desc: r.$2,
+                  color: r.$3,
+                )).toList(),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Container(
+                    width: 3,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB05A5A),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  const Text(
+                    '忌食',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E1810),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: avoid.map((a) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B6914).withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        '·',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF8B6914),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        a,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8B6914),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF3E0),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.restaurant,
-                        size: 13, color: Color(0xFFC9A84C)),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '推荐食谱',
+                    Row(
+                      children: [
+                        const Icon(Icons.restaurant, size: 13, color: Color(0xFFC9A84C)),
+                        const SizedBox(width: 6),
+                        const Text(
+                          '推荐食谱',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF8B6914),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      '山药薏仁粥：山药50g、薏仁30g、红枣5颗同煮，早餐食用，健脾益气效果显著。\n\n党参茯苓炖鸡：补中益气，适合气虚体质日常调养。',
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF8B6914),
+                        color: const Color(0xFF8B6914).withValues(alpha: 0.8),
+                        height: 1.65,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 7),
-                Text(
-                  '山药薏仁粥：山药50g、薏仁30g、红枣5颗同煮，早餐食用，健脾益气效果显著。\n\n党参茯苓炖鸡：补中益气，适合气虚体质日常调养。',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: const Color(0xFF8B6914).withValues(alpha: 0.8),
-                    height: 1.65,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1967,38 +2025,16 @@ class _Tab4Advice extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题
+        const _FloatingSectionTitle(title: '相关产品推荐'),
+        const SizedBox(height: 12),
         Padding(
-          padding: const EdgeInsets.only(bottom: 12, left: 2),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC9A84C),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                '相关产品推荐',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E1810),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '依据体质个性化推荐',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: const Color(0xFFA09080).withValues(alpha: 0.8),
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.only(left: 2, bottom: 10),
+          child: Text(
+            '依据体质个性化推荐',
+            style: TextStyle(
+              fontSize: 11,
+              color: const Color(0xFFA09080).withValues(alpha: 0.8),
+            ),
           ),
         ),
         ...products.map(
@@ -2067,66 +2103,56 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-/// 卡片标题行
-class _CardHeader extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
+class _FloatingSectionTitle extends StatelessWidget {
   final String title;
-  final String? tag;
 
-  const _CardHeader({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    this.tag,
-  });
+  const _FloatingSectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: iconColor.withValues(alpha: 0.18), width: 1),
-          ),
-          child: Icon(icon, size: 16, color: iconColor),
-        ),
-        const SizedBox(width: 9),
-        Flexible(
-          child: Text.rich(
-            TextSpan(
-              children: [
-                const TextSpan(
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E1810),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                TextSpan(text: title),
-                if (tag != null)
-                  TextSpan(
-                    text: ' · $tag',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: iconColor.withValues(alpha: 0.72),
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(left: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 3,
+            height: 16,
+            decoration: BoxDecoration(
+              color: const Color(0xFFC9A84C),
+              borderRadius: BorderRadius.circular(2),
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E1810),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IndentedDivider extends StatelessWidget {
+  final double indent;
+
+  const _IndentedDivider({required this.indent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: indent),
+      child: Container(
+        height: 1,
+        width: double.infinity,
+        color: Colors.grey.withValues(alpha: 0.10),
+      ),
     );
   }
 }

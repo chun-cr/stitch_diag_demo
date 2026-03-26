@@ -7,7 +7,8 @@ class TongueScanStatus {
   final bool tongueDetected;
   final double tongueOutScore;
   final int mouthLandmarkCount;
-  final List<dynamic> landmarks;
+  final List<Offset> tongueLandmarks;
+  final List<Offset> mouthLandmarks;
   final double imageWidth;
   final double imageHeight;
   /// 嘴部中心归一化坐标（0~1），无数据时为 null
@@ -17,7 +18,8 @@ class TongueScanStatus {
     required this.tongueDetected,
     required this.tongueOutScore,
     required this.mouthLandmarkCount,
-    this.landmarks = const [],
+    this.tongueLandmarks = const [],
+    this.mouthLandmarks = const [],
     this.imageWidth = 0,
     this.imageHeight = 0,
     this.mouthCenter,
@@ -31,44 +33,52 @@ class TongueScanStatus {
         tongueDetected: false,
         tongueOutScore: 0,
         mouthLandmarkCount: 0,
-        landmarks: [],
+        tongueLandmarks: [],
+        mouthLandmarks: [],
         imageWidth: 0,
         imageHeight: 0,
       );
     }
 
     final data = Map<dynamic, dynamic>.from(event);
-    final mouthLandmarks = data['mouthLandmarks'];
-    final landmarks = data['landmarks'] as List? ?? [];
+    // 坐标点提取集
+    final mouthPoints = _extractPoints(data['mouthLandmarks']);
+    final tonguePoints = _extractPoints(data['landmarks']);
 
     // 计算嘴部中心点
     Offset? mouthCenter;
-    if (mouthLandmarks is List && mouthLandmarks.isNotEmpty) {
+    if (mouthPoints.isNotEmpty) {
       double sumX = 0, sumY = 0;
-      int count = 0;
-      for (final pt in mouthLandmarks) {
-        if (pt is Map) {
-          final x = (pt['x'] as num?)?.toDouble();
-          final y = (pt['y'] as num?)?.toDouble();
-          if (x != null && y != null) {
-            sumX += x;
-            sumY += y;
-            count++;
-          }
-        }
+      for (final pt in mouthPoints) {
+        sumX += pt.dx;
+        sumY += pt.dy;
       }
-      if (count > 0) mouthCenter = Offset(sumX / count, sumY / count);
+      mouthCenter = Offset(sumX / mouthPoints.length, sumY / mouthPoints.length);
     }
 
     return TongueScanStatus(
       tongueDetected: data['tongueDetected'] as bool? ?? false,
       tongueOutScore: (data['tongueOutScore'] as num?)?.toDouble() ?? 0,
-      mouthLandmarkCount: mouthLandmarks is List ? mouthLandmarks.length : 0,
-      landmarks: landmarks,
+      mouthLandmarkCount: mouthPoints.length,
+      tongueLandmarks: tonguePoints,
+      mouthLandmarks: mouthPoints,
       imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
       imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
       mouthCenter: mouthCenter,
     );
+  }
+
+  static List<Offset> _extractPoints(dynamic raw) {
+    if (raw is! List) return const [];
+    final points = <Offset>[];
+    for (final item in raw) {
+      if (item is Map) {
+        final x = (item['x'] as num?)?.toDouble();
+        final y = (item['y'] as num?)?.toDouble();
+        if (x != null && y != null) points.add(Offset(x, y));
+      }
+    }
+    return points;
   }
 }
 

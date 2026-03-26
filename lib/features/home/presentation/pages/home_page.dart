@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
 
@@ -30,14 +31,14 @@ class AppColors {
   static const heroGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFEAF5EF), Color(0xFFB6DFCA), Color(0xFF7EC8A0)],
-    stops: [0.0, 0.55, 1.0],
+    colors: [Color(0xFFA1C2B1), Color(0xFFA1C2B1)],
+    stops: [0.0, 1.0],
   );
 
   static const primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+    colors: [Color(0xFFA1C2B1), Color(0xFFA1C2B1)],
   );
 }
 
@@ -269,9 +270,6 @@ class _HomePageState extends State<HomePage>
     with TickerProviderStateMixin {
   late AnimationController _scoreController;
   late Animation<double> _scoreAnim;
-  late AnimationController _scanRevealController;
-  Offset? _scanRevealCenter;
-  bool _showScanReveal = false;
 
   @override
   void initState() {
@@ -284,10 +282,6 @@ class _HomePageState extends State<HomePage>
       parent: _scoreController,
       curve: Curves.easeOutCubic,
     );
-    _scanRevealController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 380),
-    );
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) _scoreController.forward();
     });
@@ -296,100 +290,58 @@ class _HomePageState extends State<HomePage>
   @override
   void dispose() {
     _scoreController.dispose();
-    _scanRevealController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleScanReveal(Offset globalCenter) async {
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    setState(() {
-      _scanRevealCenter = renderBox.globalToLocal(globalCenter);
-      _showScanReveal = true;
-    });
-
-    try {
-      await _scanRevealController.forward().orCancel;
-      if (!mounted) return;
-      await context.push(AppRoutes.scan);
-    } on TickerCanceled {
-      return;
-    } finally {
-      if (mounted) {
-        _scanRevealController.reset();
-        setState(() {
-          _showScanReveal = false;
-          _scanRevealCenter = null;
-        });
-      }
-    }
+  Future<void> _handleScanReveal() async {
+    if (!mounted) return;
+    await context.push(AppRoutes.scan);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.softBg,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(),
-              SliverToBoxAdapter(
-                child: Transform.translate(
-                  offset: const Offset(0, -16),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: AppColors.softBg,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(28),
-                        topRight: Radius.circular(28),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(painter: _HomeBgPainter()),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildQuickScan(),
-                              const SizedBox(height: 20),
-                              _buildLastReport(),
-                              const SizedBox(height: 20),
-                              _buildFunctionGrid(),
-                              const SizedBox(height: 20),
-                              _buildHealthTips(),
-                              const SizedBox(height: 8),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(),
+          SliverToBoxAdapter(
+            child: Transform.translate(
+              offset: const Offset(0, -16),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.softBg,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
                   ),
                 ),
-              ),
-            ],
-          ),
-          if (_showScanReveal && _scanRevealCenter != null)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _scanRevealController,
-                  builder: (context, _) => CustomPaint(
-                    painter: _ScanRevealPainter(
-                      progress: Curves.easeInCubic.transform(
-                        _scanRevealController.value,
-                      ),
-                      center: _scanRevealCenter!,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(painter: _HomeBgPainter()),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildQuickScan(),
+                          const SizedBox(height: 20),
+                          _buildLastReport(),
+                          const SizedBox(height: 20),
+                          _buildFunctionGrid(),
+                          const SizedBox(height: 20),
+                          _buildHealthTips(),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -619,48 +571,7 @@ class _HomePageState extends State<HomePage>
 
   // ── Last Report ─────────────────────────────────────────────────
   Widget _buildLastReport() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _SectionIconBox(
-              icon: Icons.description_outlined,
-              color: AppColors.primaryMid,
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              '辨证报告',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '四诊摘要',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.textHint.withValues(alpha: 0.85),
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '查看全部',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.primaryMid.withValues(alpha: 0.78),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        const _LastReportCard(),
-      ],
-    );
+    return _LastReportCard();
   }
 
   // ── Function Grid ───────────────────────────────────────────────
@@ -678,7 +589,7 @@ class _HomePageState extends State<HomePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle(title: '功能导航'),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -1137,7 +1048,7 @@ class _ScoreRingPainter extends CustomPainter {
 }
 
 class _MorphingScanCTA extends StatefulWidget {
-  final Future<void> Function(Offset globalCenter) onMorphCompleted;
+  final Future<void> Function() onMorphCompleted;
 
   const _MorphingScanCTA({required this.onMorphCompleted});
 
@@ -1148,7 +1059,6 @@ class _MorphingScanCTA extends StatefulWidget {
 class _MorphingScanCTAState extends State<_MorphingScanCTA>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  final GlobalKey _buttonKey = GlobalKey();
   bool _pressed = false;
   bool _busy = false;
 
@@ -1179,12 +1089,7 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
 
     try {
       await _controller.forward().orCancel;
-      final renderBox =
-          _buttonKey.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final center = renderBox.localToGlobal(renderBox.size.center(Offset.zero));
-        await widget.onMorphCompleted(center);
-      }
+      await widget.onMorphCompleted();
     } on TickerCanceled {
       return;
     } finally {
@@ -1213,7 +1118,7 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
           builder: (context, _) {
             final morph = Curves.easeInOutCubic.transform(_controller.value);
             final textOpacity = (1 - (_controller.value * 1.8)).clamp(0.0, 1.0);
-            final loaderOpacity = ((_controller.value - 0.35) / 0.25).clamp(0.0, 1.0);
+            final circleOpacity = ((_controller.value - 0.28) / 0.22).clamp(0.0, 1.0);
             final shadowFactor = _pressed && !_busy ? 0.58 : (1 - 0.35 * morph);
 
             return LayoutBuilder(
@@ -1224,31 +1129,42 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
 
                 return Center(
                   child: Container(
-                    key: _buttonKey,
                     width: width,
                     height: 48,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF8FD0AB),
-                          Color(0xFF6FBE93),
-                          Color(0xFF56A97B),
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        stops: [0.0, 0.55, 1.0],
+                      color: Color.lerp(
+                        const Color(0xFFA1C2B1),
+                        const Color(0xFFF4F1EB),
+                        morph,
                       ),
                       borderRadius: BorderRadius.circular(radius),
+                      border: Border.all(
+                        color: Color.lerp(
+                              Colors.transparent,
+                              const Color(0xFFD8CFC0),
+                              morph,
+                            ) ??
+                            Colors.transparent,
+                        width: morph > 0.02 ? 1.2 : 0,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF56A97B)
+                          color: Color.lerp(
+                                const Color(0xFFA1C2B1),
+                                const Color(0xFFCFC3B1),
+                                morph,
+                              )!
                               .withValues(alpha: 0.24 * shadowFactor),
                           blurRadius: 20 * shadowFactor,
                           spreadRadius: 0.5 * shadowFactor,
                           offset: Offset(0, 7 * shadowFactor),
                         ),
                         BoxShadow(
-                          color: const Color(0xFF9AD7B5)
+                          color: Color.lerp(
+                                const Color(0xFFA8D8BE),
+                                const Color(0xFFF7F1E6),
+                                morph,
+                              )!
                               .withValues(alpha: 0.12 * shadowFactor),
                           blurRadius: 10 * shadowFactor,
                           offset: Offset(0, 1 * shadowFactor),
@@ -1265,7 +1181,7 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                             children: const [
                               Icon(
                                 Icons.play_circle_outline,
-                                color: Colors.white,
+                                color: Color(0xFFFDFCF8),
                                 size: 18,
                               ),
                               SizedBox(width: 8),
@@ -1274,7 +1190,7 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: Color(0xFFFDFCF8),
                                   letterSpacing: 1,
                                 ),
                               ),
@@ -1282,8 +1198,8 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                           ),
                         ),
                         Opacity(
-                          opacity: loaderOpacity,
-                          child: const _ZenBreathSpinner(),
+                          opacity: circleOpacity,
+                          child: _XuanPaperCircle(progress: morph),
                         ),
                       ],
                     ),
@@ -1298,130 +1214,59 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
   }
 }
 
-class _ZenBreathSpinner extends StatefulWidget {
-  const _ZenBreathSpinner();
+class _XuanPaperCircle extends StatelessWidget {
+  final double progress;
 
-  @override
-  State<_ZenBreathSpinner> createState() => _ZenBreathSpinnerState();
-}
-
-class _ZenBreathSpinnerState extends State<_ZenBreathSpinner>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  const _XuanPaperCircle({required this.progress});
 
   @override
   Widget build(BuildContext context) {
-    return RotationTransition(
-      turns: _controller,
-      child: SizedBox(
-        width: 22,
-        height: 22,
-        child: CustomPaint(
-          painter: _ZenBreathSpinnerPainter(),
-        ),
+    return SizedBox(
+      width: 22,
+      height: 22,
+      child: CustomPaint(
+        painter: _XuanPaperCirclePainter(progress: progress),
       ),
     );
   }
 }
 
-class _ZenBreathSpinnerPainter extends CustomPainter {
+class _XuanPaperCirclePainter extends CustomPainter {
+  final double progress;
+
+  const _XuanPaperCirclePainter({required this.progress});
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final rect = Rect.fromCircle(center: center, radius: size.width / 2 - 1.5);
-
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      math.pi * 1.4,
-      false,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.24)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..strokeCap = StrokeCap.round,
-    );
-
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      math.pi * 0.72,
-      false,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFFF8FFFB), Color(0xFFDDF3E7)],
-        ).createShader(rect)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _ScanRevealPainter extends CustomPainter {
-  final double progress;
-  final Offset center;
-
-  const _ScanRevealPainter({required this.progress, required this.center});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final distances = [
-      (center - const Offset(0, 0)).distance,
-      (center - Offset(size.width, 0)).distance,
-      (center - Offset(0, size.height)).distance,
-      (center - Offset(size.width, size.height)).distance,
-    ];
-    final radius = distances.reduce(math.max) * progress;
-    final rect = Rect.fromCircle(center: center, radius: radius.clamp(0.0, 4000.0));
+    final radius = size.width / 2 - 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
     canvas.drawCircle(
       center,
       radius,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF9AD7B5).withValues(alpha: 0.98),
-            const Color(0xFF73BF98).withValues(alpha: 0.98),
-            const Color(0xFF56A97B),
-          ],
-          stops: const [0.0, 0.52, 1.0],
-        ).createShader(rect),
+        ..color = const Color(0xFFD8CFC0).withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
     );
 
-    if (progress < 0.82) {
-      canvas.drawCircle(
-        center,
-        radius * (0.86 + 0.08 * (1 - progress)),
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.05 * (1 - progress))
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.2,
-      );
-    }
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      math.pi * 2 * ((progress - 0.25) / 0.75).clamp(0.0, 1.0),
+      false,
+      Paint()
+        ..color = const Color(0xFFB8A78C)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _ScanRevealPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.center != center;
+  bool shouldRepaint(covariant _XuanPaperCirclePainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 
@@ -1511,158 +1356,130 @@ class _LastReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFAF6),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.026),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: AppColors.tcmGoldLight,
-                    borderRadius: BorderRadius.circular(8),
+    final latestRecord = [...DiagnosisRecord.sampleRecords]
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final record = latestRecord.first;
+
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.history),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${record.date.year}年${record.date.month}月${record.date.day}日',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.menu_book_rounded,
-                    size: 14,
-                    color: AppColors.tcmGoldDark,
+                  TextButton(
+                    onPressed: () => context.push(AppRoutes.history),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      '查看全部 >',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    record.constitutionType,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+                  Text(
+                    '气虚偏颇 · 脾胃虚弱',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary.withValues(alpha: 0.76),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                decoration: BoxDecoration(
+                  color: AppColors.inputBg.withValues(alpha: 0.58),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
+                child: IntrinsicHeight(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '最近一次辨证摘要',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textHint.withValues(alpha: 0.88),
-                          letterSpacing: 0.3,
+                      Container(
+                        width: 2,
+                        decoration: BoxDecoration(
+                          color: AppColors.tcmGold.withValues(alpha: 0.78),
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '2025年3月14日',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '脾气亏虚，运化失健。面色偏黄，舌淡苔白，建议健脾益气，规律作息。',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                            height: 1.75,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  'AI 四诊合参',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.primaryMid.withValues(alpha: 0.72),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  '平和质',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 18),
-                Text(
-                  '气虚偏颇 · 脾胃虚弱',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary.withValues(alpha: 0.76),
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              decoration: BoxDecoration(
-                color: AppColors.inputBg.withValues(alpha: 0.58),
-                borderRadius: BorderRadius.circular(16),
               ),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 2,
-                      decoration: BoxDecoration(
-                        color: AppColors.tcmGold.withValues(alpha: 0.78),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '脾气亏虚，运化失健。面色偏黄，舌淡苔白，建议健脾益气，规律作息。',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          height: 1.75,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 24),
+              const Row(
+                children: [
+                  _CompactScore(label: '面诊', score: 86),
+                  SizedBox(width: 18),
+                  _CompactScore(label: '舌诊', score: 72),
+                  SizedBox(width: 18),
+                  _CompactScore(label: '掌诊', score: 80),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            // Text(
-            //   '面诊 · 舌诊 · 掌诊',
-            //   style: TextStyle(
-            //     fontSize: 11,
-            //     color: AppColors.textHint.withValues(alpha: 0.82),
-            //     letterSpacing: 0.3,
-            //   ),
-            // ),
-            const SizedBox(height: 12),
-            const Row(
-              children: [
-                _CompactScore(label: '面诊', score: 86, color: AppColors.primary),
-                SizedBox(width: 18),
-                _CompactScore(
-                  label: '舌诊',
-                  score: 72,
-                  color: AppColors.primaryMid,
-                ),
-                SizedBox(width: 18),
-                _CompactScore(label: '掌诊', score: 80, color: AppColors.accent),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1673,12 +1490,10 @@ class _LastReportCard extends StatelessWidget {
 class _CompactScore extends StatelessWidget {
   final String label;
   final int score;
-  final Color color;
 
   const _CompactScore({
     required this.label,
     required this.score,
-    required this.color,
   });
 
   @override
@@ -1700,22 +1515,34 @@ class _CompactScore extends StatelessWidget {
               const Spacer(),
               Text(
                 '$score',
-                style: TextStyle(
-                  fontSize: 12,
+                style: const TextStyle(
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: color,
+                  color: Color(0xFF4CAF50),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 7),
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: score / 100,
-              backgroundColor: color.withValues(alpha: 0.08),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-              minHeight: 3,
+            borderRadius: BorderRadius.circular(3),
+            child: SizedBox(
+              height: 6,
+              child: Stack(
+                children: [
+                  Container(color: const Color(0xFFE8F5E9)),
+                  FractionallySizedBox(
+                    widthFactor: score / 100,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFA8D5A2), Color(0xFF4CAF50)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
