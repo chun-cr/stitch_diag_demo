@@ -3,8 +3,8 @@ import MediaPipeTasksVision
 
 enum TongueDetectionEvaluator {
     private static let mouthIndices = [13, 14, 17, 37, 267, 269, 270, 291]
-    private static let tongueThreshold = 0.3
-    private static let jawOpenThreshold = 0.25
+    private static let tongueThreshold = 0.26
+    private static let jawOpenThreshold = 0.22
     private static let lowerLipIndex = 17
     private static let chinIndex = 152
 
@@ -69,7 +69,7 @@ enum TongueDetectionEvaluator {
             return abs(Double(lowerLip.y) - Double(chin.y))
         }()
 
-        let fallbackDetected = jawOpenScore >= jawOpenThreshold && lipChinRatio >= 0.04
+        let fallbackDetected = jawOpenScore >= jawOpenThreshold && lipChinRatio >= 0.035
         let detected = tongueOutScore >= tongueThreshold || fallbackDetected
 
         let mouthLandmarks = mouthIndices.compactMap { index -> [String: Double]? in

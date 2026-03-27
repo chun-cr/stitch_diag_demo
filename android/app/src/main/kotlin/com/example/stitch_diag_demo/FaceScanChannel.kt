@@ -12,8 +12,8 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
     private var tongueEventSink: EventChannel.EventSink? = null
 
     private val cameraManager = CameraManager(context)
-    private val faceLandmarkerHelper = FaceLandmarkerHelper(context)
-    private val gestureRecognizerHelper = GestureRecognizerHelper(context)
+    private var faceLandmarkerHelper: FaceLandmarkerHelper? = null
+    private var gestureRecognizerHelper: GestureRecognizerHelper? = null
 
     companion object {
         private const val CHANNEL = "face/channel"
@@ -44,13 +44,13 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
             channelInstance.cameraManager.setListener { frame ->
                 when (channelInstance.cameraManager.mode) {
                     "landmark" -> {
-                        channelInstance.faceLandmarkerHelper.detect(frame) { result ->
+                        channelInstance.ensureFaceLandmarkerHelper().detect(frame) { result ->
                             channelInstance.sendFaceEvent(result)
                             channelInstance.sendTongueEvent(result)
                         }
                     }
                     "gesture" -> {
-                        channelInstance.gestureRecognizerHelper.detect(frame) { result ->
+                        channelInstance.ensureGestureRecognizerHelper().detect(frame) { result ->
                             channelInstance.sendGestureEvent(result)
                         }
                     }
@@ -191,10 +191,34 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
         }
     }
 
+    private fun ensureFaceLandmarkerHelper(): FaceLandmarkerHelper {
+        val existing = faceLandmarkerHelper
+        if (existing != null) {
+            return existing
+        }
+
+        return FaceLandmarkerHelper(context).also {
+            faceLandmarkerHelper = it
+        }
+    }
+
+    private fun ensureGestureRecognizerHelper(): GestureRecognizerHelper {
+        val existing = gestureRecognizerHelper
+        if (existing != null) {
+            return existing
+        }
+
+        return GestureRecognizerHelper(context).also {
+            gestureRecognizerHelper = it
+        }
+    }
+
     private fun dispose() {
         cameraManager.stopCamera()
-        faceLandmarkerHelper.close()
-        gestureRecognizerHelper.close()
+        faceLandmarkerHelper?.close()
+        faceLandmarkerHelper = null
+        gestureRecognizerHelper?.close()
+        gestureRecognizerHelper = null
         eventSink = null
         gestureEventSink = null
         tongueEventSink = null

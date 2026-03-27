@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
-import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
 
 // ─── Design Tokens ────────────────────────────────────────────────
 class AppColors {
@@ -78,18 +77,21 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  final _pages = const [
-    HomePage(),
-    _PlaceholderPage(icon: Icons.qr_code_scanner_outlined, label: '扫描'),
-    ReportPage(),
-    ProfilePage(),
-  ];
+  Widget _buildCurrentPage() {
+    switch (_currentIndex) {
+      case 3:
+        return const ProfilePage();
+      case 0:
+      default:
+        return const HomePage();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.softBg,
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: _buildCurrentPage(),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
         onTap: (i) {
@@ -2020,37 +2022,3 @@ class _WuxingDots extends StatelessWidget {
   }
 }
 
-// ─── Placeholder Pages ─────────────────────────────────────────────
-class _PlaceholderPage extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _PlaceholderPage({required this.icon, required this.label});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.softBg,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48, color: AppColors.textHint),
-            const SizedBox(height: 12),
-            Text(
-              '$label 页面',
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              '即将上线',
-              style: TextStyle(fontSize: 13, color: AppColors.textHint),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

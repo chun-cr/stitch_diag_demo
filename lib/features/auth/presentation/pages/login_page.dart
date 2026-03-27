@@ -29,10 +29,8 @@ class _LoginPageState extends State<LoginPage>
   bool _isLoading = false;
 
   late AnimationController _breatheController;
-  late AnimationController _rotateController;
   late AnimationController _fadeController;
   late Animation<double> _breatheAnim;
-  late Animation<double> _rotateAnim;
   late Animation<double> _fadeAnim;
 
   @override
@@ -42,12 +40,8 @@ class _LoginPageState extends State<LoginPage>
     _passCtrl.text = 'preview123';
     _breatheController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
-    _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 18),
-    )..repeat();
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -57,10 +51,6 @@ class _LoginPageState extends State<LoginPage>
         Tween<double>(begin: 0.96, end: 1.04).animate(
       CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
     );
-    _rotateAnim =
-        Tween<double>(begin: 0, end: 2 * math.pi).animate(
-      CurvedAnimation(parent: _rotateController, curve: Curves.linear),
-    );
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
     );
@@ -69,7 +59,6 @@ class _LoginPageState extends State<LoginPage>
   @override
   void dispose() {
     _breatheController.dispose();
-    _rotateController.dispose();
     _fadeController.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
@@ -148,10 +137,9 @@ class _LoginPageState extends State<LoginPage>
 
   // ── Background ──────────────────────────────────────────────────
   Widget _buildBackground() {
-    return AnimatedBuilder(
-      animation: _rotateAnim,
-      builder: (context, _) => CustomPaint(
-        painter: _LoginBgPainter(rotation: _rotateAnim.value),
+    return const RepaintBoundary(
+      child: CustomPaint(
+        painter: _LoginBgPainter(),
       ),
     );
   }
@@ -237,13 +225,15 @@ class _LoginPageState extends State<LoginPage>
             children: [
               // 旋转八卦环
               AnimatedBuilder(
-                animation: _rotateAnim,
-                builder: (_, __) => Transform.rotate(
-                  angle: _rotateAnim.value,
-                  child: CustomPaint(
-                    size: const Size(148, 148),
-                    painter: _BaguaRingPainter(),
-                  ),
+                animation: _breatheAnim,
+                builder: (_, child) => Opacity(
+                  opacity: (0.88 + (_breatheAnim.value - 0.96) * 2.0)
+                      .clamp(0.0, 1.0),
+                  child: child,
+                ),
+                child: CustomPaint(
+                  size: const Size(148, 148),
+                  painter: _BaguaRingPainter(),
                 ),
               ),
               // 静态中环
@@ -695,8 +685,7 @@ class _LoginPageState extends State<LoginPage>
 
 // ─── Background Painter ───────────────────────────────────────────
 class _LoginBgPainter extends CustomPainter {
-  final double rotation;
-  const _LoginBgPainter({required this.rotation});
+  const _LoginBgPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -741,7 +730,7 @@ class _LoginBgPainter extends CustomPainter {
     // 右下角慢转装饰圆
     canvas.save();
     canvas.translate(size.width - 24, size.height - 80);
-    canvas.rotate(rotation);
+    canvas.rotate(math.pi / 8);
     final ringP = Paint()
       ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.055)
       ..style = PaintingStyle.stroke
@@ -759,7 +748,7 @@ class _LoginBgPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LoginBgPainter old) => old.rotation != rotation;
+  bool shouldRepaint(_LoginBgPainter old) => false;
 }
 
 // ─── Bagua Ring Painter ───────────────────────────────────────────
