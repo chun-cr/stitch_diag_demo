@@ -500,8 +500,8 @@ class _PalmScanPageState extends State<PalmScanPage>
   }
 
   Widget _buildPalmFrame() {
-    const frameW = 210.0;
-    const frameH = 278.0;
+    const frameW = 244.0;
+    const frameH = 322.0;
     final highlightColor =
     (_readyToScan || _scanState == PalmScanState.completed)
         ? _kAccentLight
@@ -541,7 +541,7 @@ class _PalmScanPageState extends State<PalmScanPage>
           ),
 
           Positioned(
-            bottom: -48,
+              bottom: -54,
             left: -40,
             right: -40,
             child: Center(
@@ -558,7 +558,7 @@ class _PalmScanPageState extends State<PalmScanPage>
           ),
           if (_scanState == PalmScanState.scanning && _readyToScan)
             Positioned(
-              bottom: -80,
+               bottom: -88,
               left: frameW * 0.18,
               right: frameW * 0.18,
               child: _ScanProgressBar(progress: _scanProgress),
@@ -942,12 +942,12 @@ class _TiltedPalmGuidePainter extends CustomPainter {
     // 缩放并居中到 canvas
     const svgW = 451.0;
     const svgH = 511.0;
-    final scale = math.min(size.width / svgW, size.height / svgH) * 0.88;
+    final scale = math.min(size.width / svgW, size.height / svgH) * 0.98;
     final offsetX = (size.width - svgW * scale) / 2;
     final offsetY = (size.height - svgH * scale) / 2;
     final m = Matrix4.identity()
-      ..translate(offsetX, offsetY)
-      ..scale(scale, scale);
+      ..translateByDouble(offsetX, offsetY, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1);
     return p.transform(m.storage);
   }
 

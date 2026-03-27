@@ -60,7 +60,27 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
       path: AppRoutes.home,
-      builder: (context, state) => const MainShell(),
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        child: const MainShell(),
+        transitionDuration: const Duration(milliseconds: 600),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // 首页从底层轻微放大、淡入显现（拨云见日）
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+          );
+          final scaleAnim = Tween<double>(begin: 0.96, end: 1.0).animate(curved);
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: scaleAnim,
+              child: child,
+            ),
+          );
+        },
+      ),
     ),
     GoRoute(
       path: AppRoutes.login,

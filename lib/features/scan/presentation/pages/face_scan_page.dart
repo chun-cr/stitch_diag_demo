@@ -26,6 +26,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   final FaceScanStatusBridge _statusBridge = FaceScanStatusBridge();
 
   bool _hasPermission = false;
+  bool _cameraReady = false; // PlatformView 延迟创建标志
   bool _hasFaceDetected = false;
   bool _isScanning = false;
   int _countdown = 3;
@@ -50,13 +51,32 @@ class _FaceScanPageState extends State<FaceScanPage>
       begin: 0.1,
       end: 0.88,
     ).animate(CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut));
-    _requestPermissionAndStart();
+
+    // ── 关键修改：把"进入页面"和"启动相机 / 检测"拆开 ──
+    // 第 1 拍：只做 UI 动画 + 路由切换动画
+    // 第 2 拍（postFrameCallback）：申请权限
+    // 等路由过渡动画结束后再创建 PlatformView & 启动检测
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _requestPermissionAndStart();
+    });
   }
 
   Future<void> _requestPermissionAndStart() async {
     final status = await Permission.camera.request();
-    if (status.isGranted) {
-      if (mounted) setState(() => _hasPermission = true);
+    if (!status.isGranted || !mounted) return;
+
+    setState(() => _hasPermission = true);
+
+    // 等待路由切换动画完成（默认 ~300ms），再创建 PlatformView
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+
+    setState(() => _cameraReady = true);
+
+    // 再等一帧，让 PlatformView 完成首次 layout 后再启动 CameraX / 检测
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
       _faceStatusSub?.cancel();
       _faceStatusSub = _statusBridge.landmarkStream().listen((payload) {
         if (!mounted) return;
@@ -72,7 +92,7 @@ class _FaceScanPageState extends State<FaceScanPage>
       });
       await _statusBridge.initialize();
       await _statusBridge.startMonitoring();
-    }
+    });
   }
 
   void _startScan() {
@@ -363,12 +383,26 @@ class _FaceScanPageState extends State<FaceScanPage>
   Widget _buildCameraArea() {
     return Stack(
       children: [
-        // 相机预览（始终渲染）
+        // 相机预览：延迟到 _cameraReady 后才创建 PlatformView
         Positioned.fill(
           child: ClipRect(
-            child: const CameraPreviewWidget(
-              key: ValueKey('shared_camera_preview'),
-            ),
+            child: _cameraReady
+                ? const CameraPreviewWidget(
+                    key: ValueKey('shared_camera_preview'),
+                  )
+                : Container(
+                    color: const Color(0xFF1A1A1A),
+                    child: Center(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: _kGreenLight.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                  ),
           ),
         ),
         if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)

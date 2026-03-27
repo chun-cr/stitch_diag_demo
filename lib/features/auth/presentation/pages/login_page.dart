@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 
@@ -30,8 +31,12 @@ class _LoginPageState extends State<LoginPage>
 
   late AnimationController _breatheController;
   late AnimationController _fadeController;
+  late AnimationController _btnScaleCtrl;
+  late AnimationController _exitCtrl;
+  late AnimationController _spinCtrl;
   late Animation<double> _breatheAnim;
   late Animation<double> _fadeAnim;
+  late Animation<double> _btnScaleAnim;
 
   @override
   void initState() {
@@ -54,12 +59,36 @@ class _LoginPageState extends State<LoginPage>
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
     );
+
+    // ── 按钮按压缩放 ──
+    _btnScaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _btnScaleAnim = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _btnScaleCtrl, curve: Curves.easeInOut),
+    );
+
+    // ── 拨云见日退场动画 ──
+    _exitCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+
+    // ── 加载青玉呼吸光环 ──
+    _spinCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _breatheController.dispose();
     _fadeController.dispose();
+    _btnScaleCtrl.dispose();
+    _exitCtrl.dispose();
+    _spinCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -74,63 +103,80 @@ class _LoginPageState extends State<LoginPage>
     }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      setPreviewAuthenticated(true);
-      setState(() => _isLoading = false);
-      context.go(AppRoutes.home);
-    }
+
+    // 模拟验证（此时按钮显示青玉呼吸光环）
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+
+    // ── 拨云见日：所有元素如晨雾散去 ──
+    await _exitCtrl.forward();
+    if (!mounted) return;
+
+    setPreviewAuthenticated(true);
+    context.go(AppRoutes.home);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1EB),
-      body: Stack(
-        children: [
-          // 背景装饰层
-          Positioned.fill(child: _buildBackground()),
-          // 主内容
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 24),
-                      _buildBrandRow(),
-                      const SizedBox(height: 36),
-                      _buildHeroVisual(),
-                      const SizedBox(height: 12),
-                      _buildHeroText(),
-                      const SizedBox(height: 18),
-                      _buildEmailField(),
-                      const SizedBox(height: 14),
-                      _buildPasswordField(),
-                      const SizedBox(height: 8),
-                      _buildForgotPassword(),
-                      const SizedBox(height: 22),
-                      _buildPrimaryButton(),
-                      const SizedBox(height: 20),
-                      _buildOrDivider(),
-                      const SizedBox(height: 16),
-                      _buildSocialRow(),
-                      const SizedBox(height: 22),
-                      _buildSignUpRow(),
-                      const SizedBox(height: 20),
-                      _buildFeatureChips(),
-                      const SizedBox(height: 36),
-                    ],
+      body: AnimatedBuilder(
+        animation: _exitCtrl,
+        builder: (context, _) {
+          final t = Curves.easeInCubic.transform(_exitCtrl.value);
+          return Stack(
+            children: [
+              // 背景装饰层
+              Positioned.fill(child: _buildBackground()),
+              // 主内容（退场时向上微滑 + 淡出，如晨雾散去）
+              SafeArea(
+                child: Transform.translate(
+                  offset: Offset(0, -40 * t),
+                  child: Opacity(
+                    opacity: (1.0 - t).clamp(0.0, 1.0),
+                    child: FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 24),
+                              _buildBrandRow(),
+                              const SizedBox(height: 36),
+                              _buildHeroVisual(),
+                              const SizedBox(height: 12),
+                              _buildHeroText(),
+                              const SizedBox(height: 18),
+                              _buildEmailField(),
+                              const SizedBox(height: 14),
+                              _buildPasswordField(),
+                              const SizedBox(height: 8),
+                              _buildForgotPassword(),
+                              const SizedBox(height: 22),
+                              _buildPrimaryButton(),
+                              const SizedBox(height: 20),
+                              _buildOrDivider(),
+                              const SizedBox(height: 16),
+                              _buildSocialRow(),
+                              const SizedBox(height: 22),
+                              _buildSignUpRow(),
+                              const SizedBox(height: 20),
+                              _buildFeatureChips(),
+                              const SizedBox(height: 36),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -457,55 +503,100 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ── Primary Button ─────────────────────────────────────────────
+  // ── Primary Button（触碰缩放 + 触觉反馈 + 青玉呼吸光环）───────────
   Widget _buildPrimaryButton() {
     return GestureDetector(
-      onTap: _isLoading ? null : _onLogin,
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6FA585), Color(0xFF8DBB9D)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6FA585).withValues(alpha: 0.2),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+      onTapDown: (_) {
+        if (_isLoading) return;
+        HapticFeedback.lightImpact();
+        _btnScaleCtrl.forward();
+      },
+      onTap: () {
+        if (_isLoading) return;
+        _onLogin();
+      },
+      onTapUp: (_) => _btnScaleCtrl.reverse(),
+      onTapCancel: () => _btnScaleCtrl.reverse(),
+      child: AnimatedBuilder(
+        animation: _btnScaleAnim,
+        builder: (context, child) => Transform.scale(
+          scale: _btnScaleAnim.value,
+          child: child,
         ),
-        child: Center(
-          child: _isLoading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.login_rounded, color: Colors.white, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      '登录账号',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 1.5,
+        child: Container(
+          height: 54,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6FA585), Color(0xFF8DBB9D)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6FA585).withValues(alpha: 0.2),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: _isLoading
+                    ? _buildJadeSpinner()
+                    : Row(
+                        key: const ValueKey('login_text'),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.login_rounded,
+                              color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            '登录账号',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
+              ),
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  /// 青玉绿色呼吸光晕旋转极简圆环
+  Widget _buildJadeSpinner() {
+    return AnimatedBuilder(
+      key: const ValueKey('jade_spinner'),
+      animation: _spinCtrl,
+      builder: (context, _) {
+        return Transform.rotate(
+          angle: _spinCtrl.value * 2 * math.pi,
+          child: Opacity(
+            opacity: 0.55 + 0.45 * math.sin(_spinCtrl.value * 4 * math.pi),
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                value: 0.7,
+                strokeWidth: 1.5,
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
