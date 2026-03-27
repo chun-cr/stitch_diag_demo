@@ -44,6 +44,12 @@ final class GestureStreamHandler: NSObject, FlutterStreamHandler {
 final class GestureRecognizerService: NSObject {
     static let shared = GestureRecognizerService()
 
+    private static let thumbAngleThreshold = 120.0
+    private static let thumbIndexRatioThreshold = 1.03
+    private static let thumbWristRatioThreshold = 1.02
+    private static let fingerAngleThreshold = 145.0
+    private static let minStraightDigits = 4
+
     private var recognizer: GestureRecognizer?
     private var consecutiveCount = 0
 
@@ -177,13 +183,15 @@ final class GestureRecognizerService: NSObject {
     private func isStraightPalmByLandmarks(_ landmarks: [NormalizedLandmark]?) -> Bool {
         guard let landmarks, landmarks.count >= 21 else { return false }
 
-        let thumb = isThumbExtended(landmarks)
-        let index = isFingerExtended(landmarks, mcp: 5, pip: 6, dip: 7, tip: 8)
-        let middle = isFingerExtended(landmarks, mcp: 9, pip: 10, dip: 11, tip: 12)
-        let ring = isFingerExtended(landmarks, mcp: 13, pip: 14, dip: 15, tip: 16)
-        let pinky = isFingerExtended(landmarks, mcp: 17, pip: 18, dip: 19, tip: 20)
+        let straightDigits = [
+            isThumbExtended(landmarks),
+            isFingerExtended(landmarks, mcp: 5, pip: 6, dip: 7, tip: 8),
+            isFingerExtended(landmarks, mcp: 9, pip: 10, dip: 11, tip: 12),
+            isFingerExtended(landmarks, mcp: 13, pip: 14, dip: 15, tip: 16),
+            isFingerExtended(landmarks, mcp: 17, pip: 18, dip: 19, tip: 20),
+        ].filter { $0 }.count
 
-        return thumb && index && middle && ring && pinky
+        return straightDigits >= Self.minStraightDigits
     }
 
     private func isThumbExtended(_ landmarks: [NormalizedLandmark]) -> Bool {
@@ -199,9 +207,9 @@ final class GestureRecognizerService: NSObject {
         let tipToWrist = pointDistance(landmarks[4], landmarks[0])
         let mcpToWrist = pointDistance(landmarks[2], landmarks[0])
 
-        return thumbAngle > 135 &&
-            tipToIndexMcp > ipToIndexMcp * 1.08 &&
-            tipToWrist > mcpToWrist * 1.1
+        return thumbAngle > Self.thumbAngleThreshold &&
+            tipToIndexMcp > ipToIndexMcp * Self.thumbIndexRatioThreshold &&
+            tipToWrist > mcpToWrist * Self.thumbWristRatioThreshold
     }
 
     private func isFingerExtended(
@@ -217,7 +225,7 @@ final class GestureRecognizerService: NSObject {
             landmarks[dip],
             landmarks[tip]
         )
-        return angle > 160
+        return angle > Self.fingerAngleThreshold
     }
 
     private func angleBetween(

@@ -18,6 +18,14 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 class GestureRecognizerHelper(private val context: Context) {
+    companion object {
+        private const val THUMB_ANGLE_THRESHOLD = 120.0
+        private const val THUMB_INDEX_RATIO_THRESHOLD = 1.03
+        private const val THUMB_WRIST_RATIO_THRESHOLD = 1.02
+        private const val FINGER_ANGLE_THRESHOLD = 145.0
+        private const val MIN_STRAIGHT_DIGITS = 4
+    }
+
     private var recognizer: GestureRecognizer? = null
     private var resultCallback: ((Map<String, Any?>) -> Unit)? = null
 
@@ -101,13 +109,15 @@ class GestureRecognizerHelper(private val context: Context) {
     private fun isStraightPalmByLandmarks(landmarks: List<NormalizedLandmark>?): Boolean {
         if (landmarks == null || landmarks.size < 21) return false
 
-        val thumb = isThumbExtended(landmarks)
-        val index = isFingerExtended(landmarks, 5, 6, 7, 8)
-        val middle = isFingerExtended(landmarks, 9, 10, 11, 12)
-        val ring = isFingerExtended(landmarks, 13, 14, 15, 16)
-        val pinky = isFingerExtended(landmarks, 17, 18, 19, 20)
+        val straightDigits = listOf(
+            isThumbExtended(landmarks),
+            isFingerExtended(landmarks, 5, 6, 7, 8),
+            isFingerExtended(landmarks, 9, 10, 11, 12),
+            isFingerExtended(landmarks, 13, 14, 15, 16),
+            isFingerExtended(landmarks, 17, 18, 19, 20),
+        ).count { it }
 
-        return thumb && index && middle && ring && pinky
+        return straightDigits >= MIN_STRAIGHT_DIGITS
     }
 
     private fun isThumbExtended(landmarks: List<NormalizedLandmark>): Boolean {
@@ -123,9 +133,9 @@ class GestureRecognizerHelper(private val context: Context) {
         val tipToWrist = distance(landmarks[4], landmarks[0])
         val mcpToWrist = distance(landmarks[2], landmarks[0])
 
-        return thumbAngle > 135 &&
-            tipToIndexMcp > ipToIndexMcp * 1.08 &&
-            tipToWrist > mcpToWrist * 1.1
+        return thumbAngle > THUMB_ANGLE_THRESHOLD &&
+            tipToIndexMcp > ipToIndexMcp * THUMB_INDEX_RATIO_THRESHOLD &&
+            tipToWrist > mcpToWrist * THUMB_WRIST_RATIO_THRESHOLD
     }
 
     private fun isFingerExtended(
@@ -141,7 +151,7 @@ class GestureRecognizerHelper(private val context: Context) {
             landmarks[dip],
             landmarks[tip],
         )
-        return angle > 160
+        return angle > FINGER_ANGLE_THRESHOLD
     }
 
     private fun angleBetween(
