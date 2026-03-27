@@ -121,7 +121,7 @@ final class GestureRecognizerService: NSObject {
         consecutiveCount = 0
         pendingSampleBuffer = nil
         isDetectionInFlight = false
-        publishDetected(false, name: "", score: 0, landmarks: [], imageSize: latestImageSize)
+        publishDetected(false, handStraight: false, name: "", score: 0, landmarks: [], imageSize: latestImageSize)
     }
 
     private var frameCount = 0
@@ -133,7 +133,7 @@ final class GestureRecognizerService: NSObject {
             if frameCount % 30 == 0 {
                 print("GestureRecognizerService: handleResult called with nil result (frame #\(frameCount))")
             }
-            publishDetected(false, name: "", score: 0, landmarks: [], imageSize: latestImageSize)
+            publishDetected(false, handStraight: false, name: "", score: 0, landmarks: [], imageSize: latestImageSize)
             return
         }
 
@@ -159,22 +159,22 @@ final class GestureRecognizerService: NSObject {
         }
 
         let detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
-        let detectedByFallback = !detectedByModel && isOpenPalmByLandmarks(result.landmarks.first)
-        let isOpenPalm = detectedByModel || detectedByFallback
+        let handStraight = isStraightPalmByLandmarks(result.landmarks.first)
+        let isOpenPalm = detectedByModel || handStraight
         if isOpenPalm {
             consecutiveCount += 1
         } else {
             consecutiveCount = 0
-            publishDetected(false, name: gestureName, score: score, landmarks: landmarks, imageSize: latestImageSize)
+            publishDetected(false, handStraight: handStraight, name: gestureName, score: score, landmarks: landmarks, imageSize: latestImageSize)
             return
         }
 
         let detected = consecutiveCount >= 3
-        let finalScore = detectedByModel ? score : (detectedByFallback ? 0.75 : score)
-        publishDetected(detected, name: "Open_Palm", score: finalScore, landmarks: landmarks, imageSize: latestImageSize)
+        let finalScore = detectedByModel ? score : (handStraight ? 0.75 : score)
+        publishDetected(detected, handStraight: handStraight, name: "Open_Palm", score: finalScore, landmarks: landmarks, imageSize: latestImageSize)
     }
 
-    private func isOpenPalmByLandmarks(_ landmarks: [NormalizedLandmark]?) -> Bool {
+    private func isStraightPalmByLandmarks(_ landmarks: [NormalizedLandmark]?) -> Bool {
         guard let landmarks, landmarks.count >= 21 else { return false }
 
         let thumb = isThumbExtended(landmarks)
@@ -243,10 +243,11 @@ final class GestureRecognizerService: NSObject {
         )
     }
 
-    private func publishDetected(_ detected: Bool, name: String, score: Double, landmarks: [[String: Double]], imageSize: CGSize) {
+    private func publishDetected(_ detected: Bool, handStraight: Bool, name: String, score: Double, landmarks: [[String: Double]], imageSize: CGSize) {
         GestureStreamHandler.shared.publish(
             payload: [
                 "gestureDetected": detected,
+                "handStraight": handStraight,
                 "gestureName": name,
                 "score": score,
                 "handLandmarks": landmarks,

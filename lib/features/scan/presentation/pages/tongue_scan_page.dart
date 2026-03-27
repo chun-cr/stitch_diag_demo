@@ -12,7 +12,6 @@
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +21,6 @@ import '../../../../core/router/app_router.dart';
 import '../services/tongue_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
-import '../widgets/tongue_landmark_overlay.dart';
 
 // ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
 enum ScanState { idle, scanning, completed }
@@ -54,13 +52,9 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _hasPermission = false;
   bool _mouthPresent = false;
   bool _tongueDetected = false;
-  double _tongueOutScore = 0;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
   String _mouthDirection = ''; // 方向提示
-  List<Offset> _mouthLandmarks = const [];
-  double _imageWidth = 0;
-  double _imageHeight = 0;
 
   @override
   void initState() {
@@ -127,10 +121,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     setState(() {
       _mouthPresent = status.mouthPresent;
       _tongueDetected = status.tongueDetected;
-      _tongueOutScore = status.tongueOutScore;
-      _mouthLandmarks = status.mouthLandmarks;
-      _imageWidth = status.imageWidth;
-      _imageHeight = status.imageHeight;
       _mouthDirection = (status.mouthPresent && !status.tongueDetected)
           ? _computeMouthDirection(status.mouthCenter)
           : '';
@@ -434,7 +424,6 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   Widget _buildCameraArea() {
     return LayoutBuilder(builder: (context, constraints) {
-      final overlayMirrored = defaultTargetPlatform == TargetPlatform.android;
       final cx = constraints.maxWidth / 2;
       final tongueFrameAlignmentY = 0.32;
       // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
@@ -447,15 +436,6 @@ class _TongueScanPageState extends State<TongueScanPage>
           Positioned.fill(
             child: const CameraPreviewWidget(
               key: ValueKey('shared_camera_preview'),
-            ),
-          ),
-          Positioned.fill(
-            child: TongueLandmarkOverlay(
-              mouthLandmarks: _mouthLandmarks,
-              imageSize: Size(_imageWidth, _imageHeight),
-              mirrored: overlayMirrored,
-              tongueDetected: _tongueDetected,
-              tongueOutScore: _tongueOutScore,
             ),
           ),
           Positioned.fill(

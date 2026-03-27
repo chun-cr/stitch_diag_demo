@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 // ═══════════════════════════════════════════════════════════════════
 // 修复说明（重做 UI 以匹配全站风格，并修复 ScanFrame 布局崩溃）
 //
@@ -8,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -46,6 +49,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   bool _hasPermission = false;
   bool _handPresent = false;
   bool _readyToScan = false;
+  bool _handStraight = false;
   String _gestureName = '';
   bool _isTransitioning = false;
   double _scanProgress = 0;
@@ -81,6 +85,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         _scanState = PalmScanState.scanning;
         _handPresent = false;
         _readyToScan = false;
+        _handStraight = false;
         _gestureName = '';
         _scanProgress = 0;
       });
@@ -90,6 +95,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         setState(() {
           _handPresent = status.handPresent;
           _readyToScan = status.readyToScan;
+          _handStraight = status.handStraight;
           _gestureName = status.gestureName;
           _handLandmarks = status.landmarks;
           _imageSize = Size(status.imageWidth, status.imageHeight);
@@ -216,11 +222,14 @@ class _PalmScanPageState extends State<PalmScanPage>
   String _statusText() {
     if (!_hasPermission) return '等待权限';
     if (_scanState == PalmScanState.completed) return '手掌扫描完成 ✓';
-    if (_readyToScan) return '已识别张开手掌，请保持 2 秒';
+    if (_readyToScan) return '已识别伸直手掌，请保持 2 秒';
+    if (_gestureName == 'Open_Palm' && !_handStraight) {
+      return '已检测到张开手掌，请将手掌伸直';
+    }
     final localizedGesture = _localizedGestureName(_gestureName);
     if (localizedGesture.isNotEmpty) return '检测到：$localizedGesture';
     if (_handPresent) {
-      return '请展平手掌，掌心朝上';
+      return '请将手掌伸直并自然张开';
     }
     return '请将手掌放入框内';
   }
@@ -402,7 +411,7 @@ class _PalmScanPageState extends State<PalmScanPage>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '将手掌展开置于框内，掌心朝上，手指自然分开',
+                        '将手掌自然伸向镜头，参考倾斜轮廓摆放，手指自然分开',
                         style: TextStyle(
                           fontSize: 12,
                           color: const Color(
@@ -491,8 +500,8 @@ class _PalmScanPageState extends State<PalmScanPage>
   }
 
   Widget _buildPalmFrame() {
-    const frameW = 190.0;
-    const frameH = 260.0;
+    const frameW = 210.0;
+    const frameH = 278.0;
     final highlightColor =
         (_readyToScan || _scanState == PalmScanState.completed)
         ? _kAccentLight
@@ -501,86 +510,46 @@ class _PalmScanPageState extends State<PalmScanPage>
     return SizedBox(
       width: frameW,
       height: frameH,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: -10,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              top: -10,
             left: -10,
             right: -10,
             bottom: -10,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: _kAccent.withValues(alpha: 0.08),
-                  width: 6,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  color: _kAccent.withValues(alpha: 0.03),
                 ),
               ),
             ),
-          ),
-          Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: highlightColor.withValues(alpha: 0.3), width: 0.8),
-              ),
-            ),
-          ),
-          Positioned(
-            top: -1,
-            left: -1,
-            child: _ScanCorner(color: highlightColor, top: true, left: true),
-          ),
-          Positioned(
-            top: -1,
-            right: -1,
-            child: _ScanCorner(color: highlightColor, top: true, left: false),
-          ),
-          Positioned(
-            bottom: -1,
-            left: -1,
-            child: _ScanCorner(color: highlightColor, top: false, left: true),
-          ),
-          Positioned(
-            bottom: -1,
-            right: -1,
-            child: _ScanCorner(color: highlightColor, top: false, left: false),
-          ),
-
-          AnimatedBuilder(
-            animation: _scanAnim,
-            builder: (context, child) => Positioned(
-              top: _scanAnim.value * frameH,
-              left: 12,
-              right: 12,
-              child: Container(
-                height: 1.5,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Colors.transparent,
-                      highlightColor.withValues(alpha: 0.85),
-                      Colors.transparent,
-                    ],
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _TiltedPalmGuidePainter(
+                    color: highlightColor,
+                    accentColor: _kAccentLight,
+                    isAligned: _readyToScan || _scanState == PalmScanState.completed,
+                    progress: _scanProgress,
+                    scanLineT: _scanAnim.value,
                   ),
                 ),
               ),
             ),
-          ),
 
-          Positioned(
-            bottom: -48,
-            left: -40,
-            right: -40,
-            child: Center(
-              child: _palmHint.isNotEmpty && !_readyToScan
-                  ? _PalmDirectionPill(hint: _palmHint)
-                  : _StatusPill(
-                      label: _statusText(),
+           Positioned(
+             bottom: -48,
+             left: -40,
+             right: -40,
+             child: Center(
+               child: _palmHint.isNotEmpty &&
+                       !_readyToScan &&
+                       !(_gestureName == 'Open_Palm' && !_handStraight)
+                   ? _PalmDirectionPill(hint: _palmHint)
+                   : _StatusPill(
+                       label: _statusText(),
                       detected:
                           _readyToScan || _scanState == PalmScanState.completed,
                     ),
@@ -637,7 +606,7 @@ class _PalmScanPageState extends State<PalmScanPage>
                 _buildPrimaryButton(
                   label: _scanState == PalmScanState.completed
                       ? '即将查看报告'
-                      : '请张开手掌并保持 2 秒',
+                      : '请伸直手掌并保持 2 秒',
                   enabled: false,
                   onTap: _navigateToReport,
                 ),
@@ -812,73 +781,112 @@ class _ScanProgressBar extends StatelessWidget {
   );
 }
 
-class _ScanCorner extends StatelessWidget {
+class _TiltedPalmGuidePainter extends CustomPainter {
   final Color color;
-  final bool top;
-  final bool left;
-  const _ScanCorner({
+  final Color accentColor;
+  final bool isAligned;
+  final double progress;
+  final double scanLineT;
+
+  const _TiltedPalmGuidePainter({
     required this.color,
-    required this.top,
-    required this.left,
+    required this.accentColor,
+    required this.isAligned,
+    required this.progress,
+    required this.scanLineT,
   });
 
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 24,
-    height: 24,
-    child: CustomPaint(
-      painter: _ScanCornerPainter(color: color, top: top, left: left),
-    ),
-  );
-}
-
-class _ScanCornerPainter extends CustomPainter {
-  final Color color;
-  final bool top;
-  final bool left;
-  const _ScanCornerPainter({
-    required this.color,
-    required this.top,
-    required this.left,
-  });
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = color
-      ..strokeWidth = 3
+    final center = Offset(size.width * 0.52, size.height * 0.53);
+    const rotation = -math.pi / 7.5;
+
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotation);
+
+    final outlinePaint = Paint()
+      ..color = color.withValues(alpha: isAligned ? 0.95 : 0.7)
+      ..strokeWidth = 2.6
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    const r = 8.0;
-    final path = Path();
-    if (top && left) {
-      path.moveTo(0, size.height);
-      path.lineTo(0, r);
-      path.arcToPoint(Offset(r, 0), radius: const Radius.circular(r));
-      path.lineTo(size.width, 0);
-    } else if (top) {
-      path.moveTo(0, 0);
-      path.lineTo(size.width - r, 0);
-      path.arcToPoint(Offset(size.width, r), radius: const Radius.circular(r));
-      path.lineTo(size.width, size.height);
-    } else if (left) {
-      path.moveTo(0, 0);
-      path.lineTo(0, size.height - r);
-      path.arcToPoint(Offset(r, size.height), radius: const Radius.circular(r));
-      path.lineTo(size.width, size.height);
-    } else {
-      path.moveTo(0, size.height);
-      path.lineTo(size.width - r, size.height);
-      path.arcToPoint(
-        Offset(size.width, size.height - r),
-        radius: const Radius.circular(r),
+
+    final glowPaint = Paint()
+      ..color = accentColor.withValues(alpha: isAligned ? 0.18 : 0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+    final palmPath = Path()
+      ..moveTo(-18, 92)
+      ..quadraticBezierTo(-34, 58, -28, 18)
+      ..quadraticBezierTo(-26, -10, -8, -18)
+      ..lineTo(-6, -84)
+      ..quadraticBezierTo(-5, -103, 6, -103)
+      ..quadraticBezierTo(16, -102, 16, -84)
+      ..lineTo(18, -26)
+      ..lineTo(28, -96)
+      ..quadraticBezierTo(30, -114, 42, -112)
+      ..quadraticBezierTo(53, -109, 51, -89)
+      ..lineTo(45, -23)
+      ..lineTo(58, -104)
+      ..quadraticBezierTo(61, -121, 73, -118)
+      ..quadraticBezierTo(84, -114, 81, -94)
+      ..lineTo(71, -17)
+      ..lineTo(85, -84)
+      ..quadraticBezierTo(88, -99, 98, -95)
+      ..quadraticBezierTo(106, -91, 102, -72)
+      ..lineTo(88, -10)
+      ..quadraticBezierTo(96, 5, 96, 24)
+      ..quadraticBezierTo(95, 71, 61, 89)
+      ..quadraticBezierTo(22, 112, -18, 92)
+      ..close();
+
+    canvas.drawPath(palmPath, glowPaint);
+    canvas.drawPath(palmPath, outlinePaint);
+
+    final wristPaint = Paint()
+      ..color = color.withValues(alpha: 0.38)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(const Offset(-4, 96), const Offset(26, 110), wristPaint);
+
+    final indicatorPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          Colors.transparent,
+          accentColor.withValues(alpha: isAligned ? 0.95 : 0.6),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(-60, -12, 150, 24));
+
+    final lineX = -44 + 108 * scanLineT.clamp(0.0, 1.0);
+    canvas.drawLine(Offset(lineX, -8), Offset(lineX + 36, 86), indicatorPaint..strokeWidth = 2);
+
+    if (progress > 0) {
+      final progressPaint = Paint()
+        ..color = accentColor.withValues(alpha: 0.16)
+        ..style = PaintingStyle.fill;
+      final progressRect = Rect.fromLTWH(-32, 88, 104 * progress.clamp(0.0, 1.0), 7);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(progressRect, const Radius.circular(3.5)),
+        progressPaint,
       );
-      path.lineTo(size.width, 0);
     }
-    canvas.drawPath(path, p);
+
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_ScanCornerPainter o) => false;
+  bool shouldRepaint(covariant _TiltedPalmGuidePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.accentColor != accentColor ||
+        oldDelegate.isAligned != isAligned ||
+        oldDelegate.progress != progress ||
+        oldDelegate.scanLineT != scanLineT;
+  }
 }
 
 class _BgPainter extends CustomPainter {

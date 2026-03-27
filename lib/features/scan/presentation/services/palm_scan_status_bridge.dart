@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 class PalmScanStatus {
   final bool handPresent;
   final bool gestureDetected;
+  final bool handStraight;
   final String gestureName;
   final double score;
   final double imageWidth;
@@ -15,6 +16,7 @@ class PalmScanStatus {
   const PalmScanStatus({
     required this.handPresent,
     required this.gestureDetected,
+    required this.handStraight,
     required this.gestureName,
     required this.score,
     this.imageWidth = 0,
@@ -22,14 +24,15 @@ class PalmScanStatus {
     this.landmarks = const [],
   });
 
-  bool get readyToScan => handPresent && gestureDetected;
+  bool get readyToScan => handPresent && handStraight;
 
   factory PalmScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {
-      return const PalmScanStatus(
-        handPresent: false,
-        gestureDetected: false,
-        gestureName: '',
+        return const PalmScanStatus(
+          handPresent: false,
+          gestureDetected: false,
+          handStraight: false,
+          gestureName: '',
         score: 0,
         imageWidth: 0,
         imageHeight: 0,
@@ -56,6 +59,7 @@ class PalmScanStatus {
     return PalmScanStatus(
       handPresent: handLandmarks is List && handLandmarks.isNotEmpty,
       gestureDetected: data['gestureDetected'] as bool? ?? false,
+      handStraight: data['handStraight'] as bool? ?? false,
       gestureName: data['gestureName'] as String? ?? '',
       score: (data['score'] as num?)?.toDouble() ?? 0,
       imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,

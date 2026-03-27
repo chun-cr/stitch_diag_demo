@@ -49,21 +49,17 @@ class GestureRecognizerHelper(private val context: Context) {
                 } ?: emptyList<Map<String, Double>>()
 
                 val detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
-                val detectedByFallback = if (!detectedByModel) {
-                    isOpenPalmByLandmarks(handLandmarks)
-                } else {
-                    false
-                }
-
-                val detected = detectedByModel || detectedByFallback
+                val handStraight = isStraightPalmByLandmarks(handLandmarks)
+                val detected = detectedByModel || handStraight
                 val finalName = if (detected) "Open_Palm" else gestureName
-                val finalScore = if (detectedByModel) score else if (detectedByFallback) 0.75 else score
+                val finalScore = if (detectedByModel) score else if (handStraight) 0.75 else score
 
                 val debouncedDetected = debounce(finalName, detected)
 
                 resultCallback?.invoke(
                     mapOf(
                         "gestureDetected" to debouncedDetected,
+                        "handStraight" to handStraight,
                         "gestureName" to finalName,
                         "score" to finalScore,
                         "handLandmarks" to landmarks,
@@ -102,7 +98,7 @@ class GestureRecognizerHelper(private val context: Context) {
         return consecutiveCount >= 3
     }
 
-    private fun isOpenPalmByLandmarks(landmarks: List<NormalizedLandmark>?): Boolean {
+    private fun isStraightPalmByLandmarks(landmarks: List<NormalizedLandmark>?): Boolean {
         if (landmarks == null || landmarks.size < 21) return false
 
         val thumb = isThumbExtended(landmarks)
