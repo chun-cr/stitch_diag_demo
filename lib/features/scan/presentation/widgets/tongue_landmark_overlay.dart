@@ -3,20 +3,22 @@ import 'package:flutter/material.dart';
 class TongueLandmarkOverlay extends StatelessWidget {
   const TongueLandmarkOverlay({
     super.key,
-    required this.normalizedLandmarks,
     this.mouthLandmarks = const [],
     this.imageSize,
     this.mirrored = false,
+    this.tongueDetected = false,
+    this.tongueOutScore = 0,
   });
 
-  final List<Offset> normalizedLandmarks;
   final List<Offset> mouthLandmarks;
   final Size? imageSize;
   final bool mirrored;
+  final bool tongueDetected;
+  final double tongueOutScore;
 
   @override
   Widget build(BuildContext context) {
-    if (normalizedLandmarks.isEmpty && mouthLandmarks.isEmpty) {
+    if (mouthLandmarks.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -24,10 +26,11 @@ class TongueLandmarkOverlay extends StatelessWidget {
       child: RepaintBoundary(
         child: CustomPaint(
           painter: TongueLandmarkPainter(
-            normalizedLandmarks: normalizedLandmarks,
             mouthLandmarks: mouthLandmarks,
             imageSize: imageSize,
             mirrored: mirrored,
+            tongueDetected: tongueDetected,
+            tongueOutScore: tongueOutScore,
           ),
           size: Size.infinite,
         ),
@@ -38,67 +41,180 @@ class TongueLandmarkOverlay extends StatelessWidget {
 
 class TongueLandmarkPainter extends CustomPainter {
   TongueLandmarkPainter({
-    required this.normalizedLandmarks,
     required this.mouthLandmarks,
     this.imageSize,
     required this.mirrored,
+    required this.tongueDetected,
+    required this.tongueOutScore,
   });
 
-  final List<Offset> normalizedLandmarks;
   final List<Offset> mouthLandmarks;
   final Size? imageSize;
   final bool mirrored;
-
-  // 舌头描点样式 (柔和粉/白)
-  final Paint _tonguePointPaint = Paint()
-    ..style = PaintingStyle.fill
-    ..color = const Color(0xFFFFD1D1).withValues(alpha: 0.95);
+  final bool tongueDetected;
+  final double tongueOutScore;
 
   final Paint _tongueGlowPaint = Paint()
     ..style = PaintingStyle.fill
-    ..color = const Color(0xFFFF8585).withValues(alpha: 0.25)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0);
+    ..color = const Color(0xFFFF9797).withValues(alpha: 0.18)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
 
-  // 嘴部描点样式 (浅绿/白)
-  final Paint _mouthPointPaint = Paint()
-    ..style = PaintingStyle.fill
-    ..color = const Color(0xFFE8F5EE).withValues(alpha: 0.85);
-
-  final Paint _mouthLinePaint = Paint()
+  final Paint _tongueOutlinePaint = Paint()
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 0.8
-    ..color = const Color(0xFF4CAF50).withValues(alpha: 0.35);
+    ..strokeWidth = 1.3
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..color = const Color(0xFFFFF4F4).withValues(alpha: 0.94);
+
+  final Paint _tongueCenterPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.9
+    ..strokeCap = StrokeCap.round
+    ..color = const Color(0xFFE17070).withValues(alpha: 0.42);
+
+  final Paint _tongueSidePointPaint = Paint()
+    ..style = PaintingStyle.fill
+    ..color = const Color(0xFFFFFBFB).withValues(alpha: 0.88);
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
 
-    // 1. 绘制嘴部轮廓 (Mouth/Lips)
-    if (mouthLandmarks.isNotEmpty) {
-      final mPoints = _mapToView(mouthLandmarks, size);
-      if (mPoints.length >= 2) {
-        final path = Path()..moveTo(mPoints[0].dx, mPoints[0].dy);
-        for (var i = 1; i < mPoints.length; i++) {
-          path.lineTo(mPoints[i].dx, mPoints[i].dy);
-        }
-        // 如果点数较多，通常是闭合环（可选）
-        if (mPoints.length > 10) path.close();
-        canvas.drawPath(path, _mouthLinePaint);
-      }
-      for (final pt in mPoints) {
-        canvas.drawCircle(pt, 0.8, _mouthPointPaint);
-      }
+    if (!tongueDetected) {
+      canvas.restore();
+      return;
     }
 
-    // 2. 绘制舌头描点 (Tongue Landmarks)
-    final tPoints = _mapToView(normalizedLandmarks, size);
-    for (final pt in tPoints) {
-      canvas.drawCircle(pt, 2.5, _tongueGlowPaint);
-      canvas.drawCircle(pt, 1.2, _tonguePointPaint);
+    final mouthPoints = _mapToView(mouthLandmarks, size);
+    if (mouthPoints.length < 3) {
+      canvas.restore();
+      return;
+    }
+
+    final tongueGeometry = _deriveTongueGeometry(mouthPoints);
+    final tonguePath = _buildTonguePath(tongueGeometry);
+    final centerPath = _buildCenterPath(tongueGeometry);
+
+    canvas.drawPath(tonguePath.shift(const Offset(0, 2)), _tongueGlowPaint);
+    canvas.drawPath(tonguePath, _buildTongueFillPaint(tongueGeometry.bounds));
+    canvas.drawPath(tonguePath, _tongueOutlinePaint);
+    canvas.drawPath(centerPath, _tongueCenterPaint);
+
+    for (final point in tongueGeometry.edgePoints) {
+      canvas.drawCircle(point, 2.1, _tongueGlowPaint);
+      canvas.drawCircle(point, 1.05, _tongueSidePointPaint);
     }
 
     canvas.restore();
+  }
+
+  Paint _buildTongueFillPaint(Rect bounds) {
+    return Paint()
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [
+          Color(0xFFFFE6E6),
+          Color(0xFFFFBFC0),
+          Color(0xFFFF9597),
+        ],
+        stops: const [0.0, 0.46, 1.0],
+      ).createShader(bounds);
+  }
+
+  _TongueGeometry _deriveTongueGeometry(List<Offset> mouthPoints) {
+    final xs = mouthPoints.map((point) => point.dx).toList()..sort();
+    final ys = mouthPoints.map((point) => point.dy).toList()..sort();
+
+    final minX = xs.first;
+    final maxX = xs.last;
+    final minY = ys.first;
+    final maxY = ys.last;
+    final width = (maxX - minX).clamp(24.0, 180.0);
+    final mouthHeight = (maxY - minY).clamp(10.0, 80.0);
+    final centerX = (minX + maxX) / 2;
+    final startY = minY + mouthHeight * 0.38;
+    final depthFactor = (0.62 + tongueOutScore * 0.62).clamp(0.66, 1.08);
+    final widthFactor = (0.74 + tongueOutScore * 0.14).clamp(0.76, 0.9);
+    final tongueWidth = width * widthFactor;
+    final tongueHeight = (width * depthFactor).clamp(36.0, 138.0);
+
+    final leftAnchor = Offset(centerX - tongueWidth / 2, startY);
+    final rightAnchor = Offset(centerX + tongueWidth / 2, startY);
+    final leftUpper = Offset(centerX - tongueWidth * 0.56, startY + tongueHeight * 0.28);
+    final rightUpper = Offset(centerX + tongueWidth * 0.56, startY + tongueHeight * 0.28);
+    final leftLower = Offset(centerX - tongueWidth * 0.32, startY + tongueHeight * 0.78);
+    final rightLower = Offset(centerX + tongueWidth * 0.32, startY + tongueHeight * 0.78);
+    final tip = Offset(centerX, startY + tongueHeight);
+    final bounds = Rect.fromLTRB(
+      centerX - tongueWidth * 0.62,
+      startY - 2,
+      centerX + tongueWidth * 0.62,
+      tip.dy + 2,
+    );
+
+    return _TongueGeometry(
+      leftAnchor: leftAnchor,
+      rightAnchor: rightAnchor,
+      leftUpper: leftUpper,
+      rightUpper: rightUpper,
+      leftLower: leftLower,
+      rightLower: rightLower,
+      tip: tip,
+      centerTop: Offset(centerX, startY + tongueHeight * 0.14),
+      centerBottom: Offset(centerX, startY + tongueHeight * 0.82),
+      edgePoints: [leftAnchor, leftUpper, leftLower, tip, rightLower, rightUpper, rightAnchor],
+      bounds: bounds,
+    );
+  }
+
+  Path _buildTonguePath(_TongueGeometry geometry) {
+    return Path()
+      ..moveTo(geometry.leftAnchor.dx, geometry.leftAnchor.dy)
+      ..quadraticBezierTo(
+        geometry.leftUpper.dx,
+        geometry.leftUpper.dy,
+        geometry.leftLower.dx,
+        geometry.leftLower.dy,
+      )
+      ..quadraticBezierTo(
+        geometry.tip.dx - (geometry.tip.dx - geometry.leftLower.dx) * 0.3,
+        geometry.tip.dy,
+        geometry.tip.dx,
+        geometry.tip.dy,
+      )
+      ..quadraticBezierTo(
+        geometry.tip.dx + (geometry.rightLower.dx - geometry.tip.dx) * 0.3,
+        geometry.tip.dy,
+        geometry.rightLower.dx,
+        geometry.rightLower.dy,
+      )
+      ..quadraticBezierTo(
+        geometry.rightUpper.dx,
+        geometry.rightUpper.dy,
+        geometry.rightAnchor.dx,
+        geometry.rightAnchor.dy,
+      )
+      ..quadraticBezierTo(
+        (geometry.leftAnchor.dx + geometry.rightAnchor.dx) / 2,
+        geometry.leftAnchor.dy - 4,
+        geometry.leftAnchor.dx,
+        geometry.leftAnchor.dy,
+      )
+      ..close();
+  }
+
+  Path _buildCenterPath(_TongueGeometry geometry) {
+    return Path()
+      ..moveTo(geometry.centerTop.dx, geometry.centerTop.dy)
+      ..quadraticBezierTo(
+        geometry.tip.dx,
+        (geometry.centerTop.dy + geometry.tip.dy) / 2,
+        geometry.centerBottom.dx,
+        geometry.centerBottom.dy,
+      );
   }
 
   List<Offset> _mapToView(List<Offset> source, Size viewSize) {
@@ -130,9 +246,38 @@ class TongueLandmarkPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(TongueLandmarkPainter oldDelegate) {
-    return oldDelegate.normalizedLandmarks != normalizedLandmarks ||
-        oldDelegate.mouthLandmarks != mouthLandmarks ||
+    return oldDelegate.mouthLandmarks != mouthLandmarks ||
         oldDelegate.imageSize != imageSize ||
-        oldDelegate.mirrored != mirrored;
+        oldDelegate.mirrored != mirrored ||
+        oldDelegate.tongueDetected != tongueDetected ||
+        oldDelegate.tongueOutScore != tongueOutScore;
   }
+}
+
+class _TongueGeometry {
+  const _TongueGeometry({
+    required this.leftAnchor,
+    required this.rightAnchor,
+    required this.leftUpper,
+    required this.rightUpper,
+    required this.leftLower,
+    required this.rightLower,
+    required this.tip,
+    required this.centerTop,
+    required this.centerBottom,
+    required this.edgePoints,
+    required this.bounds,
+  });
+
+  final Offset leftAnchor;
+  final Offset rightAnchor;
+  final Offset leftUpper;
+  final Offset rightUpper;
+  final Offset leftLower;
+  final Offset rightLower;
+  final Offset tip;
+  final Offset centerTop;
+  final Offset centerBottom;
+  final List<Offset> edgePoints;
+  final Rect bounds;
 }
