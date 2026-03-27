@@ -436,6 +436,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     return LayoutBuilder(builder: (context, constraints) {
       final overlayMirrored = defaultTargetPlatform == TargetPlatform.android;
       final cx = constraints.maxWidth / 2;
+      final tongueFrameAlignmentY = 0.32;
       // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
       final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
       // 缩小圆圈半径
@@ -465,7 +466,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Align(
-            alignment: const Alignment(0, 0.18),
+            alignment: Alignment(0, tongueFrameAlignmentY),
             child: _buildTongueFrame(),
           ),
         ],
@@ -474,8 +475,8 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 
   Widget _buildTongueFrame() {
-    const frameW = 160.0;
-    const frameH = 192.0;
+    const frameW = 138.0;
+    const frameH = 164.0;
     final isActive = _scanState == ScanState.scanning;
     final isCompleted = _scanState == ScanState.completed;
     final isAligned = _tongueDetected;
