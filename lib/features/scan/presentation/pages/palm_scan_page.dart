@@ -503,56 +503,57 @@ class _PalmScanPageState extends State<PalmScanPage>
     const frameW = 210.0;
     const frameH = 278.0;
     final highlightColor =
-        (_readyToScan || _scanState == PalmScanState.completed)
+    (_readyToScan || _scanState == PalmScanState.completed)
         ? _kAccentLight
         : _kAccent.withValues(alpha: 0.45);
 
     return SizedBox(
       width: frameW,
       height: frameH,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: -10,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -10,
             left: -10,
             right: -10,
             bottom: -10,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  color: _kAccent.withValues(alpha: 0.03),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                color: _kAccent.withValues(alpha: 0.03),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _TiltedPalmGuidePainter(
+                  color: highlightColor,
+                  accentColor: _kAccentLight,
+                  isAligned: _readyToScan || _scanState == PalmScanState.completed,
+                  progress: _scanProgress,
+                  scanLineT: _scanAnim.value,
+                  handPresent: _handPresent,
                 ),
               ),
             ),
-            Positioned.fill(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _TiltedPalmGuidePainter(
-                    color: highlightColor,
-                    accentColor: _kAccentLight,
-                    isAligned: _readyToScan || _scanState == PalmScanState.completed,
-                    progress: _scanProgress,
-                    scanLineT: _scanAnim.value,
-                  ),
-                ),
-              ),
-            ),
+          ),
 
-           Positioned(
-             bottom: -48,
-             left: -40,
-             right: -40,
-             child: Center(
-               child: _palmHint.isNotEmpty &&
-                       !_readyToScan &&
-                       !(_gestureName == 'Open_Palm' && !_handStraight)
-                   ? _PalmDirectionPill(hint: _palmHint)
-                   : _StatusPill(
-                       label: _statusText(),
-                      detected:
-                          _readyToScan || _scanState == PalmScanState.completed,
-                    ),
+          Positioned(
+            bottom: -48,
+            left: -40,
+            right: -40,
+            child: Center(
+              child: _palmHint.isNotEmpty &&
+                  !_readyToScan &&
+                  !(_gestureName == 'Open_Palm' && !_handStraight)
+                  ? _PalmDirectionPill(hint: _palmHint)
+                  : _StatusPill(
+                label: _statusText(),
+                detected:
+                _readyToScan || _scanState == PalmScanState.completed,
+              ),
             ),
           ),
           if (_scanState == PalmScanState.scanning && _readyToScan)
@@ -644,21 +645,21 @@ class _PalmScanPageState extends State<PalmScanPage>
         decoration: BoxDecoration(
           gradient: enabled
               ? const LinearGradient(
-                  colors: [Color(0xFF4B3E75), _kAccent, _kAccentLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
+            colors: [Color(0xFF4B3E75), _kAccent, _kAccentLight],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
               : null,
           color: enabled ? null : const Color(0xFFE0DDD8),
           borderRadius: BorderRadius.circular(14),
           boxShadow: enabled
               ? [
-                  BoxShadow(
-                    color: _kAccent.withValues(alpha: 0.35),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
+            BoxShadow(
+              color: _kAccent.withValues(alpha: 0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ]
               : null,
         ),
         child: Center(
@@ -787,6 +788,8 @@ class _TiltedPalmGuidePainter extends CustomPainter {
   final bool isAligned;
   final double progress;
   final double scanLineT;
+  // 新增：检测到手掌时隐藏轮廓，避免与 landmark 线条交叠
+  final bool handPresent;
 
   const _TiltedPalmGuidePainter({
     required this.color,
@@ -794,89 +797,158 @@ class _TiltedPalmGuidePainter extends CustomPainter {
     required this.isAligned,
     required this.progress,
     required this.scanLineT,
+    this.handPresent = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.52, size.height * 0.53);
-    const rotation = -math.pi / 7.5;
+    // SVG 路径已含真实坐标（viewBox 451×511），
+    // _buildRightPalmUpPath 内部完成缩放居中，无需再做 translate/rotate
 
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotation);
+    // ── 仅在未检测到手掌时绘制引导轮廓
+    if (!handPresent) {
+      final glowPaint = Paint()
+        ..color = accentColor.withValues(alpha: 0.12)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 14
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
 
-    final outlinePaint = Paint()
-      ..color = color.withValues(alpha: isAligned ? 0.95 : 0.7)
-      ..strokeWidth = 2.6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      final outlinePaint = Paint()
+        ..color = color.withValues(alpha: isAligned ? 0.95 : 0.72)
+        ..strokeWidth = 2.2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
 
-    final glowPaint = Paint()
-      ..color = accentColor.withValues(alpha: isAligned ? 0.18 : 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+      final palmPath = _buildRightPalmUpPath(size);
+      canvas.drawPath(palmPath, glowPaint);
+      canvas.drawPath(palmPath, outlinePaint);
+    }
 
-    final palmPath = Path()
-      ..moveTo(-18, 92)
-      ..quadraticBezierTo(-34, 58, -28, 18)
-      ..quadraticBezierTo(-26, -10, -8, -18)
-      ..lineTo(-6, -84)
-      ..quadraticBezierTo(-5, -103, 6, -103)
-      ..quadraticBezierTo(16, -102, 16, -84)
-      ..lineTo(18, -26)
-      ..lineTo(28, -96)
-      ..quadraticBezierTo(30, -114, 42, -112)
-      ..quadraticBezierTo(53, -109, 51, -89)
-      ..lineTo(45, -23)
-      ..lineTo(58, -104)
-      ..quadraticBezierTo(61, -121, 73, -118)
-      ..quadraticBezierTo(84, -114, 81, -94)
-      ..lineTo(71, -17)
-      ..lineTo(85, -84)
-      ..quadraticBezierTo(88, -99, 98, -95)
-      ..quadraticBezierTo(106, -91, 102, -72)
-      ..lineTo(88, -10)
-      ..quadraticBezierTo(96, 5, 96, 24)
-      ..quadraticBezierTo(95, 71, 61, 89)
-      ..quadraticBezierTo(22, 112, -18, 92)
-      ..close();
-
-    canvas.drawPath(palmPath, glowPaint);
-    canvas.drawPath(palmPath, outlinePaint);
-
-    final wristPaint = Paint()
-      ..color = color.withValues(alpha: 0.38)
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(const Offset(-4, 96), const Offset(26, 110), wristPaint);
-
-    final indicatorPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          Colors.transparent,
-          accentColor.withValues(alpha: isAligned ? 0.95 : 0.6),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromLTWH(-60, -12, 150, 24));
-
-    final lineX = -44 + 108 * scanLineT.clamp(0.0, 1.0);
-    canvas.drawLine(Offset(lineX, -8), Offset(lineX + 36, 86), indicatorPaint..strokeWidth = 2);
-
-    if (progress > 0) {
-      final progressPaint = Paint()
-        ..color = accentColor.withValues(alpha: 0.16)
-        ..style = PaintingStyle.fill;
-      final progressRect = Rect.fromLTWH(-32, 88, 104 * progress.clamp(0.0, 1.0), 7);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(progressRect, const Radius.circular(3.5)),
-        progressPaint,
+    // ── 扫描线（未检测到手时显示，表示系统正在检测）
+    if (!handPresent) {
+      final scanY = size.height * 0.05 +
+          size.height * 0.90 * scanLineT.clamp(0.0, 1.0);
+      final scanPaint = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            Colors.transparent,
+            accentColor.withValues(alpha: isAligned ? 0.80 : 0.45),
+            Colors.transparent,
+          ],
+        ).createShader(Rect.fromLTWH(0, scanY - 1, size.width, 2))
+        ..strokeWidth = 1.8
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(
+        Offset(size.width * 0.08, scanY),
+        Offset(size.width * 0.92, scanY),
+        scanPaint,
       );
     }
 
-    canvas.restore();
+    // ── 扫描进度条（底部居中）
+    if (progress > 0) {
+      final barW = size.width * 0.60;
+      final barX = (size.width - barW) / 2;
+      final barY = size.height * 0.92;
+      final progressPaint = Paint()
+        ..color = accentColor.withValues(alpha: 0.18)
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(barX, barY, barW * progress.clamp(0.0, 1.0), 6),
+          const Radius.circular(3),
+        ),
+        progressPaint,
+      );
+    }
+  }
+
+  /// 右手手心朝上的轮廓路径
+  /// 从 Figma 导出的真实右手手心朝上 SVG 轮廓
+  /// 原始 viewBox: 451 × 511，缩放居中后适配 canvas
+  Path _buildRightPalmUpPath(Size size) {
+    final p = Path();
+    p.moveTo(16.07, 243.27);
+    p.cubicTo(6.61, 242.67, 5.64, 249.29, 5.64, 249.29);
+    p.lineTo(1.09, 263.51);
+    p.lineTo(6.61, 273.07);
+    p.lineTo(49.70, 301.51);
+    p.lineTo(95.54, 330.69);
+    p.lineTo(142.11, 357.12);
+    p.lineTo(166.71, 399.72);
+    p.lineTo(195.11, 430.84);
+    p.lineTo(228.41, 468.42);
+    p.lineTo(277.76, 503.68);
+    p.lineTo(316.77, 508.98);
+    p.lineTo(342.86, 493.91);
+    p.lineTo(376.01, 468.97);
+    p.lineTo(402.01, 459.76);
+    p.lineTo(428.97, 444.19);
+    p.lineTo(444.29, 414.48);
+    p.lineTo(448.46, 341.37);
+    p.lineTo(448.22, 284.71);
+    p.lineTo(439.55, 207.42);
+    p.lineTo(436.81, 176.55);
+    p.lineTo(441.52, 142.53);
+    p.lineTo(446.07, 128.31);
+    p.lineTo(449.51, 118.21);
+    p.lineTo(445.50, 111.25);
+    p.cubicTo(440.66, 106.37, 436.64, 104.84, 426.66, 104.74);
+    p.cubicTo(418.59, 106.26, 414.86, 108.21, 410.14, 114.28);
+    p.cubicTo(397.62, 124.95, 393.77, 131.26, 390.70, 142.89);
+    p.lineTo(384.78, 186.88);
+    p.lineTo(374.32, 245.08);
+    p.lineTo(343.44, 217.70);
+    p.lineTo(326.87, 189.02);
+    p.lineTo(317.84, 173.37);
+    p.lineTo(289.29, 109.87);
+    p.lineTo(251.65, 44.66);
+    p.lineTo(231.57, 9.89);
+    p.lineTo(219.46, 2.97);
+    p.cubicTo(210.05, -0.43, 205.43, 0.55, 198.05, 6.06);
+    p.cubicTo(190.80, 11.15, 188.06, 15.14, 187.55, 26.04);
+    p.lineTo(211.64, 67.77);
+    p.lineTo(239.41, 125.91);
+    p.lineTo(257.15, 166.68);
+    p.lineTo(272.71, 193.63);
+    p.cubicTo(271.34, 204.60, 266.66, 206.09, 254.44, 204.17);
+    p.lineTo(205.76, 119.85);
+    p.cubicTo(187.16, 98.42, 177.57, 83.93, 161.02, 56.42);
+    p.lineTo(142.45, 24.25);
+    p.cubicTo(136.99, 19.67, 132.73, 18.25, 121.37, 17.88);
+    p.cubicTo(111.74, 18.59, 108.26, 21.17, 103.97, 27.92);
+    p.cubicTo(99.02, 31.61, 98.34, 35.82, 101.57, 47.86);
+    p.lineTo(128.67, 94.80);
+    p.lineTo(155.78, 141.75);
+    p.lineTo(180.87, 185.21);
+    p.lineTo(207.47, 231.29);
+    p.cubicTo(208.50, 231.91, 209.56, 242.96, 197.81, 242.67);
+    p.lineTo(151.87, 189.21);
+    p.lineTo(103.78, 130.04);
+    p.cubicTo(103.78, 130.04, 84.30, 103.20, 79.36, 97.77);
+    p.cubicTo(74.41, 92.34, 70.25, 91.69, 60.29, 94.87);
+    p.lineTo(48.38, 106.39);
+    p.cubicTo(48.38, 106.39, 46.44, 116.04, 47.08, 122.21);
+    p.cubicTo(48.49, 135.85, 64.64, 152.63, 64.64, 152.63);
+    p.cubicTo(86.32, 180.82, 98.14, 196.49, 115.64, 222.88);
+    p.lineTo(167.73, 289.01);
+    p.cubicTo(166.88, 299.41, 163.69, 303.42, 154.49, 308.25);
+    p.cubicTo(116.94, 292.59, 95.40, 282.75, 53.88, 258.53);
+    p.lineTo(32.40, 245.43);
+    p.cubicTo(32.40, 245.43, 25.54, 243.87, 16.07, 243.27);
+    p.close();
+
+    // 缩放并居中到 canvas
+    const svgW = 451.0;
+    const svgH = 511.0;
+    final scale = math.min(size.width / svgW, size.height / svgH) * 0.88;
+    final offsetX = (size.width - svgW * scale) / 2;
+    final offsetY = (size.height - svgH * scale) / 2;
+    final m = Matrix4.identity()
+      ..translate(offsetX, offsetY)
+      ..scale(scale, scale);
+    return p.transform(m.storage);
   }
 
   @override
@@ -885,7 +957,8 @@ class _TiltedPalmGuidePainter extends CustomPainter {
         oldDelegate.accentColor != accentColor ||
         oldDelegate.isAligned != isAligned ||
         oldDelegate.progress != progress ||
-        oldDelegate.scanLineT != scanLineT;
+        oldDelegate.scanLineT != scanLineT ||
+        oldDelegate.handPresent != handPresent;
   }
 }
 
