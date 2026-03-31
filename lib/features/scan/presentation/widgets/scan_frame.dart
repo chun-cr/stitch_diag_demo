@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'scan_hint_chips.dart';
 import 'dart:math' as math;
@@ -237,8 +239,8 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       onPressed: () => context.pushReplacement(widget.skipRoute),
-                      child: const Text(
-                        '跳过此步骤',
+                      child: Text(
+                        context.l10n.scanSkipThisStep,
                         style: TextStyle(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -369,7 +371,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
         Row(
            mainAxisAlignment: MainAxisAlignment.spaceBetween,
            children: [
-             const Text('扫描进度', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+             Text(context.l10n.scanProgressLabel, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
              Text('${(progress * 100).toInt()}%', style: TextStyle(fontSize: 12, color: widget.themeColor, fontWeight: FontWeight.bold)),
            ],
         ),
@@ -418,7 +420,7 @@ class _ScanFrameState extends State<ScanFrame> with TickerProviderStateMixin {
             }
           : null;
     } else if (_effectiveState == ScanState.scanning) {
-      text = '分析中... ${(_effectiveProgress * 100).toInt()}%';
+      text = context.l10n.scanAnalyzingProgress((_effectiveProgress * 100).toInt());
       bgColor = AppColors.primary.withValues(alpha: 0.6);
       onPressed = null;
     } else {

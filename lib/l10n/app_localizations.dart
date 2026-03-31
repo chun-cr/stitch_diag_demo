@@ -1,0 +1,3454 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations_en.dart';
+import 'app_localizations_ja.dart';
+import 'app_localizations_ko.dart';
+import 'app_localizations_zh.dart';
+
+// ignore_for_file: type=lint
+
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'l10n/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+
+  final String localeName;
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('ja'),
+    Locale('ko'),
+    Locale('zh'),
+  ];
+
+  /// No description provided for @appTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'脉AI健康'**
+  String get appTitle;
+
+  /// No description provided for @appBrandPrefix.
+  ///
+  /// In zh, this message translates to:
+  /// **'脉 '**
+  String get appBrandPrefix;
+
+  /// No description provided for @appBrandSuffix.
+  ///
+  /// In zh, this message translates to:
+  /// **' 健康'**
+  String get appBrandSuffix;
+
+  /// No description provided for @authSeasonalTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'春分 · 木旺'**
+  String get authSeasonalTag;
+
+  /// No description provided for @authInspectionMotto.
+  ///
+  /// In zh, this message translates to:
+  /// **'望 · 闻 · 问 · 切'**
+  String get authInspectionMotto;
+
+  /// No description provided for @authEmailOrPhoneLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机号 / 邮箱'**
+  String get authEmailOrPhoneLabel;
+
+  /// No description provided for @authEmailOrPhoneHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入手机号或邮箱'**
+  String get authEmailOrPhoneHint;
+
+  /// No description provided for @authNameLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'姓名'**
+  String get authNameLabel;
+
+  /// No description provided for @authNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入你的姓名'**
+  String get authNameHint;
+
+  /// No description provided for @authPasswordLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'密码'**
+  String get authPasswordLabel;
+
+  /// No description provided for @authPasswordHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入密码'**
+  String get authPasswordHint;
+
+  /// No description provided for @authPasswordMin6.
+  ///
+  /// In zh, this message translates to:
+  /// **'密码不能少于6位'**
+  String get authPasswordMin6;
+
+  /// No description provided for @authPasswordMin8.
+  ///
+  /// In zh, this message translates to:
+  /// **'密码不少于8位'**
+  String get authPasswordMin8;
+
+  /// No description provided for @authConfirmPasswordLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认密码'**
+  String get authConfirmPasswordLabel;
+
+  /// No description provided for @authConfirmPasswordHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'再次输入密码'**
+  String get authConfirmPasswordHint;
+
+  /// No description provided for @authPasswordMismatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'两次密码不一致'**
+  String get authPasswordMismatch;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'忘记密码？'**
+  String get authForgotPassword;
+
+  /// No description provided for @authLoginButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录账号'**
+  String get authLoginButton;
+
+  /// No description provided for @authOtherMethods.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他方式'**
+  String get authOtherMethods;
+
+  /// No description provided for @authWechatLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信登录'**
+  String get authWechatLogin;
+
+  /// No description provided for @authAppleLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'Apple 登录'**
+  String get authAppleLogin;
+
+  /// No description provided for @authNoAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有账号？'**
+  String get authNoAccount;
+
+  /// No description provided for @authRegisterNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即注册'**
+  String get authRegisterNow;
+
+  /// No description provided for @authFeatureFaceScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'面部扫描'**
+  String get authFeatureFaceScan;
+
+  /// No description provided for @authFeatureTongueAnalysis.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象分析'**
+  String get authFeatureTongueAnalysis;
+
+  /// No description provided for @authFeatureAiDiagnosis.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 诊断'**
+  String get authFeatureAiDiagnosis;
+
+  /// No description provided for @registerGoLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'去登录'**
+  String get registerGoLogin;
+
+  /// No description provided for @registerStepBasicInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'基本信息'**
+  String get registerStepBasicInfo;
+
+  /// No description provided for @registerStepSetPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置密码'**
+  String get registerStepSetPassword;
+
+  /// No description provided for @registerCreateAccountTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'创建你的账号'**
+  String get registerCreateAccountTitle;
+
+  /// No description provided for @registerCreateAccountSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写基本信息，开启你的健康之旅'**
+  String get registerCreateAccountSubtitle;
+
+  /// No description provided for @registerSetPasswordTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置登录密码'**
+  String get registerSetPasswordTitle;
+
+  /// No description provided for @registerSetPasswordSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置一个安全密码保护你的健康数据'**
+  String get registerSetPasswordSubtitle;
+
+  /// No description provided for @registerGenderOptional.
+  ///
+  /// In zh, this message translates to:
+  /// **'性别（可选）'**
+  String get registerGenderOptional;
+
+  /// No description provided for @registerGenderMale.
+  ///
+  /// In zh, this message translates to:
+  /// **'男'**
+  String get registerGenderMale;
+
+  /// No description provided for @registerGenderFemale.
+  ///
+  /// In zh, this message translates to:
+  /// **'女'**
+  String get registerGenderFemale;
+
+  /// No description provided for @registerGenderUndisclosed.
+  ///
+  /// In zh, this message translates to:
+  /// **'不透露'**
+  String get registerGenderUndisclosed;
+
+  /// No description provided for @registerPasswordHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少8位，包含字母和数字'**
+  String get registerPasswordHint;
+
+  /// No description provided for @registerNeedBasicInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'请填写姓名和手机号/邮箱'**
+  String get registerNeedBasicInfo;
+
+  /// No description provided for @registerAgreeTermsFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先同意用户协议和隐私政策'**
+  String get registerAgreeTermsFirst;
+
+  /// No description provided for @registerNextStep.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步'**
+  String get registerNextStep;
+
+  /// No description provided for @registerComplete.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成注册'**
+  String get registerComplete;
+
+  /// No description provided for @registerThirdParty.
+  ///
+  /// In zh, this message translates to:
+  /// **'或使用第三方账号'**
+  String get registerThirdParty;
+
+  /// No description provided for @registerWechat.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信'**
+  String get registerWechat;
+
+  /// No description provided for @registerReadAndAgree.
+  ///
+  /// In zh, this message translates to:
+  /// **'我已阅读并同意'**
+  String get registerReadAndAgree;
+
+  /// No description provided for @registerUserAgreement.
+  ///
+  /// In zh, this message translates to:
+  /// **'《用户协议》'**
+  String get registerUserAgreement;
+
+  /// No description provided for @registerAnd.
+  ///
+  /// In zh, this message translates to:
+  /// **'和'**
+  String get registerAnd;
+
+  /// No description provided for @registerPrivacyPolicy.
+  ///
+  /// In zh, this message translates to:
+  /// **'《隐私政策》'**
+  String get registerPrivacyPolicy;
+
+  /// No description provided for @registerHealthDataClause.
+  ///
+  /// In zh, this message translates to:
+  /// **'，包括健康数据的收集与使用说明'**
+  String get registerHealthDataClause;
+
+  /// No description provided for @registerPrivacyTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'你的健康数据仅用于 AI 诊断分析，经过加密存储，不会用于商业用途或分享给第三方。'**
+  String get registerPrivacyTip;
+
+  /// No description provided for @passwordStrengthWeak.
+  ///
+  /// In zh, this message translates to:
+  /// **'弱'**
+  String get passwordStrengthWeak;
+
+  /// No description provided for @passwordStrengthMedium.
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get passwordStrengthMedium;
+
+  /// No description provided for @passwordStrengthStrong.
+  ///
+  /// In zh, this message translates to:
+  /// **'强'**
+  String get passwordStrengthStrong;
+
+  /// No description provided for @passwordStrengthVeryStrong.
+  ///
+  /// In zh, this message translates to:
+  /// **'非常强'**
+  String get passwordStrengthVeryStrong;
+
+  /// No description provided for @bottomNavHome.
+  ///
+  /// In zh, this message translates to:
+  /// **'首页'**
+  String get bottomNavHome;
+
+  /// No description provided for @bottomNavScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描'**
+  String get bottomNavScan;
+
+  /// No description provided for @bottomNavReport.
+  ///
+  /// In zh, this message translates to:
+  /// **'报告'**
+  String get bottomNavReport;
+
+  /// No description provided for @bottomNavProfile.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的'**
+  String get bottomNavProfile;
+
+  /// No description provided for @commonCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get commonCancel;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认'**
+  String get commonConfirm;
+
+  /// No description provided for @commonSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get commonSave;
+
+  /// No description provided for @commonLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载中'**
+  String get commonLoading;
+
+  /// No description provided for @commonViewAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部'**
+  String get commonViewAll;
+
+  /// No description provided for @commonFeatureInDevelopment.
+  ///
+  /// In zh, this message translates to:
+  /// **'功能开发中'**
+  String get commonFeatureInDevelopment;
+
+  /// No description provided for @commonPleaseEnterName.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入姓名'**
+  String get commonPleaseEnterName;
+
+  /// No description provided for @unitTimes.
+  ///
+  /// In zh, this message translates to:
+  /// **'次'**
+  String get unitTimes;
+
+  /// No description provided for @unitPoints.
+  ///
+  /// In zh, this message translates to:
+  /// **'分'**
+  String get unitPoints;
+
+  /// No description provided for @unitStage.
+  ///
+  /// In zh, this message translates to:
+  /// **'阶段'**
+  String get unitStage;
+
+  /// No description provided for @statusUnlocked.
+  ///
+  /// In zh, this message translates to:
+  /// **'已解锁'**
+  String get statusUnlocked;
+
+  /// No description provided for @statusLocked.
+  ///
+  /// In zh, this message translates to:
+  /// **'未解锁'**
+  String get statusLocked;
+
+  /// No description provided for @actionUnlockNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即解锁'**
+  String get actionUnlockNow;
+
+  /// No description provided for @historyReportTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质测评报告'**
+  String get historyReportTitle;
+
+  /// No description provided for @historyPastReports.
+  ///
+  /// In zh, this message translates to:
+  /// **'过往报告'**
+  String get historyPastReports;
+
+  /// No description provided for @historyHealthTrend.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康走势'**
+  String get historyHealthTrend;
+
+  /// No description provided for @historyHealthIndex.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康指数'**
+  String get historyHealthIndex;
+
+  /// No description provided for @historyRiskTrend.
+  ///
+  /// In zh, this message translates to:
+  /// **'风险指数走势'**
+  String get historyRiskTrend;
+
+  /// No description provided for @homeGreetingMorning.
+  ///
+  /// In zh, this message translates to:
+  /// **'早安，{name}'**
+  String homeGreetingMorning(String name);
+
+  /// No description provided for @homeGreetingQuestion.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日气色如何？'**
+  String get homeGreetingQuestion;
+
+  /// No description provided for @homeStatusSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'{constitution} · 上次检测 {days}天前'**
+  String homeStatusSummary(String constitution, int days);
+
+  /// No description provided for @homeSuggestion.
+  ///
+  /// In zh, this message translates to:
+  /// **'建议：多喝水，保持规律作息'**
+  String get homeSuggestion;
+
+  /// No description provided for @homeQuickScanTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 望诊入口'**
+  String get homeQuickScanTitle;
+
+  /// No description provided for @homeQuickScanTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'望·闻·问·切'**
+  String get homeQuickScanTag;
+
+  /// No description provided for @homeQuickScanFaceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'面部望诊'**
+  String get homeQuickScanFaceTitle;
+
+  /// No description provided for @homeQuickScanFaceSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'观气色'**
+  String get homeQuickScanFaceSub;
+
+  /// No description provided for @homeQuickScanTongueTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象诊断'**
+  String get homeQuickScanTongueTitle;
+
+  /// No description provided for @homeQuickScanTongueSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'察舌苔'**
+  String get homeQuickScanTongueSub;
+
+  /// No description provided for @homeQuickScanPalmTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌经络'**
+  String get homeQuickScanPalmTitle;
+
+  /// No description provided for @homeQuickScanPalmSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'看掌纹'**
+  String get homeQuickScanPalmSub;
+
+  /// No description provided for @homeFunctionNavTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'功能导航'**
+  String get homeFunctionNavTitle;
+
+  /// No description provided for @homeFunctionConstitution.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质分析'**
+  String get homeFunctionConstitution;
+
+  /// No description provided for @homeFunctionMeridianTherapy.
+  ///
+  /// In zh, this message translates to:
+  /// **'经络调理'**
+  String get homeFunctionMeridianTherapy;
+
+  /// No description provided for @homeFunctionDietAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食建议'**
+  String get homeFunctionDietAdvice;
+
+  /// No description provided for @homeFunctionMentalWellness.
+  ///
+  /// In zh, this message translates to:
+  /// **'精神养生'**
+  String get homeFunctionMentalWellness;
+
+  /// No description provided for @homeFunctionSeasonalCare.
+  ///
+  /// In zh, this message translates to:
+  /// **'四季保养'**
+  String get homeFunctionSeasonalCare;
+
+  /// No description provided for @homeFunctionHistory.
+  ///
+  /// In zh, this message translates to:
+  /// **'历史记录'**
+  String get homeFunctionHistory;
+
+  /// No description provided for @homeTodayCareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日养生'**
+  String get homeTodayCareTitle;
+
+  /// No description provided for @homeTodayCareSeasonTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'春分 · 木旺'**
+  String get homeTodayCareSeasonTag;
+
+  /// No description provided for @homeTodayCareCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'两则建议'**
+  String get homeTodayCareCount;
+
+  /// No description provided for @homeTipDietTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食'**
+  String get homeTipDietTag;
+
+  /// No description provided for @homeTipDietWuxing.
+  ///
+  /// In zh, this message translates to:
+  /// **'土'**
+  String get homeTipDietWuxing;
+
+  /// No description provided for @homeTipDietBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日节气宜食清淡，山药、百合有助于润肺健脾，适合气虚体质人群。'**
+  String get homeTipDietBody;
+
+  /// No description provided for @homeTipRoutineTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'起居'**
+  String get homeTipRoutineTag;
+
+  /// No description provided for @homeTipRoutineWuxing.
+  ///
+  /// In zh, this message translates to:
+  /// **'水'**
+  String get homeTipRoutineWuxing;
+
+  /// No description provided for @homeTipRoutineBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'子时（23:00 前）入睡有助于肝胆排毒，建议减少夜间屏幕使用时间。'**
+  String get homeTipRoutineBody;
+
+  /// No description provided for @homeCollapsedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'脉 AI 健康'**
+  String get homeCollapsedTitle;
+
+  /// No description provided for @homeHealthScoreLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康分'**
+  String get homeHealthScoreLabel;
+
+  /// No description provided for @homeBalancedConstitution.
+  ///
+  /// In zh, this message translates to:
+  /// **'平和体质'**
+  String get homeBalancedConstitution;
+
+  /// No description provided for @homeBalanceState.
+  ///
+  /// In zh, this message translates to:
+  /// **'阴阳较平衡'**
+  String get homeBalanceState;
+
+  /// No description provided for @homeStartFullScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始全套智能检测'**
+  String get homeStartFullScan;
+
+  /// No description provided for @homeLastReportInsight.
+  ///
+  /// In zh, this message translates to:
+  /// **'气虚偏颇 · 脾胃虚弱'**
+  String get homeLastReportInsight;
+
+  /// No description provided for @homeLastReportSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾气亏虚，运化失健。面色偏黄，舌淡苔白，建议健脾益气，规律作息。'**
+  String get homeLastReportSummary;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的'**
+  String get profileTitle;
+
+  /// No description provided for @profileBadgeBalanced.
+  ///
+  /// In zh, this message translates to:
+  /// **'平和质'**
+  String get profileBadgeBalanced;
+
+  /// No description provided for @profileDisplayName.
+  ///
+  /// In zh, this message translates to:
+  /// **'小明'**
+  String get profileDisplayName;
+
+  /// No description provided for @profileStatusStable.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日状态平稳，宜守中养气'**
+  String get profileStatusStable;
+
+  /// No description provided for @profileBalancedType.
+  ///
+  /// In zh, this message translates to:
+  /// **'平和体质'**
+  String get profileBalancedType;
+
+  /// No description provided for @profileMetricConsultCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'累计问诊'**
+  String get profileMetricConsultCount;
+
+  /// No description provided for @profileMetricHealthScore.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前健康力'**
+  String get profileMetricHealthScore;
+
+  /// No description provided for @profileMetricConstitutionStages.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质演变'**
+  String get profileMetricConstitutionStages;
+
+  /// No description provided for @profileSectionFoundation.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康基底'**
+  String get profileSectionFoundation;
+
+  /// No description provided for @profileHeight.
+  ///
+  /// In zh, this message translates to:
+  /// **'身高'**
+  String get profileHeight;
+
+  /// No description provided for @profileWeight.
+  ///
+  /// In zh, this message translates to:
+  /// **'体重'**
+  String get profileWeight;
+
+  /// No description provided for @profileInnateBase.
+  ///
+  /// In zh, this message translates to:
+  /// **'先天底色'**
+  String get profileInnateBase;
+
+  /// No description provided for @profileInnateBaseValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃偏虚家族倾向'**
+  String get profileInnateBaseValue;
+
+  /// No description provided for @profileInnateBaseNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'父母均有脾胃虚弱史，先天底子偏向中气不足。'**
+  String get profileInnateBaseNote;
+
+  /// No description provided for @profileCurrentBias.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前偏颇'**
+  String get profileCurrentBias;
+
+  /// No description provided for @profileCurrentBiasValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'气虚夹湿'**
+  String get profileCurrentBiasValue;
+
+  /// No description provided for @profileCurrentBiasNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'近阶段偏颇主要集中在气虚与湿困，易受作息与饮食影响。'**
+  String get profileCurrentBiasNote;
+
+  /// No description provided for @profileHealthScore30Days.
+  ///
+  /// In zh, this message translates to:
+  /// **'近30天健康分'**
+  String get profileHealthScore30Days;
+
+  /// No description provided for @profileHealthScoreTrendNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'整体平稳，最近一周轻度波动。'**
+  String get profileHealthScoreTrendNote;
+
+  /// No description provided for @profileSectionCabin.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的调理舱'**
+  String get profileSectionCabin;
+
+  /// No description provided for @profileCabinAcupoints.
+  ///
+  /// In zh, this message translates to:
+  /// **'收藏穴位'**
+  String get profileCabinAcupoints;
+
+  /// No description provided for @profileCabinAcupointsValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'足三里 · 气海 · 关元'**
+  String get profileCabinAcupointsValue;
+
+  /// No description provided for @profileCabinDiet.
+  ///
+  /// In zh, this message translates to:
+  /// **'专属食疗方'**
+  String get profileCabinDiet;
+
+  /// No description provided for @profileCabinDietValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'山药薏仁粥 · 党参茯苓炖鸡'**
+  String get profileCabinDietValue;
+
+  /// No description provided for @profileCabinFollowup.
+  ///
+  /// In zh, this message translates to:
+  /// **'复诊提醒'**
+  String get profileCabinFollowup;
+
+  /// No description provided for @profileCabinFollowupValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'距下次调理评估还有 3 天'**
+  String get profileCabinFollowupValue;
+
+  /// No description provided for @profileSectionServices.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康服务'**
+  String get profileSectionServices;
+
+  /// No description provided for @profileMenuAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'账户与家人档案'**
+  String get profileMenuAccount;
+
+  /// No description provided for @profileMenuAccountSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'个人资料、家人信息与健康档案'**
+  String get profileMenuAccountSub;
+
+  /// No description provided for @profileMenuReminder.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康节气提醒'**
+  String get profileMenuReminder;
+
+  /// No description provided for @profileMenuReminderSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知、作息与节气养护建议'**
+  String get profileMenuReminderSub;
+
+  /// No description provided for @profileMenuAdvisor.
+  ///
+  /// In zh, this message translates to:
+  /// **'联系专属健康顾问'**
+  String get profileMenuAdvisor;
+
+  /// No description provided for @profileMenuAdvisorSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'调理疑问、复诊沟通与健康咨询'**
+  String get profileMenuAdvisorSub;
+
+  /// No description provided for @profileMenuLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言设置'**
+  String get profileMenuLanguage;
+
+  /// No description provided for @profileMenuLanguageSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换应用显示语言'**
+  String get profileMenuLanguageSub;
+
+  /// No description provided for @profileMenuAbout.
+  ///
+  /// In zh, this message translates to:
+  /// **'关于脉 AI'**
+  String get profileMenuAbout;
+
+  /// No description provided for @profileMenuAboutSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'了解服务说明与当前版本 v1.0.0'**
+  String get profileMenuAboutSub;
+
+  /// No description provided for @profileLogout.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出登录'**
+  String get profileLogout;
+
+  /// No description provided for @localeSheetTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择语言'**
+  String get localeSheetTitle;
+
+  /// No description provided for @localeFollowSystem.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随系统'**
+  String get localeFollowSystem;
+
+  /// No description provided for @localeChineseSimplified.
+  ///
+  /// In zh, this message translates to:
+  /// **'简体中文'**
+  String get localeChineseSimplified;
+
+  /// No description provided for @localeEnglish.
+  ///
+  /// In zh, this message translates to:
+  /// **'English'**
+  String get localeEnglish;
+
+  /// No description provided for @localeJapanese.
+  ///
+  /// In zh, this message translates to:
+  /// **'日本語'**
+  String get localeJapanese;
+
+  /// No description provided for @localeKorean.
+  ///
+  /// In zh, this message translates to:
+  /// **'한국어'**
+  String get localeKorean;
+
+  /// No description provided for @commonViewDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看详情'**
+  String get commonViewDetails;
+
+  /// No description provided for @commonFiveElements.
+  ///
+  /// In zh, this message translates to:
+  /// **'五行'**
+  String get commonFiveElements;
+
+  /// No description provided for @profileBmiNormal.
+  ///
+  /// In zh, this message translates to:
+  /// **'正常'**
+  String get profileBmiNormal;
+
+  /// No description provided for @scanStepFace.
+  ///
+  /// In zh, this message translates to:
+  /// **'面部'**
+  String get scanStepFace;
+
+  /// No description provided for @scanStepTongue.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌头'**
+  String get scanStepTongue;
+
+  /// No description provided for @scanStepPalm.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌'**
+  String get scanStepPalm;
+
+  /// No description provided for @scanSkipThisStep.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过此步骤'**
+  String get scanSkipThisStep;
+
+  /// No description provided for @scanProgressLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描进度'**
+  String get scanProgressLabel;
+
+  /// No description provided for @scanAnalyzingProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析中... {progress}%'**
+  String scanAnalyzingProgress(int progress);
+
+  /// No description provided for @scanCameraPreviewUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'{platform} 暂不支持相机预览。'**
+  String scanCameraPreviewUnsupported(String platform);
+
+  /// No description provided for @scanGuideHeaderTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 健康扫描'**
+  String get scanGuideHeaderTitle;
+
+  /// No description provided for @scanGuideHeroTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'三步望诊，辨识体质'**
+  String get scanGuideHeroTitle;
+
+  /// No description provided for @scanGuideHeroSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'结合现代 AI 技术与传统中医望诊理论\n为您提供专属体质分析报告'**
+  String get scanGuideHeroSubtitle;
+
+  /// No description provided for @scanGuideStep1Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'面部扫描'**
+  String get scanGuideStep1Title;
+
+  /// No description provided for @scanGuideStep1Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析面色光泽与五官特征'**
+  String get scanGuideStep1Desc;
+
+  /// No description provided for @scanGuideStep1Detail.
+  ///
+  /// In zh, this message translates to:
+  /// **'通过面部气色判断脏腑盛衰，观察神、色、形、态'**
+  String get scanGuideStep1Detail;
+
+  /// No description provided for @scanGuideStep2Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌头扫描'**
+  String get scanGuideStep2Title;
+
+  /// No description provided for @scanGuideStep2Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'观察舌质颜色与舌苔厚薄'**
+  String get scanGuideStep2Desc;
+
+  /// No description provided for @scanGuideStep2Detail.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌为心之苗，脾之外候，舌象反映气血津液盛衰'**
+  String get scanGuideStep2Detail;
+
+  /// No description provided for @scanGuideStep3Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌扫描'**
+  String get scanGuideStep3Title;
+
+  /// No description provided for @scanGuideStep3Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'识别掌纹分布与局部气色'**
+  String get scanGuideStep3Desc;
+
+  /// No description provided for @scanGuideStep3Detail.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌色泽与纹路折射经络气血的运行状态'**
+  String get scanGuideStep3Detail;
+
+  /// No description provided for @scanGuideStepLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'步骤 {step}：{title}'**
+  String scanGuideStepLabel(int step, String title);
+
+  /// No description provided for @scanGuideWarmPromptTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'温馨提示'**
+  String get scanGuideWarmPromptTitle;
+
+  /// No description provided for @scanGuideWarmPromptContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'请在自然光线充足处进行，扫描前清洁面部，取下帽子、眼镜等饰品，保持放松自然状态'**
+  String get scanGuideWarmPromptContent;
+
+  /// No description provided for @scanGuideEstimate.
+  ///
+  /// In zh, this message translates to:
+  /// **'预计 2 分钟完成 · 请在光线充足处进行'**
+  String get scanGuideEstimate;
+
+  /// No description provided for @scanGuideStartButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始扫描'**
+  String get scanGuideStartButton;
+
+  /// No description provided for @scanGuidePrivacyNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描数据仅用于健康分析，不会上传至第三方'**
+  String get scanGuidePrivacyNote;
+
+  /// No description provided for @scanFaceDetectionPermissionRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要相机权限才能进行面部描点'**
+  String get scanFaceDetectionPermissionRequired;
+
+  /// No description provided for @scanCameraPermissionRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要相机权限'**
+  String get scanCameraPermissionRequired;
+
+  /// No description provided for @scanKeepStill.
+  ///
+  /// In zh, this message translates to:
+  /// **'请保持不动'**
+  String get scanKeepStill;
+
+  /// No description provided for @scanMoveLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'← 请向左移动'**
+  String get scanMoveLeft;
+
+  /// No description provided for @scanMoveRight.
+  ///
+  /// In zh, this message translates to:
+  /// **'→ 请向右移动'**
+  String get scanMoveRight;
+
+  /// No description provided for @scanMoveUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'↑ 请向上移动'**
+  String get scanMoveUp;
+
+  /// No description provided for @scanMoveDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'↓ 请向下移动'**
+  String get scanMoveDown;
+
+  /// No description provided for @scanTipBrightLight.
+  ///
+  /// In zh, this message translates to:
+  /// **'光线充足'**
+  String get scanTipBrightLight;
+
+  /// No description provided for @scanTipKeepSteady.
+  ///
+  /// In zh, this message translates to:
+  /// **'保持稳定'**
+  String get scanTipKeepSteady;
+
+  /// No description provided for @scanScanning.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描中…'**
+  String get scanScanning;
+
+  /// No description provided for @scanFaceAlignInFrame.
+  ///
+  /// In zh, this message translates to:
+  /// **'请将面部对准框内'**
+  String get scanFaceAlignInFrame;
+
+  /// No description provided for @scanFaceDetectedReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'面部已就位 ✓'**
+  String get scanFaceDetectedReady;
+
+  /// No description provided for @scanFaceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'面部望诊'**
+  String get scanFaceTitle;
+
+  /// No description provided for @scanFaceTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'面诊'**
+  String get scanFaceTag;
+
+  /// No description provided for @scanFaceSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'将面部置于椭圆框内，保持正视，自然放松表情'**
+  String get scanFaceSubtitle;
+
+  /// No description provided for @scanFaceDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'通过面部气色判断脏腑盛衰，观察神、色、形、态'**
+  String get scanFaceDetail;
+
+  /// No description provided for @scanFaceTipNoMakeup.
+  ///
+  /// In zh, this message translates to:
+  /// **'不要化妆'**
+  String get scanFaceTipNoMakeup;
+
+  /// No description provided for @scanFaceTipLookForward.
+  ///
+  /// In zh, this message translates to:
+  /// **'正视前方'**
+  String get scanFaceTipLookForward;
+
+  /// No description provided for @scanFaceStartButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始面部扫描'**
+  String get scanFaceStartButton;
+
+  /// No description provided for @scanTongueCompleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象扫描完成 ✓'**
+  String get scanTongueCompleted;
+
+  /// No description provided for @scanTongueTapToStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击下方按钮开始扫描'**
+  String get scanTongueTapToStart;
+
+  /// No description provided for @scanTongueDetectedHold.
+  ///
+  /// In zh, this message translates to:
+  /// **'已识别舌头，请保持 2 秒'**
+  String get scanTongueDetectedHold;
+
+  /// No description provided for @scanTongueMouthDetected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已检测口部，请自然伸舌'**
+  String get scanTongueMouthDetected;
+
+  /// No description provided for @scanTongueAlignHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请伸出舌头，对准框内'**
+  String get scanTongueAlignHint;
+
+  /// No description provided for @scanTongueTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象诊断'**
+  String get scanTongueTitle;
+
+  /// No description provided for @scanTongueTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌诊'**
+  String get scanTongueTag;
+
+  /// No description provided for @scanTongueSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自然伸出舌头，舌面充分展开，保持 2 秒'**
+  String get scanTongueSubtitle;
+
+  /// No description provided for @scanTongueDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌为心之苗，脾之外候，舌象反映气血津液盛衰'**
+  String get scanTongueDetail;
+
+  /// No description provided for @scanTongueTipNoColoredFood.
+  ///
+  /// In zh, this message translates to:
+  /// **'勿食有色食物'**
+  String get scanTongueTipNoColoredFood;
+
+  /// No description provided for @scanTongueTipTongueFlat.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌头平伸'**
+  String get scanTongueTipTongueFlat;
+
+  /// No description provided for @scanTongueStartButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始舌象扫描'**
+  String get scanTongueStartButton;
+
+  /// No description provided for @scanTongueNextPalm.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步：手掌扫描'**
+  String get scanTongueNextPalm;
+
+  /// No description provided for @scanPalmMoveCloser.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌太远，请靠近一点'**
+  String get scanPalmMoveCloser;
+
+  /// No description provided for @scanPalmMoveFarther.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌太近，请离远一点'**
+  String get scanPalmMoveFarther;
+
+  /// No description provided for @scanPalmWaitingPermission.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待权限'**
+  String get scanPalmWaitingPermission;
+
+  /// No description provided for @scanPalmCompleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌扫描完成 ✓'**
+  String get scanPalmCompleted;
+
+  /// No description provided for @scanPalmReadyHold.
+  ///
+  /// In zh, this message translates to:
+  /// **'已识别伸直手掌，请保持 2 秒'**
+  String get scanPalmReadyHold;
+
+  /// No description provided for @scanPalmOpenDetectedStraighten.
+  ///
+  /// In zh, this message translates to:
+  /// **'已检测到张开手掌，请将手掌伸直'**
+  String get scanPalmOpenDetectedStraighten;
+
+  /// No description provided for @scanPalmDetectedGesture.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测到：{gesture}'**
+  String scanPalmDetectedGesture(String gesture);
+
+  /// No description provided for @scanPalmStretchOpen.
+  ///
+  /// In zh, this message translates to:
+  /// **'请将手掌伸直并自然张开'**
+  String get scanPalmStretchOpen;
+
+  /// No description provided for @scanPalmAlignHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请将手掌放入框内'**
+  String get scanPalmAlignHint;
+
+  /// No description provided for @scanGestureOpenPalm.
+  ///
+  /// In zh, this message translates to:
+  /// **'张开手掌'**
+  String get scanGestureOpenPalm;
+
+  /// No description provided for @scanGestureClosedFist.
+  ///
+  /// In zh, this message translates to:
+  /// **'握拳'**
+  String get scanGestureClosedFist;
+
+  /// No description provided for @scanGestureVictory.
+  ///
+  /// In zh, this message translates to:
+  /// **'比耶'**
+  String get scanGestureVictory;
+
+  /// No description provided for @scanGestureThumbUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'竖起拇指'**
+  String get scanGestureThumbUp;
+
+  /// No description provided for @scanGestureThumbDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'拇指向下'**
+  String get scanGestureThumbDown;
+
+  /// No description provided for @scanGesturePointingUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'食指向上'**
+  String get scanGesturePointingUp;
+
+  /// No description provided for @scanGestureILoveYou.
+  ///
+  /// In zh, this message translates to:
+  /// **'我爱你手势'**
+  String get scanGestureILoveYou;
+
+  /// No description provided for @scanPalmTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌经络'**
+  String get scanPalmTitle;
+
+  /// No description provided for @scanPalmTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'掌诊'**
+  String get scanPalmTag;
+
+  /// No description provided for @scanPalmSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'将手掌自然伸向镜头，参考倾斜轮廓摆放，手指自然分开'**
+  String get scanPalmSubtitle;
+
+  /// No description provided for @scanPalmDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'观察手掌纹路、色泽、形态，推断五脏六腑之病理'**
+  String get scanPalmDetail;
+
+  /// No description provided for @scanPalmTipFlatten.
+  ///
+  /// In zh, this message translates to:
+  /// **'手掌展平'**
+  String get scanPalmTipFlatten;
+
+  /// No description provided for @scanPalmViewingReportSoon.
+  ///
+  /// In zh, this message translates to:
+  /// **'即将查看报告'**
+  String get scanPalmViewingReportSoon;
+
+  /// No description provided for @scanPalmHoldButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'请伸直手掌并保持 2 秒'**
+  String get scanPalmHoldButton;
+
+  /// No description provided for @reportTabOverview.
+  ///
+  /// In zh, this message translates to:
+  /// **'总览'**
+  String get reportTabOverview;
+
+  /// No description provided for @reportTabConstitution.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质'**
+  String get reportTabConstitution;
+
+  /// No description provided for @reportTabTherapy.
+  ///
+  /// In zh, this message translates to:
+  /// **'调理'**
+  String get reportTabTherapy;
+
+  /// No description provided for @reportTabAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'建议'**
+  String get reportTabAdvice;
+
+  /// No description provided for @reportHeaderCollapsedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 健康报告'**
+  String get reportHeaderCollapsedTitle;
+
+  /// No description provided for @reportHeroMeta.
+  ///
+  /// In zh, this message translates to:
+  /// **'2025.03.14  ·  AI 四诊合参'**
+  String get reportHeroMeta;
+
+  /// No description provided for @reportHeroTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name}的健康报告'**
+  String reportHeroTitle(String name);
+
+  /// No description provided for @reportHeroSecondaryBias.
+  ///
+  /// In zh, this message translates to:
+  /// **'气虚偏颇'**
+  String get reportHeroSecondaryBias;
+
+  /// No description provided for @reportHeroSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾气亏虚，运化失健。面色偏黄，舌淡苔白。'**
+  String get reportHeroSummary;
+
+  /// No description provided for @reportHealthScoreLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康分'**
+  String get reportHealthScoreLabel;
+
+  /// No description provided for @reportHealthStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质状况 良好'**
+  String get reportHealthStatus;
+
+  /// No description provided for @reportOverviewFaceDiagnosisDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'气色偏黄，神采尚可'**
+  String get reportOverviewFaceDiagnosisDesc;
+
+  /// No description provided for @reportOverviewTongueDiagnosisDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌淡苔白，略厚'**
+  String get reportOverviewTongueDiagnosisDesc;
+
+  /// No description provided for @reportOverviewPalmDiagnosisDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'掌纹细浅，气色平'**
+  String get reportOverviewPalmDiagnosisDesc;
+
+  /// No description provided for @reportOverviewDiagScoresTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'三诊评分'**
+  String get reportOverviewDiagScoresTitle;
+
+  /// No description provided for @reportOverviewFeatureDetailsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'体征详情'**
+  String get reportOverviewFeatureDetailsTitle;
+
+  /// No description provided for @reportOverviewTongueTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象'**
+  String get reportOverviewTongueTitle;
+
+  /// No description provided for @reportOverviewTongueImagePlaceholder.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象图片'**
+  String get reportOverviewTongueImagePlaceholder;
+
+  /// No description provided for @reportOverviewTongueColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌色'**
+  String get reportOverviewTongueColorLabel;
+
+  /// No description provided for @reportOverviewTongueColorValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'淡红'**
+  String get reportOverviewTongueColorValue;
+
+  /// No description provided for @reportOverviewTongueCoatingLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔质'**
+  String get reportOverviewTongueCoatingLabel;
+
+  /// No description provided for @reportOverviewTongueCoatingValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'白苔·略厚'**
+  String get reportOverviewTongueCoatingValue;
+
+  /// No description provided for @reportOverviewTongueShapeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌形'**
+  String get reportOverviewTongueShapeLabel;
+
+  /// No description provided for @reportOverviewTongueShapeValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'正常'**
+  String get reportOverviewTongueShapeValue;
+
+  /// No description provided for @reportOverviewWuxingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'五行 · 木旺'**
+  String get reportOverviewWuxingTitle;
+
+  /// No description provided for @reportOverviewDiagnosisSummaryTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'辨证摘要'**
+  String get reportOverviewDiagnosisSummaryTitle;
+
+  /// No description provided for @reportOverviewDiagnosisSummaryBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'辨证：脾气亏虚，运化失健。面色偏黄，舌淡苔白，脉象细缓，气短乏力，食欲欠佳。证属脾虚气弱，兼有湿邪内阻。'**
+  String get reportOverviewDiagnosisSummaryBody;
+
+  /// No description provided for @reportOverviewDiagnosisTagSpleenWeak.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃虚弱'**
+  String get reportOverviewDiagnosisTagSpleenWeak;
+
+  /// No description provided for @reportOverviewModuleConstitutionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质详解'**
+  String get reportOverviewModuleConstitutionTitle;
+
+  /// No description provided for @reportOverviewModuleConstitutionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'了解你的体质'**
+  String get reportOverviewModuleConstitutionSubtitle;
+
+  /// No description provided for @reportOverviewModuleAcupointTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'辩证取穴'**
+  String get reportOverviewModuleAcupointTitle;
+
+  /// No description provided for @reportOverviewModuleAcupointSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'穴位调理方案'**
+  String get reportOverviewModuleAcupointSubtitle;
+
+  /// No description provided for @reportOverviewModuleDietTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食建议'**
+  String get reportOverviewModuleDietTitle;
+
+  /// No description provided for @reportOverviewModuleDietSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'食补调养方案'**
+  String get reportOverviewModuleDietSubtitle;
+
+  /// No description provided for @reportOverviewModuleSeasonalTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'四季保养'**
+  String get reportOverviewModuleSeasonalTitle;
+
+  /// No description provided for @reportOverviewModuleSeasonalSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'顺时养生'**
+  String get reportOverviewModuleSeasonalSubtitle;
+
+  /// No description provided for @reportOverviewModuleNavTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'模块导航'**
+  String get reportOverviewModuleNavTitle;
+
+  /// No description provided for @reportOverviewScanMetaDisclaimer.
+  ///
+  /// In zh, this message translates to:
+  /// **'本报告由 AI 四诊合参生成，仅供健康参考，不构成医疗诊断。如有不适请咨询专业医师。'**
+  String get reportOverviewScanMetaDisclaimer;
+
+  /// No description provided for @reportConstitutionDetailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质详解'**
+  String get reportConstitutionDetailTitle;
+
+  /// No description provided for @reportConstitutionCoreConclusionLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'核心结论'**
+  String get reportConstitutionCoreConclusionLabel;
+
+  /// No description provided for @reportConstitutionCoreConclusionValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'主导偏颇体质：气虚质'**
+  String get reportConstitutionCoreConclusionValue;
+
+  /// No description provided for @reportConstitutionCoreConclusionBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'整体以平和质为基础，但伴有较明显的气虚倾向。雷达图中平和质与气虚质占比相对突出，说明体质底子尚可，但在劳累、饮食失调和作息紊乱时，更容易出现乏力、脾胃运化不足等表现。'**
+  String get reportConstitutionCoreConclusionBody;
+
+  /// No description provided for @reportConstitutionYangDeficiency.
+  ///
+  /// In zh, this message translates to:
+  /// **'阳虚质'**
+  String get reportConstitutionYangDeficiency;
+
+  /// No description provided for @reportConstitutionYinDeficiency.
+  ///
+  /// In zh, this message translates to:
+  /// **'阴虚质'**
+  String get reportConstitutionYinDeficiency;
+
+  /// No description provided for @reportConstitutionDampHeat.
+  ///
+  /// In zh, this message translates to:
+  /// **'湿热质'**
+  String get reportConstitutionDampHeat;
+
+  /// No description provided for @reportConstitutionBloodStasis.
+  ///
+  /// In zh, this message translates to:
+  /// **'血瘀质'**
+  String get reportConstitutionBloodStasis;
+
+  /// No description provided for @reportConstitutionQiStagnation.
+  ///
+  /// In zh, this message translates to:
+  /// **'气郁质'**
+  String get reportConstitutionQiStagnation;
+
+  /// No description provided for @reportConstitutionSpecial.
+  ///
+  /// In zh, this message translates to:
+  /// **'特禀质'**
+  String get reportConstitutionSpecial;
+
+  /// No description provided for @reportCausalAnalysisTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析成因'**
+  String get reportCausalAnalysisTitle;
+
+  /// No description provided for @reportCauseRoutine.
+  ///
+  /// In zh, this message translates to:
+  /// **'作息'**
+  String get reportCauseRoutine;
+
+  /// No description provided for @reportCauseRoutineBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'长期晚睡，子时未眠，伤及肝肾精气，导致气血生化不足。'**
+  String get reportCauseRoutineBody;
+
+  /// No description provided for @reportCauseDiet.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食'**
+  String get reportCauseDiet;
+
+  /// No description provided for @reportCauseDietBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食偏凉，过食生冷，寒邪损伤脾阳，运化功能减退。'**
+  String get reportCauseDietBody;
+
+  /// No description provided for @reportCauseEmotion.
+  ///
+  /// In zh, this message translates to:
+  /// **'情志'**
+  String get reportCauseEmotion;
+
+  /// No description provided for @reportCauseEmotionBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'思虑过度，忧思伤脾，气机郁结，运化失司。'**
+  String get reportCauseEmotionBody;
+
+  /// No description provided for @reportCauseExercise.
+  ///
+  /// In zh, this message translates to:
+  /// **'运动'**
+  String get reportCauseExercise;
+
+  /// No description provided for @reportCauseExerciseBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'久坐少动，气血运行不畅，中气渐虚。'**
+  String get reportCauseExerciseBody;
+
+  /// No description provided for @reportDiseaseTendencyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'易诱发的疾病'**
+  String get reportDiseaseTendencyTitle;
+
+  /// No description provided for @reportDiseaseSpleenWeak.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃虚弱'**
+  String get reportDiseaseSpleenWeak;
+
+  /// No description provided for @reportDiseaseSpleenWeakBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'消化不良、腹胀、便溏'**
+  String get reportDiseaseSpleenWeakBody;
+
+  /// No description provided for @reportDiseaseQiBloodDeficiency.
+  ///
+  /// In zh, this message translates to:
+  /// **'气血亏虚'**
+  String get reportDiseaseQiBloodDeficiency;
+
+  /// No description provided for @reportDiseaseQiBloodDeficiencyBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'头晕、乏力、面色萎黄'**
+  String get reportDiseaseQiBloodDeficiencyBody;
+
+  /// No description provided for @reportDiseaseLowImmunity.
+  ///
+  /// In zh, this message translates to:
+  /// **'免疫低下'**
+  String get reportDiseaseLowImmunity;
+
+  /// No description provided for @reportDiseaseLowImmunityBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'反复感冒、易疲劳'**
+  String get reportDiseaseLowImmunityBody;
+
+  /// No description provided for @reportDiseaseEmotional.
+  ///
+  /// In zh, this message translates to:
+  /// **'情志疾患'**
+  String get reportDiseaseEmotional;
+
+  /// No description provided for @reportDiseaseEmotionalBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦虑、失眠、抑郁倾向'**
+  String get reportDiseaseEmotionalBody;
+
+  /// No description provided for @reportBadHabitsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'不当的举动'**
+  String get reportBadHabitsTitle;
+
+  /// No description provided for @reportBadHabitOverwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'过度劳累'**
+  String get reportBadHabitOverwork;
+
+  /// No description provided for @reportBadHabitOverworkBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'耗气伤脾，加重气虚'**
+  String get reportBadHabitOverworkBody;
+
+  /// No description provided for @reportBadHabitColdFood.
+  ///
+  /// In zh, this message translates to:
+  /// **'贪凉饮冷'**
+  String get reportBadHabitColdFood;
+
+  /// No description provided for @reportBadHabitColdFoodBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'寒邪伤阳，损伤脾胃'**
+  String get reportBadHabitColdFoodBody;
+
+  /// No description provided for @reportBadHabitLateSleep.
+  ///
+  /// In zh, this message translates to:
+  /// **'熬夜晚睡'**
+  String get reportBadHabitLateSleep;
+
+  /// No description provided for @reportBadHabitLateSleepBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'阴气不得收敛，精气损耗'**
+  String get reportBadHabitLateSleepBody;
+
+  /// No description provided for @reportBadHabitDieting.
+  ///
+  /// In zh, this message translates to:
+  /// **'过度节食'**
+  String get reportBadHabitDieting;
+
+  /// No description provided for @reportBadHabitDietingBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'气血生化无源，更伤中气'**
+  String get reportBadHabitDietingBody;
+
+  /// No description provided for @reportBadHabitBinge.
+  ///
+  /// In zh, this message translates to:
+  /// **'暴饮暴食'**
+  String get reportBadHabitBinge;
+
+  /// No description provided for @reportBadHabitBingeBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃负担过重，运化失司'**
+  String get reportBadHabitBingeBody;
+
+  /// No description provided for @reportTherapyAcupointsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'辩证取穴'**
+  String get reportTherapyAcupointsTitle;
+
+  /// No description provided for @reportTherapyAcupointsIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据脾气亏虚证型，推荐以下穴位进行艾灸或按摩调理，每日10–15分钟。'**
+  String get reportTherapyAcupointsIntro;
+
+  /// No description provided for @reportTherapyAcuPointZusanli.
+  ///
+  /// In zh, this message translates to:
+  /// **'足三里'**
+  String get reportTherapyAcuPointZusanli;
+
+  /// No description provided for @reportTherapyAcuPointZusanliLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'外膝眼下3寸，胫骨旁开1横指'**
+  String get reportTherapyAcuPointZusanliLocation;
+
+  /// No description provided for @reportTherapyAcuPointZusanliEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益胃、补益气血，为强壮要穴'**
+  String get reportTherapyAcuPointZusanliEffect;
+
+  /// No description provided for @reportTherapyAcuPointZusanliMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'足阳明胃经'**
+  String get reportTherapyAcuPointZusanliMeridian;
+
+  /// No description provided for @reportTherapyAcuPointPishu.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾俞'**
+  String get reportTherapyAcuPointPishu;
+
+  /// No description provided for @reportTherapyAcuPointPishuLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'第11胸椎棘突下旁开1.5寸'**
+  String get reportTherapyAcuPointPishuLocation;
+
+  /// No description provided for @reportTherapyAcuPointPishuEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾化湿、益气补虚，调节脾胃功能'**
+  String get reportTherapyAcuPointPishuEffect;
+
+  /// No description provided for @reportTherapyAcuPointPishuMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'足太阳膀胱经'**
+  String get reportTherapyAcuPointPishuMeridian;
+
+  /// No description provided for @reportTherapyAcuPointQihai.
+  ///
+  /// In zh, this message translates to:
+  /// **'气海'**
+  String get reportTherapyAcuPointQihai;
+
+  /// No description provided for @reportTherapyAcuPointQihaiLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'脐下1.5寸，腹正中线上'**
+  String get reportTherapyAcuPointQihaiLocation;
+
+  /// No description provided for @reportTherapyAcuPointQihaiEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'补益元气、温阳固本，改善气虚乏力'**
+  String get reportTherapyAcuPointQihaiEffect;
+
+  /// No description provided for @reportTherapyAcuPointQihaiMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'任脉'**
+  String get reportTherapyAcuPointQihaiMeridian;
+
+  /// No description provided for @reportTherapyAcuPointGuanyuan.
+  ///
+  /// In zh, this message translates to:
+  /// **'关元'**
+  String get reportTherapyAcuPointGuanyuan;
+
+  /// No description provided for @reportTherapyAcuPointGuanyuanLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'脐下3寸，腹正中线上'**
+  String get reportTherapyAcuPointGuanyuanLocation;
+
+  /// No description provided for @reportTherapyAcuPointGuanyuanEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'培元固本、温阳益气，增强体质'**
+  String get reportTherapyAcuPointGuanyuanEffect;
+
+  /// No description provided for @reportTherapyAcuPointGuanyuanMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'任脉'**
+  String get reportTherapyAcuPointGuanyuanMeridian;
+
+  /// No description provided for @reportTherapyAcupointsWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'孕妇、皮肤破损处及月经期间请避免艾灸。操作时注意火候，防止烫伤。'**
+  String get reportTherapyAcupointsWarning;
+
+  /// No description provided for @reportMentalWellnessTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'精神养生'**
+  String get reportMentalWellnessTitle;
+
+  /// No description provided for @reportMentalTipCalm.
+  ///
+  /// In zh, this message translates to:
+  /// **'恬淡虚无'**
+  String get reportMentalTipCalm;
+
+  /// No description provided for @reportMentalTipCalmBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'减少过度思虑，保持心神宁静。中医认为“思伤脾”，思虑过度最易损耗脾气。'**
+  String get reportMentalTipCalmBody;
+
+  /// No description provided for @reportMentalTipNature.
+  ///
+  /// In zh, this message translates to:
+  /// **'顺应自然'**
+  String get reportMentalTipNature;
+
+  /// No description provided for @reportMentalTipNatureBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'作息顺应昼夜节律，子时前入睡以养肝气，卯时舒展筋骨以助阳气升发。'**
+  String get reportMentalTipNatureBody;
+
+  /// No description provided for @reportMentalTipEmotion.
+  ///
+  /// In zh, this message translates to:
+  /// **'调畅情志'**
+  String get reportMentalTipEmotion;
+
+  /// No description provided for @reportMentalTipEmotionBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'保持乐观豁达，避免情绪大起大落。适度倾诉，疏导郁结气机。'**
+  String get reportMentalTipEmotionBody;
+
+  /// No description provided for @reportMentalTipMeditation.
+  ///
+  /// In zh, this message translates to:
+  /// **'静坐冥想'**
+  String get reportMentalTipMeditation;
+
+  /// No description provided for @reportMentalTipMeditationBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'每日静坐10分钟，专注呼吸，有助于调节脾胃气机，增强正气。'**
+  String get reportMentalTipMeditationBody;
+
+  /// No description provided for @reportSeasonalCareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'四季保养'**
+  String get reportSeasonalCareTitle;
+
+  /// No description provided for @reportSeasonSpring.
+  ///
+  /// In zh, this message translates to:
+  /// **'春'**
+  String get reportSeasonSpring;
+
+  /// No description provided for @reportSeasonSpringAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'春季养肝，适当增酸。多食韭菜、菠菜，舒展筋骨，早起散步以助阳气升发。'**
+  String get reportSeasonSpringAdvice;
+
+  /// No description provided for @reportSeasonSpringAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'避免过度疲劳，勿食过于辛散之品'**
+  String get reportSeasonSpringAvoid;
+
+  /// No description provided for @reportSeasonSummer.
+  ///
+  /// In zh, this message translates to:
+  /// **'夏'**
+  String get reportSeasonSummer;
+
+  /// No description provided for @reportSeasonSummerAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'夏季养心，注意清热。适当食用莲子、薏仁，午间小憩，避免大汗伤气。'**
+  String get reportSeasonSummerAdvice;
+
+  /// No description provided for @reportSeasonSummerAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌贪凉饮冷，忌剧烈运动大汗'**
+  String get reportSeasonSummerAvoid;
+
+  /// No description provided for @reportSeasonAutumn.
+  ///
+  /// In zh, this message translates to:
+  /// **'秋'**
+  String get reportSeasonAutumn;
+
+  /// No description provided for @reportSeasonAutumnAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'秋季养肺，以润为主。多食梨、百合、银耳，早睡早起，收敛精气。'**
+  String get reportSeasonAutumnAdvice;
+
+  /// No description provided for @reportSeasonAutumnAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌过度悲忧，忌食辛辣燥烈之品'**
+  String get reportSeasonAutumnAvoid;
+
+  /// No description provided for @reportSeasonWinter.
+  ///
+  /// In zh, this message translates to:
+  /// **'冬'**
+  String get reportSeasonWinter;
+
+  /// No description provided for @reportSeasonWinterAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'冬季养肾，以藏为要。适食黑芝麻、核桃、羊肉，早卧晚起，固护肾阳。'**
+  String get reportSeasonWinterAdvice;
+
+  /// No description provided for @reportSeasonWinterAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌过度劳累，忌大量出汗耗散阳气'**
+  String get reportSeasonWinterAvoid;
+
+  /// No description provided for @reportAdviceTongueAnalysisTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象详解'**
+  String get reportAdviceTongueAnalysisTitle;
+
+  /// No description provided for @reportAdviceTongueScoreLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌象综合评分'**
+  String get reportAdviceTongueScoreLabel;
+
+  /// No description provided for @reportAdviceTongueScoreSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾虚湿盛，气血偏弱'**
+  String get reportAdviceTongueScoreSummary;
+
+  /// No description provided for @reportAdviceTongueFeatureColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌色'**
+  String get reportAdviceTongueFeatureColor;
+
+  /// No description provided for @reportAdviceTongueFeatureColorValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'淡红'**
+  String get reportAdviceTongueFeatureColorValue;
+
+  /// No description provided for @reportAdviceTongueFeatureColorDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌色淡红为正常，偏淡提示气血不足'**
+  String get reportAdviceTongueFeatureColorDesc;
+
+  /// No description provided for @reportAdviceTongueFeatureShape.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌形'**
+  String get reportAdviceTongueFeatureShape;
+
+  /// No description provided for @reportAdviceTongueFeatureShapeValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'正常偏胖'**
+  String get reportAdviceTongueFeatureShapeValue;
+
+  /// No description provided for @reportAdviceTongueFeatureShapeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌体偏胖伴有齿痕，提示脾虚湿盛'**
+  String get reportAdviceTongueFeatureShapeDesc;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔色'**
+  String get reportAdviceTongueFeatureCoatingColor;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingColorValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'白苔'**
+  String get reportAdviceTongueFeatureCoatingColorValue;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingColorDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔白主寒主表，提示阳气稍不足'**
+  String get reportAdviceTongueFeatureCoatingColorDesc;
+
+  /// No description provided for @reportAdviceTongueFeatureTexture.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔质'**
+  String get reportAdviceTongueFeatureTexture;
+
+  /// No description provided for @reportAdviceTongueFeatureTextureValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'厚腻'**
+  String get reportAdviceTongueFeatureTextureValue;
+
+  /// No description provided for @reportAdviceTongueFeatureTextureDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔厚腻提示湿邪较重，脾运不畅'**
+  String get reportAdviceTongueFeatureTextureDesc;
+
+  /// No description provided for @reportAdviceTongueFeatureTeethMarks.
+  ///
+  /// In zh, this message translates to:
+  /// **'齿痕'**
+  String get reportAdviceTongueFeatureTeethMarks;
+
+  /// No description provided for @reportAdviceTongueFeatureTeethMarksValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'有'**
+  String get reportAdviceTongueFeatureTeethMarksValue;
+
+  /// No description provided for @reportAdviceTongueFeatureTeethMarksDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌边齿痕为脾虚典型表现，气虚无力运化'**
+  String get reportAdviceTongueFeatureTeethMarksDesc;
+
+  /// No description provided for @reportAdviceDietTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食建议'**
+  String get reportAdviceDietTitle;
+
+  /// No description provided for @reportAdviceDietIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾气亏虚宜食甘温益气、健脾和胃之品，忌食寒凉生冷及难消化食物。'**
+  String get reportAdviceDietIntro;
+
+  /// No description provided for @reportAdviceDietRecommendedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'宜食'**
+  String get reportAdviceDietRecommendedTitle;
+
+  /// No description provided for @reportAdviceDietAvoidTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌食'**
+  String get reportAdviceDietAvoidTitle;
+
+  /// No description provided for @reportAdviceDietRecipeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐食谱'**
+  String get reportAdviceDietRecipeTitle;
+
+  /// No description provided for @reportAdviceDietRecipeBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'山药薏仁粥：山药50g、薏仁30g、红枣5颗同煮，早餐食用，健脾益气效果显著。\n\n党参茯苓炖鸡：补中益气，适合气虚体质日常调养。'**
+  String get reportAdviceDietRecipeBody;
+
+  /// No description provided for @reportAdviceFoodShanyao.
+  ///
+  /// In zh, this message translates to:
+  /// **'山药'**
+  String get reportAdviceFoodShanyao;
+
+  /// No description provided for @reportAdviceFoodShanyaoDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益肾，补气养阴'**
+  String get reportAdviceFoodShanyaoDesc;
+
+  /// No description provided for @reportAdviceFoodYiyiren.
+  ///
+  /// In zh, this message translates to:
+  /// **'薏仁'**
+  String get reportAdviceFoodYiyiren;
+
+  /// No description provided for @reportAdviceFoodYiyirenDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'利水渗湿，健脾止泻'**
+  String get reportAdviceFoodYiyirenDesc;
+
+  /// No description provided for @reportAdviceFoodHongzao.
+  ///
+  /// In zh, this message translates to:
+  /// **'红枣'**
+  String get reportAdviceFoodHongzao;
+
+  /// No description provided for @reportAdviceFoodHongzaoDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'补气血，健脾胃，安神'**
+  String get reportAdviceFoodHongzaoDesc;
+
+  /// No description provided for @reportAdviceFoodBiandou.
+  ///
+  /// In zh, this message translates to:
+  /// **'白扁豆'**
+  String get reportAdviceFoodBiandou;
+
+  /// No description provided for @reportAdviceFoodBiandouDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾化湿，消暑除烦'**
+  String get reportAdviceFoodBiandouDesc;
+
+  /// No description provided for @reportAdviceFoodDangshen.
+  ///
+  /// In zh, this message translates to:
+  /// **'党参'**
+  String get reportAdviceFoodDangshen;
+
+  /// No description provided for @reportAdviceFoodDangshenDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'补中益气，健脾养胃'**
+  String get reportAdviceFoodDangshenDesc;
+
+  /// No description provided for @reportAdviceFoodFuling.
+  ///
+  /// In zh, this message translates to:
+  /// **'茯苓'**
+  String get reportAdviceFoodFuling;
+
+  /// No description provided for @reportAdviceFoodFulingDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾和中，利水渗湿'**
+  String get reportAdviceFoodFulingDesc;
+
+  /// No description provided for @reportAdviceAvoidColdFood.
+  ///
+  /// In zh, this message translates to:
+  /// **'生冷食物'**
+  String get reportAdviceAvoidColdFood;
+
+  /// No description provided for @reportAdviceAvoidGreasy.
+  ///
+  /// In zh, this message translates to:
+  /// **'油腻厚味'**
+  String get reportAdviceAvoidGreasy;
+
+  /// No description provided for @reportAdviceAvoidSpicy.
+  ///
+  /// In zh, this message translates to:
+  /// **'辛辣刺激'**
+  String get reportAdviceAvoidSpicy;
+
+  /// No description provided for @reportAdviceAvoidSweet.
+  ///
+  /// In zh, this message translates to:
+  /// **'甜腻之品'**
+  String get reportAdviceAvoidSweet;
+
+  /// No description provided for @reportAdviceAvoidAlcohol.
+  ///
+  /// In zh, this message translates to:
+  /// **'烟酒'**
+  String get reportAdviceAvoidAlcohol;
+
+  /// No description provided for @reportAdviceProductsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'相关产品推荐'**
+  String get reportAdviceProductsTitle;
+
+  /// No description provided for @reportAdviceProductsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据体质个性化推荐'**
+  String get reportAdviceProductsSubtitle;
+
+  /// No description provided for @reportAdviceProductsDisclaimer.
+  ///
+  /// In zh, this message translates to:
+  /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
+  String get reportAdviceProductsDisclaimer;
+
+  /// No description provided for @reportProductJianpiwan.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益气丸'**
+  String get reportProductJianpiwan;
+
+  /// No description provided for @reportProductJianpiwanType.
+  ///
+  /// In zh, this message translates to:
+  /// **'中成药'**
+  String get reportProductJianpiwanType;
+
+  /// No description provided for @reportProductJianpiwanDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'补中益气，健脾和胃。适合气虚体质，改善乏力、食欲不振。'**
+  String get reportProductJianpiwanDesc;
+
+  /// No description provided for @reportProductJianpiwanTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'热销'**
+  String get reportProductJianpiwanTag;
+
+  /// No description provided for @reportProductShenling.
+  ///
+  /// In zh, this message translates to:
+  /// **'参苓白术散'**
+  String get reportProductShenling;
+
+  /// No description provided for @reportProductShenlingType.
+  ///
+  /// In zh, this message translates to:
+  /// **'传统方剂'**
+  String get reportProductShenlingType;
+
+  /// No description provided for @reportProductShenlingDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益气，渗湿止泻。主治脾气虚弱，食少便溏，体倦乏力。'**
+  String get reportProductShenlingDesc;
+
+  /// No description provided for @reportProductShenlingTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'经典'**
+  String get reportProductShenlingTag;
+
+  /// No description provided for @reportProductAijiu.
+  ///
+  /// In zh, this message translates to:
+  /// **'艾灸套装'**
+  String get reportProductAijiu;
+
+  /// No description provided for @reportProductAijiuType.
+  ///
+  /// In zh, this message translates to:
+  /// **'调理器具'**
+  String get reportProductAijiuType;
+
+  /// No description provided for @reportProductAijiuDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'温和艾条配合取穴定位图，居家艾灸足三里、气海、关元。'**
+  String get reportProductAijiuDesc;
+
+  /// No description provided for @reportProductAijiuTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐'**
+  String get reportProductAijiuTag;
+
+  /// No description provided for @reportProductFoodPack.
+  ///
+  /// In zh, this message translates to:
+  /// **'中医食疗食材包'**
+  String get reportProductFoodPack;
+
+  /// No description provided for @reportProductFoodPackType.
+  ///
+  /// In zh, this message translates to:
+  /// **'养生食材'**
+  String get reportProductFoodPackType;
+
+  /// No description provided for @reportProductFoodPackDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'山药、薏仁、党参、茯苓、红枣精选组合，一周食疗方案。'**
+  String get reportProductFoodPackDesc;
+
+  /// No description provided for @reportProductFoodPackTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'新品'**
+  String get reportProductFoodPackTag;
+
+  /// No description provided for @reportWuxingWood.
+  ///
+  /// In zh, this message translates to:
+  /// **'木'**
+  String get reportWuxingWood;
+
+  /// No description provided for @reportWuxingFire.
+  ///
+  /// In zh, this message translates to:
+  /// **'火'**
+  String get reportWuxingFire;
+
+  /// No description provided for @reportWuxingEarth.
+  ///
+  /// In zh, this message translates to:
+  /// **'土'**
+  String get reportWuxingEarth;
+
+  /// No description provided for @reportWuxingMetal.
+  ///
+  /// In zh, this message translates to:
+  /// **'金'**
+  String get reportWuxingMetal;
+
+  /// No description provided for @reportWuxingWater.
+  ///
+  /// In zh, this message translates to:
+  /// **'水'**
+  String get reportWuxingWater;
+
+  /// No description provided for @reportAdviceProductDetailButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'了解详情 >'**
+  String get reportAdviceProductDetailButton;
+
+  /// No description provided for @metricFaceDiagnosis.
+  ///
+  /// In zh, this message translates to:
+  /// **'面诊'**
+  String get metricFaceDiagnosis;
+
+  /// No description provided for @metricTongueDiagnosis.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌诊'**
+  String get metricTongueDiagnosis;
+
+  /// No description provided for @metricPalmDiagnosis.
+  ///
+  /// In zh, this message translates to:
+  /// **'掌诊'**
+  String get metricPalmDiagnosis;
+
+  /// No description provided for @scanGuideTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 望诊入口'**
+  String get scanGuideTitle;
+
+  /// No description provided for @constitutionBalanced.
+  ///
+  /// In zh, this message translates to:
+  /// **'平和质'**
+  String get constitutionBalanced;
+
+  /// No description provided for @constitutionQiDeficiency.
+  ///
+  /// In zh, this message translates to:
+  /// **'气虚质'**
+  String get constitutionQiDeficiency;
+
+  /// No description provided for @constitutionDampness.
+  ///
+  /// In zh, this message translates to:
+  /// **'痰湿质'**
+  String get constitutionDampness;
+
+  /// No description provided for @riskSpleenStomach.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃'**
+  String get riskSpleenStomach;
+
+  /// No description provided for @riskQiDeficiency.
+  ///
+  /// In zh, this message translates to:
+  /// **'气虚'**
+  String get riskQiDeficiency;
+
+  /// No description provided for @riskDampness.
+  ///
+  /// In zh, this message translates to:
+  /// **'湿困'**
+  String get riskDampness;
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In zh, this message translates to:
+  /// **'{days}天前'**
+  String daysAgo(int days);
+
+  /// No description provided for @scoreWithUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'{score}分'**
+  String scoreWithUnit(num score);
+
+  /// No description provided for @percentValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'{value}%'**
+  String percentValue(num value);
+
+  /// No description provided for @reportConstitutionPhlegmDampness.
+  ///
+  /// In zh, this message translates to:
+  /// **'痰湿质'**
+  String get reportConstitutionPhlegmDampness;
+
+  /// No description provided for @reportConstitutionInheritedSpecial.
+  ///
+  /// In zh, this message translates to:
+  /// **'特禀质'**
+  String get reportConstitutionInheritedSpecial;
+
+  /// No description provided for @reportConstitutionCausalTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析成因'**
+  String get reportConstitutionCausalTitle;
+
+  /// No description provided for @reportConstitutionCauseRoutineTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'作息'**
+  String get reportConstitutionCauseRoutineTitle;
+
+  /// No description provided for @reportConstitutionCauseRoutineDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'长期晚睡，子时未眠，伤及肝肾精气，导致气血生化不足。'**
+  String get reportConstitutionCauseRoutineDesc;
+
+  /// No description provided for @reportConstitutionCauseDietTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食'**
+  String get reportConstitutionCauseDietTitle;
+
+  /// No description provided for @reportConstitutionCauseDietDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食偏凉，过食生冷，寒邪损伤脾阳，运化功能减退。'**
+  String get reportConstitutionCauseDietDesc;
+
+  /// No description provided for @reportConstitutionCauseEmotionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'情志'**
+  String get reportConstitutionCauseEmotionTitle;
+
+  /// No description provided for @reportConstitutionCauseEmotionDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'思虑过度，忧思伤脾，气机郁结，运化失司。'**
+  String get reportConstitutionCauseEmotionDesc;
+
+  /// No description provided for @reportConstitutionCauseExerciseTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'运动'**
+  String get reportConstitutionCauseExerciseTitle;
+
+  /// No description provided for @reportConstitutionCauseExerciseDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'久坐少动，气血运行不畅，中气渐虚。'**
+  String get reportConstitutionCauseExerciseDesc;
+
+  /// No description provided for @reportConstitutionDiseaseTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'易诱发的疾病'**
+  String get reportConstitutionDiseaseTitle;
+
+  /// No description provided for @reportConstitutionDiseaseSpleenWeakTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃虚弱'**
+  String get reportConstitutionDiseaseSpleenWeakTitle;
+
+  /// No description provided for @reportConstitutionDiseaseSpleenWeakDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'消化不良、腹胀、便溏'**
+  String get reportConstitutionDiseaseSpleenWeakDesc;
+
+  /// No description provided for @reportConstitutionDiseaseQiBloodTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'气血亏虚'**
+  String get reportConstitutionDiseaseQiBloodTitle;
+
+  /// No description provided for @reportConstitutionDiseaseQiBloodDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'头晕、乏力、面色萎黄'**
+  String get reportConstitutionDiseaseQiBloodDesc;
+
+  /// No description provided for @reportConstitutionDiseaseLowImmunityTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'免疫低下'**
+  String get reportConstitutionDiseaseLowImmunityTitle;
+
+  /// No description provided for @reportConstitutionDiseaseLowImmunityDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'反复感冒、易疲劳'**
+  String get reportConstitutionDiseaseLowImmunityDesc;
+
+  /// No description provided for @reportConstitutionDiseaseEmotionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'情志疾患'**
+  String get reportConstitutionDiseaseEmotionTitle;
+
+  /// No description provided for @reportConstitutionDiseaseEmotionDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦虑、失眠、抑郁倾向'**
+  String get reportConstitutionDiseaseEmotionDesc;
+
+  /// No description provided for @reportConstitutionBadHabitsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'不当的举动'**
+  String get reportConstitutionBadHabitsTitle;
+
+  /// No description provided for @reportConstitutionHabitOverworkTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'过度劳累'**
+  String get reportConstitutionHabitOverworkTitle;
+
+  /// No description provided for @reportConstitutionHabitOverworkDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'耗气伤脾，加重气虚'**
+  String get reportConstitutionHabitOverworkDesc;
+
+  /// No description provided for @reportConstitutionHabitColdFoodTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'贪凉饮冷'**
+  String get reportConstitutionHabitColdFoodTitle;
+
+  /// No description provided for @reportConstitutionHabitColdFoodDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'寒邪伤阳，损伤脾胃'**
+  String get reportConstitutionHabitColdFoodDesc;
+
+  /// No description provided for @reportConstitutionHabitLateSleepTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'熬夜晚睡'**
+  String get reportConstitutionHabitLateSleepTitle;
+
+  /// No description provided for @reportConstitutionHabitLateSleepDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'阴气不得收敛，精气损耗'**
+  String get reportConstitutionHabitLateSleepDesc;
+
+  /// No description provided for @reportConstitutionHabitDietingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'过度节食'**
+  String get reportConstitutionHabitDietingTitle;
+
+  /// No description provided for @reportConstitutionHabitDietingDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'气血生化无源，更伤中气'**
+  String get reportConstitutionHabitDietingDesc;
+
+  /// No description provided for @reportConstitutionHabitBingeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'暴饮暴食'**
+  String get reportConstitutionHabitBingeTitle;
+
+  /// No description provided for @reportConstitutionHabitBingeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾胃负担过重，运化失司'**
+  String get reportConstitutionHabitBingeDesc;
+
+  /// No description provided for @reportTherapyAcupointTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'辩证取穴'**
+  String get reportTherapyAcupointTitle;
+
+  /// No description provided for @reportTherapyAcupointIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据脾气亏虚证型，推荐以下穴位进行艾灸或按摩调理，每日10–15分钟。'**
+  String get reportTherapyAcupointIntro;
+
+  /// No description provided for @reportTherapyPointZusanliName.
+  ///
+  /// In zh, this message translates to:
+  /// **'足三里'**
+  String get reportTherapyPointZusanliName;
+
+  /// No description provided for @reportTherapyPointZusanliLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'外膝眼下3寸，胫骨旁开1横指'**
+  String get reportTherapyPointZusanliLocation;
+
+  /// No description provided for @reportTherapyPointZusanliEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益胃、补益气血，为强壮要穴'**
+  String get reportTherapyPointZusanliEffect;
+
+  /// No description provided for @reportTherapyPointZusanliMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'足阳明胃经'**
+  String get reportTherapyPointZusanliMeridian;
+
+  /// No description provided for @reportTherapyPointPishuName.
+  ///
+  /// In zh, this message translates to:
+  /// **'脾俞'**
+  String get reportTherapyPointPishuName;
+
+  /// No description provided for @reportTherapyPointPishuLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'第11胸椎棘突下旁开1.5寸'**
+  String get reportTherapyPointPishuLocation;
+
+  /// No description provided for @reportTherapyPointPishuEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾化湿、益气补虚，调节脾胃功能'**
+  String get reportTherapyPointPishuEffect;
+
+  /// No description provided for @reportTherapyPointPishuMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'足太阳膀胱经'**
+  String get reportTherapyPointPishuMeridian;
+
+  /// No description provided for @reportTherapyPointQihaiName.
+  ///
+  /// In zh, this message translates to:
+  /// **'气海'**
+  String get reportTherapyPointQihaiName;
+
+  /// No description provided for @reportTherapyPointQihaiLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'脐下1.5寸，腹正中线上'**
+  String get reportTherapyPointQihaiLocation;
+
+  /// No description provided for @reportTherapyPointQihaiEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'补益元气、温阳固本，改善气虚乏力'**
+  String get reportTherapyPointQihaiEffect;
+
+  /// No description provided for @reportTherapyPointQihaiMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'任脉'**
+  String get reportTherapyPointQihaiMeridian;
+
+  /// No description provided for @reportTherapyPointGuanyuanName.
+  ///
+  /// In zh, this message translates to:
+  /// **'关元'**
+  String get reportTherapyPointGuanyuanName;
+
+  /// No description provided for @reportTherapyPointGuanyuanLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'脐下3寸，腹正中线上'**
+  String get reportTherapyPointGuanyuanLocation;
+
+  /// No description provided for @reportTherapyPointGuanyuanEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'培元固本、温阳益气，增强体质'**
+  String get reportTherapyPointGuanyuanEffect;
+
+  /// No description provided for @reportTherapyPointGuanyuanMeridian.
+  ///
+  /// In zh, this message translates to:
+  /// **'任脉'**
+  String get reportTherapyPointGuanyuanMeridian;
+
+  /// No description provided for @reportTherapyAcupointWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'孕妇、皮肤破损处及月经期间请避免艾灸。操作时注意火候，防止烫伤。'**
+  String get reportTherapyAcupointWarning;
+
+  /// No description provided for @reportTherapyMentalTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'精神养生'**
+  String get reportTherapyMentalTitle;
+
+  /// No description provided for @reportTherapyMentalCalmTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'恬淡虚无'**
+  String get reportTherapyMentalCalmTitle;
+
+  /// No description provided for @reportTherapyMentalCalmDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'减少过度思虑，保持心神宁静。中医认为“思伤脾”，思虑过度最易损耗脾气。'**
+  String get reportTherapyMentalCalmDesc;
+
+  /// No description provided for @reportTherapyMentalNatureTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'顺应自然'**
+  String get reportTherapyMentalNatureTitle;
+
+  /// No description provided for @reportTherapyMentalNatureDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'作息顺应昼夜节律，子时前入睡以养肝气，卯时舒展筋骨以助阳气升发。'**
+  String get reportTherapyMentalNatureDesc;
+
+  /// No description provided for @reportTherapyMentalEmotionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'调畅情志'**
+  String get reportTherapyMentalEmotionTitle;
+
+  /// No description provided for @reportTherapyMentalEmotionDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'保持乐观豁达，避免情绪大起大落。适度倾诉，疏导郁结气机。'**
+  String get reportTherapyMentalEmotionDesc;
+
+  /// No description provided for @reportTherapyMentalMeditationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'静坐冥想'**
+  String get reportTherapyMentalMeditationTitle;
+
+  /// No description provided for @reportTherapyMentalMeditationDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'每日静坐10分钟，专注呼吸，有助于调节脾胃气机，增强正气。'**
+  String get reportTherapyMentalMeditationDesc;
+
+  /// No description provided for @reportTherapySeasonalTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'四季保养'**
+  String get reportTherapySeasonalTitle;
+
+  /// No description provided for @reportTherapySeasonSpringName.
+  ///
+  /// In zh, this message translates to:
+  /// **'春'**
+  String get reportTherapySeasonSpringName;
+
+  /// No description provided for @reportTherapySeasonSpringAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'春季养肝，适当增酸。多食韭菜、菠菜，舒展筋骨，早起散步以助阳气升发。'**
+  String get reportTherapySeasonSpringAdvice;
+
+  /// No description provided for @reportTherapySeasonSpringAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'避免过度疲劳，勿食过于辛散之品'**
+  String get reportTherapySeasonSpringAvoid;
+
+  /// No description provided for @reportTherapySeasonSummerName.
+  ///
+  /// In zh, this message translates to:
+  /// **'夏'**
+  String get reportTherapySeasonSummerName;
+
+  /// No description provided for @reportTherapySeasonSummerAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'夏季养心，注意清热。适当食用莲子、薏仁，午间小憩，避免大汗伤气。'**
+  String get reportTherapySeasonSummerAdvice;
+
+  /// No description provided for @reportTherapySeasonSummerAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌贪凉饮冷，忌剧烈运动大汗'**
+  String get reportTherapySeasonSummerAvoid;
+
+  /// No description provided for @reportTherapySeasonAutumnName.
+  ///
+  /// In zh, this message translates to:
+  /// **'秋'**
+  String get reportTherapySeasonAutumnName;
+
+  /// No description provided for @reportTherapySeasonAutumnAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'秋季养肺，以润为主。多食梨、百合、银耳，早睡早起，收敛精气。'**
+  String get reportTherapySeasonAutumnAdvice;
+
+  /// No description provided for @reportTherapySeasonAutumnAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌过度悲忧，忌食辛辣燥烈之品'**
+  String get reportTherapySeasonAutumnAvoid;
+
+  /// No description provided for @reportTherapySeasonWinterName.
+  ///
+  /// In zh, this message translates to:
+  /// **'冬'**
+  String get reportTherapySeasonWinterName;
+
+  /// No description provided for @reportTherapySeasonWinterAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'冬季养肾，以藏为要。适食黑芝麻、核桃、羊肉，早卧晚起，固护肾阳。'**
+  String get reportTherapySeasonWinterAdvice;
+
+  /// No description provided for @reportTherapySeasonWinterAvoid.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌过度劳累，忌大量出汗耗散阳气'**
+  String get reportTherapySeasonWinterAvoid;
+
+  /// No description provided for @reportAdviceTongueFeatureColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌色'**
+  String get reportAdviceTongueFeatureColorLabel;
+
+  /// No description provided for @reportAdviceTongueFeatureShapeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌形'**
+  String get reportAdviceTongueFeatureShapeLabel;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔色'**
+  String get reportAdviceTongueFeatureCoatingColorLabel;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingTextureLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔质'**
+  String get reportAdviceTongueFeatureCoatingTextureLabel;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingTextureValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'厚腻'**
+  String get reportAdviceTongueFeatureCoatingTextureValue;
+
+  /// No description provided for @reportAdviceTongueFeatureCoatingTextureDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'苔厚腻提示湿邪较重，脾运不畅'**
+  String get reportAdviceTongueFeatureCoatingTextureDesc;
+
+  /// No description provided for @reportAdviceTongueFeatureTeethMarksLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'齿痕'**
+  String get reportAdviceTongueFeatureTeethMarksLabel;
+
+  /// No description provided for @reportAdviceDietRecommendedLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'宜食'**
+  String get reportAdviceDietRecommendedLabel;
+
+  /// No description provided for @reportAdviceDietFoodYamName.
+  ///
+  /// In zh, this message translates to:
+  /// **'山药'**
+  String get reportAdviceDietFoodYamName;
+
+  /// No description provided for @reportAdviceDietFoodYamDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益肾，补气养阴'**
+  String get reportAdviceDietFoodYamDesc;
+
+  /// No description provided for @reportAdviceDietFoodCoixName.
+  ///
+  /// In zh, this message translates to:
+  /// **'薏仁'**
+  String get reportAdviceDietFoodCoixName;
+
+  /// No description provided for @reportAdviceDietFoodCoixDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'利水渗湿，健脾止泻'**
+  String get reportAdviceDietFoodCoixDesc;
+
+  /// No description provided for @reportAdviceDietFoodJujubeName.
+  ///
+  /// In zh, this message translates to:
+  /// **'红枣'**
+  String get reportAdviceDietFoodJujubeName;
+
+  /// No description provided for @reportAdviceDietFoodJujubeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'补气血，健脾胃，安神'**
+  String get reportAdviceDietFoodJujubeDesc;
+
+  /// No description provided for @reportAdviceDietFoodLablabName.
+  ///
+  /// In zh, this message translates to:
+  /// **'白扁豆'**
+  String get reportAdviceDietFoodLablabName;
+
+  /// No description provided for @reportAdviceDietFoodLablabDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾化湿，消暑除烦'**
+  String get reportAdviceDietFoodLablabDesc;
+
+  /// No description provided for @reportAdviceDietFoodCodonopsisName.
+  ///
+  /// In zh, this message translates to:
+  /// **'党参'**
+  String get reportAdviceDietFoodCodonopsisName;
+
+  /// No description provided for @reportAdviceDietFoodCodonopsisDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'补中益气，健脾养胃'**
+  String get reportAdviceDietFoodCodonopsisDesc;
+
+  /// No description provided for @reportAdviceDietFoodPoriaName.
+  ///
+  /// In zh, this message translates to:
+  /// **'茯苓'**
+  String get reportAdviceDietFoodPoriaName;
+
+  /// No description provided for @reportAdviceDietFoodPoriaDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾和中，利水渗湿'**
+  String get reportAdviceDietFoodPoriaDesc;
+
+  /// No description provided for @reportAdviceDietAvoidLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'忌食'**
+  String get reportAdviceDietAvoidLabel;
+
+  /// No description provided for @reportAdviceDietAvoidColdFoods.
+  ///
+  /// In zh, this message translates to:
+  /// **'生冷食物'**
+  String get reportAdviceDietAvoidColdFoods;
+
+  /// No description provided for @reportAdviceDietAvoidGreasy.
+  ///
+  /// In zh, this message translates to:
+  /// **'油腻厚味'**
+  String get reportAdviceDietAvoidGreasy;
+
+  /// No description provided for @reportAdviceDietAvoidSpicy.
+  ///
+  /// In zh, this message translates to:
+  /// **'辛辣刺激'**
+  String get reportAdviceDietAvoidSpicy;
+
+  /// No description provided for @reportAdviceDietAvoidSweetRich.
+  ///
+  /// In zh, this message translates to:
+  /// **'甜腻之品'**
+  String get reportAdviceDietAvoidSweetRich;
+
+  /// No description provided for @reportAdviceDietAvoidAlcoholTobacco.
+  ///
+  /// In zh, this message translates to:
+  /// **'烟酒'**
+  String get reportAdviceDietAvoidAlcoholTobacco;
+
+  /// No description provided for @reportAdviceProductTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'相关产品推荐'**
+  String get reportAdviceProductTitle;
+
+  /// No description provided for @reportAdviceProductSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据体质个性化推荐'**
+  String get reportAdviceProductSubtitle;
+
+  /// No description provided for @reportAdviceProductOneName.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益气丸'**
+  String get reportAdviceProductOneName;
+
+  /// No description provided for @reportAdviceProductOneType.
+  ///
+  /// In zh, this message translates to:
+  /// **'中成药'**
+  String get reportAdviceProductOneType;
+
+  /// No description provided for @reportAdviceProductOneDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'补中益气，健脾和胃。适合气虚体质，改善乏力、食欲不振。'**
+  String get reportAdviceProductOneDesc;
+
+  /// No description provided for @reportAdviceProductOneTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'热销'**
+  String get reportAdviceProductOneTag;
+
+  /// No description provided for @reportAdviceProductTwoName.
+  ///
+  /// In zh, this message translates to:
+  /// **'参苓白术散'**
+  String get reportAdviceProductTwoName;
+
+  /// No description provided for @reportAdviceProductTwoType.
+  ///
+  /// In zh, this message translates to:
+  /// **'传统方剂'**
+  String get reportAdviceProductTwoType;
+
+  /// No description provided for @reportAdviceProductTwoDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'健脾益气，渗湿止泻。主治脾气虚弱，食少便溏，体倦乏力。'**
+  String get reportAdviceProductTwoDesc;
+
+  /// No description provided for @reportAdviceProductTwoTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'经典'**
+  String get reportAdviceProductTwoTag;
+
+  /// No description provided for @reportAdviceProductThreeName.
+  ///
+  /// In zh, this message translates to:
+  /// **'艾灸套装'**
+  String get reportAdviceProductThreeName;
+
+  /// No description provided for @reportAdviceProductThreeType.
+  ///
+  /// In zh, this message translates to:
+  /// **'调理器具'**
+  String get reportAdviceProductThreeType;
+
+  /// No description provided for @reportAdviceProductThreeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'温和艾条配合取穴定位图，居家艾灸足三里、气海、关元。'**
+  String get reportAdviceProductThreeDesc;
+
+  /// No description provided for @reportAdviceProductThreeTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐'**
+  String get reportAdviceProductThreeTag;
+
+  /// No description provided for @reportAdviceProductFourName.
+  ///
+  /// In zh, this message translates to:
+  /// **'中医食疗食材包'**
+  String get reportAdviceProductFourName;
+
+  /// No description provided for @reportAdviceProductFourType.
+  ///
+  /// In zh, this message translates to:
+  /// **'养生食材'**
+  String get reportAdviceProductFourType;
+
+  /// No description provided for @reportAdviceProductFourDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'山药、薏仁、党参、茯苓、红枣精选组合，一周食疗方案。'**
+  String get reportAdviceProductFourDesc;
+
+  /// No description provided for @reportAdviceProductFourTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'新品'**
+  String get reportAdviceProductFourTag;
+
+  /// No description provided for @reportAdviceProductDisclaimer.
+  ///
+  /// In zh, this message translates to:
+  /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
+  String get reportAdviceProductDisclaimer;
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  Future<AppLocalizations> load(Locale locale) {
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
+  }
+
+  @override
+  bool isSupported(Locale locale) =>
+      <String>['en', 'ja', 'ko', 'zh'].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'zh':
+      return AppLocalizationsZh();
+  }
+
+  throw FlutterError(
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
+}

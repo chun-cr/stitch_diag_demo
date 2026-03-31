@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/l10n/l10n.dart';
+
 class CameraPreviewWidget extends StatelessWidget {
   const CameraPreviewWidget({super.key});
 
@@ -50,7 +52,7 @@ class CameraPreviewWidget extends StatelessWidget {
 
     view ??= Center(
       child: Text(
-        '$defaultTargetPlatform is not supported yet for camera preview.',
+        context.l10n.scanCameraPreviewUnsupported('$defaultTargetPlatform'),
         style: const TextStyle(color: Colors.white),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 
 class ScanHintChips extends StatelessWidget {
@@ -6,12 +7,18 @@ class ScanHintChips extends StatelessWidget {
 
   const ScanHintChips({super.key, required this.hints});
 
-  IconData _getIconForHint(String hint) {
-    if (hint.contains('光线')) return Icons.wb_sunny_outlined;
-    if (hint.contains('前视') || hint.contains('正视') || hint.contains('自然')) return Icons.face_outlined;
-    if (hint.contains('静止') || hint.contains('平稳')) return Icons.accessibility_new_outlined;
-    if (hint.contains('平伸') || hint.contains('张口')) return Icons.sentiment_satisfied_alt_outlined;
-    if (hint.contains('展开')) return Icons.back_hand_outlined;
+  static const _fallbackIcons = [
+    Icons.wb_sunny_outlined,
+    Icons.face_outlined,
+    Icons.accessibility_new_outlined,
+    Icons.sentiment_satisfied_alt_outlined,
+    Icons.back_hand_outlined,
+  ];
+
+  IconData _getIconForIndex(int index) {
+    if (index < _fallbackIcons.length) {
+      return _fallbackIcons[index];
+    }
     return Icons.check_circle_outline;
   }
 
@@ -19,20 +26,28 @@ class ScanHintChips extends StatelessWidget {
   Widget build(BuildContext context) {
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 8, // 水平间距
-      runSpacing: 8, // 垂直间距
-      children: hints.map((hint) {
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(hints.length, (index) {
+        final hint = hints[index];
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.softBg,
             borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5), width: 1),
+            border: Border.all(
+              color: AppColors.borderColor.withValues(alpha: 0.5),
+              width: 1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_getIconForHint(hint), size: 14, color: AppColors.textSecondary),
+              Icon(
+                _getIconForIndex(index),
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
               Text(
                 hint,
@@ -45,7 +60,7 @@ class ScanHintChips extends StatelessWidget {
             ],
           ),
         );
-      }).toList(),
+      }),
     );
   }
 }

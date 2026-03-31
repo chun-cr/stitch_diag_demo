@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ScanStepIndicator extends StatelessWidget {
@@ -8,7 +10,11 @@ class ScanStepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const steps = ['面部', '舌头', '手掌'];
+    final steps = [
+      context.l10n.scanStepFace,
+      context.l10n.scanStepTongue,
+      context.l10n.scanStepPalm,
+    ];
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

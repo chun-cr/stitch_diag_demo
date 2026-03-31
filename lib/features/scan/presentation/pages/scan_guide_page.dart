@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/router/app_router.dart';
 
 class ScanGuidePage extends StatefulWidget {
@@ -97,6 +99,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
   // ─── Header ──────────────────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
       child: Row(
@@ -106,10 +109,10 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                 size: 18, color: Color(0xFF3A3028)),
             onPressed: () => context.pop(),
           ),
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
-                'AI 健康扫描',
+                l10n.scanGuideHeaderTitle,
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
@@ -128,6 +131,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
   // ─── Title Section ────────────────────────────────────────────────────────
 
   Widget _buildTitleSection() {
+    final l10n = context.l10n;
     return Column(
       children: [
         // Decorative top ornament
@@ -146,8 +150,8 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                   width: 1,
                 ),
               ),
-              child: const Text(
-                '望 · 闻 · 问 · 切',
+              child: Text(
+                l10n.authInspectionMotto,
                 style: TextStyle(
                   fontSize: 12,
                   letterSpacing: 3,
@@ -161,8 +165,11 @@ class _ScanGuidePageState extends State<ScanGuidePage>
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          '三步望诊，辨识体质',
+        Text(
+          l10n.scanGuideHeroTitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -172,7 +179,9 @@ class _ScanGuidePageState extends State<ScanGuidePage>
         ),
         const SizedBox(height: 8),
         Text(
-          '结合现代 AI 技术与传统中医望诊理论\n为您提供专属体质分析报告',
+          l10n.scanGuideHeroSubtitle,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13,
@@ -210,34 +219,35 @@ class _ScanGuidePageState extends State<ScanGuidePage>
   // ─── Step Cards ──────────────────────────────────────────────────────────
 
   Widget _buildStepCards() {
+    final l10n = context.l10n;
     final steps = [
       _StepData(
         step: 1,
-        title: '面部扫描',
-        desc: '分析面色光泽与五官特征',
-        detail: '通过面部气色判断脏腑盛衰，观察神、色、形、态',
+        title: l10n.scanGuideStep1Title,
+        desc: l10n.scanGuideStep1Desc,
+        detail: l10n.scanGuideStep1Detail,
         icon: Icons.face_retouching_natural_outlined,
-        tcmLabel: '面诊',
+        tcmLabel: l10n.scanFaceTag,
         color: const Color(0xFF2D6A4F),
         lightColor: const Color(0xFFE8F5EE),
       ),
       _StepData(
         step: 2,
-        title: '舌头扫描',
-        desc: '观察舌质颜色与舌苔厚薄',
-        detail: '舌为心之苗，脾之外候，舌象反映气血津液盛衰',
+        title: l10n.scanGuideStep2Title,
+        desc: l10n.scanGuideStep2Desc,
+        detail: l10n.scanGuideStep2Detail,
         icon: Icons.sentiment_satisfied_alt_outlined,
-        tcmLabel: '舌诊',
+        tcmLabel: l10n.scanTongueTag,
         color: const Color(0xFF0D7A5A),
         lightColor: const Color(0xFFE4F7F1),
       ),
       _StepData(
         step: 3,
-        title: '手掌扫描',
-        desc: '识别掌纹分布与局部气色',
-        detail: '手掌色泽与纹路折射经络气血的运行状态',
+        title: l10n.scanGuideStep3Title,
+        desc: l10n.scanGuideStep3Desc,
+        detail: l10n.scanGuideStep3Detail,
         icon: Icons.back_hand_outlined,
-        tcmLabel: '掌诊',
+        tcmLabel: l10n.scanPalmTag,
         color: const Color(0xFF6B5B95),
         lightColor: const Color(0xFFF0EDF8),
       ),
@@ -346,14 +356,19 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '步骤 ${data.step}：${data.title}',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E1810),
-                              letterSpacing: 0.3,
+                          Expanded(
+                            child: Text(
+                              context.l10n.scanGuideStepLabel(data.step, data.title),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E1810),
+                                letterSpacing: 0.3,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -367,6 +382,8 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                             ),
                             child: Text(
                               data.tcmLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: data.color,
@@ -380,6 +397,8 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                       const SizedBox(height: 4),
                       Text(
                         data.desc,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
                           color: const Color(0xFF3A3028).withValues(alpha: 0.6),
@@ -445,6 +464,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
   // ─── Info Banner ──────────────────────────────────────────────────────────
 
   Widget _buildInfoBanner() {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
@@ -472,8 +492,8 @@ class _ScanGuidePageState extends State<ScanGuidePage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '温馨提示',
+                Text(
+                  l10n.scanGuideWarmPromptTitle,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -483,7 +503,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '请在自然光线充足处进行，扫描前清洁面部，取下帽子、眼镜等饰品，保持放松自然状态',
+                  l10n.scanGuideWarmPromptContent,
                   style: TextStyle(
                     fontSize: 11.5,
                     height: 1.5,
@@ -501,6 +521,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
   // ─── Bottom Section ───────────────────────────────────────────────────────
 
   Widget _buildBottomSection(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       decoration: BoxDecoration(
@@ -524,7 +545,9 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                   color: const Color(0xFF3A3028).withValues(alpha: 0.4)),
               const SizedBox(width: 5),
               Text(
-                '预计 2 分钟完成 · 请在光线充足处进行',
+                l10n.scanGuideEstimate,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
                   color: const Color(0xFF3A3028).withValues(alpha: 0.4),
@@ -560,8 +583,8 @@ class _ScanGuidePageState extends State<ScanGuidePage>
                   const Icon(Icons.play_circle_outline,
                       color: Colors.white, size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    '开始扫描',
+                  Text(
+                    l10n.scanGuideStartButton,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -575,7 +598,7 @@ class _ScanGuidePageState extends State<ScanGuidePage>
           ),
           const SizedBox(height: 10),
           Text(
-            '扫描数据仅用于健康分析，不会上传至第三方',
+            l10n.scanGuidePrivacyNote,
             style: TextStyle(
               fontSize: 11,
               color: const Color(0xFF3A3028).withValues(alpha: 0.35),

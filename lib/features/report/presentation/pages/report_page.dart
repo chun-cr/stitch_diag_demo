@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import '../../../../core/router/app_router.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -21,8 +22,6 @@ class _ReportPageState extends State<ReportPage>
   late Animation<double> _heroScoreAnim;
 
   int _currentTab = 0;
-
-  static const _tabs = ['总览', '体质', '调理', '建议'];
 
   // Tab 对应的主题色（用于指示器 & 小标签）
   static const _tabColors = [
@@ -186,6 +185,16 @@ class _ReportPageState extends State<ReportPage>
 
   // ── Tab Bar ──────────────────────────────────────────────────────
   Widget _buildTabBar() {
+    final l10n = context.l10n;
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final isScrollableTabs = languageCode != 'zh';
+    final tabs = [
+      l10n.reportTabOverview,
+      l10n.reportTabConstitution,
+      l10n.reportTabTherapy,
+      l10n.reportTabAdvice,
+    ];
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFF4F1EB),
@@ -199,6 +208,10 @@ class _ReportPageState extends State<ReportPage>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: isScrollableTabs,
+        labelPadding: isScrollableTabs
+            ? const EdgeInsets.symmetric(horizontal: 14)
+            : const EdgeInsets.symmetric(horizontal: 10),
         labelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
@@ -215,8 +228,8 @@ class _ReportPageState extends State<ReportPage>
         indicatorSize: TabBarIndicatorSize.label,
         dividerColor: Colors.transparent,
         tabs: List.generate(
-          _tabs.length,
-              (i) => Tab(
+          tabs.length,
+               (i) => Tab(
             height: 46,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -231,7 +244,13 @@ class _ReportPageState extends State<ReportPage>
                       color: _tabColors[i],
                     ),
                   ),
-                Text(_tabs[i]),
+                Flexible(
+                  child: Text(
+                    tabs[i],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
@@ -256,6 +275,8 @@ class _ReportHeroSpace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return LayoutBuilder(builder: (context, constraints) {
       const expandedH = 270.0;
       final collapsedH =
@@ -307,9 +328,9 @@ class _ReportHeroSpace extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Expanded(child: _buildHeroInfo()),
+                            Expanded(child: _buildHeroInfo(context)),
                             const SizedBox(width: 16),
-                            _buildScoreBadge(),
+                            _buildScoreBadge(context),
                           ],
                         ),
                       ),
@@ -359,8 +380,8 @@ class _ReportHeroSpace extends StatelessWidget {
                     ]),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'AI 健康报告',
+                  Text(
+                    l10n.reportHeaderCollapsedTitle,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -377,7 +398,9 @@ class _ReportHeroSpace extends StatelessWidget {
     });
   }
 
-  Widget _buildHeroInfo() {
+  Widget _buildHeroInfo(BuildContext context) {
+    final l10n = context.l10n;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -389,13 +412,17 @@ class _ReportHeroSpace extends StatelessWidget {
                 size: 12,
                 color: const Color(0xFF2D6A4F).withValues(alpha: 0.6)),
             const SizedBox(width: 6),
-            Text(
-              '2025.03.14  ·  AI 四诊合参',
-              style: TextStyle(
-                fontSize: 11,
-                color: const Color(0xFF2D6A4F).withValues(alpha: 0.7),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+            Expanded(
+              child: Text(
+                l10n.reportHeroMeta,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],
@@ -403,8 +430,10 @@ class _ReportHeroSpace extends StatelessWidget {
         const SizedBox(height: 12),
 
         // 2. 放大主标题，建立绝对的视觉焦点
-        const Text(
-          '小明的健康报告',
+        Text(
+          l10n.reportHeroTitle(l10n.profileDisplayName),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 24, // 从 18 放大到 24
             fontWeight: FontWeight.w800,
@@ -417,15 +446,19 @@ class _ReportHeroSpace extends StatelessWidget {
         // 3. 标签去描边：主标签用微底色，次要标签直接变文本
         Row(
           children: [
-            _HeroPill(label: '平和质', active: true), // 新版去掉了边框
+            _HeroPill(label: l10n.constitutionBalanced, active: true), // 新版去掉了边框
             const SizedBox(width: 10),
-            Text(
-                '气虚偏颇',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1E1810).withValues(alpha: 0.6)
-                )
+            Flexible(
+              child: Text(
+                  l10n.reportHeroSecondaryBias,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E1810).withValues(alpha: 0.6)
+                  )
+              ),
             ),
           ],
         ),
@@ -433,7 +466,9 @@ class _ReportHeroSpace extends StatelessWidget {
 
         // 4. 移除生硬的左侧粗线，通过行高和颜色营造呼吸感
         Text(
-          '脾气亏虚，运化失健。面色偏黄，舌淡苔白。',
+          l10n.reportHeroSummary,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12.5,
             color: const Color(0xFF3A3028).withValues(alpha: 0.7),
@@ -444,10 +479,10 @@ class _ReportHeroSpace extends StatelessWidget {
     );
   }
 
-  Widget _buildScoreBadge() {
+  Widget _buildScoreBadge(BuildContext context) {
     return AnimatedBuilder(
       animation: scoreAnim,
-      builder: (_, __) {
+      builder: (context, child) {
         final v = scoreAnim.value;
         final score = (78 * v).round();
         return SizedBox(
@@ -480,8 +515,8 @@ class _ReportHeroSpace extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            '健康分',
+                          Text(
+                            context.l10n.reportHealthScoreLabel,
                             style: TextStyle(
                               fontSize: 9,
                               color: Color(0xFF2D6A4F),
@@ -515,7 +550,7 @@ class _ReportHeroSpace extends StatelessWidget {
                 //   ),
                 // ),
                 Text(
-                  '体质状况 良好',
+                  context.l10n.reportHealthStatus,
                   style: TextStyle(
                     fontSize: 11,
                     color: const Color(0xFF2D6A4F).withValues(alpha: 0.8),
@@ -578,35 +613,36 @@ class _Tab1Overview extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
         // 三诊评分卡
-        _buildThreeDiagScores(),
+        _buildThreeDiagScores(context),
         const SizedBox(height: 16),
         // 舌象缩略 + 五行
-        _buildTongueAndWuxing(),
+        _buildTongueAndWuxing(context),
         const SizedBox(height: 16),
         // 辨证摘要
-        _buildDiagSummary(),
+        _buildDiagSummary(context),
         const SizedBox(height: 16),
         // 模块入口导航卡
         _buildModuleEntries(context),
         const SizedBox(height: 16),
         // 扫描时间信息
-        _buildScanMeta(),
+        _buildScanMeta(context),
       ],
     );
   }
 
   // ── 三诊评分 ─────────────────────────────────────────────────────
-  Widget _buildThreeDiagScores() {
-    const diagData = [
-      ('面诊', 0.86, Color(0xFF2D6A4F), Icons.face_retouching_natural_outlined, '气色偏黄，神采尚可'),
-      ('舌诊', 0.72, Color(0xFF0D7A5A), Icons.sentiment_satisfied_alt_outlined, '舌淡苔白，略厚'),
-      ('掌诊', 0.80, Color(0xFF6B5B95), Icons.back_hand_outlined, '掌纹细浅，气色平'),
+  Widget _buildThreeDiagScores(BuildContext context) {
+    final l10n = context.l10n;
+    final diagData = [
+      (l10n.metricFaceDiagnosis, 0.86, const Color(0xFF2D6A4F), Icons.face_retouching_natural_outlined, l10n.reportOverviewFaceDiagnosisDesc),
+      (l10n.metricTongueDiagnosis, 0.72, const Color(0xFF0D7A5A), Icons.sentiment_satisfied_alt_outlined, l10n.reportOverviewTongueDiagnosisDesc),
+      (l10n.metricPalmDiagnosis, 0.80, const Color(0xFF6B5B95), Icons.back_hand_outlined, l10n.reportOverviewPalmDiagnosisDesc),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '三诊评分'),
+        _FloatingSectionTitle(title: l10n.reportOverviewDiagScoresTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -639,11 +675,13 @@ class _Tab1Overview extends StatelessWidget {
   }
 
   // ── 舌象 + 五行 ──────────────────────────────────────────────────
-  Widget _buildTongueAndWuxing() {
+  Widget _buildTongueAndWuxing(BuildContext context) {
+    final l10n = context.l10n;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '体征详情'),
+        _FloatingSectionTitle(title: l10n.reportOverviewFeatureDetailsTitle),
         const SizedBox(height: 10),
         IntrinsicHeight(
           child: Row(
@@ -655,8 +693,8 @@ class _Tab1Overview extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '舌象',
+                      Text(
+                        l10n.reportOverviewTongueTitle,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -681,7 +719,7 @@ class _Tab1Overview extends StatelessWidget {
                                         .withValues(alpha: 0.5)),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '舌象图片',
+                                  l10n.reportOverviewTongueImagePlaceholder,
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: const Color(0xFF0D7A5A)
@@ -694,11 +732,20 @@ class _Tab1Overview extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      _InfoRow(label: '舌色', value: '淡红'),
+                      _InfoRow(
+                        label: l10n.reportOverviewTongueColorLabel,
+                        value: l10n.reportOverviewTongueColorValue,
+                      ),
                       const SizedBox(height: 4),
-                      _InfoRow(label: '苔质', value: '白苔·略厚'),
+                      _InfoRow(
+                        label: l10n.reportOverviewTongueCoatingLabel,
+                        value: l10n.reportOverviewTongueCoatingValue,
+                      ),
                       const SizedBox(height: 4),
-                      _InfoRow(label: '舌形', value: '正常'),
+                      _InfoRow(
+                        label: l10n.reportOverviewTongueShapeLabel,
+                        value: l10n.reportOverviewTongueShapeValue,
+                      ),
                     ],
                   ),
                 ),
@@ -707,23 +754,23 @@ class _Tab1Overview extends StatelessWidget {
               Expanded(
                 flex: 5,
                 child: _SectionCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        '五行 · 木旺',
-                        style: TextStyle(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                       Text(
+                         l10n.reportOverviewWuxingTitle,
+                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1E1810),
                           letterSpacing: 0.4,
                         ),
                       ),
-                      SizedBox(height: 12),
-                      Expanded(child: _WuxingBars()),
-                    ],
-                  ),
-                ),
+                       const SizedBox(height: 12),
+                       const Expanded(child: _WuxingBars()),
+                     ],
+                   ),
+                 ),
               ),
             ],
           ),
@@ -733,11 +780,13 @@ class _Tab1Overview extends StatelessWidget {
   }
 
   // ── 辨证摘要 ─────────────────────────────────────────────────────
-  Widget _buildDiagSummary() {
+  Widget _buildDiagSummary(BuildContext context) {
+    final l10n = context.l10n;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '辨证摘要'),
+        _FloatingSectionTitle(title: l10n.reportOverviewDiagnosisSummaryTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -756,9 +805,9 @@ class _Tab1Overview extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '辨证：脾气亏虚，运化失健。面色偏黄，舌淡苔白，脉象细缓，气短乏力，食欲欠佳。证属脾虚气弱，兼有湿邪内阻。',
+                      l10n.reportOverviewDiagnosisSummaryBody,
                       style: TextStyle(
                         fontSize: 13,
                         color: Color(0xFF6E5830),
@@ -779,19 +828,19 @@ class _Tab1Overview extends StatelessWidget {
                       color: const Color(0xFF3A3028).withValues(alpha: 0.52),
                       height: 1.4,
                     ),
-                    children: const [
+                    children: [
                       TextSpan(
-                        text: '平和质',
+                        text: l10n.constitutionBalanced,
                         style: TextStyle(color: Color(0xFF0D7A5A)),
                       ),
-                      TextSpan(text: '  ·  '),
+                      const TextSpan(text: '  ·  '),
                       TextSpan(
-                        text: '气虚偏颇',
+                        text: l10n.reportHeroSecondaryBias,
                         style: TextStyle(color: Color(0xFF2D6A4F)),
                       ),
-                      TextSpan(text: '  ·  '),
+                      const TextSpan(text: '  ·  '),
                       TextSpan(
-                        text: '脾胃虚弱',
+                        text: l10n.reportOverviewDiagnosisTagSpleenWeak,
                         style: TextStyle(color: Color(0xFFC9A84C)),
                       ),
                     ],
@@ -807,11 +856,12 @@ class _Tab1Overview extends StatelessWidget {
 
   // ── 模块入口 ─────────────────────────────────────────────────────
   Widget _buildModuleEntries(BuildContext context) {
-    const entries = [
-      (Icons.biotech_outlined, '体质详解', '了解你的体质', Color(0xFF6B5B95), 1),
-      (Icons.spa_outlined, '辩证取穴', '穴位调理方案', Color(0xFF2D6A4F), 2),
-      (Icons.restaurant_outlined, '饮食建议', '食补调养方案', Color(0xFF0D7A5A), 3),
-      (Icons.wb_sunny_outlined, '四季保养', '顺时养生', Color(0xFFC9A84C), 2),
+    final l10n = context.l10n;
+    final entries = [
+      (Icons.biotech_outlined, l10n.reportOverviewModuleConstitutionTitle, l10n.reportOverviewModuleConstitutionSubtitle, const Color(0xFF6B5B95), 1),
+      (Icons.spa_outlined, l10n.reportOverviewModuleAcupointTitle, l10n.reportOverviewModuleAcupointSubtitle, const Color(0xFF2D6A4F), 2),
+      (Icons.restaurant_outlined, l10n.reportOverviewModuleDietTitle, l10n.reportOverviewModuleDietSubtitle, const Color(0xFF0D7A5A), 3),
+      (Icons.wb_sunny_outlined, l10n.reportOverviewModuleSeasonalTitle, l10n.reportOverviewModuleSeasonalSubtitle, const Color(0xFFC9A84C), 2),
     ];
 
     return Column(
@@ -829,8 +879,8 @@ class _Tab1Overview extends StatelessWidget {
                     borderRadius: BorderRadius.circular(2),
                   )),
               const SizedBox(width: 8),
-              const Text(
-                '模块导航',
+              Text(
+                l10n.reportOverviewModuleNavTitle,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -888,17 +938,21 @@ class _Tab1Overview extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            e.$2,
-                            style: const TextStyle(
+                           Text(
+                             e.$2,
+                             maxLines: 1,
+                             overflow: TextOverflow.ellipsis,
+                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1E1810),
                             ),
                           ),
-                          Text(
-                            e.$3,
-                            style: TextStyle(
+                           Text(
+                             e.$3,
+                             maxLines: 2,
+                             overflow: TextOverflow.ellipsis,
+                             style: TextStyle(
                               fontSize: 10,
                               color: const Color(0xFF3A3028)
                                   .withValues(alpha: 0.5),
@@ -921,7 +975,9 @@ class _Tab1Overview extends StatelessWidget {
   }
 
   // ── 扫描元信息 ───────────────────────────────────────────────────
-  Widget _buildScanMeta() {
+  Widget _buildScanMeta(BuildContext context) {
+    final l10n = context.l10n;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -940,7 +996,7 @@ class _Tab1Overview extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '本报告由 AI 四诊合参生成，仅供健康参考，不构成医疗诊断。如有不适请咨询专业医师。',
+              l10n.reportOverviewScanMetaDisclaimer,
               style: TextStyle(
                 fontSize: 11,
                 color: const Color(0xFF3A3028).withValues(alpha: 0.5),
@@ -966,23 +1022,24 @@ class _Tab2Constitution extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
-        _buildConstitutionDetail(),
+        _buildConstitutionDetail(context),
         const SizedBox(height: 16),
-        _buildCausalAnalysis(),
+        _buildCausalAnalysis(context),
         const SizedBox(height: 16),
-        _buildDiseaseTendency(),
+        _buildDiseaseTendency(context),
         const SizedBox(height: 16),
-        _buildBadHabits(),
+        _buildBadHabits(context),
       ],
     );
   }
 
   // ── 体质详解 ─────────────────────────────────────────────────────
-  Widget _buildConstitutionDetail() {
+  Widget _buildConstitutionDetail(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '体质详解'),
+        _FloatingSectionTitle(title: l10n.reportConstitutionDetailTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1026,7 +1083,7 @@ class _Tab2Constitution extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '核心结论',
+                            l10n.reportConstitutionCoreConclusionLabel,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -1035,8 +1092,8 @@ class _Tab2Constitution extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
-                            '主导偏颇体质：气虚质',
+                          Text(
+                            l10n.reportConstitutionCoreConclusionValue,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -1046,7 +1103,7 @@ class _Tab2Constitution extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '整体以平和质为基础，但伴有较明显的气虚倾向。雷达图中平和质与气虚质占比相对突出，说明体质底子尚可，但在劳累、饮食失调和作息紊乱时，更容易出现乏力、脾胃运化不足等表现。',
+                            l10n.reportConstitutionCoreConclusionBody,
                             style: TextStyle(
                               fontSize: 12,
                               color: const Color(0xFF3A3028).withValues(alpha: 0.65),
@@ -1067,7 +1124,7 @@ class _Tab2Constitution extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
-                  children: _constitutionScores
+                  children: _constitutionScores(context)
                       .map((c) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: _ConstitutionScoreRow(
@@ -1087,31 +1144,32 @@ class _Tab2Constitution extends StatelessWidget {
     );
   }
 
-  static const _constitutionScores = [
-    ('平和质', 0.72, Color(0xFF2D6A4F), true),
-    ('气虚质', 0.58, Color(0xFF6B5B95), true),
-    ('阳虚质', 0.25, Color(0xFF4A7FA8), false),
-    ('阴虚质', 0.20, Color(0xFF0D7A5A), false),
-    ('痰湿质', 0.30, Color(0xFFC9A84C), false),
-    ('湿热质', 0.18, Color(0xFFD4794A), false),
-    ('血瘀质', 0.15, Color(0xFFB05A5A), false),
-    ('气郁质', 0.22, Color(0xFF7A6BA0), false),
-    ('特禀质', 0.10, Color(0xFF909080), false),
+  List<(String, double, Color, bool)> _constitutionScores(BuildContext context) => [
+    (context.l10n.constitutionBalanced, 0.72, const Color(0xFF2D6A4F), true),
+    (context.l10n.constitutionQiDeficiency, 0.58, const Color(0xFF6B5B95), true),
+    (context.l10n.reportConstitutionYangDeficiency, 0.25, const Color(0xFF4A7FA8), false),
+    (context.l10n.reportConstitutionYinDeficiency, 0.20, const Color(0xFF0D7A5A), false),
+    (context.l10n.constitutionDampness, 0.30, const Color(0xFFC9A84C), false),
+    (context.l10n.reportConstitutionDampHeat, 0.18, const Color(0xFFD4794A), false),
+    (context.l10n.reportConstitutionBloodStasis, 0.15, const Color(0xFFB05A5A), false),
+    (context.l10n.reportConstitutionQiStagnation, 0.22, const Color(0xFF7A6BA0), false),
+    (context.l10n.reportConstitutionSpecial, 0.10, const Color(0xFF909080), false),
   ];
 
   // ── 分析成因 ─────────────────────────────────────────────────────
-  Widget _buildCausalAnalysis() {
-    const causes = [
-      (Icons.bedtime_outlined, '作息', '长期晚睡，子时未眠，伤及肝肾精气，导致气血生化不足。'),
-      (Icons.restaurant_outlined, '饮食', '饮食偏凉，过食生冷，寒邪损伤脾阳，运化功能减退。'),
-      (Icons.self_improvement_outlined, '情志', '思虑过度，忧思伤脾，气机郁结，运化失司。'),
-      (Icons.directions_run_outlined, '运动', '久坐少动，气血运行不畅，中气渐虚。'),
+  Widget _buildCausalAnalysis(BuildContext context) {
+    final l10n = context.l10n;
+    final causes = [
+      (Icons.bedtime_outlined, l10n.reportCauseRoutine, l10n.reportCauseRoutineBody),
+      (Icons.restaurant_outlined, l10n.reportCauseDiet, l10n.reportCauseDietBody),
+      (Icons.self_improvement_outlined, l10n.reportCauseEmotion, l10n.reportCauseEmotionBody),
+      (Icons.directions_run_outlined, l10n.reportCauseExercise, l10n.reportCauseExerciseBody),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '分析成因'),
+        _FloatingSectionTitle(title: l10n.reportCausalAnalysisTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1171,18 +1229,19 @@ class _Tab2Constitution extends StatelessWidget {
   }
 
   // ── 易诱发疾病 ───────────────────────────────────────────────────
-  Widget _buildDiseaseTendency() {
-    const diseases = [
-      ('脾胃虚弱', '消化不良、腹胀、便溏', Color(0xFFD4794A), Icons.warning_amber_outlined),
-      ('气血亏虚', '头晕、乏力、面色萎黄', Color(0xFF6B5B95), Icons.warning_amber_outlined),
-      ('免疫低下', '反复感冒、易疲劳', Color(0xFF4A7FA8), Icons.shield_outlined),
-      ('情志疾患', '焦虑、失眠、抑郁倾向', Color(0xFF7A6BA0), Icons.psychology_outlined),
+  Widget _buildDiseaseTendency(BuildContext context) {
+    final l10n = context.l10n;
+    final diseases = [
+      (l10n.reportDiseaseSpleenWeak, l10n.reportDiseaseSpleenWeakBody, const Color(0xFFD4794A), Icons.warning_amber_outlined),
+      (l10n.reportDiseaseQiBloodDeficiency, l10n.reportDiseaseQiBloodDeficiencyBody, const Color(0xFF6B5B95), Icons.warning_amber_outlined),
+      (l10n.reportDiseaseLowImmunity, l10n.reportDiseaseLowImmunityBody, const Color(0xFF4A7FA8), Icons.shield_outlined),
+      (l10n.reportDiseaseEmotional, l10n.reportDiseaseEmotionalBody, const Color(0xFF7A6BA0), Icons.psychology_outlined),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '易诱发的疾病'),
+        _FloatingSectionTitle(title: l10n.reportDiseaseTendencyTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1248,19 +1307,20 @@ class _Tab2Constitution extends StatelessWidget {
   }
 
   // ── 不当举动 ─────────────────────────────────────────────────────
-  Widget _buildBadHabits() {
-    const habits = [
-      ('过度劳累', '耗气伤脾，加重气虚'),
-      ('贪凉饮冷', '寒邪伤阳，损伤脾胃'),
-      ('熬夜晚睡', '阴气不得收敛，精气损耗'),
-      ('过度节食', '气血生化无源，更伤中气'),
-      ('暴饮暴食', '脾胃负担过重，运化失司'),
+  Widget _buildBadHabits(BuildContext context) {
+    final l10n = context.l10n;
+    final habits = [
+      (l10n.reportBadHabitOverwork, l10n.reportBadHabitOverworkBody),
+      (l10n.reportBadHabitColdFood, l10n.reportBadHabitColdFoodBody),
+      (l10n.reportBadHabitLateSleep, l10n.reportBadHabitLateSleepBody),
+      (l10n.reportBadHabitDieting, l10n.reportBadHabitDietingBody),
+      (l10n.reportBadHabitBinge, l10n.reportBadHabitBingeBody),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '不当的举动'),
+        _FloatingSectionTitle(title: l10n.reportBadHabitsTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1338,44 +1398,45 @@ class _Tab3Therapy extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
-        _buildAcupuncturePoints(),
+        _buildAcupuncturePoints(context),
         const SizedBox(height: 16),
-        _buildMentalWellness(),
+        _buildMentalWellness(context),
         const SizedBox(height: 16),
-        _buildSeasonalCare(),
+        _buildSeasonalCare(context),
       ],
     );
   }
 
   // ── 辩证取穴 ─────────────────────────────────────────────────────
-  Widget _buildAcupuncturePoints() {
-    const points = [
+  Widget _buildAcupuncturePoints(BuildContext context) {
+    final l10n = context.l10n;
+    final points = [
       _AcuPoint(
-        name: '足三里',
-        location: '外膝眼下3寸，胫骨旁开1横指',
-        effect: '健脾益胃、补益气血，为强壮要穴',
-        meridian: '足阳明胃经',
+        name: l10n.reportTherapyAcuPointZusanli,
+        location: l10n.reportTherapyAcuPointZusanliLocation,
+        effect: l10n.reportTherapyAcuPointZusanliEffect,
+        meridian: l10n.reportTherapyAcuPointZusanliMeridian,
         color: Color(0xFF2D6A4F),
       ),
       _AcuPoint(
-        name: '脾俞',
-        location: '第11胸椎棘突下旁开1.5寸',
-        effect: '健脾化湿、益气补虚，调节脾胃功能',
-        meridian: '足太阳膀胱经',
+        name: l10n.reportTherapyAcuPointPishu,
+        location: l10n.reportTherapyAcuPointPishuLocation,
+        effect: l10n.reportTherapyAcuPointPishuEffect,
+        meridian: l10n.reportTherapyAcuPointPishuMeridian,
         color: Color(0xFF0D7A5A),
       ),
       _AcuPoint(
-        name: '气海',
-        location: '脐下1.5寸，腹正中线上',
-        effect: '补益元气、温阳固本，改善气虚乏力',
-        meridian: '任脉',
+        name: l10n.reportTherapyAcuPointQihai,
+        location: l10n.reportTherapyAcuPointQihaiLocation,
+        effect: l10n.reportTherapyAcuPointQihaiEffect,
+        meridian: l10n.reportTherapyAcuPointQihaiMeridian,
         color: Color(0xFF6B5B95),
       ),
       _AcuPoint(
-        name: '关元',
-        location: '脐下3寸，腹正中线上',
-        effect: '培元固本、温阳益气，增强体质',
-        meridian: '任脉',
+        name: l10n.reportTherapyAcuPointGuanyuan,
+        location: l10n.reportTherapyAcuPointGuanyuanLocation,
+        effect: l10n.reportTherapyAcuPointGuanyuanEffect,
+        meridian: l10n.reportTherapyAcuPointGuanyuanMeridian,
         color: Color(0xFFC9A84C),
       ),
     ];
@@ -1383,14 +1444,14 @@ class _Tab3Therapy extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '辩证取穴'),
+        _FloatingSectionTitle(title: l10n.reportTherapyAcupointsTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '依据脾气亏虚证型，推荐以下穴位进行艾灸或按摩调理，每日10–15分钟。',
+                l10n.reportTherapyAcupointsIntro,
                 style: TextStyle(
                   fontSize: 12,
                   color: const Color(0xFF3A3028).withValues(alpha: 0.55),
@@ -1421,7 +1482,7 @@ class _Tab3Therapy extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '孕妇、皮肤破损处及月经期间请避免艾灸。操作时注意火候，防止烫伤。',
+                        l10n.reportTherapyAcupointsWarning,
                         style: TextStyle(
                           fontSize: 11,
                           color: const Color(0xFF8B6914).withValues(alpha: 0.8),
@@ -1440,18 +1501,19 @@ class _Tab3Therapy extends StatelessWidget {
   }
 
   // ── 精神养生 ─────────────────────────────────────────────────────
-  Widget _buildMentalWellness() {
-    const tips = [
-      ('恬淡虚无', Icons.self_improvement_outlined, '减少过度思虑，保持心神宁静。中医认为"思伤脾"，思虑过度最易损耗脾气。'),
-      ('顺应自然', Icons.nature_outlined, '作息顺应昼夜节律，子时前入睡以养肝气，卯时舒展筋骨以助阳气升发。'),
-      ('调畅情志', Icons.mood_outlined, '保持乐观豁达，避免情绪大起大落。适度倾诉，疏导郁结气机。'),
-      ('静坐冥想', Icons.spa_outlined, '每日静坐10分钟，专注呼吸，有助于调节脾胃气机，增强正气。'),
+  Widget _buildMentalWellness(BuildContext context) {
+    final l10n = context.l10n;
+    final tips = [
+      (l10n.reportMentalTipCalm, Icons.self_improvement_outlined, l10n.reportMentalTipCalmBody),
+      (l10n.reportMentalTipNature, Icons.nature_outlined, l10n.reportMentalTipNatureBody),
+      (l10n.reportMentalTipEmotion, Icons.mood_outlined, l10n.reportMentalTipEmotionBody),
+      (l10n.reportMentalTipMeditation, Icons.spa_outlined, l10n.reportMentalTipMeditationBody),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '精神养生'),
+        _FloatingSectionTitle(title: l10n.reportMentalWellnessTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1510,42 +1572,43 @@ class _Tab3Therapy extends StatelessWidget {
   }
 
   // ── 四季保养 ─────────────────────────────────────────────────────
-  Widget _buildSeasonalCare() {
-    const seasons = [
+  Widget _buildSeasonalCare(BuildContext context) {
+    final l10n = context.l10n;
+    final seasons = [
       _SeasonData(
-        name: '春',
+        name: l10n.reportSeasonSpring,
         color: Color(0xFF2D6A4F),
         lightColor: Color(0xFFE8F5EE),
-        advice: '春季养肝，适当增酸。多食韭菜、菠菜，舒展筋骨，早起散步以助阳气升发。',
-        avoid: '避免过度疲劳，勿食过于辛散之品',
+        advice: l10n.reportSeasonSpringAdvice,
+        avoid: l10n.reportSeasonSpringAvoid,
       ),
       _SeasonData(
-        name: '夏',
+        name: l10n.reportSeasonSummer,
         color: Color(0xFFD4794A),
         lightColor: Color(0xFFFAEDE7),
-        advice: '夏季养心，注意清热。适当食用莲子、薏仁，午间小憩，避免大汗伤气。',
-        avoid: '忌贪凉饮冷，忌剧烈运动大汗',
+        advice: l10n.reportSeasonSummerAdvice,
+        avoid: l10n.reportSeasonSummerAvoid,
       ),
       _SeasonData(
-        name: '秋',
+        name: l10n.reportSeasonAutumn,
         color: Color(0xFFC9A84C),
         lightColor: Color(0xFFFAF3E0),
-        advice: '秋季养肺，以润为主。多食梨、百合、银耳，早睡早起，收敛精气。',
-        avoid: '忌过度悲忧，忌食辛辣燥烈之品',
+        advice: l10n.reportSeasonAutumnAdvice,
+        avoid: l10n.reportSeasonAutumnAvoid,
       ),
       _SeasonData(
-        name: '冬',
+        name: l10n.reportSeasonWinter,
         color: Color(0xFF4A7FA8),
         lightColor: Color(0xFFE4EDF5),
-        advice: '冬季养肾，以藏为要。适食黑芝麻、核桃、羊肉，早卧晚起，固护肾阳。',
-        avoid: '忌过度劳累，忌大量出汗耗散阳气',
+        advice: l10n.reportSeasonWinterAdvice,
+        avoid: l10n.reportSeasonWinterAvoid,
       ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '四季保养'),
+        _FloatingSectionTitle(title: l10n.reportSeasonalCareTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1644,29 +1707,30 @@ class _Tab4Advice extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
-        _buildTongueAnalysis(),
+        _buildTongueAnalysis(context),
         const SizedBox(height: 16),
-        _buildDietAdvice(),
+        _buildDietAdvice(context),
         const SizedBox(height: 16),
-        _buildProductRecommendations(),
+        _buildProductRecommendations(context),
       ],
     );
   }
 
   // ── 舌象详解 ─────────────────────────────────────────────────────
-  Widget _buildTongueAnalysis() {
-    const features = [
-      ('舌色', '淡红', '舌色淡红为正常，偏淡提示气血不足', Color(0xFF2D6A4F)),
-      ('舌形', '正常偏胖', '舌体偏胖伴有齿痕，提示脾虚湿盛', Color(0xFF6B5B95)),
-      ('苔色', '白苔', '苔白主寒主表，提示阳气稍不足', Color(0xFF4A7FA8)),
-      ('苔质', '厚腻', '苔厚腻提示湿邪较重，脾运不畅', Color(0xFFC9A84C)),
-      ('齿痕', '有', '舌边齿痕为脾虚典型表现，气虚无力运化', Color(0xFFD4794A)),
+  Widget _buildTongueAnalysis(BuildContext context) {
+    final l10n = context.l10n;
+    final features = [
+      (l10n.reportAdviceTongueFeatureColor, l10n.reportAdviceTongueFeatureColorValue, l10n.reportAdviceTongueFeatureColorDesc, const Color(0xFF2D6A4F)),
+      (l10n.reportAdviceTongueFeatureShape, l10n.reportAdviceTongueFeatureShapeValue, l10n.reportAdviceTongueFeatureShapeDesc, const Color(0xFF6B5B95)),
+      (l10n.reportAdviceTongueFeatureCoatingColor, l10n.reportAdviceTongueFeatureCoatingColorValue, l10n.reportAdviceTongueFeatureCoatingColorDesc, const Color(0xFF4A7FA8)),
+      (l10n.reportAdviceTongueFeatureTexture, l10n.reportAdviceTongueFeatureTextureValue, l10n.reportAdviceTongueFeatureTextureDesc, const Color(0xFFC9A84C)),
+      (l10n.reportAdviceTongueFeatureTeethMarks, l10n.reportAdviceTongueFeatureTeethMarksValue, l10n.reportAdviceTongueFeatureTeethMarksDesc, const Color(0xFFD4794A)),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '舌象详解'),
+        _FloatingSectionTitle(title: l10n.reportAdviceTongueAnalysisTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1710,8 +1774,8 @@ class _Tab4Advice extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              '舌象综合评分',
+                            Text(
+                              l10n.reportAdviceTongueScoreLabel,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFFA09080),
@@ -1744,7 +1808,7 @@ class _Tab4Advice extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              '脾虚湿盛，气血偏弱',
+                              l10n.reportAdviceTongueScoreSummary,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: const Color(0xFF3A3028)
@@ -1816,22 +1880,29 @@ class _Tab4Advice extends StatelessWidget {
   }
 
   // ── 饮食建议 ─────────────────────────────────────────────────────
-  Widget _buildDietAdvice() {
-    const recommended = [
-      ('山药', '健脾益肾，补气养阴', Color(0xFF2D6A4F)),
-      ('薏仁', '利水渗湿，健脾止泻', Color(0xFF0D7A5A)),
-      ('红枣', '补气血，健脾胃，安神', Color(0xFFD4794A)),
-      ('白扁豆', '健脾化湿，消暑除烦', Color(0xFF4A7FA8)),
-      ('党参', '补中益气，健脾养胃', Color(0xFFC9A84C)),
-      ('茯苓', '健脾和中，利水渗湿', Color(0xFF6B5B95)),
+  Widget _buildDietAdvice(BuildContext context) {
+    final l10n = context.l10n;
+    final recommended = [
+      (l10n.reportAdviceFoodShanyao, l10n.reportAdviceFoodShanyaoDesc, const Color(0xFF2D6A4F)),
+      (l10n.reportAdviceFoodYiyiren, l10n.reportAdviceFoodYiyirenDesc, const Color(0xFF0D7A5A)),
+      (l10n.reportAdviceFoodHongzao, l10n.reportAdviceFoodHongzaoDesc, const Color(0xFFD4794A)),
+      (l10n.reportAdviceFoodBiandou, l10n.reportAdviceFoodBiandouDesc, const Color(0xFF4A7FA8)),
+      (l10n.reportAdviceFoodDangshen, l10n.reportAdviceFoodDangshenDesc, const Color(0xFFC9A84C)),
+      (l10n.reportAdviceFoodFuling, l10n.reportAdviceFoodFulingDesc, const Color(0xFF6B5B95)),
     ];
 
-    const avoid = ['生冷食物', '油腻厚味', '辛辣刺激', '甜腻之品', '烟酒'];
+    final avoid = [
+      l10n.reportAdviceAvoidColdFood,
+      l10n.reportAdviceAvoidGreasy,
+      l10n.reportAdviceAvoidSpicy,
+      l10n.reportAdviceAvoidSweet,
+      l10n.reportAdviceAvoidAlcohol,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '饮食建议'),
+        _FloatingSectionTitle(title: l10n.reportAdviceDietTitle),
         const SizedBox(height: 10),
         _SectionCard(
           child: Column(
@@ -1839,7 +1910,7 @@ class _Tab4Advice extends StatelessWidget {
             children: [
               const SizedBox(height: 6),
               Text(
-                '脾气亏虚宜食甘温益气、健脾和胃之品，忌食寒凉生冷及难消化食物。',
+                l10n.reportAdviceDietIntro,
                 style: TextStyle(
                   fontSize: 12,
                   color: const Color(0xFF3A3028).withValues(alpha: 0.55),
@@ -1858,8 +1929,8 @@ class _Tab4Advice extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 7),
-                  const Text(
-                    '宜食',
+                   Text(
+                     l10n.reportAdviceDietRecommendedTitle,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1890,8 +1961,8 @@ class _Tab4Advice extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 7),
-                  const Text(
-                    '忌食',
+                   Text(
+                     l10n.reportAdviceDietAvoidTitle,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1952,8 +2023,8 @@ class _Tab4Advice extends StatelessWidget {
                       children: [
                         const Icon(Icons.restaurant, size: 13, color: Color(0xFFC9A84C)),
                         const SizedBox(width: 6),
-                        const Text(
-                          '推荐食谱',
+                         Text(
+                           l10n.reportAdviceDietRecipeTitle,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -1964,7 +2035,7 @@ class _Tab4Advice extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      '山药薏仁粥：山药50g、薏仁30g、红枣5颗同煮，早餐食用，健脾益气效果显著。\n\n党参茯苓炖鸡：补中益气，适合气虚体质日常调养。',
+                       l10n.reportAdviceDietRecipeBody,
                       style: TextStyle(
                         fontSize: 12,
                         color: const Color(0xFF8B6914).withValues(alpha: 0.8),
@@ -1982,41 +2053,42 @@ class _Tab4Advice extends StatelessWidget {
   }
 
   // ── 产品推荐 ─────────────────────────────────────────────────────
-  Widget _buildProductRecommendations() {
-    const products = [
+  Widget _buildProductRecommendations(BuildContext context) {
+    final l10n = context.l10n;
+    final products = [
       _ProductData(
-        name: '健脾益气丸',
-        type: '中成药',
-        desc: '补中益气，健脾和胃。适合气虚体质，改善乏力、食欲不振。',
+        name: l10n.reportProductJianpiwan,
+        type: l10n.reportProductJianpiwanType,
+        desc: l10n.reportProductJianpiwanDesc,
         price: '¥58',
-        tag: '热销',
+        tag: l10n.reportProductJianpiwanTag,
         color: Color(0xFF2D6A4F),
         icon: Icons.local_pharmacy_outlined,
       ),
       _ProductData(
-        name: '参苓白术散',
-        type: '传统方剂',
-        desc: '健脾益气，渗湿止泻。主治脾气虚弱，食少便溏，体倦乏力。',
+        name: l10n.reportProductShenling,
+        type: l10n.reportProductShenlingType,
+        desc: l10n.reportProductShenlingDesc,
         price: '¥45',
-        tag: '经典',
+        tag: l10n.reportProductShenlingTag,
         color: Color(0xFF0D7A5A),
         icon: Icons.eco_outlined,
       ),
       _ProductData(
-        name: '艾灸套装',
-        type: '调理器具',
-        desc: '温和艾条配合取穴定位图，居家艾灸足三里、气海、关元。',
+        name: l10n.reportProductAijiu,
+        type: l10n.reportProductAijiuType,
+        desc: l10n.reportProductAijiuDesc,
         price: '¥128',
-        tag: '推荐',
+        tag: l10n.reportProductAijiuTag,
         color: Color(0xFFC9A84C),
         icon: Icons.spa_outlined,
       ),
       _ProductData(
-        name: '中医食疗食材包',
-        type: '养生食材',
-        desc: '山药、薏仁、党参、茯苓、红枣精选组合，一周食疗方案。',
+        name: l10n.reportProductFoodPack,
+        type: l10n.reportProductFoodPackType,
+        desc: l10n.reportProductFoodPackDesc,
         price: '¥89',
-        tag: '新品',
+        tag: l10n.reportProductFoodPackTag,
         color: Color(0xFF6B5B95),
         icon: Icons.restaurant_menu_outlined,
       ),
@@ -2025,12 +2097,12 @@ class _Tab4Advice extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _FloatingSectionTitle(title: '相关产品推荐'),
+        _FloatingSectionTitle(title: l10n.reportAdviceProductsTitle),
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.only(left: 2, bottom: 10),
           child: Text(
-            '依据体质个性化推荐',
+            l10n.reportAdviceProductsSubtitle,
             style: TextStyle(
               fontSize: 11,
               color: const Color(0xFFA09080).withValues(alpha: 0.8),
@@ -2056,7 +2128,7 @@ class _Tab4Advice extends StatelessWidget {
             ),
           ),
           child: Text(
-            '以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。',
+            l10n.reportAdviceProductsDisclaimer,
             style: TextStyle(
               fontSize: 11,
               color: const Color(0xFF3A3028).withValues(alpha: 0.45),
@@ -2264,7 +2336,7 @@ class _DiagScoreCell extends StatelessWidget {
           const SizedBox(height: 6),
           AnimatedBuilder(
             animation: anim,
-            builder: (_, __) => Text(
+            builder: (context, child) => Text(
               '${(score * anim.value * 100).round()}',
               style: TextStyle(
                 fontSize: 22,
@@ -2277,7 +2349,7 @@ class _DiagScoreCell extends StatelessWidget {
           const SizedBox(height: 8),
           AnimatedBuilder(
             animation: anim,
-            builder: (_, __) => _SoftGradientProgressBar(
+            builder: (context, child) => _SoftGradientProgressBar(
               value: score * anim.value,
               height: 4,
               emphasize: true,
@@ -2303,18 +2375,19 @@ class _DiagScoreCell extends StatelessWidget {
 class _WuxingBars extends StatelessWidget {
   const _WuxingBars();
 
-  static const _data = [
-    ('木', 0.82, Color(0xFF2D6A4F)),
-    ('火', 0.55, Color(0xFFD4794A)),
-    ('土', 0.68, Color(0xFFC9A84C)),
-    ('金', 0.45, Color(0xFF909080)),
-    ('水', 0.60, Color(0xFF4A7FA8)),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final data = [
+      (l10n.reportWuxingWood, 0.82, const Color(0xFF2D6A4F)),
+      (l10n.reportWuxingFire, 0.55, const Color(0xFFD4794A)),
+      (l10n.reportWuxingEarth, 0.68, const Color(0xFFC9A84C)),
+      (l10n.reportWuxingMetal, 0.45, const Color(0xFF909080)),
+      (l10n.reportWuxingWater, 0.60, const Color(0xFF4A7FA8)),
+    ];
+
     return Column(
-      children: _data.map((d) {
+      children: data.map((d) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
@@ -2471,7 +2544,7 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
         Expanded(
           child: AnimatedBuilder(
             animation: _anim,
-            builder: (_, __) => _SoftGradientProgressBar(
+            builder: (context, child) => _SoftGradientProgressBar(
               value: widget.score * _anim.value,
               height: widget.isMain ? 4 : 3,
               emphasize: widget.isMain,
@@ -2493,7 +2566,7 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
           width: 28,
           child: AnimatedBuilder(
             animation: _anim,
-            builder: (_, __) => Text(
+            builder: (context, child) => Text(
               '${(widget.score * _anim.value * 100).round()}',
               textAlign: TextAlign.right,
               style: TextStyle(
@@ -2656,6 +2729,8 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -2762,7 +2837,7 @@ class _ProductCard extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            '了解详情 >',
+                            l10n.reportAdviceProductDetailButton,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,

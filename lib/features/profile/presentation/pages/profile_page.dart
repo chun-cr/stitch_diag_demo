@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_diag_demo/core/l10n/l10n.dart';
+import 'package:stitch_diag_demo/core/l10n/locale_controller.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
 const _kPageBg        = Color(0xFFF4F1EB); // 宣纸米色
@@ -11,11 +14,11 @@ const _kTextHint      = Color(0xFFA09080);
 const _kDivider       = Color(0xFFF0EDE5);
 const _kCardBg        = Color(0xFFFFFFFF);
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: _kPageBg,
       body: CustomScrollView(
@@ -27,8 +30,8 @@ class ProfilePage extends StatelessWidget {
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
-            title: const Text(
-              '我的',
+            title: Text(
+              context.l10n.profileTitle,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -53,27 +56,27 @@ class ProfilePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 悬浮资料头
-                  _buildHeroCard(),
+                  _buildHeroCard(context),
                   const SizedBox(height: 20),
 
                   // 健康总览指标
-                  _buildHealthMetrics(),
+                  _buildHealthMetrics(context),
                   const SizedBox(height: 20),
 
                   // 健康基底
-                  _buildInsightRow(),
+                  _buildInsightRow(context),
                   const SizedBox(height: 20),
 
                   // 我的调理舱
-                  _buildPrescriptionCabin(),
+                  _buildPrescriptionCabin(context),
                   const SizedBox(height: 20),
 
                   // 功能菜单组
-                  _buildMenuGroup(),
+                  _buildMenuGroup(context, ref),
                   const SizedBox(height: 20),
 
                   // 退出登录
-                  _buildLogoutButton(),
+                  _buildLogoutButton(context),
                 ],
               ),
             ),
@@ -86,7 +89,7 @@ class ProfilePage extends StatelessWidget {
   // ══════════════════════════════════════════════════════════════
   //  悬浮资料头
   // ══════════════════════════════════════════════════════════════
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       decoration: BoxDecoration(
@@ -107,9 +110,9 @@ class ProfilePage extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildAvatar(),
+              _buildAvatar(context),
               const SizedBox(width: 16),
-              Expanded(child: _buildUserInfo()),
+              Expanded(child: _buildUserInfo(context)),
               _buildEditButton(),
             ],
           ),
@@ -118,7 +121,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHealthMetrics() {
+  Widget _buildHealthMetrics(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: _kCardBg,
@@ -134,18 +137,18 @@ class ProfilePage extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(
           children: [
-            _buildStatCell('12', '次', '累计问诊'),
+            _buildStatCell('12', context.l10n.unitTimes, context.l10n.profileMetricConsultCount),
             _buildStatDivider(),
-            _buildStatCell('86', '分', '当前健康力'),
+            _buildStatCell('86', context.l10n.unitPoints, context.l10n.profileMetricHealthScore),
             _buildStatDivider(),
-            _buildStatCell('3', '阶段', '体质演变'),
+            _buildStatCell('3', context.l10n.unitStage, context.l10n.profileMetricConstitutionStages),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -171,10 +174,10 @@ class ProfilePage extends StatelessWidget {
               ),
             ],
           ),
-          child: const Center(
+          child: Center(
             child: Text(
-              '明',
-              style: TextStyle(
+              context.l10n.profileDisplayName.substring(0, 1),
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -194,8 +197,8 @@ class ProfilePage extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.white, width: 1.5),
             ),
-            child: const Text(
-              '平和质',
+            child: Text(
+              context.l10n.profileBadgeBalanced,
               style: TextStyle(
                 fontSize: 8,
                 color: Colors.white,
@@ -209,12 +212,14 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildUserInfo() {
+  Widget _buildUserInfo(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '小明',
+        Text(
+          context.l10n.profileDisplayName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -224,7 +229,9 @@ class ProfilePage extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '今日状态平稳，宜守中养气',
+          context.l10n.profileStatusStable,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12,
             color: _kTextSecondary.withValues(alpha: 0.58),
@@ -248,13 +255,17 @@ class ProfilePage extends StatelessWidget {
                     shape: BoxShape.circle, color: _kPrimary),
               ),
               const SizedBox(width: 5),
-              const Text(
-                '平和体质',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _kPrimary,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
+              Flexible(
+                child: Text(
+                  context.l10n.profileBalancedType,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _kPrimary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
             ],
@@ -306,6 +317,9 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 11, color: _kTextHint),
             ),
           ],
@@ -325,11 +339,11 @@ class ProfilePage extends StatelessWidget {
   // ══════════════════════════════════════════════════════════════
   //  健康基底
   // ══════════════════════════════════════════════════════════════
-  Widget _buildInsightRow() {
+  Widget _buildInsightRow(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _ProfileSectionTitle(title: '健康基底'),
+        _ProfileSectionTitle(title: context.l10n.profileSectionFoundation),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(16),
@@ -357,7 +371,7 @@ class ProfilePage extends StatelessWidget {
                         _StatLine(
                           icon: Icons.height_outlined,
                           iconColor: _kPrimary,
-                          label: '身高',
+                          label: context.l10n.profileHeight,
                           value: '178',
                           unit: 'cm',
                         ),
@@ -365,7 +379,7 @@ class ProfilePage extends StatelessWidget {
                         _StatLine(
                           icon: Icons.monitor_weight_outlined,
                           iconColor: _kPrimaryMid,
-                          label: '体重',
+                          label: context.l10n.profileWeight,
                           value: '72',
                           unit: 'kg',
                         ),
@@ -385,16 +399,16 @@ class ProfilePage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _BaselineSummary(
-                          label: '先天底色',
-                          value: '脾胃偏虚家族倾向',
-                          note: '父母均有脾胃虚弱史，先天底子偏向中气不足。',
+                          label: context.l10n.profileInnateBase,
+                          value: context.l10n.profileInnateBaseValue,
+                          note: context.l10n.profileInnateBaseNote,
                           color: _kGold,
                         ),
                         const SizedBox(height: 12),
                         _BaselineSummary(
-                          label: '当前偏颇',
-                          value: '气虚夹湿',
-                          note: '近阶段偏颇主要集中在气虚与湿困，易受作息与饮食影响。',
+                          label: context.l10n.profileCurrentBias,
+                          value: context.l10n.profileCurrentBiasValue,
+                          note: context.l10n.profileCurrentBiasNote,
                           color: _kPrimaryMid,
                         ),
                       ],
@@ -411,9 +425,9 @@ class ProfilePage extends StatelessWidget {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      '近30天健康分',
+                      context.l10n.profileHealthScore30Days,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -424,7 +438,7 @@ class ProfilePage extends StatelessWidget {
                     SizedBox(height: 40, child: _HealthSparkline()),
                     SizedBox(height: 6),
                     Text(
-                      '整体平稳，最近一周轻度波动。',
+                      context.l10n.profileHealthScoreTrendNote,
                       style: TextStyle(
                         fontSize: 11,
                         color: _kTextHint,
@@ -440,24 +454,24 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPrescriptionCabin() {
-    const items = [
-      _CabinData('收藏穴位', '足三里 · 气海 · 关元', Icons.hub_outlined, _kPrimary),
-      _CabinData('专属食疗方', '山药薏仁粥 · 党参茯苓炖鸡', Icons.restaurant_menu_outlined, _kGold),
-      _CabinData('复诊提醒', '距下次调理评估还有 3 天', Icons.event_note_outlined, _kPrimaryMid),
+  Widget _buildPrescriptionCabin(BuildContext context) {
+    final items = [
+      _CabinData(context.l10n.profileCabinAcupoints, context.l10n.profileCabinAcupointsValue, Icons.hub_outlined, _kPrimary),
+      _CabinData(context.l10n.profileCabinDiet, context.l10n.profileCabinDietValue, Icons.restaurant_menu_outlined, _kGold),
+      _CabinData(context.l10n.profileCabinFollowup, context.l10n.profileCabinFollowupValue, Icons.event_note_outlined, _kPrimaryMid),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _ProfileSectionTitle(title: '我的调理舱'),
+        _ProfileSectionTitle(title: context.l10n.profileSectionCabin),
         const SizedBox(height: 10),
         SizedBox(
           height: 138,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (_, index) => _CabinCard(item: items[index]),
           ),
         ),
@@ -468,30 +482,39 @@ class ProfilePage extends StatelessWidget {
   // ══════════════════════════════════════════════════════════════
   //  菜单组
   // ══════════════════════════════════════════════════════════════
-  Widget _buildMenuGroup() {
-    const items = [
+  Widget _buildMenuGroup(BuildContext context, WidgetRef ref) {
+    final selectedLocale = ref.watch(localeControllerProvider).asData?.value;
+    final items = [
       _MenuData(
         icon: Icons.people_outline,
-        label: '账户与家人档案',
-        sub: '个人资料、家人信息与健康档案',
+        label: context.l10n.profileMenuAccount,
+        sub: context.l10n.profileMenuAccountSub,
         color: Color(0xFF2D6A4F),
       ),
       _MenuData(
         icon: Icons.calendar_month_outlined,
-        label: '健康节气提醒',
-        sub: '通知、作息与节气养护建议',
+        label: context.l10n.profileMenuReminder,
+        sub: context.l10n.profileMenuReminderSub,
         color: Color(0xFF6B5B95),
       ),
       _MenuData(
         icon: Icons.chat_bubble_outline,
-        label: '联系专属健康顾问',
-        sub: '调理疑问、复诊沟通与健康咨询',
+        label: context.l10n.profileMenuAdvisor,
+        sub: context.l10n.profileMenuAdvisorSub,
         color: Color(0xFF0D7A5A),
       ),
       _MenuData(
+        icon: Icons.language_rounded,
+        label: context.l10n.profileMenuLanguage,
+        sub: context.l10n.profileMenuLanguageSub,
+        color: Color(0xFF4A7FA8),
+        trailingText: _localeLabel(context, selectedLocale),
+        onTap: () => _showLocaleSheet(context, ref, selectedLocale),
+      ),
+      _MenuData(
         icon: Icons.auto_awesome_outlined,
-        label: '关于脉 AI',
-        sub: '了解服务说明与当前版本 v1.0.0',
+        label: context.l10n.profileMenuAbout,
+        sub: context.l10n.profileMenuAboutSub,
         color: Color(0xFFC9A84C),
       ),
     ];
@@ -499,7 +522,7 @@ class ProfilePage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _ProfileSectionTitle(title: '健康服务'),
+        _ProfileSectionTitle(title: context.l10n.profileSectionServices),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
@@ -538,14 +561,14 @@ class ProfilePage extends StatelessWidget {
   // ══════════════════════════════════════════════════════════════
   //  退出登录按钮
   // ══════════════════════════════════════════════════════════════
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return Center(
       child: TextButton.icon(
         onPressed: () {},
         icon: Icon(Icons.logout_rounded,
             color: _kTextHint.withValues(alpha: 0.82), size: 16),
         label: Text(
-          '退出登录',
+          context.l10n.profileLogout,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -561,6 +584,136 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  String _localeLabel(BuildContext context, Locale? locale) {
+    if (locale == null) {
+      return context.l10n.localeFollowSystem;
+    }
+    switch (locale.languageCode) {
+      case 'zh':
+        return context.l10n.localeChineseSimplified;
+      case 'en':
+        return context.l10n.localeEnglish;
+      case 'ja':
+        return context.l10n.localeJapanese;
+      case 'ko':
+        return context.l10n.localeKorean;
+      default:
+        return context.l10n.localeFollowSystem;
+    }
+  }
+
+  Future<void> _showLocaleSheet(
+    BuildContext context,
+    WidgetRef ref,
+    Locale? selectedLocale,
+  ) async {
+    final controller = ref.read(localeControllerProvider.notifier);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: _kCardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final options = <({Locale? locale, String label})>[
+          (locale: null, label: context.l10n.localeFollowSystem),
+          (locale: const Locale('zh'), label: context.l10n.localeChineseSimplified),
+          (locale: const Locale('en'), label: context.l10n.localeEnglish),
+          (locale: const Locale('ja'), label: context.l10n.localeJapanese),
+          (locale: const Locale('ko'), label: context.l10n.localeKorean),
+        ];
+
+        bool isSelected(Locale? candidate) {
+          if (candidate == null || selectedLocale == null) {
+            return candidate == selectedLocale;
+          }
+          return candidate.languageCode == selectedLocale.languageCode;
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _kDivider,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.l10n.localeSheetTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _kTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...options.map((option) {
+                  final selected = isSelected(option.locale);
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await controller.setLocale(option.locale);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? _kPrimary.withValues(alpha: 0.08)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: selected
+                              ? _kPrimary.withValues(alpha: 0.18)
+                              : _kDivider,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              option.label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                                color: selected ? _kPrimary : _kTextPrimary,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            selected
+                                ? Icons.radio_button_checked_rounded
+                                : Icons.radio_button_off_rounded,
+                            size: 18,
+                            color: selected
+                                ? _kPrimary
+                                : _kTextHint.withValues(alpha: 0.8),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -588,6 +741,8 @@ class _ProfileSectionTitle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
@@ -620,6 +775,8 @@ class _BaselineSummary extends StatelessWidget {
       children: [
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w600,
@@ -629,6 +786,8 @@ class _BaselineSummary extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -638,6 +797,8 @@ class _BaselineSummary extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           note,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 11,
             color: _kTextSecondary.withValues(alpha: 0.58),
@@ -671,14 +832,18 @@ class _StatLine extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: iconColor),
         const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: _kTextHint,
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: _kTextHint,
+            ),
           ),
         ),
-        const Spacer(),
+        const SizedBox(width: 8),
         RichText(
           text: TextSpan(
             children: [
@@ -736,8 +901,10 @@ class _BmiBar extends StatelessWidget {
                 color: _kPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(99),
               ),
-              child: const Text(
-                '正常',
+              child: Text(
+                context.l10n.profileBmiNormal,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 9,
                   color: _kPrimary,
@@ -797,12 +964,16 @@ class _MenuData {
   final String label;
   final String sub;
   final Color color;
+  final String? trailingText;
+  final VoidCallback? onTap;
 
   const _MenuData({
     required this.icon,
     required this.label,
     required this.sub,
     required this.color,
+    this.trailingText,
+    this.onTap,
   });
 }
 
@@ -823,7 +994,7 @@ class _MenuRowState extends State<_MenuRow> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {},
+      onTap: widget.item.onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
         color: _pressed
@@ -842,6 +1013,8 @@ class _MenuRowState extends State<_MenuRow> {
                 children: [
                   Text(
                     widget.item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -851,6 +1024,8 @@ class _MenuRowState extends State<_MenuRow> {
                   const SizedBox(height: 2),
                   Text(
                     widget.item.sub,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
                       color: _kTextHint.withValues(alpha: 0.9),
@@ -859,7 +1034,19 @@ class _MenuRowState extends State<_MenuRow> {
                 ],
               ),
             ),
-            // 箭头
+            if (widget.item.trailingText != null) ...[
+              Text(
+                widget.item.trailingText!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _kTextHint.withValues(alpha: 0.95),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             Icon(
               Icons.chevron_right,
               size: 18,
@@ -953,7 +1140,9 @@ class _CabinCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '查看详情 >',
+            '${context.l10n.commonViewDetails} >',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,

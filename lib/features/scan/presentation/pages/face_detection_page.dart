@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../services/face_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/face_landmark_overlay.dart';
@@ -44,7 +45,7 @@ class _FaceDetectionPageState extends State<FaceDetectionPage> {
       await _bridge.startMonitoring();
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('需要相机权限才能进行面部描点')),
+        SnackBar(content: Text(context.l10n.scanFaceDetectionPermissionRequired)),
       );
     }
   }

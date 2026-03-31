@@ -1,0 +1,36 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
+import 'package:stitch_diag_demo/main.dart';
+
+void main() {
+  testWidgets('switching language from profile updates UI', (tester) async {
+    SharedPreferences.setMockInitialValues({'app_locale': 'en'});
+    setPreviewAuthenticated(true);
+    await tester.binding.setSurfaceSize(const Size(1280, 2400));
+
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfilePage), findsOneWidget);
+    expect(find.text('Language'), findsOneWidget);
+
+    await tester.tap(find.text('Language'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose Language'), findsOneWidget);
+    await tester.tap(find.text('日本語'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('プロフィール'), findsWidgets);
+
+    setPreviewAuthenticated(false);
+    await tester.binding.setSurfaceSize(null);
+  });
+}

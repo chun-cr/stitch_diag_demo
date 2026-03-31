@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -49,11 +48,12 @@ class _RegisterPageState extends State<RegisterPage>
 
   String get _passStrengthLabel {
     final s = _passStrength;
+    final l10n = context.l10n;
     if (s <= 0) return '';
-    if (s <= 0.25) return '弱';
-    if (s <= 0.5) return '中';
-    if (s <= 0.75) return '强';
-    return '非常强';
+    if (s <= 0.25) return l10n.passwordStrengthWeak;
+    if (s <= 0.5) return l10n.passwordStrengthMedium;
+    if (s <= 0.75) return l10n.passwordStrengthStrong;
+    return l10n.passwordStrengthVeryStrong;
   }
 
   @override
@@ -92,7 +92,7 @@ class _RegisterPageState extends State<RegisterPage>
       if (_nameCtrl.text.isEmpty || _emailCtrl.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('请填写姓名和手机号/邮箱'),
+            content: Text(context.l10n.registerNeedBasicInfo),
             backgroundColor: const Color(0xFF2D6A4F),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -122,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage>
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('请先同意用户协议和隐私政策'),
+          content: Text(context.l10n.registerAgreeTermsFirst),
           backgroundColor: const Color(0xFF2D6A4F),
           behavior: SnackBarBehavior.floating,
           shape:
@@ -145,7 +145,7 @@ class _RegisterPageState extends State<RegisterPage>
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _rotateController,
-              builder: (_, __) => CustomPaint(
+              builder: (context, child) => CustomPaint(
                 painter: _RegBgPainter(
                   rotation:
                       _rotateController.value * 2 * math.pi,
@@ -235,7 +235,7 @@ class _RegisterPageState extends State<RegisterPage>
               ),
               const SizedBox(width: 8),
               RichText(
-                text: const TextSpan(
+                text: TextSpan(
                   style: TextStyle(
                     fontSize: 15,
                     color: Color(0xFF1E1810),
@@ -243,12 +243,12 @@ class _RegisterPageState extends State<RegisterPage>
                     letterSpacing: 0.5,
                   ),
                   children: [
-                    TextSpan(text: '脉 '),
+                    TextSpan(text: context.l10n.appBrandPrefix),
                     TextSpan(
                       text: 'AI',
                       style: TextStyle(color: Color(0xFF2D6A4F)),
                     ),
-                    TextSpan(text: ' 健康'),
+                    TextSpan(text: context.l10n.appBrandSuffix),
                   ],
                 ),
               ),
@@ -258,8 +258,8 @@ class _RegisterPageState extends State<RegisterPage>
           TextButton(
             onPressed: () => Navigator.maybePop(context),
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: const Text(
-              '去登录',
+            child: Text(
+              context.l10n.registerGoLogin,
               style: TextStyle(
                 fontSize: 13,
                 color: Color(0xFF2D6A4F),
@@ -282,7 +282,11 @@ class _RegisterPageState extends State<RegisterPage>
           // 步骤圆点 + 连线
           Row(
             children: [
-              _StepDot(index: 0, current: _currentStep, label: '基本信息'),
+              _StepDot(
+                index: 0,
+                current: _currentStep,
+                label: context.l10n.registerStepBasicInfo,
+              ),
               Expanded(
                 child: Container(
                   height: 2,
@@ -303,7 +307,11 @@ class _RegisterPageState extends State<RegisterPage>
                   ),
                 ),
               ),
-              _StepDot(index: 1, current: _currentStep, label: '设置密码'),
+              _StepDot(
+                index: 1,
+                current: _currentStep,
+                label: context.l10n.registerStepSetPassword,
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -319,7 +327,9 @@ class _RegisterPageState extends State<RegisterPage>
                   )),
               const SizedBox(width: 10),
               Text(
-                _currentStep == 0 ? '创建你的账号' : '设置登录密码',
+                _currentStep == 0
+                    ? context.l10n.registerCreateAccountTitle
+                    : context.l10n.registerSetPasswordTitle,
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -334,8 +344,8 @@ class _RegisterPageState extends State<RegisterPage>
             padding: const EdgeInsets.only(left: 13),
             child: Text(
               _currentStep == 0
-                  ? '填写基本信息，开启你的健康之旅'
-                  : '设置一个安全密码保护你的健康数据',
+                  ? context.l10n.registerCreateAccountSubtitle
+                  : context.l10n.registerSetPasswordSubtitle,
               style: TextStyle(
                 fontSize: 13,
                 color: const Color(0xFF3A3028).withValues(alpha: 0.55),
@@ -357,28 +367,28 @@ class _RegisterPageState extends State<RegisterPage>
         children: [
           Center(child: _buildAvatarPicker()),
           const SizedBox(height: 28),
-          const _InputLabel(text: '姓名'),
+          _InputLabel(text: context.l10n.authNameLabel),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _nameCtrl,
-            hint: '请输入你的姓名',
+            hint: context.l10n.authNameHint,
             prefixIcon: Icons.person_outline,
             validator: (v) =>
-                (v == null || v.isEmpty) ? '请输入姓名' : null,
+                (v == null || v.isEmpty) ? context.l10n.commonPleaseEnterName : null,
           ),
           const SizedBox(height: 16),
-          const _InputLabel(text: '手机号 / 邮箱'),
+          _InputLabel(text: context.l10n.authEmailOrPhoneLabel),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _emailCtrl,
-            hint: '请输入手机号或邮箱',
+            hint: context.l10n.authEmailOrPhoneHint,
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             validator: (v) =>
-                (v == null || v.isEmpty) ? '请输入手机号或邮箱' : null,
+                (v == null || v.isEmpty) ? context.l10n.authEmailOrPhoneHint : null,
           ),
           const SizedBox(height: 16),
-          const _InputLabel(text: '性别（可选）'),
+          _InputLabel(text: context.l10n.registerGenderOptional),
           const SizedBox(height: 8),
           _GenderSelector(),
           const SizedBox(height: 28),
@@ -399,11 +409,11 @@ class _RegisterPageState extends State<RegisterPage>
         children: [
           Center(child: _buildSecurityVisual()),
           const SizedBox(height: 28),
-          const _InputLabel(text: '密码'),
+          _InputLabel(text: context.l10n.authPasswordLabel),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _passCtrl,
-            hint: '至少8位，包含字母和数字',
+            hint: context.l10n.registerPasswordHint,
             prefixIcon: Icons.lock_outline,
             obscureText: _obscurePass,
             suffixIcon: GestureDetector(
@@ -418,7 +428,7 @@ class _RegisterPageState extends State<RegisterPage>
             ),
             onChanged: (_) => setState(() {}),
             validator: (v) {
-              if (v == null || v.length < 8) return '密码不少于8位';
+              if (v == null || v.length < 8) return context.l10n.authPasswordMin8;
               return null;
             },
           ),
@@ -427,11 +437,11 @@ class _RegisterPageState extends State<RegisterPage>
             _buildPasswordStrength(),
           ],
           const SizedBox(height: 16),
-          const _InputLabel(text: '确认密码'),
+          _InputLabel(text: context.l10n.authConfirmPasswordLabel),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _confirmCtrl,
-            hint: '再次输入密码',
+            hint: context.l10n.authConfirmPasswordHint,
             prefixIcon: Icons.lock_outline,
             obscureText: _obscureConfirm,
             suffixIcon: GestureDetector(
@@ -446,7 +456,7 @@ class _RegisterPageState extends State<RegisterPage>
               ),
             ),
             validator: (v) {
-              if (v != _passCtrl.text) return '两次密码不一致';
+              if (v != _passCtrl.text) return context.l10n.authPasswordMismatch;
               return null;
             },
           ),
@@ -548,7 +558,7 @@ class _RegisterPageState extends State<RegisterPage>
           // 转动八卦环
           AnimatedBuilder(
             animation: _rotateController,
-            builder: (_, __) => Transform.rotate(
+            builder: (context, child) => Transform.rotate(
               angle: _rotateController.value * 2 * math.pi,
               child: CustomPaint(
                 size: const Size(110, 110),
@@ -559,7 +569,7 @@ class _RegisterPageState extends State<RegisterPage>
           // 脉冲外圆
           AnimatedBuilder(
             animation: _pulseController,
-            builder: (_, __) {
+            builder: (context, child) {
               final pulse =
                   math.sin(_pulseController.value * 2 * math.pi);
               return Container(
@@ -697,24 +707,24 @@ class _RegisterPageState extends State<RegisterPage>
                   color: const Color(0xFF3A3028).withValues(alpha: 0.6),
                   height: 1.5,
                 ),
-                children: const [
-                  TextSpan(text: '我已阅读并同意'),
+                children: [
+                  TextSpan(text: context.l10n.registerReadAndAgree),
                   TextSpan(
-                    text: '《用户协议》',
+                    text: context.l10n.registerUserAgreement,
                     style: TextStyle(
                       color: Color(0xFF2D6A4F),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  TextSpan(text: '和'),
+                  TextSpan(text: context.l10n.registerAnd),
                   TextSpan(
-                    text: '《隐私政策》',
+                    text: context.l10n.registerPrivacyPolicy,
                     style: TextStyle(
                       color: Color(0xFF2D6A4F),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  TextSpan(text: '，包括健康数据的收集与使用说明'),
+                  TextSpan(text: context.l10n.registerHealthDataClause),
                 ],
               ),
             ),
@@ -744,7 +754,7 @@ class _RegisterPageState extends State<RegisterPage>
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '你的健康数据仅用于 AI 诊断分析，经过加密存储，不会用于商业用途或分享给第三方。',
+              context.l10n.registerPrivacyTip,
               style: TextStyle(
                 fontSize: 12,
                 color: const Color(0xFF3A3028).withValues(alpha: 0.6),
@@ -780,9 +790,9 @@ class _RegisterPageState extends State<RegisterPage>
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Text(
-              '下一步',
+              context.l10n.registerNextStep,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -830,12 +840,12 @@ class _RegisterPageState extends State<RegisterPage>
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.check_circle_outline,
                         color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text(
-                      '完成注册',
+                      context.l10n.registerComplete,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -872,7 +882,7 @@ class _RegisterPageState extends State<RegisterPage>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
-                '或使用第三方账号',
+                context.l10n.registerThirdParty,
                 style: TextStyle(
                   fontSize: 12,
                   color: const Color(0xFF3A3028).withValues(alpha: 0.4),
@@ -901,7 +911,7 @@ class _RegisterPageState extends State<RegisterPage>
               child: _SocialButton(
                 icon: Icons.wechat,
                 iconColor: const Color(0xFF07C160),
-                label: '微信',
+                label: context.l10n.registerWechat,
                 onTap: () {},
               ),
             ),
@@ -910,7 +920,7 @@ class _RegisterPageState extends State<RegisterPage>
               child: _SocialButton(
                 icon: Icons.apple,
                 iconColor: const Color(0xFF1E1810),
-                label: 'Apple',
+                label: context.l10n.authAppleLogin,
                 onTap: () {},
               ),
             ),
@@ -1205,10 +1215,10 @@ class _GenderSelectorState extends State<_GenderSelector> {
 
   @override
   Widget build(BuildContext context) {
-    const options = [
-      (Icons.male, '男'),
-      (Icons.female, '女'),
-      (Icons.remove_circle_outline, '不透露'),
+    final options = [
+      (Icons.male, context.l10n.registerGenderMale),
+      (Icons.female, context.l10n.registerGenderFemale),
+      (Icons.remove_circle_outline, context.l10n.registerGenderUndisclosed),
     ];
     return Row(
       children: List.generate(options.length, (i) {

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import '../../../../core/router/app_router.dart';
 
 // ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
@@ -209,7 +210,7 @@ class _LoginPageState extends State<LoginPage>
         ),
         const SizedBox(width: 10),
         RichText(
-          text: const TextSpan(
+          text: TextSpan(
             style: TextStyle(
               fontSize: 18,
               color: Color(0xFF1E1810),
@@ -217,12 +218,12 @@ class _LoginPageState extends State<LoginPage>
               letterSpacing: 0.5,
             ),
             children: [
-              TextSpan(text: '脉 '),
+              TextSpan(text: context.l10n.appBrandPrefix),
               TextSpan(
                 text: 'AI',
                 style: TextStyle(color: Color(0xFF2D6A4F)),
               ),
-              TextSpan(text: ' 健康'),
+              TextSpan(text: context.l10n.appBrandSuffix),
             ],
           ),
         ),
@@ -238,8 +239,8 @@ class _LoginPageState extends State<LoginPage>
               width: 1,
             ),
           ),
-          child: const Text(
-            '春分 · 木旺',
+          child: Text(
+            context.l10n.authSeasonalTag,
             style: TextStyle(
               fontSize: 10,
               color: Color(0xFFC9A84C),
@@ -326,7 +327,7 @@ class _LoginPageState extends State<LoginPage>
               // 扫描线动画
               AnimatedBuilder(
                 animation: _breatheController,
-                builder: (_, __) {
+                builder: (context, child) {
                   final t = _breatheController.value;
                   final topOff = 28.0 + t * 90.0;
                   return Positioned(
@@ -371,8 +372,8 @@ class _LoginPageState extends State<LoginPage>
           children: [
             _ornamentLine(),
             const SizedBox(width: 12),
-            const Text(
-              '望 · 闻 · 问 · 切',
+            Text(
+              context.l10n.authInspectionMotto,
               style: TextStyle(
                 fontSize: 11,
                 letterSpacing: 3,
@@ -429,19 +430,19 @@ class _LoginPageState extends State<LoginPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _InputLabel(text: '手机号 / 邮箱'),
+        _InputLabel(text: context.l10n.authEmailOrPhoneLabel),
         const SizedBox(height: 6),
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
-            hint: '请输入手机号或邮箱',
+            hint: context.l10n.authEmailOrPhoneHint,
             prefixIcon: const Icon(Icons.email_outlined,
                 size: 18, color: Color(0xFFA09080)),
           ),
           validator: (v) =>
-              (v == null || v.isEmpty) ? '请输入手机号或邮箱' : null,
+              (v == null || v.isEmpty) ? context.l10n.authEmailOrPhoneHint : null,
         ),
       ],
     );
@@ -452,14 +453,14 @@ class _LoginPageState extends State<LoginPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _InputLabel(text: '密码'),
+        _InputLabel(text: context.l10n.authPasswordLabel),
         const SizedBox(height: 6),
         TextFormField(
           controller: _passCtrl,
           obscureText: _obscurePass,
           style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
-            hint: '请输入密码',
+            hint: context.l10n.authPasswordHint,
             prefixIcon: const Icon(Icons.lock_outline,
                 size: 18, color: Color(0xFFA09080)),
             suffixIcon: GestureDetector(
@@ -474,7 +475,7 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
           validator: (v) =>
-              (v == null || v.length < 6) ? '密码不能少于6位' : null,
+              (v == null || v.length < 6) ? context.l10n.authPasswordMin6 : null,
         ),
       ],
     );
@@ -491,8 +492,8 @@ class _LoginPageState extends State<LoginPage>
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: const Text(
-          '忘记密码？',
+        child: Text(
+          context.l10n.authForgotPassword,
           style: TextStyle(
             fontSize: 12.5,
             color: Color(0xFF2D6A4F),
@@ -552,12 +553,12 @@ class _LoginPageState extends State<LoginPage>
                     : Row(
                         key: const ValueKey('login_text'),
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.login_rounded,
                               color: Colors.white, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            '登录账号',
+                            context.l10n.authLoginButton,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -608,7 +609,7 @@ class _LoginPageState extends State<LoginPage>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            '其他方式',
+            context.l10n.authOtherMethods,
             style: TextStyle(
               fontSize: 12,
               color: const Color(0xFF3A3028).withValues(alpha: 0.45),
@@ -628,7 +629,7 @@ class _LoginPageState extends State<LoginPage>
           child: _SocialButton(
             icon: Icons.wechat,
             iconColor: const Color(0xFF07C160),
-            label: '微信登录',
+            label: context.l10n.authWechatLogin,
             onTap: () {},
           ),
         ),
@@ -637,7 +638,7 @@ class _LoginPageState extends State<LoginPage>
           child: _SocialButton(
             icon: Icons.apple,
             iconColor: const Color(0xFF1E1810),
-            label: 'Apple 登录',
+            label: context.l10n.authAppleLogin,
             onTap: () {},
           ),
         ),
@@ -651,7 +652,7 @@ class _LoginPageState extends State<LoginPage>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '还没有账号？',
+          context.l10n.authNoAccount,
           style: TextStyle(
             fontSize: 13,
             color: const Color(0xFF3A3028).withValues(alpha: 0.6),
@@ -664,11 +665,11 @@ class _LoginPageState extends State<LoginPage>
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text(
-            '立即注册',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF2D6A4F),
+        child: Text(
+          context.l10n.authRegisterNow,
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF2D6A4F),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -679,10 +680,10 @@ class _LoginPageState extends State<LoginPage>
 
   // ── Feature Chips ──────────────────────────────────────────────
   Widget _buildFeatureChips() {
-    const chips = [
-      ('面部扫描', Color(0xFF2D6A4F)),
-      ('舌象分析', Color(0xFF0D7A5A)),
-      ('AI 诊断', Color(0xFF6B5B95)),
+    final chips = [
+      (context.l10n.authFeatureFaceScan, const Color(0xFF2D6A4F)),
+      (context.l10n.authFeatureTongueAnalysis, const Color(0xFF0D7A5A)),
+      (context.l10n.authFeatureAiDiagnosis, const Color(0xFF6B5B95)),
     ];
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

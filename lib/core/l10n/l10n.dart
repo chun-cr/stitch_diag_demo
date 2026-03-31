@@ -1,0 +1,40 @@
+import 'package:flutter/material.dart';
+import 'package:stitch_diag_demo/l10n/app_localizations.dart';
+
+extension AppLocalizationsX on BuildContext {
+  AppLocalizations get l10n => AppLocalizations.of(this);
+}
+
+const supportedAppLocales = <Locale>[
+  Locale('zh'),
+  Locale('en'),
+  Locale('ja'),
+  Locale('ko'),
+];
+
+Locale? parseLocaleTag(String? tag) {
+  if (tag == null || tag.isEmpty) {
+    return null;
+  }
+
+  final normalized = tag.replaceAll('-', '_');
+  final parts = normalized.split('_');
+  if (parts.isEmpty || parts.first.isEmpty) {
+    return null;
+  }
+
+  final languageCode = parts.first;
+  final countryCode = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+  return Locale(languageCode, countryCode);
+}
+
+String? localeToLanguageTag(Locale? locale) {
+  if (locale == null) {
+    return null;
+  }
+  final countryCode = locale.countryCode;
+  if (countryCode == null || countryCode.isEmpty) {
+    return locale.languageCode;
+  }
+  return '${locale.languageCode}_$countryCode';
+}

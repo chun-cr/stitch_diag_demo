@@ -1,8 +1,12 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:math' as math;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:stitch_diag_demo/core/l10n/formatters.dart';
+import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 
 const _kPageBg = Color(0xFFF4F1EB);
@@ -17,15 +21,45 @@ const _kPrimaryGreenLight = Color(0xFF7EC8A0);
 const _kEarth = Color(0xFF8B6914);
 const _kDanger = Color(0xFFE05252);
 
+enum ConstitutionType { balanced, qiDeficiency, dampness }
+
+enum RiskCategory { spleenStomach, qiDeficiency, dampness }
+
+extension ConstitutionTypeL10n on ConstitutionType {
+  String label(BuildContext context) {
+    switch (this) {
+      case ConstitutionType.balanced:
+        return context.l10n.constitutionBalanced;
+      case ConstitutionType.qiDeficiency:
+        return context.l10n.constitutionQiDeficiency;
+      case ConstitutionType.dampness:
+        return context.l10n.constitutionDampness;
+    }
+  }
+}
+
+extension RiskCategoryL10n on RiskCategory {
+  String label(BuildContext context) {
+    switch (this) {
+      case RiskCategory.spleenStomach:
+        return context.l10n.riskSpleenStomach;
+      case RiskCategory.qiDeficiency:
+        return context.l10n.riskQiDeficiency;
+      case RiskCategory.dampness:
+        return context.l10n.riskDampness;
+    }
+  }
+}
+
 class DiagnosisRecord {
   final String id;
   final DateTime date;
-  final String constitutionType;
+  final ConstitutionType constitutionType;
   final int score;
   final String faceImageUrl;
   final bool isUnlocked;
   final double healthTrend;
-  final Map<String, double> riskIndexMap;
+  final Map<RiskCategory, double> riskIndexMap;
 
   const DiagnosisRecord({
     required this.id,
@@ -42,68 +76,92 @@ class DiagnosisRecord {
     DiagnosisRecord(
       id: 'r001',
       date: DateTime(2025, 3, 14),
-      constitutionType: '\u5e73\u548c\u8d28',
+      constitutionType: ConstitutionType.balanced,
       score: 86,
       faceImageUrl:
           'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 86,
-      riskIndexMap: const {'脾胃': 0.58, '气虚': 0.52, '湿困': 0.34},
+      riskIndexMap: const {
+        RiskCategory.spleenStomach: 0.58,
+        RiskCategory.qiDeficiency: 0.52,
+        RiskCategory.dampness: 0.34,
+      },
     ),
     DiagnosisRecord(
       id: 'r002',
       date: DateTime(2025, 3, 12),
-      constitutionType: '气虚质',
+      constitutionType: ConstitutionType.qiDeficiency,
       score: 82,
       faceImageUrl:
           'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
       isUnlocked: false,
       healthTrend: 82,
-      riskIndexMap: const {'脾胃': 0.61, '气虚': 0.57, '湿困': 0.29},
+      riskIndexMap: const {
+        RiskCategory.spleenStomach: 0.61,
+        RiskCategory.qiDeficiency: 0.57,
+        RiskCategory.dampness: 0.29,
+      },
     ),
     DiagnosisRecord(
       id: 'r003',
       date: DateTime(2025, 3, 10),
-      constitutionType: '平和质',
+      constitutionType: ConstitutionType.balanced,
       score: 88,
       faceImageUrl:
           'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 88,
-      riskIndexMap: const {'脾胃': 0.54, '气虚': 0.49, '湿困': 0.25},
+      riskIndexMap: const {
+        RiskCategory.spleenStomach: 0.54,
+        RiskCategory.qiDeficiency: 0.49,
+        RiskCategory.dampness: 0.25,
+      },
     ),
     DiagnosisRecord(
       id: 'r004',
       date: DateTime(2025, 3, 8),
-      constitutionType: '痰湿质',
+      constitutionType: ConstitutionType.dampness,
       score: 78,
       faceImageUrl:
           'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=800&q=80',
       isUnlocked: false,
       healthTrend: 78,
-      riskIndexMap: const {'脾胃': 0.68, '气虚': 0.42, '湿困': 0.48},
+      riskIndexMap: const {
+        RiskCategory.spleenStomach: 0.68,
+        RiskCategory.qiDeficiency: 0.42,
+        RiskCategory.dampness: 0.48,
+      },
     ),
     DiagnosisRecord(
       id: 'r005',
       date: DateTime(2025, 3, 6),
-      constitutionType: '平和质',
+      constitutionType: ConstitutionType.balanced,
       score: 84,
       faceImageUrl:
           'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 84,
-      riskIndexMap: const {'脾胃': 0.56, '气虚': 0.46, '湿困': 0.30},
+      riskIndexMap: const {
+        RiskCategory.spleenStomach: 0.56,
+        RiskCategory.qiDeficiency: 0.46,
+        RiskCategory.dampness: 0.30,
+      },
     ),
     DiagnosisRecord(
       id: 'r006',
       date: DateTime(2025, 3, 4),
-      constitutionType: '气虚质',
+      constitutionType: ConstitutionType.qiDeficiency,
       score: 80,
       faceImageUrl:
           'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=800&q=80',
       isUnlocked: false,
       healthTrend: 80,
-      riskIndexMap: const {'脾胃': 0.60, '气虚': 0.55, '湿困': 0.32},
+      riskIndexMap: const {
+        RiskCategory.spleenStomach: 0.60,
+        RiskCategory.qiDeficiency: 0.55,
+        RiskCategory.dampness: 0.32,
+      },
     ),
   ];
 }
@@ -119,13 +177,15 @@ class HistoryReportPage extends StatefulWidget {
 
 class _HistoryReportPageState extends State<HistoryReportPage> {
   late final List<DiagnosisRecord> _records;
-  late final Map<String, bool> _riskVisible;
+  late final Map<RiskCategory, bool> _riskVisible;
   late final Set<int> _xAxisLabelIndexes;
+  int? _trendTouchedIndex;
+  int? _riskTouchedIndex;
 
   static const _riskColors = {
-    '脾胃': _kEarth,
-    '气虚': Color(0xFF5C8768),
-    '湿困': Color(0xFF7A6A4F),
+    RiskCategory.spleenStomach: _kEarth,
+    RiskCategory.qiDeficiency: Color(0xFF5C8768),
+    RiskCategory.dampness: Color(0xFF8A5C7C),
   };
 
   @override
@@ -138,7 +198,7 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
             .toList()
           ..sort((a, b) => a.date.compareTo(b.date));
 
-    final keys = <String>{
+    final keys = <RiskCategory>{
       for (final record in _records) ...record.riskIndexMap.keys,
     };
     _riskVisible = {for (final key in keys) key: true};
@@ -153,8 +213,8 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
         backgroundColor: _kPageBg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          '体质测评报告',
+        title: Text(
+          context.l10n.historyReportTitle,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -179,7 +239,7 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                 const SizedBox(height: 24),
                 _buildRiskChart(),
                 const SizedBox(height: 24),
-                const _SectionTitle(title: '过往报告'),
+                _SectionTitle(title: context.l10n.historyPastReports),
                 const SizedBox(height: 12),
               ]),
             ),
@@ -198,7 +258,9 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                   record: _records.reversed.toList()[index],
                   onUnlock: () => ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(const SnackBar(content: Text('解锁功能开发中'))),
+                  ).showSnackBar(
+                    SnackBar(content: Text(context.l10n.commonFeatureInDevelopment)),
+                  ),
                 ),
                 childCount: _records.length,
               ),
@@ -210,23 +272,36 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
   }
 
   Widget _buildTrendChart() {
+    final trendMinY = _trendMinY;
+    final trendMaxY = _trendMaxY;
+
     return _ChartSectionCard(
-      title: '健康走势',
+      title: context.l10n.historyHealthTrend,
       child: SizedBox(
         height: 236,
         child: LineChart(
           LineChartData(
-            minX: 0,
-            maxX: (_records.length - 1).toDouble(),
-            minY: 60,
-            maxY: 100,
+            minX: _chartMinX,
+            maxX: _chartMaxX,
+            minY: trendMinY,
+            maxY: trendMaxY,
             lineTouchData: _buildTouchData(
-              valueFormatter: (value) => '${value.toInt()}分',
-              lineNameResolver: (_) => '健康指数',
+              onTouchIndexChanged: (value) {
+                if (_trendTouchedIndex == value) return;
+                setState(() => _trendTouchedIndex = value);
+              },
+              valueFormatter: (value) => context.l10n.scoreWithUnit(value.toInt()),
+              lineNameResolver: (_) => context.l10n.historyHealthIndex,
             ),
-            gridData: _buildGridData(),
+            showingTooltipIndicators: _buildTrendTooltipIndicators(),
+            gridData: _buildGridData(
+              horizontalInterval: _trendHorizontalInterval,
+            ),
             borderData: _buildBorderData(),
-            titlesData: _buildTitlesData(),
+            titlesData: _buildTitlesData(
+              leftInterval: _trendHorizontalInterval,
+              leftReservedSize: 38,
+            ),
             lineBarsData: [
               LineChartBarData(
                 spots: [
@@ -235,9 +310,12 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                 ],
                 isCurved: true,
                 gradient: const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                   colors: [_kPrimaryGreen, _kPrimaryGreenLight],
+                  stops: [0.08, 0.92],
                 ),
-                barWidth: 3.2,
+                barWidth: 1.7,
                 isStrokeCapRound: true,
                 curveSmoothness: 0.28,
                 belowBarData: BarAreaData(
@@ -251,7 +329,19 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
                     ],
                   ),
                 ),
-                dotData: const FlDotData(show: false),
+                dotData: FlDotData(
+                  show: true,
+                  checkToShowDot: (spot, barData) =>
+                      spot.x.toInt() == _records.length - 1,
+                  getDotPainter: (spot, percent, barData, index) {
+                    return FlDotCirclePainter(
+                      radius: 3.0,
+                      color: _kCardBg,
+                      strokeWidth: 1.7,
+                      strokeColor: _kPrimaryGreen,
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -262,46 +352,69 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
 
   Widget _buildRiskChart() {
     final keys = _riskVisible.keys.toList();
+    final lineBarsData = keys
+        .map((key) {
+          final active = _riskVisible[key] ?? false;
+          final color = _riskColors[key] ?? _kPrimaryGreen;
+          final lineColor = color.withValues(alpha: active ? 0.94 : 0.16);
+          return LineChartBarData(
+            spots: [
+              for (var i = 0; i < _records.length; i++)
+                FlSpot(i.toDouble(), _records[i].riskIndexMap[key] ?? 0),
+            ],
+            isCurved: true,
+            color: lineColor,
+            barWidth: 1.7,
+            isStrokeCapRound: true,
+            curveSmoothness: 0.22,
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  color.withValues(alpha: active ? 0.14 : 0.03),
+                  color.withValues(alpha: active ? 0.02 : 0.0),
+                ],
+              ),
+            ),
+            dotData: const FlDotData(show: false),
+          );
+        })
+        .toList();
 
     return _ChartSectionCard(
-      title: '风险指数走势',
+      title: context.l10n.historyRiskTrend,
       child: Column(
         children: [
           SizedBox(
             height: 236,
             child: LineChart(
               LineChartData(
-                minX: 0,
-                maxX: (_records.length - 1).toDouble(),
+                minX: _chartMinX,
+                maxX: _chartMaxX,
                 minY: 0,
                 maxY: 1,
                 lineTouchData: _buildTouchData(
-                  valueFormatter: (value) => '${(value * 100).round()}%',
-                  lineNameResolver: (bar) => _riskLabelForBar(bar),
+                  enabled: lineBarsData.isNotEmpty,
+                  onTouchIndexChanged: (value) {
+                    if (_riskTouchedIndex == value) return;
+                    setState(() => _riskTouchedIndex = value);
+                  },
+                  valueFormatter: (value) => context.l10n.percentValue((value * 100).round()),
+                  lineNameResolver: (bar) => _riskCategoryForBar(bar).label(context),
                 ),
-                gridData: _buildGridData(),
+                showingTooltipIndicators: _buildRiskTooltipIndicators(
+                  lineBarsData,
+                ),
+                gridData: _buildGridData(horizontalInterval: 0.25),
                 borderData: _buildBorderData(),
-                titlesData: _buildTitlesData(showLeftPercent: true),
-                lineBarsData: keys
-                    .where((key) => _riskVisible[key] ?? false)
-                    .map(
-                      (key) => LineChartBarData(
-                        spots: [
-                          for (var i = 0; i < _records.length; i++)
-                            FlSpot(
-                              i.toDouble(),
-                              _records[i].riskIndexMap[key] ?? 0,
-                            ),
-                        ],
-                        isCurved: true,
-                        color: _riskColors[key],
-                        barWidth: 2.15,
-                        isStrokeCapRound: true,
-                        curveSmoothness: 0.22,
-                        dotData: const FlDotData(show: false),
-                      ),
-                    )
-                    .toList(),
+                titlesData: _buildTitlesData(
+                  showLeftPercent: true,
+                  leftInterval: 0.25,
+                  leftReservedSize: 40,
+                ),
+                lineBarsData: lineBarsData,
               ),
             ),
           ),
@@ -315,32 +428,32 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
               return InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () => setState(() => _riskVisible[key] = !active),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 2,
-                    vertical: 4,
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: active ? _kTextPrimary : _kTextHint,
+                    letterSpacing: 0.2,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: active ? color : color.withValues(alpha: 0.28),
-                          shape: BoxShape.circle,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        key,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: active ? color : _kTextHint,
-                        ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                          Text(key.label(context)),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -351,33 +464,49 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
     );
   }
 
-  FlTitlesData _buildTitlesData({bool showLeftPercent = false}) {
+  FlTitlesData _buildTitlesData({
+    bool showLeftPercent = false,
+    required double leftInterval,
+    required double leftReservedSize,
+  }) {
     return FlTitlesData(
       topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       leftTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 32,
-          interval: showLeftPercent ? 0.25 : 10,
-          getTitlesWidget: (value, meta) => Text(
-            showLeftPercent
-                ? '${(value * 100).round()}%'
-                : value.toInt().toString(),
-            style: const TextStyle(
-              fontSize: 10,
-              color: _kTextHint,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          reservedSize: leftReservedSize,
+          interval: leftInterval,
+          getTitlesWidget: (value, meta) {
+            if (value < meta.min || value > meta.max) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Text(
+                showLeftPercent
+                    ? '${(value * 100).round()}%'
+                    : value.toInt().toString(),
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: _kTextHint,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          },
         ),
       ),
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 32,
+          reservedSize: _bottomTitlesReservedSize,
           getTitlesWidget: (value, meta) {
-            final index = value.toInt();
+            final roundedValue = value.roundToDouble();
+            if ((value - roundedValue).abs() > 0.001) {
+              return const SizedBox.shrink();
+            }
+            final index = roundedValue.toInt();
             if (index < 0 || index >= _records.length) {
               return const SizedBox.shrink();
             }
@@ -388,13 +517,17 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
             return SideTitleWidget(
               axisSide: meta.axisSide,
               space: 8,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: _kTextHint,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+              child: Transform.rotate(
+                angle: _shouldRotateBottomLabels ? -math.pi / 4 : 0,
+                alignment: Alignment.topRight,
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: _kTextHint,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             );
@@ -404,11 +537,11 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
     );
   }
 
-  FlGridData _buildGridData() {
+  FlGridData _buildGridData({required double horizontalInterval}) {
     return FlGridData(
       show: true,
       drawVerticalLine: false,
-      horizontalInterval: 10,
+      horizontalInterval: horizontalInterval,
       getDrawingHorizontalLine: (value) => FlLine(
         color: const Color(0xFF1E1810).withValues(alpha: 0.07),
         strokeWidth: 0.8,
@@ -429,13 +562,30 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
   }
 
   LineTouchData _buildTouchData({
+    bool enabled = true,
+    required ValueChanged<int?> onTouchIndexChanged,
     required String Function(double value) valueFormatter,
     required String Function(LineChartBarData barData) lineNameResolver,
   }) {
     return LineTouchData(
-      enabled: true,
-      handleBuiltInTouches: true,
+      enabled: enabled,
+      handleBuiltInTouches: false,
       touchSpotThreshold: 24,
+      touchCallback: (event, response) {
+        if (event is FlTapUpEvent ||
+            event is FlPanEndEvent ||
+            event is FlLongPressEnd) {
+          onTouchIndexChanged(null);
+          return;
+        }
+
+        final spots = response?.lineBarSpots;
+        if (spots == null || spots.isEmpty) {
+          return;
+        }
+
+        onTouchIndexChanged(spots.first.x.toInt());
+      },
       getTouchedSpotIndicator: (barData, spotIndexes) {
         final color = _lineColorOf(barData);
         return spotIndexes
@@ -461,48 +611,156 @@ class _HistoryReportPageState extends State<HistoryReportPage> {
             .toList();
       },
       touchTooltipData: LineTouchTooltipData(
-        tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        tooltipPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
         tooltipMargin: 10,
+        tooltipRoundedRadius: 14,
         tooltipBorder: BorderSide(
           color: const Color(0xFF1E1810).withValues(alpha: 0.08),
           width: 0.8,
         ),
         fitInsideHorizontally: true,
         fitInsideVertically: true,
-        getTooltipColor: (_) => Colors.white.withValues(alpha: 0.96),
-        getTooltipItems: (touchedSpots) => touchedSpots.asMap().entries.map((entry) {
-          final item = entry.value;
-          final itemDate = _dateLabel(_records[item.x.toInt()].date);
-          final itemColor = _lineColorOf(item.bar);
-          final itemValueText = valueFormatter(item.y);
-          final itemLineName = lineNameResolver(item.bar);
-          final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
-          return LineTooltipItem(
-            '$itemTitle$itemLineName  $itemValueText',
-            TextStyle(
-              color: itemColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              height: 1.45,
-            ),
-          );
-        }).toList(),
+        getTooltipColor: (_) => _kPageBg.withValues(alpha: 0.98),
+        getTooltipItems: (touchedSpots) =>
+            touchedSpots.asMap().entries.map((entry) {
+              final item = entry.value;
+              final itemDate = _dateLabel(_records[item.x.toInt()].date);
+              final itemColor = _lineColorOf(item.bar);
+              final itemValueText = valueFormatter(item.y);
+              final itemLineName = lineNameResolver(item.bar);
+              final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
+              return LineTooltipItem(
+                '$itemTitle$itemLineName  $itemValueText',
+                TextStyle(
+                  color: itemColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  height: 1.45,
+                ),
+              );
+            }).toList(),
+      ),
+      distanceCalculator: (offset, spotOffset) {
+        final dx = (offset.dx - spotOffset.dx).abs();
+        final dy = (offset.dy - spotOffset.dy).abs() * 0.35;
+        return dx + dy;
+      },
+    );
+  }
+
+  List<ShowingTooltipIndicators> _buildTrendTooltipIndicators() {
+    final index = _trendTouchedIndex;
+    if (index == null || index < 0 || index >= _records.length) {
+      return const [];
+    }
+
+    final barData = LineChartBarData(
+      spots: [
+        for (var i = 0; i < _records.length; i++)
+          FlSpot(i.toDouble(), _records[i].healthTrend),
+      ],
+      gradient: const LinearGradient(
+        colors: [_kPrimaryGreen, _kPrimaryGreenLight],
       ),
     );
+
+    return [
+      ShowingTooltipIndicators([LineBarSpot(barData, 0, barData.spots[index])]),
+    ];
+  }
+
+  List<ShowingTooltipIndicators> _buildRiskTooltipIndicators(
+    List<LineChartBarData> lineBarsData,
+  ) {
+    final index = _riskTouchedIndex;
+    if (index == null ||
+        index < 0 ||
+        index >= _records.length ||
+        lineBarsData.isEmpty) {
+      return const [];
+    }
+
+    final touchedSpots = <LineBarSpot>[];
+    for (var i = 0; i < lineBarsData.length; i++) {
+      final barData = lineBarsData[i];
+      if (!_isRiskSeriesActive(barData)) {
+        continue;
+      }
+      if (index >= barData.spots.length) {
+        continue;
+      }
+      touchedSpots.add(LineBarSpot(barData, i, barData.spots[index]));
+    }
+
+    if (touchedSpots.isEmpty) {
+      return const [];
+    }
+
+    return [ShowingTooltipIndicators(touchedSpots)];
+  }
+
+  double get _chartMinX => _records.isEmpty ? 0 : -0.5;
+
+  double get _chartMaxX => _records.length <= 1 ? 0.5 : _records.length - 0.5;
+
+  bool get _shouldRotateBottomLabels => _records.length > 12;
+
+  double get _bottomTitlesReservedSize => _shouldRotateBottomLabels ? 44 : 32;
+
+  double get _trendHorizontalInterval {
+    final range = _trendMaxY - _trendMinY;
+    if (range <= 20) return 5;
+    return 10;
+  }
+
+  double get _trendMinY {
+    return 40;
+  }
+
+  double get _trendMaxY {
+    final values = _records
+        .map((record) => record.healthTrend)
+        .toList(growable: false);
+    if (values.isEmpty) return 100;
+
+    final rawMin = values.reduce(math.min);
+    final rawMax = values.reduce(math.max);
+    final paddedMin = math.max(0, rawMin - 5);
+    final paddedMax = math.min(100, rawMax + 5);
+    final range = paddedMax - paddedMin;
+
+    if (range >= 12) {
+      return paddedMax.toDouble();
+    }
+
+    final center = (rawMin + rawMax) / 2;
+    return math.min(100, center + 6).toDouble();
   }
 
   Color _lineColorOf(LineChartBarData barData) {
     return barData.gradient?.colors.last ?? barData.color ?? _kPrimaryGreen;
   }
 
-  String _riskLabelForBar(LineChartBarData barData) {
+  RiskCategory _riskCategoryForBar(LineChartBarData barData) {
     final color = _lineColorOf(barData);
     return _riskColors.entries
-            .firstWhere(
-              (entry) => entry.value == color,
-              orElse: () => const MapEntry('风险', _kPrimaryGreen),
-            )
-            .key;
+        .firstWhere(
+          (entry) => _sameRgb(entry.value, color),
+          orElse: () => const MapEntry(RiskCategory.qiDeficiency, _kPrimaryGreen),
+        )
+        .key;
+  }
+
+  bool _isRiskSeriesActive(LineChartBarData barData) {
+    final category = _riskCategoryForBar(barData);
+    return _riskVisible[category] ?? true;
+  }
+
+  bool _sameRgb(Color a, Color b) {
+    return a.r == b.r && a.g == b.g && a.b == b.b;
   }
 
   Set<int> _buildSparseLabelIndexes(int length) {
@@ -662,7 +920,7 @@ class _HistoryRecordCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(99),
                             ),
                             child: Text(
-                              record.constitutionType,
+                              record.constitutionType.label(context),
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 12,
@@ -685,14 +943,16 @@ class _HistoryRecordCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      _prettyDate(record.date),
+                      _prettyDate(context, record.date),
                       style: const TextStyle(fontSize: 12, color: _kTextHint),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Text(
-                          record.isUnlocked ? '已解锁' : '未解锁',
+                          record.isUnlocked
+                              ? context.l10n.statusUnlocked
+                              : context.l10n.statusLocked,
                           style: TextStyle(
                             fontSize: 12,
                             color: _kTextHint.withValues(alpha: 0.9),
@@ -711,8 +971,8 @@ class _HistoryRecordCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(99),
                                 border: Border.all(color: _kDanger, width: 1),
                               ),
-                              child: const Text(
-                                '立即解锁',
+                              child: Text(
+                                context.l10n.actionUnlockNow,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -733,9 +993,7 @@ class _HistoryRecordCard extends StatelessWidget {
     );
   }
 
-  String _prettyDate(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
+  String _prettyDate(BuildContext context, DateTime date) {
+    return formatIsoLikeDate(context, date);
   }
 }

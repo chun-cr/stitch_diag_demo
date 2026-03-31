@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/l10n/formatters.dart';
+import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
@@ -115,11 +117,27 @@ class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.currentIndex, required this.onTap});
 
   static const _items = [
-    (Icons.home_outlined, Icons.home_rounded, '首页'),
-    (Icons.document_scanner_outlined, Icons.document_scanner, '扫描'),
-    (Icons.assignment_outlined, Icons.assignment_rounded, '报告'),
-    (Icons.person_outline, Icons.person_rounded, '我的'),
+    (Icons.home_outlined, Icons.home_rounded),
+    (Icons.document_scanner_outlined, Icons.document_scanner),
+    (Icons.assignment_outlined, Icons.assignment_rounded),
+    (Icons.person_outline, Icons.person_rounded),
   ];
+
+  String _labelForIndex(BuildContext context, int index) {
+    final l10n = context.l10n;
+    switch (index) {
+      case 0:
+        return l10n.bottomNavHome;
+      case 1:
+        return l10n.bottomNavScan;
+      case 2:
+        return l10n.bottomNavReport;
+      case 3:
+        return l10n.bottomNavProfile;
+      default:
+        return '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +165,7 @@ class _BottomNav extends StatelessWidget {
           child: Row(
             children: List.generate(_items.length, (i) {
               final selected = currentIndex == i;
+              final label = _labelForIndex(context, i);
 
               // 中央 FAB 扫描按钮
               if (i == 1) {
@@ -191,7 +210,10 @@ class _BottomNav extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _items[i].$3,
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -227,7 +249,10 @@ class _BottomNav extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          _items[i].$3,
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: selected
@@ -388,6 +413,7 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildGreeting() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -411,27 +437,33 @@ class _HomePageState extends State<HomePage>
               ),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '早安，小明',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: 0.3,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.homeGreetingMorning(l10n.profileDisplayName),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: 0.3,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '今日气色如何？',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textHint.withValues(alpha: 0.9),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.homeGreetingQuestion,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textHint.withValues(alpha: 0.9),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -458,12 +490,16 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
-                '平和体质 · 上次检测 3天前',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  l10n.homeStatusSummary(l10n.homeBalancedConstitution, 3),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -478,11 +514,15 @@ class _HomePageState extends State<HomePage>
               color: AppColors.primaryMid.withValues(alpha: 0.7),
             ),
             const SizedBox(width: 5),
-            Text(
-              '建议：多喝水，保持规律作息',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary.withValues(alpha: 0.6),
+            Expanded(
+              child: Text(
+                l10n.homeSuggestion,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                ),
               ),
             ),
           ],
@@ -494,26 +534,33 @@ class _HomePageState extends State<HomePage>
   Widget _buildScoreRing() {
     return AnimatedBuilder(
       animation: _scoreAnim,
-      builder: (_, __) => _TcmConstitutionBadge(progress: _scoreAnim.value),
+      builder: (context, child) =>
+          _TcmConstitutionBadge(progress: _scoreAnim.value),
     );
   }
 
   // ── Quick Scan ──────────────────────────────────────────────────
   Widget _buildQuickScan() {
-    const scans = [
+    final l10n = context.l10n;
+    final scans = [
       (
-        '面部望诊',
-        '观气色',
-        Color(0xFF2D6A4F),
+        l10n.homeQuickScanFaceTitle,
+        l10n.homeQuickScanFaceSub,
+        const Color(0xFF2D6A4F),
         Icons.face_retouching_natural_outlined,
       ),
       (
-        '舌象诊断',
-        '察舌苔',
-        Color(0xFF0D7A5A),
+        l10n.homeQuickScanTongueTitle,
+        l10n.homeQuickScanTongueSub,
+        const Color(0xFF0D7A5A),
         Icons.sentiment_satisfied_alt_outlined,
       ),
-      ('手掌经络', '看掌纹', Color(0xFF6B5B95), Icons.back_hand_outlined),
+      (
+        l10n.homeQuickScanPalmTitle,
+        l10n.homeQuickScanPalmSub,
+        const Color(0xFF6B5B95),
+        Icons.back_hand_outlined,
+      ),
     ];
 
     return _SectionShell(
@@ -527,17 +574,21 @@ class _HomePageState extends State<HomePage>
                 color: AppColors.primary,
               ),
               const SizedBox(width: 10),
-              const Text(
-                'AI 望诊入口',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 0.5,
+              Expanded(
+                child: Text(
+                  l10n.homeQuickScanTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              _TcmTag(label: '望·闻·问·切', color: AppColors.tcmGold),
+              _TcmTag(label: l10n.homeQuickScanTag, color: AppColors.tcmGold),
             ],
           ),
           const SizedBox(height: 16),
@@ -578,19 +629,20 @@ class _HomePageState extends State<HomePage>
 
   // ── Function Grid ───────────────────────────────────────────────
   Widget _buildFunctionGrid() {
-    const items = [
-      (Icons.biotech_outlined, '体质分析', Color(0xFFE8F5EE)),
-      (Icons.spa_outlined, '经络调理', Color(0xFFE4F7F1)),
-      (Icons.restaurant_menu_outlined, '饮食建议', Color(0xFFFAF3E0)),
-      (Icons.self_improvement_outlined, '精神养生', Color(0xFFF0EDF8)),
-      (Icons.wb_sunny_outlined, '四季保养', Color(0xFFFAEDE7)),
-      (Icons.history_outlined, '历史记录', Color(0xFFF1EEE6)),
+    final l10n = context.l10n;
+    final items = [
+      (Icons.biotech_outlined, l10n.homeFunctionConstitution, const Color(0xFFE8F5EE)),
+      (Icons.spa_outlined, l10n.homeFunctionMeridianTherapy, const Color(0xFFE4F7F1)),
+      (Icons.restaurant_menu_outlined, l10n.homeFunctionDietAdvice, const Color(0xFFFAF3E0)),
+      (Icons.self_improvement_outlined, l10n.homeFunctionMentalWellness, const Color(0xFFF0EDF8)),
+      (Icons.wb_sunny_outlined, l10n.homeFunctionSeasonalCare, const Color(0xFFFAEDE7)),
+      (Icons.history_outlined, l10n.homeFunctionHistory, const Color(0xFFF1EEE6)),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(title: '功能导航'),
+        _SectionTitle(title: l10n.homeFunctionNavTitle),
         const SizedBox(height: 4),
         GridView.count(
           shrinkWrap: true,
@@ -615,41 +667,47 @@ class _HomePageState extends State<HomePage>
 
   // ── Health Tips ─────────────────────────────────────────────────
   Widget _buildHealthTips() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const _SectionTitle(title: '今日养生'),
+            _SectionTitle(title: l10n.homeTodayCareTitle),
             const SizedBox(width: 8),
-            _TcmTag(label: '春分 · 木旺', color: AppColors.tcmGold),
+            _TcmTag(label: l10n.homeTodayCareSeasonTag, color: AppColors.tcmGold),
             const Spacer(),
-            Text(
-              '两则建议',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textHint.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w500,
+            Flexible(
+              child: Text(
+                l10n.homeTodayCareCount,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textHint.withValues(alpha: 0.9),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 14),
-        const _HealthTipCard(
-          tag: '饮食',
-          wuxing: '土',
+        _HealthTipCard(
+          tag: l10n.homeTipDietTag,
+          wuxing: l10n.homeTipDietWuxing,
           wuxingColor: Color(0xFFD4A04A),
           tagColor: Color(0xFF0D7A5A),
-          tip: '今日节气宜食清淡，山药、百合有助于润肺健脾，适合气虚体质人群。',
+          tip: l10n.homeTipDietBody,
           icon: Icons.restaurant_outlined,
         ),
         const SizedBox(height: 10),
-        const _HealthTipCard(
-          tag: '起居',
-          wuxing: '水',
+        _HealthTipCard(
+          tag: l10n.homeTipRoutineTag,
+          wuxing: l10n.homeTipRoutineWuxing,
           wuxingColor: Color(0xFF4A7FA8),
           tagColor: Color(0xFF2D6A4F),
-          tip: '子时（23:00 前）入睡有助于肝胆排毒，建议减少夜间屏幕使用时间。',
+          tip: l10n.homeTipRoutineBody,
           icon: Icons.bedtime_outlined,
         ),
       ],
@@ -897,8 +955,10 @@ class _CollapsedHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        const Text(
-          '脉 AI 健康',
+        Text(
+          context.l10n.homeCollapsedTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
@@ -951,8 +1011,8 @@ class _TcmConstitutionBadge extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 1),
-                    const Text(
-                      '健康分',
+                    Text(
+                      context.l10n.homeHealthScoreLabel,
                       style: TextStyle(
                         fontSize: 9,
                         color: AppColors.primaryMid,
@@ -975,8 +1035,10 @@ class _TcmConstitutionBadge extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: const Text(
-              '平和体质',
+            child: Text(
+              context.l10n.homeBalancedConstitution,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
                 color: AppColors.primary,
@@ -987,7 +1049,10 @@ class _TcmConstitutionBadge extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '阴阳较平衡',
+            context.l10n.homeBalanceState,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 9,
               color: AppColors.textHint.withValues(alpha: 0.8),
@@ -1180,20 +1245,24 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                           opacity: textOpacity,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Icon(
                                 Icons.play_circle_outline,
                                 color: Color(0xFFFDFCF8),
                                 size: 18,
                               ),
                               SizedBox(width: 8),
-                              Text(
-                                '开始全套智能检测',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFFDFCF8),
-                                  letterSpacing: 1,
+                              Flexible(
+                                child: Text(
+                                  context.l10n.homeStartFullScan,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFFDFCF8),
+                                    letterSpacing: 1,
+                                  ),
                                 ),
                               ),
                             ],
@@ -1387,7 +1456,7 @@ class _LastReportCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${record.date.year}年${record.date.month}月${record.date.day}日',
+                      formatShortDate(context, record.date),
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.textPrimary,
@@ -1403,8 +1472,8 @@ class _LastReportCard extends StatelessWidget {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text(
-                      '查看全部 >',
+                    child: Text(
+                      '${context.l10n.commonViewAll} >',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1419,7 +1488,7 @@ class _LastReportCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    record.constitutionType,
+                    record.constitutionType.label(context),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -1428,7 +1497,7 @@ class _LastReportCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 18),
                   Text(
-                    '气虚偏颇 · 脾胃虚弱',
+                    context.l10n.homeLastReportInsight,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary.withValues(alpha: 0.76),
@@ -1458,7 +1527,7 @@ class _LastReportCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '脾气亏虚，运化失健。面色偏黄，舌淡苔白，建议健脾益气，规律作息。',
+                          context.l10n.homeLastReportSummary,
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.textSecondary,
@@ -1471,13 +1540,13 @@ class _LastReportCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const Row(
+              Row(
                 children: [
-                  _CompactScore(label: '面诊', score: 86),
+                  _CompactScore(label: context.l10n.metricFaceDiagnosis, score: 86),
                   SizedBox(width: 18),
-                  _CompactScore(label: '舌诊', score: 72),
+                  _CompactScore(label: context.l10n.metricTongueDiagnosis, score: 72),
                   SizedBox(width: 18),
-                  _CompactScore(label: '掌诊', score: 80),
+                  _CompactScore(label: context.l10n.metricPalmDiagnosis, score: 80),
                 ],
               ),
             ],
@@ -1529,6 +1598,7 @@ class _CompactScore extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: SizedBox(
+              width: double.infinity,
               height: 8,
               child: Stack(
                 children: [
@@ -1741,7 +1811,7 @@ class _HealthTipCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '五行·$wuxing',
+                                '${context.l10n.commonFiveElements}·$wuxing',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
@@ -1881,31 +1951,6 @@ class _SectionShell extends StatelessWidget {
   }
 }
 
-class _ReportTag extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _ReportTag({required this.label, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: color.withValues(alpha: 0.22), width: 1),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
 class _ScoreBar extends StatefulWidget {
   final String label;
   final double score;
@@ -1957,7 +2002,7 @@ class _ScoreBarState extends State<_ScoreBar>
               ),
               AnimatedBuilder(
                 animation: _a,
-                builder: (_, __) => Text(
+                builder: (context, child) => Text(
                   '${(widget.score * _a.value * 100).round()}',
                   style: TextStyle(
                     fontSize: 11,
@@ -1971,7 +2016,7 @@ class _ScoreBarState extends State<_ScoreBar>
           const SizedBox(height: 4),
           AnimatedBuilder(
             animation: _a,
-            builder: (_, __) => ClipRRect(
+            builder: (context, child) => ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
                 value: widget.score * _a.value,
@@ -1987,38 +2032,4 @@ class _ScoreBarState extends State<_ScoreBar>
   }
 }
 
-class _WuxingDots extends StatelessWidget {
-  const _WuxingDots();
-  static const _dots = [
-    (Color(0xFF4A7FA8), '水'),
-    (Color(0xFF2D6A4F), '木'),
-    (Color(0xFFC9A84C), '土'),
-    (Color(0xFFE85D5D), '火'),
-    (Color(0xFFB0A898), '金'),
-  ];
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: _dots
-          .map(
-            (d) => Padding(
-              padding: const EdgeInsets.only(right: 3),
-              child: Tooltip(
-                message: d.$2,
-                child: Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: d.$1,
-                  ),
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
 

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 // 替换成你的实际包名，例如：
 // import 'package:your_app_name/core/router/app_router.dart';
 // import 'package:your_app_name/core/theme/app_theme.dart';
 //
 // 临时直接引用（正式时删掉，改用上面的包名 import）
+import 'core/l10n/l10n.dart';
+import 'core/l10n/locale_controller.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
@@ -38,10 +42,20 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeControllerProvider).asData?.value;
+
     return MaterialApp.router(
-      title: '脉AI健康',
+      onGenerateTitle: (context) => context.l10n.appTitle,
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
+      locale: locale,
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF0F6FF),

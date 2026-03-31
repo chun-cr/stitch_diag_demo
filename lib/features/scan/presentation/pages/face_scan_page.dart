@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/face_landmark_overlay.dart';
@@ -99,7 +100,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (!_hasFaceDetected) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('请先将面部对准椭圆框内')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.scanFaceAlignInFrame)));
       return;
     }
     setState(() {
@@ -138,6 +139,7 @@ class _FaceScanPageState extends State<FaceScanPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1EB),
       body: Stack(
@@ -179,7 +181,7 @@ class _FaceScanPageState extends State<FaceScanPage>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '请保持不动',
+                      l10n.scanKeepStill,
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withValues(alpha: 0.8),
@@ -198,6 +200,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   // ─── 顶部引导卡 ───────────────────────────────────────────────────────────
 
   Widget _buildTopGuideCard() {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       decoration: BoxDecoration(
@@ -295,8 +298,8 @@ class _FaceScanPageState extends State<FaceScanPage>
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            '面部望诊',
+                          Text(
+                            l10n.scanFaceTitle,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -314,8 +317,8 @@ class _FaceScanPageState extends State<FaceScanPage>
                               color: _kGreen.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text(
-                              '面诊',
+                            child: Text(
+                              l10n.scanFaceTag,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: _kGreen,
@@ -327,9 +330,9 @@ class _FaceScanPageState extends State<FaceScanPage>
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '将面部置于椭圆框内，保持正视，自然放松表情',
-                        style: TextStyle(
+                        Text(
+                          l10n.scanFaceSubtitle,
+                          style: TextStyle(
                           fontSize: 12,
                           color: const Color(
                             0xFF3A3028,
@@ -362,7 +365,7 @@ class _FaceScanPageState extends State<FaceScanPage>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '通过面部气色判断脏腑盛衰，观察神、色、形、态',
+                  l10n.scanFaceDetail,
                   style: TextStyle(
                     fontSize: 11,
                     color: _kGreen.withValues(alpha: 0.75),
@@ -438,6 +441,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   }
 
   Widget _buildOvalFrame() {
+    final l10n = context.l10n;
     const frameW = 210.0;
     const frameH = 262.0;
 
@@ -546,8 +550,8 @@ class _FaceScanPageState extends State<FaceScanPage>
                   ? _DirectionPill(direction: _faceDirection)
                   : _StatusPill(
                       label: _hasPermission
-                          ? (_hasFaceDetected ? '面部已就位 ✓' : '请将面部对准框内')
-                          : '需要相机权限',
+                          ? (_hasFaceDetected ? l10n.scanFaceDetectedReady : l10n.scanFaceAlignInFrame)
+                          : l10n.scanCameraPermissionRequired,
                       detected: _hasFaceDetected,
                     ),
             ),
@@ -560,6 +564,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   // ─── 底部提示卡 ──────────────────────────────────────────────────────────
 
   Widget _buildBottomCard() {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       decoration: BoxDecoration(
@@ -582,10 +587,10 @@ class _FaceScanPageState extends State<FaceScanPage>
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: const [
-                _TipItem(icon: Icons.wb_sunny_outlined, label: '光线充足'),
-                _TipItem(icon: Icons.face_retouching_off, label: '不要化妆'),
-                _TipItem(icon: Icons.remove_red_eye_outlined, label: '正视前方'),
+              children: [
+                _TipItem(icon: Icons.wb_sunny_outlined, label: l10n.scanTipBrightLight),
+                _TipItem(icon: Icons.face_retouching_off, label: l10n.scanFaceTipNoMakeup),
+                _TipItem(icon: Icons.remove_red_eye_outlined, label: l10n.scanFaceTipLookForward),
               ],
             ),
           ),
@@ -601,7 +606,7 @@ class _FaceScanPageState extends State<FaceScanPage>
                     duration: const Duration(milliseconds: 180),
                     opacity: _isScanning ? 0 : 1,
                     child: _buildPrimaryButton(
-                      label: '开始面部扫描',
+                      label: l10n.scanFaceStartButton,
                       enabled: _hasPermission && _hasFaceDetected,
                       onTap: _startScan,
                     ),
@@ -610,9 +615,9 @@ class _FaceScanPageState extends State<FaceScanPage>
                 const SizedBox(height: 10),
                 GestureDetector(
                   onTap: () => unawaited(_navigateToTongueScan()),
-                  child: Text(
-                    '跳过此步骤',
-                    style: TextStyle(
+                    child: Text(
+                      l10n.scanSkipThisStep,
+                      style: TextStyle(
                       fontSize: 13,
                       color: const Color(0xFF3A3028).withValues(alpha: 0.35),
                       letterSpacing: 0.3,
@@ -686,6 +691,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   /// 已居中时返回空字符串。
   String _computeFaceDirection(List<Offset> landmarks) {
     if (landmarks.length <= 4) return '';
+    final l10n = context.l10n;
     // MediaPipe FaceMesh 鼻尖点 index = 4（0-based）
     final nose = landmarks[4];
     const threshold = 0.12; // 超过 12% 中心偏移才提示
@@ -696,9 +702,9 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (adx < threshold && ady < threshold) return '';
     // 优先水平方向（镜像：画面中鼻子偏右表示需要向左）
     if (adx >= ady) {
-      return dx > 0 ? '← 请向左移动' : '→ 请向右移动';
+      return dx > 0 ? l10n.scanMoveLeft : l10n.scanMoveRight;
     } else {
-      return dy > 0 ? '↑ 请向上移动' : '↓ 请向下移动';
+      return dy > 0 ? l10n.scanMoveUp : l10n.scanMoveDown;
     }
   }
 

@@ -17,6 +17,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/palm_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
@@ -190,6 +191,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   /// 归一化坐标 (0~1).小 = 太远，大 = 太近。
   String _computePalmHint(List<Offset> lm) {
     if (lm.isEmpty) return '';
+    final l10n = context.l10n;
     double minX = 1, maxX = 0, minY = 1, maxY = 0;
     for (final p in lm) {
       if (p.dx < minX) minX = p.dx;
@@ -201,8 +203,8 @@ class _PalmScanPageState extends State<PalmScanPage>
     final bboxH = maxY - minY;
     final bboxArea = bboxW * bboxH;
     // 面积闾值：对觓线占自归一化画幅的比例
-    if (bboxArea < 0.04) return '手掂太远，请靠近一点';
-    if (bboxArea > 0.40) return '手掂太近，请离远一点';
+    if (bboxArea < 0.04) return l10n.scanPalmMoveCloser;
+    if (bboxArea > 0.40) return l10n.scanPalmMoveFarther;
     // 居中检测
     final cx = (minX + maxX) / 2;
     final cy = (minY + maxY) / 2;
@@ -210,9 +212,9 @@ class _PalmScanPageState extends State<PalmScanPage>
     final dx = cx - 0.5;
     final dy = cy - 0.5;
     if (dx.abs() >= dy.abs() && dx.abs() > threshold) {
-      return dx > 0 ? '← 请向左移动' : '→ 请向右移动';
+      return dx > 0 ? l10n.scanMoveLeft : l10n.scanMoveRight;
     } else if (dy.abs() > threshold) {
-      return dy > 0 ? '↑ 请向上移动' : '↓ 请向下移动';
+      return dy > 0 ? l10n.scanMoveUp : l10n.scanMoveDown;
     }
     return '';
   }
@@ -220,36 +222,38 @@ class _PalmScanPageState extends State<PalmScanPage>
   // ── 文案 ─────────────────────────────────────────────────────────
 
   String _statusText() {
-    if (!_hasPermission) return '等待权限';
-    if (_scanState == PalmScanState.completed) return '手掌扫描完成 ✓';
-    if (_readyToScan) return '已识别伸直手掌，请保持 2 秒';
+    final l10n = context.l10n;
+    if (!_hasPermission) return l10n.scanPalmWaitingPermission;
+    if (_scanState == PalmScanState.completed) return l10n.scanPalmCompleted;
+    if (_readyToScan) return l10n.scanPalmReadyHold;
     if (_gestureName == 'Open_Palm' && !_handStraight) {
-      return '已检测到张开手掌，请将手掌伸直';
+      return l10n.scanPalmOpenDetectedStraighten;
     }
     final localizedGesture = _localizedGestureName(_gestureName);
-    if (localizedGesture.isNotEmpty) return '检测到：$localizedGesture';
+    if (localizedGesture.isNotEmpty) return l10n.scanPalmDetectedGesture(localizedGesture);
     if (_handPresent) {
-      return '请将手掌伸直并自然张开';
+      return l10n.scanPalmStretchOpen;
     }
-    return '请将手掌放入框内';
+    return l10n.scanPalmAlignHint;
   }
 
   String _localizedGestureName(String rawName) {
+    final l10n = context.l10n;
     switch (rawName) {
       case 'Open_Palm':
-        return '张开手掌';
+        return l10n.scanGestureOpenPalm;
       case 'Closed_Fist':
-        return '握拳';
+        return l10n.scanGestureClosedFist;
       case 'Victory':
-        return '比耶';
+        return l10n.scanGestureVictory;
       case 'Thumb_Up':
-        return '竖起拇指';
+        return l10n.scanGestureThumbUp;
       case 'Thumb_Down':
-        return '拇指向下';
+        return l10n.scanGestureThumbDown;
       case 'Pointing_Up':
-        return '食指向上';
+        return l10n.scanGesturePointingUp;
       case 'ILoveYou':
-        return '我爱你手势';
+        return l10n.scanGestureILoveYou;
       default:
         return rawName;
     }
@@ -285,6 +289,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   // ─── 顶部引导卡 ─────────────────────────────────────────────────────
 
   Widget _buildTopGuideCard() {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       decoration: BoxDecoration(
@@ -378,8 +383,8 @@ class _PalmScanPageState extends State<PalmScanPage>
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            '手掌经络',
+                          Text(
+                            l10n.scanPalmTitle,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -397,8 +402,8 @@ class _PalmScanPageState extends State<PalmScanPage>
                               color: _kAccent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text(
-                              '掌诊',
+                            child: Text(
+                              l10n.scanPalmTag,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: _kAccent,
@@ -410,9 +415,9 @@ class _PalmScanPageState extends State<PalmScanPage>
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '将手掌自然伸向镜头，参考倾斜轮廓摆放，手指自然分开',
-                        style: TextStyle(
+                        Text(
+                          l10n.scanPalmSubtitle,
+                          style: TextStyle(
                           fontSize: 12,
                           color: const Color(
                             0xFF3A3028,
@@ -444,7 +449,7 @@ class _PalmScanPageState extends State<PalmScanPage>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '观察手掌纹路、色泽、形态，推断五脏六腑之病理',
+                  l10n.scanPalmDetail,
                   style: TextStyle(
                     fontSize: 11,
                     color: _kAccent.withValues(alpha: 0.75),
@@ -571,6 +576,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   // ─── 底部提示卡 ─────────────────────────────────────────────────────
 
   Widget _buildBottomCard() {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       decoration: BoxDecoration(
@@ -592,10 +598,10 @@ class _PalmScanPageState extends State<PalmScanPage>
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: const [
-                _TipItem(icon: Icons.wb_sunny_outlined, label: '光线充足'),
-                _TipItem(icon: Icons.pan_tool_outlined, label: '手掌展平'),
-                _TipItem(icon: Icons.do_not_touch_outlined, label: '保持稳定'),
+              children: [
+                _TipItem(icon: Icons.wb_sunny_outlined, label: l10n.scanTipBrightLight),
+                _TipItem(icon: Icons.pan_tool_outlined, label: l10n.scanPalmTipFlatten),
+                _TipItem(icon: Icons.do_not_touch_outlined, label: l10n.scanTipKeepSteady),
               ],
             ),
           ),
@@ -606,8 +612,8 @@ class _PalmScanPageState extends State<PalmScanPage>
               children: [
                 _buildPrimaryButton(
                   label: _scanState == PalmScanState.completed
-                      ? '即将查看报告'
-                      : '请伸直手掌并保持 2 秒',
+                      ? l10n.scanPalmViewingReportSoon
+                      : l10n.scanPalmHoldButton,
                   enabled: false,
                   onTap: _navigateToReport,
                 ),
@@ -615,7 +621,7 @@ class _PalmScanPageState extends State<PalmScanPage>
                 GestureDetector(
                   onTap: _navigateToReport,
                   child: Text(
-                    '跳过此步骤',
+                    l10n.scanSkipThisStep,
                     style: TextStyle(
                       fontSize: 13,
                       color: const Color(0xFF3A3028).withValues(alpha: 0.35),

@@ -17,6 +17,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/router/app_router.dart';
 import '../services/tongue_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
@@ -135,14 +136,15 @@ class _TongueScanPageState extends State<TongueScanPage>
   /// 根据嘴部中心（已归一化）0~1 计算偏移方向
   String _computeMouthDirection(Offset? center) {
     if (center == null) return '';
+    final l10n = context.l10n;
     const threshold = 0.12;
     final dx = center.dx - 0.5;
     final dy = center.dy - 0.5;
     if (dx.abs() < threshold && dy.abs() < threshold) return '';
     if (dx.abs() >= dy.abs()) {
-      return dx > 0 ? '← 请向左移动' : '→ 请向右移动';
+      return dx > 0 ? l10n.scanMoveLeft : l10n.scanMoveRight;
     } else {
-      return dy > 0 ? '↑ 请向上移动' : '↓ 请向下移动';
+      return dy > 0 ? l10n.scanMoveUp : l10n.scanMoveDown;
     }
   }
 
@@ -206,12 +208,13 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ── 文案计算 ──────────────────────────────────────────────────────
 
   String get _statusLabel {
-    if (_scanState == ScanState.completed) return '舌象扫描完成 ✓';
-    if (!_hasPermission) return '需要相机权限';
-    if (_scanState == ScanState.idle) return '点击下方按钮开始扫描';
-    if (_tongueDetected) return '已识别舌头，请保持 2 秒';
-    if (_mouthPresent) return '已检测口部，请自然伸舌';
-    return '请伸出舌头，对准框内';
+    final l10n = context.l10n;
+    if (_scanState == ScanState.completed) return l10n.scanTongueCompleted;
+    if (!_hasPermission) return l10n.scanCameraPermissionRequired;
+    if (_scanState == ScanState.idle) return l10n.scanTongueTapToStart;
+    if (_tongueDetected) return l10n.scanTongueDetectedHold;
+    if (_mouthPresent) return l10n.scanTongueMouthDetected;
+    return l10n.scanTongueAlignHint;
   }
 
   // ─── Build ──────────────────────────────────────────────────────────────────
@@ -242,6 +245,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ─── 顶部引导卡 ─────────────────────────────────────────────────────
 
   Widget _buildTopGuideCard() {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       decoration: BoxDecoration(
@@ -337,8 +341,8 @@ class _TongueScanPageState extends State<TongueScanPage>
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            '舌象诊断',
+                          Text(
+                            l10n.scanTongueTitle,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -356,8 +360,8 @@ class _TongueScanPageState extends State<TongueScanPage>
                               color: _kAccent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text(
-                              '舌诊',
+                            child: Text(
+                              l10n.scanTongueTag,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: _kAccent,
@@ -369,9 +373,9 @@ class _TongueScanPageState extends State<TongueScanPage>
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '自然伸出舌头，舌面充分展开，保持 2 秒',
-                        style: TextStyle(
+                        Text(
+                          l10n.scanTongueSubtitle,
+                          style: TextStyle(
                           fontSize: 12,
                           color: const Color(
                             0xFF3A3028,
@@ -404,7 +408,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '舌为心之苗，脾之外候，舌象反映气血津液盛衰',
+                  l10n.scanTongueDetail,
                   style: TextStyle(
                     fontSize: 11,
                     color: _kAccent.withValues(alpha: 0.75),
@@ -570,6 +574,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ─── 底部提示卡 ─────────────────────────────────────────────────────
 
   Widget _buildBottomCard() {
+    final l10n = context.l10n;
     final bool canStart = _hasPermission && _scanState != ScanState.scanning;
     final bool isCompleted = _scanState == ScanState.completed;
 
@@ -595,10 +600,10 @@ class _TongueScanPageState extends State<TongueScanPage>
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: const [
-                _TipItem(icon: Icons.wb_sunny_outlined, label: '光线充足'),
-                _TipItem(icon: Icons.no_food_outlined, label: '勿食有色食物'),
-                _TipItem(icon: Icons.waves_outlined, label: '舌头平伸'),
+              children: [
+                _TipItem(icon: Icons.wb_sunny_outlined, label: l10n.scanTipBrightLight),
+                _TipItem(icon: Icons.no_food_outlined, label: l10n.scanTongueTipNoColoredFood),
+                _TipItem(icon: Icons.waves_outlined, label: l10n.scanTongueTipTongueFlat),
               ],
             ),
           ),
@@ -610,13 +615,13 @@ class _TongueScanPageState extends State<TongueScanPage>
               children: [
                 if (!isCompleted)
                   _buildPrimaryButton(
-                    label: _scanState == ScanState.scanning ? '扫描中…' : '开始舌象扫描',
+                    label: _scanState == ScanState.scanning ? l10n.scanScanning : l10n.scanTongueStartButton,
                     enabled: canStart,
                     onTap: () => unawaited(_startScan()),
                   )
                 else
                   _buildPrimaryButton(
-                    label: '下一步：手掌扫描',
+                    label: l10n.scanTongueNextPalm,
                     enabled: true,
                     onTap: () => context.pushReplacement(AppRoutes.scanPalm),
                     isNext: true,
@@ -625,7 +630,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                 GestureDetector(
                   onTap: () => context.pushReplacement(AppRoutes.scanPalm),
                   child: Text(
-                    '跳过此步骤',
+                    l10n.scanSkipThisStep,
                     style: TextStyle(
                       fontSize: 13,
                       color: const Color(0xFF3A3028).withValues(alpha: 0.35),
