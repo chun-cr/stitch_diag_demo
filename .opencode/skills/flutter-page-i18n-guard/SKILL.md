@@ -214,6 +214,38 @@ This is especially required for:
 - scan labels
 - report category labels
 
+### Step A8 — Clean up i18n when deleting UI
+
+When deleting a Flutter page, section, card, modal, button, menu row, or any user-visible content, you must also check whether the related localization keys should be removed.
+
+Required workflow:
+
+1. delete the Dart / Flutter UI code first
+2. identify the removed localization references such as:
+   - `context.l10n.xxx`
+   - `l10n.xxx`
+3. search the whole project for every affected key before deleting any ARB entry
+4. only when a key has no remaining references, remove it from all locale files:
+   - `lib/l10n/app_zh.arb`
+   - `lib/l10n/app_en.arb`
+   - `lib/l10n/app_ja.arb`
+   - `lib/l10n/app_ko.arb`
+5. regenerate and verify:
+   - `flutter gen-l10n`
+   - `flutter analyze`
+
+Important behavior notes:
+
+- deleting page code does **not** automatically delete ARB keys
+- deleting Dart references but keeping ARB keys leaves stale translation entries behind
+- deleting ARB keys while Dart references still exist will break localization generation or analysis
+
+Never:
+
+- delete only one locale’s ARB entry
+- delete ARB keys without a full-project search
+- leave clearly unused keys behind “for later” unless the user explicitly asks to keep them
+
 ---
 
 ## Mode B — Multilingual UI Inspection

@@ -1258,6 +1258,145 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 추천은 체질 분석을 바탕으로 한 참고 정보입니다. 중성약을 사용할 경우에는 의사 또는 약사의 안내에 따라 주세요.';
 
   @override
+  String get reportUnlockTitle => '전체 리포트 잠금 해제';
+
+  @override
+  String get reportUnlockDescription =>
+      '체질 분석, 케어 플랜, 맞춤형 제안의 전체 내용을 확인할 수 있습니다.';
+
+  @override
+  String get reportUnlockButton => '리포트 잠금 해제';
+
+  @override
+  String get reportUnlockSheetTitle => '전체 리포트 잠금 해제';
+
+  @override
+  String get reportUnlockSheetBody =>
+      '잠금 해제 후에는 체질 상세 분석, 케어 플랜, 맞춤형 제안을 모두 확인할 수 있습니다.';
+
+  @override
+  String get reportUnlockInvitationTag => '프리미엄 건강 인사이트';
+
+  @override
+  String get reportUnlockInvitationSubtitle =>
+      '전체 리포트를 열면 더 깊은 체질 인사이트, 맞춤 케어 경로, 개인화된 양생 가이드를 이어서 확인할 수 있습니다.';
+
+  @override
+  String get reportUnlockBenefitConstitution =>
+      '체질 원인, 위험 경향, 상세 해석을 전체로 확인할 수 있습니다';
+
+  @override
+  String get reportUnlockBenefitTherapy =>
+      '맞춤 혈자리 제안, 정신 양생, 사계절 케어 가이드를 받을 수 있습니다';
+
+  @override
+  String get reportUnlockBenefitAdvice => '설상 상세 해석, 식이 방향, 관련 상품 추천을 잠금 해제합니다';
+
+  @override
+  String get reportUnlockSheetPrice => '모의 가격: ¥29.90';
+
+  @override
+  String get reportUnlockSheetPriceFallback => 'App Store 가격을 불러오는 중';
+
+  @override
+  String get reportUnlockSheetConfirm => 'Apple IAP로 잠금 해제';
+
+  @override
+  String get reportUnlockSheetPurchasing => '구매를 시작하는 중…';
+
+  @override
+  String get reportUnlockSheetRestoring => '구매 내역을 복원하는 중…';
+
+  @override
+  String get reportUnlockRestoreButton => '구매 복원';
+
+  @override
+  String get reportUnlockSheetStoreHint =>
+      'Apple App Store의 안전한 결제를 사용하며, 이 비소모성 구매는 복원을 지원합니다.';
+
+  @override
+  String get reportUnlockStatusStoreUnavailable =>
+      '현재 App Store에 연결할 수 없습니다. 네트워크 연결 후 다시 시도해 주세요.';
+
+  @override
+  String get reportUnlockStatusProductUnavailable =>
+      '구매 가능한 상품을 찾지 못했습니다. 상품 ID를 확인하거나 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get reportUnlockStatusPurchaseFailed =>
+      '구매가 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get reportUnlockStatusPurchaseCancelled => '이번 구매를 취소했습니다.';
+
+  @override
+  String get reportUnlockStatusRestoreNotFound =>
+      '이 Apple ID로 복원할 수 있는 구매 내역을 찾지 못했습니다.';
+
+  @override
+  String get reportUnlockStatusPurchasing => 'App Store 구매 결과를 기다리는 중입니다.';
+
+  @override
+  String get reportUnlockStatusRestoring => 'App Store에서 구매 기록을 복원하는 중입니다.';
+
+  @override
+  String get reportUnlockSheetMockHint =>
+      '현재는 로컬 모의 구매 흐름이며, 이후 Apple IAP로 교체할 수 있습니다.';
+
+  @override
+  String get reportUnlockCausalAnalysisTitle => '원인 심층 분석 잠금 해제';
+
+  @override
+  String get reportUnlockDiseaseTendencyTitle => '질환 경향 알림 잠금 해제';
+
+  @override
+  String get reportUnlockBadHabitsTitle => '주의해야 할 행동 안내 잠금 해제';
+
+  @override
+  String get reportUnlockAcupuncturePointsTitle => '맞춤 혈자리 플랜 잠금 해제';
+
+  @override
+  String get reportUnlockMentalWellnessTitle => '정신 양생 조언 잠금 해제';
+
+  @override
+  String get reportUnlockSeasonalCareTitle => '사계절 양생 플랜 잠금 해제';
+
+  @override
+  String get reportUnlockTongueAnalysisTitle => '설상 상세 해석 잠금 해제';
+
+  @override
+  String get reportUnlockDietAdviceTitle => '맞춤 식이 플랜 잠금 해제';
+
+  @override
+  String get reportPremiumConstitutionSubtitle =>
+      '체질의 원인과 위험 경향을 포함한 상세 분석을 확인할 수 있습니다.';
+
+  @override
+  String get reportPremiumConstitutionPreview1 => '주요 경향: 기허질';
+
+  @override
+  String get reportPremiumConstitutionPreview2 => '체질과 위험 경향의 상세 해석을 해제';
+
+  @override
+  String get reportPremiumTherapySubtitle =>
+      '추천 혈자리, 정신 양생, 사계절 케어 제안을 확인할 수 있습니다.';
+
+  @override
+  String get reportPremiumTherapyPreview1 => '추천 포인트: 족삼리 · 기해';
+
+  @override
+  String get reportPremiumTherapyPreview2 => '구체적인 케어 흐름과 실행 제안을 해제';
+
+  @override
+  String get reportPremiumAdviceSubtitle => '식양생, 설상 상세, 관련 상품 제안을 확인할 수 있습니다.';
+
+  @override
+  String get reportPremiumAdvicePreview1 => '식이 방향: 건비거습';
+
+  @override
+  String get reportPremiumAdvicePreview2 => '식이·설상·상품 제안 전체를 해제';
+
+  @override
   String get reportProductJianpiwan => '건비익기환';
 
   @override

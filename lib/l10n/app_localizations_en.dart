@@ -1327,6 +1327,160 @@ class AppLocalizationsEn extends AppLocalizations {
       'These product recommendations are based on constitution analysis and are for reference only. Use of Chinese patent medicines should be guided by a physician or pharmacist.';
 
   @override
+  String get reportUnlockTitle => 'Unlock Full Report';
+
+  @override
+  String get reportUnlockDescription =>
+      'View the full constitution analysis, care plan, and personalized recommendations.';
+
+  @override
+  String get reportUnlockButton => 'Unlock Report';
+
+  @override
+  String get reportUnlockSheetTitle => 'Unlock Full Report';
+
+  @override
+  String get reportUnlockSheetBody =>
+      'After unlocking, you can view the complete constitution details, care plans, and personalized recommendations.';
+
+  @override
+  String get reportUnlockInvitationTag => 'Premium Health Insights';
+
+  @override
+  String get reportUnlockInvitationSubtitle =>
+      'Unlock the full report to continue with deeper constitution insights, tailored care paths, and personalized wellness guidance.';
+
+  @override
+  String get reportUnlockBenefitConstitution =>
+      'View the full constitution causes, risk tendencies, and detailed interpretation';
+
+  @override
+  String get reportUnlockBenefitTherapy =>
+      'Get personalized acupoint guidance, mental wellness support, and seasonal care advice';
+
+  @override
+  String get reportUnlockBenefitAdvice =>
+      'Unlock detailed tongue analysis, dietary direction, and related product recommendations';
+
+  @override
+  String get reportUnlockSheetPrice => 'Mock price: ¥29.90';
+
+  @override
+  String get reportUnlockSheetPriceFallback => 'Loading App Store price';
+
+  @override
+  String get reportUnlockSheetConfirm => 'Unlock with Apple IAP';
+
+  @override
+  String get reportUnlockSheetPurchasing => 'Starting purchase…';
+
+  @override
+  String get reportUnlockSheetRestoring => 'Restoring purchases…';
+
+  @override
+  String get reportUnlockRestoreButton => 'Restore Purchase';
+
+  @override
+  String get reportUnlockSheetStoreHint =>
+      'Securely processed through the Apple App Store and supports restoring this non-consumable purchase.';
+
+  @override
+  String get reportUnlockStatusStoreUnavailable =>
+      'The App Store is currently unavailable. Please try again when online.';
+
+  @override
+  String get reportUnlockStatusProductUnavailable =>
+      'No purchasable product was found. Please check the product ID or try again later.';
+
+  @override
+  String get reportUnlockStatusPurchaseFailed =>
+      'The purchase did not complete. Please try again later.';
+
+  @override
+  String get reportUnlockStatusPurchaseCancelled =>
+      'You cancelled this purchase.';
+
+  @override
+  String get reportUnlockStatusRestoreNotFound =>
+      'No restorable purchase was found for this Apple ID.';
+
+  @override
+  String get reportUnlockStatusPurchasing =>
+      'Waiting for the App Store purchase result.';
+
+  @override
+  String get reportUnlockStatusRestoring =>
+      'Restoring your purchase record from the App Store.';
+
+  @override
+  String get reportUnlockSheetMockHint =>
+      'This is currently a local mock purchase flow and can be replaced with Apple IAP later.';
+
+  @override
+  String get reportUnlockCausalAnalysisTitle => 'Unlock Deep Causal Analysis';
+
+  @override
+  String get reportUnlockDiseaseTendencyTitle =>
+      'Unlock Disease Tendency Alerts';
+
+  @override
+  String get reportUnlockBadHabitsTitle => 'Unlock Harmful Habit Warnings';
+
+  @override
+  String get reportUnlockAcupuncturePointsTitle =>
+      'Unlock Personalized Acupoint Plan';
+
+  @override
+  String get reportUnlockMentalWellnessTitle =>
+      'Unlock Mental Wellness Guidance';
+
+  @override
+  String get reportUnlockSeasonalCareTitle => 'Unlock Seasonal Wellness Plan';
+
+  @override
+  String get reportUnlockTongueAnalysisTitle =>
+      'Unlock Detailed Tongue Analysis';
+
+  @override
+  String get reportUnlockDietAdviceTitle => 'Unlock Personalized Diet Plan';
+
+  @override
+  String get reportPremiumConstitutionSubtitle =>
+      'View root causes, risk tendencies, and the full constitution analysis.';
+
+  @override
+  String get reportPremiumConstitutionPreview1 =>
+      'Primary tendency: Qi Deficiency Constitution';
+
+  @override
+  String get reportPremiumConstitutionPreview2 =>
+      'Unlock the full constitution and risk interpretation';
+
+  @override
+  String get reportPremiumTherapySubtitle =>
+      'View recommended acupoints, mental wellness, and seasonal care guidance.';
+
+  @override
+  String get reportPremiumTherapyPreview1 =>
+      'Recommended focus: Zusanli · Qihai';
+
+  @override
+  String get reportPremiumTherapyPreview2 =>
+      'Unlock the full care path and action plan';
+
+  @override
+  String get reportPremiumAdviceSubtitle =>
+      'View food therapy guidance, tongue analysis, and recommended products.';
+
+  @override
+  String get reportPremiumAdvicePreview1 =>
+      'Diet focus: Strengthen the spleen and clear dampness';
+
+  @override
+  String get reportPremiumAdvicePreview2 =>
+      'Unlock full diet, tongue, and product guidance';
+
+  @override
   String get reportProductJianpiwan => 'Spleen-Strengthening Qi Pill';
 
   @override

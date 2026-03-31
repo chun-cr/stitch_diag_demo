@@ -1231,6 +1231,135 @@ class AppLocalizationsZh extends AppLocalizations {
       '以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。';
 
   @override
+  String get reportUnlockTitle => '解锁完整报告';
+
+  @override
+  String get reportUnlockDescription => '查看完整体质分析、调理方案与个性化建议。';
+
+  @override
+  String get reportUnlockButton => '解锁报告';
+
+  @override
+  String get reportUnlockSheetTitle => '解锁完整报告';
+
+  @override
+  String get reportUnlockSheetBody => '解锁后可查看体质详解、调理方案和个性化建议的全部内容。';
+
+  @override
+  String get reportUnlockInvitationTag => '尊享深度健康解读';
+
+  @override
+  String get reportUnlockInvitationSubtitle =>
+      '开启完整报告后，可继续查看更细致的体质洞察、调理路径与个性化养护建议。';
+
+  @override
+  String get reportUnlockBenefitConstitution => '完整查看体质成因、风险倾向与深度解读';
+
+  @override
+  String get reportUnlockBenefitTherapy => '获得专属穴位方案、精神养生与四季调理建议';
+
+  @override
+  String get reportUnlockBenefitAdvice => '解锁舌象详解、饮食方向与相关产品推荐';
+
+  @override
+  String get reportUnlockSheetPrice => '模拟价格：¥29.90';
+
+  @override
+  String get reportUnlockSheetPriceFallback => 'App Store 价格加载中';
+
+  @override
+  String get reportUnlockSheetConfirm => '通过 Apple IAP 解锁';
+
+  @override
+  String get reportUnlockSheetPurchasing => '正在发起购买…';
+
+  @override
+  String get reportUnlockSheetRestoring => '正在恢复购买…';
+
+  @override
+  String get reportUnlockRestoreButton => '恢复购买';
+
+  @override
+  String get reportUnlockSheetStoreHint =>
+      '通过 Apple App Store 安全支付，支持恢复非消耗型购买。';
+
+  @override
+  String get reportUnlockStatusStoreUnavailable => '当前无法连接 App Store，请联网后重试。';
+
+  @override
+  String get reportUnlockStatusProductUnavailable =>
+      '暂未获取到可售商品，请检查商品 ID 或稍后重试。';
+
+  @override
+  String get reportUnlockStatusPurchaseFailed => '购买未完成，请稍后重试。';
+
+  @override
+  String get reportUnlockStatusPurchaseCancelled => '你已取消本次购买。';
+
+  @override
+  String get reportUnlockStatusRestoreNotFound => '未找到可恢复的购买记录。';
+
+  @override
+  String get reportUnlockStatusPurchasing => '等待 App Store 返回购买结果。';
+
+  @override
+  String get reportUnlockStatusRestoring => '正在从 App Store 恢复已购记录。';
+
+  @override
+  String get reportUnlockSheetMockHint => '当前为本地模拟购买流程，后续可替换为 Apple IAP。';
+
+  @override
+  String get reportUnlockCausalAnalysisTitle => '解锁成因深度分析';
+
+  @override
+  String get reportUnlockDiseaseTendencyTitle => '解锁疾病倾向预警';
+
+  @override
+  String get reportUnlockBadHabitsTitle => '解锁不当行为提示';
+
+  @override
+  String get reportUnlockAcupuncturePointsTitle => '解锁专属穴位方案';
+
+  @override
+  String get reportUnlockMentalWellnessTitle => '解锁精神养生建议';
+
+  @override
+  String get reportUnlockSeasonalCareTitle => '解锁四季养生方案';
+
+  @override
+  String get reportUnlockTongueAnalysisTitle => '解锁舌象详细解读';
+
+  @override
+  String get reportUnlockDietAdviceTitle => '解锁个性化饮食方案';
+
+  @override
+  String get reportPremiumConstitutionSubtitle => '查看体质成因、风险倾向与完整分析。';
+
+  @override
+  String get reportPremiumConstitutionPreview1 => '主偏向：气虚质';
+
+  @override
+  String get reportPremiumConstitutionPreview2 => '可解锁完整体质与风险趋势解读';
+
+  @override
+  String get reportPremiumTherapySubtitle => '查看专属穴位、精神养生与四季调理建议。';
+
+  @override
+  String get reportPremiumTherapyPreview1 => '推荐重点：足三里 · 气海';
+
+  @override
+  String get reportPremiumTherapyPreview2 => '可解锁完整调理路径与执行建议';
+
+  @override
+  String get reportPremiumAdviceSubtitle => '查看食疗方案、舌象详解与产品建议。';
+
+  @override
+  String get reportPremiumAdvicePreview1 => '饮食方向：健脾祛湿';
+
+  @override
+  String get reportPremiumAdvicePreview2 => '可解锁完整食疗、舌象与产品内容';
+
+  @override
   String get reportProductJianpiwan => '健脾益气丸';
 
   @override

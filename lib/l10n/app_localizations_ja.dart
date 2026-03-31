@@ -1251,6 +1251,139 @@ class AppLocalizationsJa extends AppLocalizations {
       'これらのおすすめは体質分析に基づく参考情報です。中成薬を使用する場合は、医師または薬剤師の指導のもとで行ってください。';
 
   @override
+  String get reportUnlockTitle => 'レポート全体を解放';
+
+  @override
+  String get reportUnlockDescription => '体質分析、調理プラン、個別アドバイスの全文を確認できます。';
+
+  @override
+  String get reportUnlockButton => 'レポートを解放';
+
+  @override
+  String get reportUnlockSheetTitle => 'レポート全体を解放';
+
+  @override
+  String get reportUnlockSheetBody => '解放後は、体質の詳しい分析、調理プラン、個別アドバイスのすべてを確認できます。';
+
+  @override
+  String get reportUnlockInvitationTag => '上質な健康インサイト';
+
+  @override
+  String get reportUnlockInvitationSubtitle =>
+      'レポート全体を解放すると、より深い体質の洞察、調理の道筋、個別の養生提案を続けて確認できます。';
+
+  @override
+  String get reportUnlockBenefitConstitution => '体質の原因、リスク傾向、詳しい解釈をまとめて確認できます';
+
+  @override
+  String get reportUnlockBenefitTherapy => '専用の経穴提案、精神養生、四季のケア提案を受け取れます';
+
+  @override
+  String get reportUnlockBenefitAdvice => '舌象の詳細解説、食養生の方向性、関連商品の提案を解放します';
+
+  @override
+  String get reportUnlockSheetPrice => '模擬価格：¥29.90';
+
+  @override
+  String get reportUnlockSheetPriceFallback => 'App Store の価格を読み込み中';
+
+  @override
+  String get reportUnlockSheetConfirm => 'Apple IAP で解放する';
+
+  @override
+  String get reportUnlockSheetPurchasing => '購入を開始しています…';
+
+  @override
+  String get reportUnlockSheetRestoring => '購入履歴を復元しています…';
+
+  @override
+  String get reportUnlockRestoreButton => '購入を復元';
+
+  @override
+  String get reportUnlockSheetStoreHint =>
+      'Apple App Store の安全な決済を使用し、この非消耗型購入は復元に対応しています。';
+
+  @override
+  String get reportUnlockStatusStoreUnavailable =>
+      '現在 App Store に接続できません。通信状態をご確認のうえ再度お試しください。';
+
+  @override
+  String get reportUnlockStatusProductUnavailable =>
+      '購入可能な商品を取得できませんでした。商品 ID を確認するか、後でもう一度お試しください。';
+
+  @override
+  String get reportUnlockStatusPurchaseFailed =>
+      '購入が完了しませんでした。時間をおいて再度お試しください。';
+
+  @override
+  String get reportUnlockStatusPurchaseCancelled => '今回の購入はキャンセルされました。';
+
+  @override
+  String get reportUnlockStatusRestoreNotFound =>
+      'この Apple ID で復元できる購入は見つかりませんでした。';
+
+  @override
+  String get reportUnlockStatusPurchasing => 'App Store からの購入結果を待っています。';
+
+  @override
+  String get reportUnlockStatusRestoring => 'App Store から購入履歴を復元しています。';
+
+  @override
+  String get reportUnlockSheetMockHint =>
+      '現在はローカルの模擬購入フローです。後で Apple IAP に置き換えできます。';
+
+  @override
+  String get reportUnlockCausalAnalysisTitle => '成因の深掘り分析を解放';
+
+  @override
+  String get reportUnlockDiseaseTendencyTitle => '疾患傾向アラートを解放';
+
+  @override
+  String get reportUnlockBadHabitsTitle => '望ましくない行動の注意点を解放';
+
+  @override
+  String get reportUnlockAcupuncturePointsTitle => '専用の経穴プランを解放';
+
+  @override
+  String get reportUnlockMentalWellnessTitle => '精神養生アドバイスを解放';
+
+  @override
+  String get reportUnlockSeasonalCareTitle => '四季の養生プランを解放';
+
+  @override
+  String get reportUnlockTongueAnalysisTitle => '舌象の詳細解説を解放';
+
+  @override
+  String get reportUnlockDietAdviceTitle => '個別の食養生プランを解放';
+
+  @override
+  String get reportPremiumConstitutionSubtitle => '体質の原因やリスク傾向を含む詳しい分析を確認できます。';
+
+  @override
+  String get reportPremiumConstitutionPreview1 => '主な傾向：気虚質';
+
+  @override
+  String get reportPremiumConstitutionPreview2 => '体質とリスク傾向の詳しい解釈を解放';
+
+  @override
+  String get reportPremiumTherapySubtitle => 'おすすめ経穴、精神養生、四季のケア提案を確認できます。';
+
+  @override
+  String get reportPremiumTherapyPreview1 => 'おすすめ重点：足三里・気海';
+
+  @override
+  String get reportPremiumTherapyPreview2 => '具体的なケア手順と実践提案を解放';
+
+  @override
+  String get reportPremiumAdviceSubtitle => '食養生、舌象詳解、関連商品の提案を確認できます。';
+
+  @override
+  String get reportPremiumAdvicePreview1 => '食養生の方向性：健脾祛湿';
+
+  @override
+  String get reportPremiumAdvicePreview2 => '食事・舌象・商品提案の全文を解放';
+
+  @override
   String get reportProductJianpiwan => '健脾益気丸';
 
   @override

@@ -2502,6 +2502,258 @@ abstract class AppLocalizations {
   /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
   String get reportAdviceProductsDisclaimer;
 
+  /// No description provided for @reportUnlockTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁完整报告'**
+  String get reportUnlockTitle;
+
+  /// No description provided for @reportUnlockDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看完整体质分析、调理方案与个性化建议。'**
+  String get reportUnlockDescription;
+
+  /// No description provided for @reportUnlockButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁报告'**
+  String get reportUnlockButton;
+
+  /// No description provided for @reportUnlockSheetTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁完整报告'**
+  String get reportUnlockSheetTitle;
+
+  /// No description provided for @reportUnlockSheetBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁后可查看体质详解、调理方案和个性化建议的全部内容。'**
+  String get reportUnlockSheetBody;
+
+  /// No description provided for @reportUnlockInvitationTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'尊享深度健康解读'**
+  String get reportUnlockInvitationTag;
+
+  /// No description provided for @reportUnlockInvitationSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启完整报告后，可继续查看更细致的体质洞察、调理路径与个性化养护建议。'**
+  String get reportUnlockInvitationSubtitle;
+
+  /// No description provided for @reportUnlockBenefitConstitution.
+  ///
+  /// In zh, this message translates to:
+  /// **'完整查看体质成因、风险倾向与深度解读'**
+  String get reportUnlockBenefitConstitution;
+
+  /// No description provided for @reportUnlockBenefitTherapy.
+  ///
+  /// In zh, this message translates to:
+  /// **'获得专属穴位方案、精神养生与四季调理建议'**
+  String get reportUnlockBenefitTherapy;
+
+  /// No description provided for @reportUnlockBenefitAdvice.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁舌象详解、饮食方向与相关产品推荐'**
+  String get reportUnlockBenefitAdvice;
+
+  /// No description provided for @reportUnlockSheetPrice.
+  ///
+  /// In zh, this message translates to:
+  /// **'模拟价格：¥29.90'**
+  String get reportUnlockSheetPrice;
+
+  /// No description provided for @reportUnlockSheetPriceFallback.
+  ///
+  /// In zh, this message translates to:
+  /// **'App Store 价格加载中'**
+  String get reportUnlockSheetPriceFallback;
+
+  /// No description provided for @reportUnlockSheetConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'通过 Apple IAP 解锁'**
+  String get reportUnlockSheetConfirm;
+
+  /// No description provided for @reportUnlockSheetPurchasing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在发起购买…'**
+  String get reportUnlockSheetPurchasing;
+
+  /// No description provided for @reportUnlockSheetRestoring.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在恢复购买…'**
+  String get reportUnlockSheetRestoring;
+
+  /// No description provided for @reportUnlockRestoreButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复购买'**
+  String get reportUnlockRestoreButton;
+
+  /// No description provided for @reportUnlockSheetStoreHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'通过 Apple App Store 安全支付，支持恢复非消耗型购买。'**
+  String get reportUnlockSheetStoreHint;
+
+  /// No description provided for @reportUnlockStatusStoreUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前无法连接 App Store，请联网后重试。'**
+  String get reportUnlockStatusStoreUnavailable;
+
+  /// No description provided for @reportUnlockStatusProductUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂未获取到可售商品，请检查商品 ID 或稍后重试。'**
+  String get reportUnlockStatusProductUnavailable;
+
+  /// No description provided for @reportUnlockStatusPurchaseFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'购买未完成，请稍后重试。'**
+  String get reportUnlockStatusPurchaseFailed;
+
+  /// No description provided for @reportUnlockStatusPurchaseCancelled.
+  ///
+  /// In zh, this message translates to:
+  /// **'你已取消本次购买。'**
+  String get reportUnlockStatusPurchaseCancelled;
+
+  /// No description provided for @reportUnlockStatusRestoreNotFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到可恢复的购买记录。'**
+  String get reportUnlockStatusRestoreNotFound;
+
+  /// No description provided for @reportUnlockStatusPurchasing.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待 App Store 返回购买结果。'**
+  String get reportUnlockStatusPurchasing;
+
+  /// No description provided for @reportUnlockStatusRestoring.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在从 App Store 恢复已购记录。'**
+  String get reportUnlockStatusRestoring;
+
+  /// No description provided for @reportUnlockSheetMockHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前为本地模拟购买流程，后续可替换为 Apple IAP。'**
+  String get reportUnlockSheetMockHint;
+
+  /// No description provided for @reportUnlockCausalAnalysisTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁成因深度分析'**
+  String get reportUnlockCausalAnalysisTitle;
+
+  /// No description provided for @reportUnlockDiseaseTendencyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁疾病倾向预警'**
+  String get reportUnlockDiseaseTendencyTitle;
+
+  /// No description provided for @reportUnlockBadHabitsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁不当行为提示'**
+  String get reportUnlockBadHabitsTitle;
+
+  /// No description provided for @reportUnlockAcupuncturePointsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁专属穴位方案'**
+  String get reportUnlockAcupuncturePointsTitle;
+
+  /// No description provided for @reportUnlockMentalWellnessTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁精神养生建议'**
+  String get reportUnlockMentalWellnessTitle;
+
+  /// No description provided for @reportUnlockSeasonalCareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁四季养生方案'**
+  String get reportUnlockSeasonalCareTitle;
+
+  /// No description provided for @reportUnlockTongueAnalysisTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁舌象详细解读'**
+  String get reportUnlockTongueAnalysisTitle;
+
+  /// No description provided for @reportUnlockDietAdviceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解锁个性化饮食方案'**
+  String get reportUnlockDietAdviceTitle;
+
+  /// No description provided for @reportPremiumConstitutionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看体质成因、风险倾向与完整分析。'**
+  String get reportPremiumConstitutionSubtitle;
+
+  /// No description provided for @reportPremiumConstitutionPreview1.
+  ///
+  /// In zh, this message translates to:
+  /// **'主偏向：气虚质'**
+  String get reportPremiumConstitutionPreview1;
+
+  /// No description provided for @reportPremiumConstitutionPreview2.
+  ///
+  /// In zh, this message translates to:
+  /// **'可解锁完整体质与风险趋势解读'**
+  String get reportPremiumConstitutionPreview2;
+
+  /// No description provided for @reportPremiumTherapySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看专属穴位、精神养生与四季调理建议。'**
+  String get reportPremiumTherapySubtitle;
+
+  /// No description provided for @reportPremiumTherapyPreview1.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐重点：足三里 · 气海'**
+  String get reportPremiumTherapyPreview1;
+
+  /// No description provided for @reportPremiumTherapyPreview2.
+  ///
+  /// In zh, this message translates to:
+  /// **'可解锁完整调理路径与执行建议'**
+  String get reportPremiumTherapyPreview2;
+
+  /// No description provided for @reportPremiumAdviceSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看食疗方案、舌象详解与产品建议。'**
+  String get reportPremiumAdviceSubtitle;
+
+  /// No description provided for @reportPremiumAdvicePreview1.
+  ///
+  /// In zh, this message translates to:
+  /// **'饮食方向：健脾祛湿'**
+  String get reportPremiumAdvicePreview1;
+
+  /// No description provided for @reportPremiumAdvicePreview2.
+  ///
+  /// In zh, this message translates to:
+  /// **'可解锁完整食疗、舌象与产品内容'**
+  String get reportPremiumAdvicePreview2;
+
   /// No description provided for @reportProductJianpiwan.
   ///
   /// In zh, this message translates to:
