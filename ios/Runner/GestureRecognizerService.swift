@@ -44,11 +44,12 @@ final class GestureStreamHandler: NSObject, FlutterStreamHandler {
 final class GestureRecognizerService: NSObject {
     static let shared = GestureRecognizerService()
 
+    private static let openPalmScoreThreshold = 0.60
     private static let thumbAngleThreshold = 120.0
     private static let thumbIndexRatioThreshold = 1.03
     private static let thumbWristRatioThreshold = 1.02
     private static let fingerAngleThreshold = 145.0
-    private static let minStraightDigits = 4
+    private static let minStraightDigits = 3
 
     private var recognizer: GestureRecognizer?
     private var consecutiveCount = 0
@@ -164,7 +165,7 @@ final class GestureRecognizerService: NSObject {
             print("GestureRecognizerService: frame #\(frameCount) — gestures=\(result.gestures.count), landmarks=\(result.landmarks.count), name=\(gestureName), score=\(score), landmarkPoints=\(landmarks.count)")
         }
 
-        let detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
+        let detectedByModel = normalizedGestureName == "OPENPALM" && score >= Self.openPalmScoreThreshold
         let handStraight = isStraightPalmByLandmarks(result.landmarks.first)
         let isOpenPalm = detectedByModel || handStraight
         if isOpenPalm {

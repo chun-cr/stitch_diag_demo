@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class PalmScanStatus {
+  static const double _openPalmScoreThreshold = 0.60;
+
   final bool handPresent;
   final bool gestureDetected;
   final bool handStraight;
@@ -24,7 +26,10 @@ class PalmScanStatus {
     this.landmarks = const [],
   });
 
-  bool get readyToScan => handPresent && (handStraight || gestureDetected);
+  bool get readyToScan => handPresent &&
+      (handStraight ||
+          gestureDetected ||
+          (gestureName == 'Open_Palm' && score >= _openPalmScoreThreshold));
 
   factory PalmScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {

@@ -19,11 +19,12 @@ import kotlin.math.sqrt
 
 class GestureRecognizerHelper(private val context: Context) {
     companion object {
+        private const val OPEN_PALM_SCORE_THRESHOLD = 0.60
         private const val THUMB_ANGLE_THRESHOLD = 120.0
         private const val THUMB_INDEX_RATIO_THRESHOLD = 1.03
         private const val THUMB_WRIST_RATIO_THRESHOLD = 1.02
         private const val FINGER_ANGLE_THRESHOLD = 145.0
-        private const val MIN_STRAIGHT_DIGITS = 4
+        private const val MIN_STRAIGHT_DIGITS = 3
     }
 
     private var recognizer: GestureRecognizer? = null
@@ -56,7 +57,7 @@ class GestureRecognizerHelper(private val context: Context) {
                     mapOf("x" to lm.x().toDouble(), "y" to lm.y().toDouble(), "z" to lm.z().toDouble())
                 } ?: emptyList<Map<String, Double>>()
 
-                val detectedByModel = normalizedGestureName == "OPENPALM" && score >= 0.75
+                val detectedByModel = normalizedGestureName == "OPENPALM" && score >= OPEN_PALM_SCORE_THRESHOLD
                 val handStraight = isStraightPalmByLandmarks(handLandmarks)
                 val detected = detectedByModel || handStraight
                 val finalName = if (detected) "Open_Palm" else gestureName

@@ -46,5 +46,17 @@ void main() {
       expect(status.readyToScan, isTrue);
       expect(status.landmarks, const [Offset(0.2, 0.3), Offset(0.4, 0.5)]);
     });
+
+    test('accepts strong open palm score even before native debounce flips', () {
+      const status = PalmScanStatus(
+        handPresent: true,
+        gestureDetected: false,
+        handStraight: false,
+        gestureName: 'Open_Palm',
+        score: 0.72,
+      );
+
+      expect(status.readyToScan, isTrue);
+    });
   });
 }

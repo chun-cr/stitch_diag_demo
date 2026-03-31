@@ -6,7 +6,6 @@ import kotlin.math.abs
 object TongueDetectionUtils {
     private val mouthIndices = listOf(13, 14, 17, 37, 267, 269, 270, 291)
     private const val TONGUE_THRESHOLD = 0.26
-    private const val JAW_OPEN_THRESHOLD = 0.22
     private const val LOWER_LIP_INDEX = 17
     private const val CHIN_INDEX = 152
 
@@ -26,8 +25,6 @@ object TongueDetectionUtils {
         }
 
         val tongueOutScore = blendshapes["tongueOut"] ?: 0.0
-        val jawOpenScore = blendshapes["jawOpen"] ?: 0.0
-
         val lowerLip = landmarks.getOrNull(LOWER_LIP_INDEX)
         val chin = landmarks.getOrNull(CHIN_INDEX)
         val lipChinRatio = if (lowerLip != null && chin != null) {
@@ -36,8 +33,7 @@ object TongueDetectionUtils {
             0.0
         }
 
-        val fallbackDetected = jawOpenScore >= JAW_OPEN_THRESHOLD && lipChinRatio >= 0.035
-        val detected = tongueOutScore >= TONGUE_THRESHOLD || fallbackDetected
+        val detected = tongueOutScore >= TONGUE_THRESHOLD && lipChinRatio >= 0.035
 
         val mouthLandmarks = mouthIndices.mapNotNull { index ->
             landmarks.getOrNull(index)?.let { landmark ->

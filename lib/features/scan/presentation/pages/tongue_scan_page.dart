@@ -121,12 +121,12 @@ class _TongueScanPageState extends State<TongueScanPage>
 
     setState(() {
       _mouthPresent = status.mouthPresent;
-      _tongueDetected = status.tongueDetected;
-      _mouthDirection = (status.mouthPresent && !status.tongueDetected)
+      _tongueDetected = status.readyToScan;
+      _mouthDirection = (status.mouthPresent && !status.readyToScan)
           ? _computeMouthDirection(status.mouthCenter)
           : '';
     });
-    if (status.tongueDetected) {
+    if (status.readyToScan) {
       _startHoldTracking();
     } else {
       _cancelHoldTracking(resetProgress: true);
