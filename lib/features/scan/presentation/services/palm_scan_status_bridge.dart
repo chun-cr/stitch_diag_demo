@@ -24,7 +24,7 @@ class PalmScanStatus {
     this.landmarks = const [],
   });
 
-  bool get readyToScan => handPresent && handStraight;
+  bool get readyToScan => handPresent && (handStraight || gestureDetected);
 
   factory PalmScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {

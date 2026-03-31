@@ -1258,6 +1258,124 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 추천은 체질 분석을 바탕으로 한 참고 정보입니다. 중성약을 사용할 경우에는 의사 또는 약사의 안내에 따라 주세요.';
 
   @override
+  String get reportProductCommonShipping => '영업일 기준 48시간 이내 출고되며 배송 추적을 지원합니다.';
+
+  @override
+  String get reportProductJianpiwanPack =>
+      '1병 / 200환 구성으로, 일상적인 비위 관리 루틴에 적합합니다.';
+
+  @override
+  String get reportProductShenlingPack =>
+      '10포 / 1박스 구성으로, 가벼운 비위 보조와 기운 관리에 적합합니다.';
+
+  @override
+  String get reportProductAijiuPack =>
+      '20매 / 1박스 구성으로, 집에서 부드럽게 활용하는 뜸 케어에 적합합니다.';
+
+  @override
+  String get reportProductFoodPackPack =>
+      '7일 식양생 구성으로 산약, 율무, 복령 등 식양 재료를 포함합니다.';
+
+  @override
+  String get reportProductDetailTitle => '상품 상세';
+
+  @override
+  String get reportProductDetailHeroBadge => '리포트 연동 추천';
+
+  @override
+  String get reportProductDetailRecommendationTitle => '추천 이유';
+
+  @override
+  String get reportProductDetailPackageTitle => '구성 및 규격';
+
+  @override
+  String get reportProductDetailShippingTitle => '배송 안내';
+
+  @override
+  String get reportProductDetailServiceTitle => '서비스 안내';
+
+  @override
+  String get reportProductDetailServiceBody =>
+      '현재 버전은 상품 표시와 모의 주문 흐름만 제공합니다. 실제 주문 시스템과 Apple Pay는 이후 연결할 수 있습니다.';
+
+  @override
+  String get reportProductDetailQuantityTitle => '구매 수량';
+
+  @override
+  String reportProductDetailQuantitySummary(int count) {
+    return '$count개 선택됨';
+  }
+
+  @override
+  String get reportProductDetailFinalPrice => '예상 결제 금액';
+
+  @override
+  String get reportProductDetailCheckoutButton => '결제로 이동';
+
+  @override
+  String get reportProductDetailReportLinked => '리포트 제안과 연동';
+
+  @override
+  String get reportProductCheckoutTitle => '주문 확인';
+
+  @override
+  String get reportProductCheckoutSectionAddress => '배송 정보';
+
+  @override
+  String get reportProductCheckoutRecipient => '수령인';
+
+  @override
+  String get reportProductCheckoutPhone => '연락처';
+
+  @override
+  String get reportProductCheckoutAddress => '배송 주소';
+
+  @override
+  String get reportProductCheckoutOrderSummary => '주문 내역';
+
+  @override
+  String get reportProductCheckoutQuantityLabel => '수량';
+
+  @override
+  String get reportProductCheckoutSubtotal => '상품 금액';
+
+  @override
+  String get reportProductCheckoutShippingFee => '배송비';
+
+  @override
+  String get reportProductCheckoutServiceFee => '서비스 수수료';
+
+  @override
+  String get reportProductCheckoutTotal => '합계';
+
+  @override
+  String get reportProductCheckoutPaymentTitle => '결제 수단';
+
+  @override
+  String get reportProductCheckoutApplePayTitle => 'Apple Pay';
+
+  @override
+  String get reportProductCheckoutApplePaySubtitle =>
+      '향후 Apple Pay 연동을 위한 자리표시자입니다.';
+
+  @override
+  String get reportProductCheckoutApplePayDialogBody =>
+      '이 빌드에는 아직 실제 Apple Pay가 연결되어 있지 않습니다. 향후 결제 진입 위치를 보여주기 위한 버튼이므로, 화면 검증은 모의 주문 흐름으로 진행해 주세요.';
+
+  @override
+  String get reportProductCheckoutMockSubmit => '모의 주문 생성';
+
+  @override
+  String get reportProductCheckoutSubmitting => '주문을 생성하는 중…';
+
+  @override
+  String get reportProductCheckoutSuccessTitle => '모의 주문이 생성되었습니다';
+
+  @override
+  String get reportProductCheckoutSuccessBody =>
+      '현재는 프런트엔드 주문 경험 데모까지만 완료됩니다. 이후 실제 주문 처리 및 Apple Pay 흐름으로 교체될 예정입니다.';
+
+  @override
   String get reportUnlockTitle => '전체 리포트 잠금 해제';
 
   @override

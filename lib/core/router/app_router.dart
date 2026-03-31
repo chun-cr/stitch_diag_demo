@@ -10,6 +10,9 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_pa
 import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report_product_detail_page.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
 
 // ─── 路由路径常量 ─────────────────────────────────────────────────
@@ -23,6 +26,8 @@ class AppRoutes {
   static const scanPalm = '/scan/palm';
   static const report = '/report';
   static const reportAnalysis = '/report/analysis';
+  static const reportProductDetail = '/report/product';
+  static const reportCheckout = '/report/checkout';
   static const history = '/history';
   static const profile = '/profile';
 }
@@ -121,6 +126,26 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.report,
       builder: (context, state) => const ReportPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.reportProductDetail,
+      builder: (context, state) {
+        final product = state.extra;
+        if (product is! ReportProductData) {
+          return const ReportPage();
+        }
+        return ReportProductDetailPage(product: product);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.reportCheckout,
+      builder: (context, state) {
+        final args = state.extra;
+        if (args is! ReportCheckoutArgs) {
+          return const ReportPage();
+        }
+        return ReportCheckoutPage(args: args);
+      },
     ),
     GoRoute(
       path: AppRoutes.history,

@@ -1231,6 +1231,120 @@ class AppLocalizationsZh extends AppLocalizations {
       '以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。';
 
   @override
+  String get reportProductCommonShipping => '工作日 48 小时内安排发货，支持全程物流追踪。';
+
+  @override
+  String get reportProductJianpiwanPack => '1 瓶装 / 200 丸，适合日常脾胃调理周期使用。';
+
+  @override
+  String get reportProductShenlingPack => '10 袋装 / 盒，适合日常轻养脾胃与补气调护。';
+
+  @override
+  String get reportProductAijiuPack => '20 贴装 / 盒，适合居家温和艾灸护理。';
+
+  @override
+  String get reportProductFoodPackPack => '7 日食养组合包，含山药、薏仁、茯苓等食养食材。';
+
+  @override
+  String get reportProductDetailTitle => '商品详情';
+
+  @override
+  String get reportProductDetailHeroBadge => '报告关联推荐';
+
+  @override
+  String get reportProductDetailRecommendationTitle => '推荐理由';
+
+  @override
+  String get reportProductDetailPackageTitle => '包装与规格';
+
+  @override
+  String get reportProductDetailShippingTitle => '配送说明';
+
+  @override
+  String get reportProductDetailServiceTitle => '服务说明';
+
+  @override
+  String get reportProductDetailServiceBody =>
+      '当前为推荐商品展示与演示下单流程，后续可接入真实订单系统与 Apple Pay。';
+
+  @override
+  String get reportProductDetailQuantityTitle => '购买数量';
+
+  @override
+  String reportProductDetailQuantitySummary(int count) {
+    return '已选择 $count 件';
+  }
+
+  @override
+  String get reportProductDetailFinalPrice => '到手参考价';
+
+  @override
+  String get reportProductDetailCheckoutButton => '进入结算';
+
+  @override
+  String get reportProductDetailReportLinked => '与报告建议联动';
+
+  @override
+  String get reportProductCheckoutTitle => '确认订单';
+
+  @override
+  String get reportProductCheckoutSectionAddress => '收货信息';
+
+  @override
+  String get reportProductCheckoutRecipient => '收货人';
+
+  @override
+  String get reportProductCheckoutPhone => '联系电话';
+
+  @override
+  String get reportProductCheckoutAddress => '收货地址';
+
+  @override
+  String get reportProductCheckoutOrderSummary => '订单明细';
+
+  @override
+  String get reportProductCheckoutQuantityLabel => '数量';
+
+  @override
+  String get reportProductCheckoutSubtotal => '商品小计';
+
+  @override
+  String get reportProductCheckoutShippingFee => '配送费';
+
+  @override
+  String get reportProductCheckoutServiceFee => '服务费';
+
+  @override
+  String get reportProductCheckoutTotal => '合计';
+
+  @override
+  String get reportProductCheckoutPaymentTitle => '支付方式';
+
+  @override
+  String get reportProductCheckoutApplePayTitle => 'Apple Pay';
+
+  @override
+  String get reportProductCheckoutApplePaySubtitle =>
+      '预留 Apple Pay 接入位，后续接真实商户能力。';
+
+  @override
+  String get reportProductCheckoutApplePayDialogBody =>
+      '当前版本尚未接入真实 Apple Pay。现在点击仅用于说明未来支付入口位置，建议继续使用演示下单流程联调页面。';
+
+  @override
+  String get reportProductCheckoutMockSubmit => '创建演示订单';
+
+  @override
+  String get reportProductCheckoutSubmitting => '正在创建订单…';
+
+  @override
+  String get reportProductCheckoutSuccessTitle => '演示订单已创建';
+
+  @override
+  String get reportProductCheckoutSuccessBody =>
+      '当前仅完成前端订单流程演示，后续接入真实下单与 Apple Pay 后会替换为正式支付链路。';
+
+  @override
   String get reportUnlockTitle => '解锁完整报告';
 
   @override

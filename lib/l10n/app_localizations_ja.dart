@@ -1251,6 +1251,120 @@ class AppLocalizationsJa extends AppLocalizations {
       'これらのおすすめは体質分析に基づく参考情報です。中成薬を使用する場合は、医師または薬剤師の指導のもとで行ってください。';
 
   @override
+  String get reportProductCommonShipping => '通常は営業日 48 時間以内に発送し、配送追跡に対応します。';
+
+  @override
+  String get reportProductJianpiwanPack => '1本 / 200丸入り。日常的な脾胃ケアのサイクル向けです。';
+
+  @override
+  String get reportProductShenlingPack => '10包 / 箱。日々の軽い脾胃サポートと補気ケア向けです。';
+
+  @override
+  String get reportProductAijiuPack => '20枚 / 箱。自宅でのやさしいお灸ケアに適しています。';
+
+  @override
+  String get reportProductFoodPackPack => '7日分の食養生セット。山薬、ハトムギ、茯苓などを含みます。';
+
+  @override
+  String get reportProductDetailTitle => '商品詳細';
+
+  @override
+  String get reportProductDetailHeroBadge => 'レポート連動のおすすめ';
+
+  @override
+  String get reportProductDetailRecommendationTitle => 'おすすめ理由';
+
+  @override
+  String get reportProductDetailPackageTitle => '内容量・仕様';
+
+  @override
+  String get reportProductDetailShippingTitle => '配送案内';
+
+  @override
+  String get reportProductDetailServiceTitle => 'サービス案内';
+
+  @override
+  String get reportProductDetailServiceBody =>
+      'このバージョンは商品表示と模擬注文フローのみを提供します。実際の注文システムと Apple Pay は後続で接続できます。';
+
+  @override
+  String get reportProductDetailQuantityTitle => '購入数量';
+
+  @override
+  String reportProductDetailQuantitySummary(int count) {
+    return '$count 点を選択中';
+  }
+
+  @override
+  String get reportProductDetailFinalPrice => '参考価格';
+
+  @override
+  String get reportProductDetailCheckoutButton => '注文確認へ';
+
+  @override
+  String get reportProductDetailReportLinked => 'レポート提案と連動';
+
+  @override
+  String get reportProductCheckoutTitle => '注文確認';
+
+  @override
+  String get reportProductCheckoutSectionAddress => 'お届け先情報';
+
+  @override
+  String get reportProductCheckoutRecipient => '受取人';
+
+  @override
+  String get reportProductCheckoutPhone => '電話番号';
+
+  @override
+  String get reportProductCheckoutAddress => '配送先住所';
+
+  @override
+  String get reportProductCheckoutOrderSummary => '注文内容';
+
+  @override
+  String get reportProductCheckoutQuantityLabel => '数量';
+
+  @override
+  String get reportProductCheckoutSubtotal => '商品小計';
+
+  @override
+  String get reportProductCheckoutShippingFee => '送料';
+
+  @override
+  String get reportProductCheckoutServiceFee => 'サービス料';
+
+  @override
+  String get reportProductCheckoutTotal => '合計';
+
+  @override
+  String get reportProductCheckoutPaymentTitle => '支払い方法';
+
+  @override
+  String get reportProductCheckoutApplePayTitle => 'Apple Pay';
+
+  @override
+  String get reportProductCheckoutApplePaySubtitle =>
+      '将来の Apple Pay 接続に向けたプレースホルダーです。';
+
+  @override
+  String get reportProductCheckoutApplePayDialogBody =>
+      'このビルドでは実際の Apple Pay はまだ接続されていません。将来の支払い入口を示すための配置なので、画面確認には模擬注文フローをご利用ください。';
+
+  @override
+  String get reportProductCheckoutMockSubmit => '模擬注文を作成';
+
+  @override
+  String get reportProductCheckoutSubmitting => '注文を作成しています…';
+
+  @override
+  String get reportProductCheckoutSuccessTitle => '模擬注文を作成しました';
+
+  @override
+  String get reportProductCheckoutSuccessBody =>
+      '現在はフロントエンド上の注文体験デモのみ完了します。後で正式な注文処理と Apple Pay フローに置き換わります。';
+
+  @override
   String get reportUnlockTitle => 'レポート全体を解放';
 
   @override

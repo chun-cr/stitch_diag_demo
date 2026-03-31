@@ -2502,6 +2502,222 @@ abstract class AppLocalizations {
   /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
   String get reportAdviceProductsDisclaimer;
 
+  /// No description provided for @reportProductCommonShipping.
+  ///
+  /// In zh, this message translates to:
+  /// **'工作日 48 小时内安排发货，支持全程物流追踪。'**
+  String get reportProductCommonShipping;
+
+  /// No description provided for @reportProductJianpiwanPack.
+  ///
+  /// In zh, this message translates to:
+  /// **'1 瓶装 / 200 丸，适合日常脾胃调理周期使用。'**
+  String get reportProductJianpiwanPack;
+
+  /// No description provided for @reportProductShenlingPack.
+  ///
+  /// In zh, this message translates to:
+  /// **'10 袋装 / 盒，适合日常轻养脾胃与补气调护。'**
+  String get reportProductShenlingPack;
+
+  /// No description provided for @reportProductAijiuPack.
+  ///
+  /// In zh, this message translates to:
+  /// **'20 贴装 / 盒，适合居家温和艾灸护理。'**
+  String get reportProductAijiuPack;
+
+  /// No description provided for @reportProductFoodPackPack.
+  ///
+  /// In zh, this message translates to:
+  /// **'7 日食养组合包，含山药、薏仁、茯苓等食养食材。'**
+  String get reportProductFoodPackPack;
+
+  /// No description provided for @reportProductDetailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'商品详情'**
+  String get reportProductDetailTitle;
+
+  /// No description provided for @reportProductDetailHeroBadge.
+  ///
+  /// In zh, this message translates to:
+  /// **'报告关联推荐'**
+  String get reportProductDetailHeroBadge;
+
+  /// No description provided for @reportProductDetailRecommendationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐理由'**
+  String get reportProductDetailRecommendationTitle;
+
+  /// No description provided for @reportProductDetailPackageTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'包装与规格'**
+  String get reportProductDetailPackageTitle;
+
+  /// No description provided for @reportProductDetailShippingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'配送说明'**
+  String get reportProductDetailShippingTitle;
+
+  /// No description provided for @reportProductDetailServiceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务说明'**
+  String get reportProductDetailServiceTitle;
+
+  /// No description provided for @reportProductDetailServiceBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前为推荐商品展示与演示下单流程，后续可接入真实订单系统与 Apple Pay。'**
+  String get reportProductDetailServiceBody;
+
+  /// No description provided for @reportProductDetailQuantityTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'购买数量'**
+  String get reportProductDetailQuantityTitle;
+
+  /// No description provided for @reportProductDetailQuantitySummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {count} 件'**
+  String reportProductDetailQuantitySummary(int count);
+
+  /// No description provided for @reportProductDetailFinalPrice.
+  ///
+  /// In zh, this message translates to:
+  /// **'到手参考价'**
+  String get reportProductDetailFinalPrice;
+
+  /// No description provided for @reportProductDetailCheckoutButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'进入结算'**
+  String get reportProductDetailCheckoutButton;
+
+  /// No description provided for @reportProductDetailReportLinked.
+  ///
+  /// In zh, this message translates to:
+  /// **'与报告建议联动'**
+  String get reportProductDetailReportLinked;
+
+  /// No description provided for @reportProductCheckoutTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认订单'**
+  String get reportProductCheckoutTitle;
+
+  /// No description provided for @reportProductCheckoutSectionAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'收货信息'**
+  String get reportProductCheckoutSectionAddress;
+
+  /// No description provided for @reportProductCheckoutRecipient.
+  ///
+  /// In zh, this message translates to:
+  /// **'收货人'**
+  String get reportProductCheckoutRecipient;
+
+  /// No description provided for @reportProductCheckoutPhone.
+  ///
+  /// In zh, this message translates to:
+  /// **'联系电话'**
+  String get reportProductCheckoutPhone;
+
+  /// No description provided for @reportProductCheckoutAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'收货地址'**
+  String get reportProductCheckoutAddress;
+
+  /// No description provided for @reportProductCheckoutOrderSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'订单明细'**
+  String get reportProductCheckoutOrderSummary;
+
+  /// No description provided for @reportProductCheckoutQuantityLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'数量'**
+  String get reportProductCheckoutQuantityLabel;
+
+  /// No description provided for @reportProductCheckoutSubtotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'商品小计'**
+  String get reportProductCheckoutSubtotal;
+
+  /// No description provided for @reportProductCheckoutShippingFee.
+  ///
+  /// In zh, this message translates to:
+  /// **'配送费'**
+  String get reportProductCheckoutShippingFee;
+
+  /// No description provided for @reportProductCheckoutServiceFee.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务费'**
+  String get reportProductCheckoutServiceFee;
+
+  /// No description provided for @reportProductCheckoutTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'合计'**
+  String get reportProductCheckoutTotal;
+
+  /// No description provided for @reportProductCheckoutPaymentTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'支付方式'**
+  String get reportProductCheckoutPaymentTitle;
+
+  /// No description provided for @reportProductCheckoutApplePayTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Apple Pay'**
+  String get reportProductCheckoutApplePayTitle;
+
+  /// No description provided for @reportProductCheckoutApplePaySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'预留 Apple Pay 接入位，后续接真实商户能力。'**
+  String get reportProductCheckoutApplePaySubtitle;
+
+  /// No description provided for @reportProductCheckoutApplePayDialogBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前版本尚未接入真实 Apple Pay。现在点击仅用于说明未来支付入口位置，建议继续使用演示下单流程联调页面。'**
+  String get reportProductCheckoutApplePayDialogBody;
+
+  /// No description provided for @reportProductCheckoutMockSubmit.
+  ///
+  /// In zh, this message translates to:
+  /// **'创建演示订单'**
+  String get reportProductCheckoutMockSubmit;
+
+  /// No description provided for @reportProductCheckoutSubmitting.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在创建订单…'**
+  String get reportProductCheckoutSubmitting;
+
+  /// No description provided for @reportProductCheckoutSuccessTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'演示订单已创建'**
+  String get reportProductCheckoutSuccessTitle;
+
+  /// No description provided for @reportProductCheckoutSuccessBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前仅完成前端订单流程演示，后续接入真实下单与 Apple Pay 后会替换为正式支付链路。'**
+  String get reportProductCheckoutSuccessBody;
+
   /// No description provided for @reportUnlockTitle.
   ///
   /// In zh, this message translates to:

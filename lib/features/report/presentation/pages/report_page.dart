@@ -8,6 +8,7 @@ import '../../../../core/router/app_router.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/features/report/application/report_unlock_service.dart';
+import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 
 // ══════════════════════════════════════════════════════════════════
 //  ReportPage  —  AI 健康分析报告
@@ -2197,44 +2198,7 @@ class _Tab4Advice extends StatelessWidget {
   // ── 产品推荐 ─────────────────────────────────────────────────────
   Widget _buildProductRecommendations(BuildContext context) {
     final l10n = context.l10n;
-    final products = [
-      _ProductData(
-        name: l10n.reportProductJianpiwan,
-        type: l10n.reportProductJianpiwanType,
-        desc: l10n.reportProductJianpiwanDesc,
-        price: '¥58',
-        tag: l10n.reportProductJianpiwanTag,
-        color: Color(0xFF2D6A4F),
-        icon: Icons.local_pharmacy_outlined,
-      ),
-      _ProductData(
-        name: l10n.reportProductShenling,
-        type: l10n.reportProductShenlingType,
-        desc: l10n.reportProductShenlingDesc,
-        price: '¥45',
-        tag: l10n.reportProductShenlingTag,
-        color: Color(0xFF0D7A5A),
-        icon: Icons.eco_outlined,
-      ),
-      _ProductData(
-        name: l10n.reportProductAijiu,
-        type: l10n.reportProductAijiuType,
-        desc: l10n.reportProductAijiuDesc,
-        price: '¥128',
-        tag: l10n.reportProductAijiuTag,
-        color: Color(0xFFC9A84C),
-        icon: Icons.spa_outlined,
-      ),
-      _ProductData(
-        name: l10n.reportProductFoodPack,
-        type: l10n.reportProductFoodPackType,
-        desc: l10n.reportProductFoodPackDesc,
-        price: '¥89',
-        tag: l10n.reportProductFoodPackTag,
-        color: Color(0xFF6B5B95),
-        icon: Icons.restaurant_menu_outlined,
-      ),
-    ];
+    final products = buildReportProducts(l10n);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3593,111 +3557,111 @@ class _FoodChip extends StatelessWidget {
 
 /// 产品推荐卡片
 class _ProductCard extends StatelessWidget {
-  final _ProductData product;
+  final ReportProductData product;
   const _ProductCard({required this.product});
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: product.color.withValues(alpha: 0.12),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: product.color.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: () {
+        context.push(AppRoutes.reportProductDetail, extra: product);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: product.color.withValues(alpha: 0.12),
+            width: 1,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 图标
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: product.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: Icon(product.icon,
-                  size: 24, color: product.color),
+          boxShadow: [
+            BoxShadow(
+              color: product.color.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            const SizedBox(width: 12),
-            // 信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          product.name,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E1810),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: product.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(product.icon, size: 24, color: product.color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E1810),
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        product.tag,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: product.color.withValues(alpha: 0.68),
+                        Text(
+                          product.tag,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: product.color.withValues(alpha: 0.68),
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      product.type,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: product.color.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    product.type,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: product.color.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    product.desc,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: const Color(0xFF3A3028)
-                          .withValues(alpha: 0.6),
-                      height: 1.5,
+                    const SizedBox(height: 5),
+                    Text(
+                      product.description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+                        height: 1.5,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        product.price,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: product.color,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          product.priceLabel,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: product.color,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: () {},
-                        child: Container(
+                        const Spacer(),
+                        Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(99),
                             border: Border.all(
@@ -3714,13 +3678,13 @@ class _ProductCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -3760,26 +3724,6 @@ class _SeasonData {
     required this.lightColor,
     required this.advice,
     required this.avoid,
-  });
-}
-
-class _ProductData {
-  final String name;
-  final String type;
-  final String desc;
-  final String price;
-  final String tag;
-  final Color color;
-  final IconData icon;
-
-  const _ProductData({
-    required this.name,
-    required this.type,
-    required this.desc,
-    required this.price,
-    required this.tag,
-    required this.color,
-    required this.icon,
   });
 }
 

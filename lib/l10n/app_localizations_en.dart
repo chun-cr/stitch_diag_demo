@@ -1327,6 +1327,125 @@ class AppLocalizationsEn extends AppLocalizations {
       'These product recommendations are based on constitution analysis and are for reference only. Use of Chinese patent medicines should be guided by a physician or pharmacist.';
 
   @override
+  String get reportProductCommonShipping =>
+      'Orders are prepared within 48 business hours and include shipment tracking.';
+
+  @override
+  String get reportProductJianpiwanPack =>
+      '1 bottle / 200 pills, suitable for daily spleen and stomach care routines.';
+
+  @override
+  String get reportProductShenlingPack =>
+      '10 sachets per box, suitable for light daily spleen support and qi care.';
+
+  @override
+  String get reportProductAijiuPack =>
+      '20 patches per box, suitable for gentle at-home moxibustion care.';
+
+  @override
+  String get reportProductFoodPackPack =>
+      '7-day dietary wellness kit with yam, coix seed, poria, and more.';
+
+  @override
+  String get reportProductDetailTitle => 'Product Details';
+
+  @override
+  String get reportProductDetailHeroBadge => 'Linked to Your Report';
+
+  @override
+  String get reportProductDetailRecommendationTitle => 'Why It Is Recommended';
+
+  @override
+  String get reportProductDetailPackageTitle => 'Package & Specification';
+
+  @override
+  String get reportProductDetailShippingTitle => 'Shipping Notes';
+
+  @override
+  String get reportProductDetailServiceTitle => 'Service Notes';
+
+  @override
+  String get reportProductDetailServiceBody =>
+      'This version only demonstrates product display and mock checkout. A real order system and Apple Pay can be added later.';
+
+  @override
+  String get reportProductDetailQuantityTitle => 'Quantity';
+
+  @override
+  String reportProductDetailQuantitySummary(int count) {
+    return 'Selected $count item(s)';
+  }
+
+  @override
+  String get reportProductDetailFinalPrice => 'Estimated Price';
+
+  @override
+  String get reportProductDetailCheckoutButton => 'Proceed to Checkout';
+
+  @override
+  String get reportProductDetailReportLinked => 'Aligned with report guidance';
+
+  @override
+  String get reportProductCheckoutTitle => 'Confirm Order';
+
+  @override
+  String get reportProductCheckoutSectionAddress => 'Shipping Information';
+
+  @override
+  String get reportProductCheckoutRecipient => 'Recipient';
+
+  @override
+  String get reportProductCheckoutPhone => 'Phone Number';
+
+  @override
+  String get reportProductCheckoutAddress => 'Shipping Address';
+
+  @override
+  String get reportProductCheckoutOrderSummary => 'Order Summary';
+
+  @override
+  String get reportProductCheckoutQuantityLabel => 'Quantity';
+
+  @override
+  String get reportProductCheckoutSubtotal => 'Subtotal';
+
+  @override
+  String get reportProductCheckoutShippingFee => 'Shipping';
+
+  @override
+  String get reportProductCheckoutServiceFee => 'Service Fee';
+
+  @override
+  String get reportProductCheckoutTotal => 'Total';
+
+  @override
+  String get reportProductCheckoutPaymentTitle => 'Payment Method';
+
+  @override
+  String get reportProductCheckoutApplePayTitle => 'Apple Pay';
+
+  @override
+  String get reportProductCheckoutApplePaySubtitle =>
+      'Reserved for future Apple Pay integration once merchant capabilities are ready.';
+
+  @override
+  String get reportProductCheckoutApplePayDialogBody =>
+      'Real Apple Pay is not connected in this build yet. This button currently marks the future payment entry, so continue with the mock order flow for page verification.';
+
+  @override
+  String get reportProductCheckoutMockSubmit => 'Create Mock Order';
+
+  @override
+  String get reportProductCheckoutSubmitting => 'Creating order…';
+
+  @override
+  String get reportProductCheckoutSuccessTitle => 'Mock Order Created';
+
+  @override
+  String get reportProductCheckoutSuccessBody =>
+      'This currently completes only the frontend order demo flow. It will be replaced by the real checkout and Apple Pay flow later.';
+
+  @override
   String get reportUnlockTitle => 'Unlock Full Report';
 
   @override
