@@ -31,6 +31,64 @@ const _kBgColor = Color(0xFFF4F1EB); // 宣纸米色
 
 enum PalmScanState { idle, scanning, completed }
 
+enum PalmScanFeedbackStage {
+  waitingPermission,
+  detecting,
+  handDetected,
+  readyToHold,
+  completed,
+}
+
+@visibleForTesting
+bool shouldRenderPalmOverlay({
+  required List<Offset> handLandmarks,
+  required Size? imageSize,
+}) {
+  return handLandmarks.length >= 21 &&
+      imageSize != null &&
+      imageSize.width > 0 &&
+      imageSize.height > 0;
+}
+
+@visibleForTesting
+bool shouldShowPalmHint({
+  required bool handPresent,
+  required List<Offset> handLandmarks,
+  required Size? imageSize,
+}) {
+  return handPresent &&
+      shouldRenderPalmOverlay(
+        handLandmarks: handLandmarks,
+        imageSize: imageSize,
+      );
+}
+
+@visibleForTesting
+PalmScanFeedbackStage resolvePalmScanFeedbackStage({
+  required bool hasPermission,
+  required bool isMonitoring,
+  required bool handPresent,
+  required bool readyToScan,
+  required PalmScanState scanState,
+}) {
+  if (!hasPermission) {
+    return PalmScanFeedbackStage.waitingPermission;
+  }
+  if (scanState == PalmScanState.completed) {
+    return PalmScanFeedbackStage.completed;
+  }
+  if (readyToScan) {
+    return PalmScanFeedbackStage.readyToHold;
+  }
+  if (handPresent) {
+    return PalmScanFeedbackStage.handDetected;
+  }
+  if (isMonitoring) {
+    return PalmScanFeedbackStage.detecting;
+  }
+  return PalmScanFeedbackStage.waitingPermission;
+}
+
 class PalmScanPage extends StatefulWidget {
   const PalmScanPage({super.key});
   @override
@@ -48,6 +106,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   Timer? _holdTimer;
 
   bool _hasPermission = false;
+  bool _isMonitoring = false;
   bool _handPresent = false;
   bool _readyToScan = false;
   bool _handStraight = false;
@@ -58,6 +117,19 @@ class _PalmScanPageState extends State<PalmScanPage>
   List<Offset> _handLandmarks = const [];
   Size? _imageSize;
   String _palmHint = ''; // 距离 / 方向提示
+
+  bool get _shouldRenderHandOverlay => shouldRenderPalmOverlay(
+        handLandmarks: _handLandmarks,
+        imageSize: _imageSize,
+      );
+
+  PalmScanFeedbackStage get _feedbackStage => resolvePalmScanFeedbackStage(
+        hasPermission: _hasPermission,
+        isMonitoring: _isMonitoring,
+        handPresent: _handPresent,
+        readyToScan: _readyToScan,
+        scanState: _scanState,
+      );
 
   @override
   void initState() {
@@ -83,6 +155,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     if (status.isGranted) {
       setState(() {
         _hasPermission = true;
+        _isMonitoring = true;
         _scanState = PalmScanState.scanning;
         _handPresent = false;
         _readyToScan = false;
@@ -94,13 +167,18 @@ class _PalmScanPageState extends State<PalmScanPage>
       _statusSubscription = _statusBridge.statusStream().listen((status) {
         if (!mounted) return;
         setState(() {
+          final nextImageSize = Size(status.imageWidth, status.imageHeight);
           _handPresent = status.handPresent;
           _readyToScan = status.readyToScan;
           _handStraight = status.handStraight;
           _gestureName = status.gestureName;
           _handLandmarks = status.landmarks;
-          _imageSize = Size(status.imageWidth, status.imageHeight);
-          _palmHint = status.handPresent
+          _imageSize = nextImageSize;
+          _palmHint = shouldShowPalmHint(
+                handPresent: status.handPresent,
+                handLandmarks: status.landmarks,
+                imageSize: nextImageSize,
+              )
               ? _computePalmHint(status.landmarks)
               : '';
         });
@@ -176,6 +254,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     unawaited(_statusBridge.stopMonitoring());
     if (!mounted) return;
     setState(() {
+      _isMonitoring = false;
       _scanState = PalmScanState.completed;
       _scanProgress = 1;
     });
@@ -234,7 +313,49 @@ class _PalmScanPageState extends State<PalmScanPage>
     if (_handPresent) {
       return l10n.scanPalmStretchOpen;
     }
+    if (_isMonitoring) {
+      return l10n.scanPalmAlignHint;
+    }
     return l10n.scanPalmAlignHint;
+  }
+
+  String _feedbackTitle() {
+    final l10n = context.l10n;
+    switch (_feedbackStage) {
+      case PalmScanFeedbackStage.waitingPermission:
+        return l10n.scanPalmWaitingPermission;
+      case PalmScanFeedbackStage.detecting:
+        return l10n.scanScanning;
+      case PalmScanFeedbackStage.handDetected:
+        final localizedGesture = _localizedGestureName(_gestureName);
+        if (localizedGesture.isNotEmpty) {
+          return l10n.scanPalmDetectedGesture(localizedGesture);
+        }
+        return l10n.scanPalmStretchOpen;
+      case PalmScanFeedbackStage.readyToHold:
+        return l10n.scanPalmReadyHold;
+      case PalmScanFeedbackStage.completed:
+        return l10n.scanPalmCompleted;
+    }
+  }
+
+  String _feedbackBody() {
+    final l10n = context.l10n;
+    switch (_feedbackStage) {
+      case PalmScanFeedbackStage.waitingPermission:
+        return l10n.scanCameraPermissionRequired;
+      case PalmScanFeedbackStage.detecting:
+        return l10n.scanPalmAlignHint;
+      case PalmScanFeedbackStage.handDetected:
+        if (_palmHint.isNotEmpty) {
+          return _palmHint;
+        }
+        return _statusText();
+      case PalmScanFeedbackStage.readyToHold:
+        return l10n.scanPalmHoldButton;
+      case PalmScanFeedbackStage.completed:
+        return l10n.scanPalmViewingReportSoon;
+    }
   }
 
   String _localizedGestureName(String rawName) {
@@ -476,11 +597,13 @@ class _PalmScanPageState extends State<PalmScanPage>
           ),
         ),
         Positioned.fill(
-          child: HandLandmarkOverlay(
-            normalizedLandmarks: _handLandmarks,
-            imageSize: _imageSize,
-            mirrored: false,
-          ),
+          child: _shouldRenderHandOverlay
+              ? HandLandmarkOverlay(
+                  normalizedLandmarks: _handLandmarks,
+                  imageSize: _imageSize,
+                  mirrored: false,
+                )
+              : const SizedBox.shrink(),
         ),
         Positioned.fill(
           child: DecoratedBox(
@@ -539,7 +662,7 @@ class _PalmScanPageState extends State<PalmScanPage>
                   isAligned: _readyToScan || _scanState == PalmScanState.completed,
                   progress: _scanProgress,
                   scanLineT: _scanAnim.value,
-                  handPresent: _handPresent,
+                  handPresent: _shouldRenderHandOverlay,
                 ),
               ),
             ),
@@ -610,10 +733,22 @@ class _PalmScanPageState extends State<PalmScanPage>
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(
               children: [
+                _LiveFeedbackCard(
+                  title: _feedbackTitle(),
+                  body: _feedbackBody(),
+                  active: _isMonitoring,
+                  resolved: _feedbackStage == PalmScanFeedbackStage.readyToHold ||
+                      _feedbackStage == PalmScanFeedbackStage.completed,
+                ),
+                const SizedBox(height: 12),
                 _buildPrimaryButton(
                   label: _scanState == PalmScanState.completed
                       ? l10n.scanPalmViewingReportSoon
-                      : l10n.scanPalmHoldButton,
+                      : (_feedbackStage == PalmScanFeedbackStage.waitingPermission
+                          ? l10n.scanPalmWaitingPermission
+                          : (_feedbackStage == PalmScanFeedbackStage.readyToHold
+                              ? l10n.scanPalmHoldButton
+                              : l10n.scanScanning)),
                   enabled: false,
                   onTap: _navigateToReport,
                 ),
@@ -671,8 +806,8 @@ class _PalmScanPageState extends State<PalmScanPage>
         child: Center(
           child: Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: enabled ? Colors.white : const Color(0xFF9A9590),
               fontSize: 15,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
@@ -786,6 +921,90 @@ class _ScanProgressBar extends StatelessWidget {
       ),
     ],
   );
+}
+
+class _LiveFeedbackCard extends StatelessWidget {
+  final String title;
+  final String body;
+  final bool active;
+  final bool resolved;
+
+  const _LiveFeedbackCard({
+    required this.title,
+    required this.body,
+    required this.active,
+    required this.resolved,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = resolved ? _kAccentLight : _kAccent;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: resolved ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(
+              color: active ? accent : accent.withValues(alpha: 0.45),
+              shape: BoxShape.circle,
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.45,
+                    color: const Color(0xFF3A3028).withValues(alpha: 0.72),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            resolved ? Icons.check_circle_rounded : Icons.radar_rounded,
+            size: 18,
+            color: accent.withValues(alpha: 0.9),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TiltedPalmGuidePainter extends CustomPainter {

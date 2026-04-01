@@ -113,6 +113,8 @@ class _TongueScanPageState extends State<TongueScanPage>
       _mouthPresent = false;
       _tongueDetected = false;
     });
+    _statusSubscription?.cancel();
+    _statusSubscription = _statusBridge.statusStream().listen(_handleStatusUpdate);
     unawaited(_statusBridge.startMonitoring());
   }
 

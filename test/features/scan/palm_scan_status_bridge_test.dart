@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/services/palm_scan_status_bridge.dart';
 
 void main() {
@@ -57,6 +58,75 @@ void main() {
       );
 
       expect(status.readyToScan, isTrue);
+    });
+
+    test('keeps detecting stage visible before any hand is present', () {
+      final stage = resolvePalmScanFeedbackStage(
+        hasPermission: true,
+        isMonitoring: true,
+        handPresent: false,
+        readyToScan: false,
+        scanState: PalmScanState.scanning,
+      );
+
+      expect(stage, PalmScanFeedbackStage.detecting);
+    });
+
+    test('reports hand detected stage before ready-to-hold', () {
+      final stage = resolvePalmScanFeedbackStage(
+        hasPermission: true,
+        isMonitoring: true,
+        handPresent: true,
+        readyToScan: false,
+        scanState: PalmScanState.scanning,
+      );
+
+      expect(stage, PalmScanFeedbackStage.handDetected);
+    });
+
+    test('renders palm overlay only with complete drawable input', () {
+      final canRender = shouldRenderPalmOverlay(
+        handLandmarks: List<Offset>.generate(21, (index) => Offset(index / 20, 0.5)),
+        imageSize: const Size(640, 480),
+      );
+
+      final cannotRender = shouldRenderPalmOverlay(
+        handLandmarks: const [Offset(0.2, 0.3), Offset(0.4, 0.5)],
+        imageSize: const Size(640, 480),
+      );
+
+      final invalidImageSize = shouldRenderPalmOverlay(
+        handLandmarks: List<Offset>.generate(21, (index) => Offset(index / 20, 0.5)),
+        imageSize: Size.zero,
+      );
+
+      expect(canRender, isTrue);
+      expect(cannotRender, isFalse);
+      expect(invalidImageSize, isFalse);
+    });
+
+    test('shows palm hint only when drawable palm data is complete', () {
+      final shouldShow = shouldShowPalmHint(
+        handPresent: true,
+        handLandmarks: List<Offset>.generate(21, (index) => Offset(index / 20, 0.5)),
+        imageSize: const Size(640, 480),
+      );
+
+      final shouldHideForPartialLandmarks = shouldShowPalmHint(
+        handPresent: true,
+        handLandmarks: const [Offset(0.2, 0.3), Offset(0.4, 0.5)],
+        imageSize: const Size(640, 480),
+      );
+
+      final shouldHideWithoutHand = shouldShowPalmHint(
+        handPresent: false,
+        handLandmarks: List<Offset>.generate(21, (index) => Offset(index / 20, 0.5)),
+        imageSize: const Size(640, 480),
+      );
+
+      expect(shouldShow, isTrue);
+      expect(shouldHideForPartialLandmarks, isFalse);
+      expect(shouldHideWithoutHand, isFalse);
     });
   });
 }

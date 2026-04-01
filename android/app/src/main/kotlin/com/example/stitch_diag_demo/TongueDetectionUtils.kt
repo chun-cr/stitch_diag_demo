@@ -5,7 +5,7 @@ import kotlin.math.abs
 
 object TongueDetectionUtils {
     private val mouthIndices = listOf(13, 14, 17, 37, 267, 269, 270, 291)
-    private const val TONGUE_THRESHOLD = 0.26
+    private const val TONGUE_THRESHOLD = 0.2
     private const val LOWER_LIP_INDEX = 17
     private const val CHIN_INDEX = 152
 
@@ -33,7 +33,7 @@ object TongueDetectionUtils {
             0.0
         }
 
-        val detected = tongueOutScore >= TONGUE_THRESHOLD && lipChinRatio >= 0.035
+        val detected = tongueOutScore >= TONGUE_THRESHOLD || lipChinRatio >= 0.025
 
         val mouthLandmarks = mouthIndices.mapNotNull { index ->
             landmarks.getOrNull(index)?.let { landmark ->

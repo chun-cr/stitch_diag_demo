@@ -28,7 +28,7 @@ class TongueScanStatus {
 
   bool get mouthPresent => mouthLandmarkCount > 0;
   bool get readyToScan =>
-      mouthPresent && tongueDetected && tongueOutScore >= _tongueOutReadyThreshold;
+      mouthPresent && (tongueDetected || tongueOutScore >= _tongueOutReadyThreshold);
 
   factory TongueScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {
