@@ -1983,6 +1983,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportAdviceTongueFeatureColorLabel => 'Color';
 
   @override
+  String get scanToggleCamera => 'Flip camera';
+
+  @override
   String get reportAdviceTongueFeatureShapeLabel => 'Shape';
 
   @override

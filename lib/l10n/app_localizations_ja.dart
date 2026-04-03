@@ -1856,6 +1856,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportAdviceTongueFeatureColorLabel => '舌色';
 
   @override
+  String get scanToggleCamera => 'カメラ切替';
+
+  @override
   String get reportAdviceTongueFeatureShapeLabel => '舌形';
 
   @override

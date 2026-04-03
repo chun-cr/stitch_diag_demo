@@ -106,6 +106,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   Timer? _holdTimer;
 
   bool _hasPermission = false;
+  bool _isBackCamera = true;
   bool _isMonitoring = false;
   bool _handPresent = false;
   bool _readyToScan = false;
@@ -408,7 +409,22 @@ class _PalmScanPageState extends State<PalmScanPage>
                 const Expanded(
                   child: Center(child: ScanStepIndicator(currentStep: 2)),
                 ),
-                const SizedBox(width: 40),
+                IconButton(
+                  icon: const Icon(
+                    Icons.flip_camera_ios,
+                    size: 22,
+                    color: Color(0xFF3A3028),
+                  ),
+                  tooltip: l10n.scanToggleCamera,
+                  onPressed: _hasPermission
+                      ? () {
+                          setState(() => _isBackCamera = !_isBackCamera);
+                          unawaited(_statusBridge.toggleCamera());
+                        }
+                      : null,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
               ],
             ),
           ),
@@ -562,7 +578,7 @@ class _PalmScanPageState extends State<PalmScanPage>
               ? HandLandmarkOverlay(
                   normalizedLandmarks: _handLandmarks,
                   imageSize: _imageSize,
-                  mirrored: false,
+                  mirrored: !_isBackCamera,
                 )
               : const SizedBox.shrink(),
         ),

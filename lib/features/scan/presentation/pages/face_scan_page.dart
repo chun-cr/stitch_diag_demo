@@ -53,6 +53,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
 
   bool _hasPermission = false;
+  bool _isBackCamera = false;
   bool _cameraReady = false; // PlatformView 延迟创建标志
   bool _hasFaceDetected = false;
   bool _isScanning = false;
@@ -87,7 +88,7 @@ class _FaceScanPageState extends State<FaceScanPage>
       return l10n.scanCameraPermissionRequired;
     }
     if (_isScanning) {
-      return l10n.scanKeepStill;
+      return l10n.scanScanning;
     }
     if (_isFaceReadyToHold) {
       return l10n.scanFaceDetectedReady;
@@ -95,7 +96,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     return l10n.scanFaceAlignInFrame;
   }
 
-  bool get _bottomStatusHighlighted => _isScanning || _isFaceReadyToHold;
+  bool get _bottomStatusHighlighted => !_isScanning && _isFaceReadyToHold;
 
   @override
   void initState() {
@@ -289,7 +290,22 @@ class _FaceScanPageState extends State<FaceScanPage>
                 const Expanded(
                   child: Center(child: ScanStepIndicator(currentStep: 0)),
                 ),
-                const SizedBox(width: 40),
+                IconButton(
+                  icon: const Icon(
+                    Icons.flip_camera_ios,
+                    size: 22,
+                    color: Color(0xFF3A3028),
+                  ),
+                  tooltip: l10n.scanToggleCamera,
+                  onPressed: _hasPermission
+                      ? () {
+                          setState(() => _isBackCamera = !_isBackCamera);
+                          unawaited(_statusBridge.toggleCamera());
+                        }
+                      : null,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
               ],
             ),
           ),
@@ -464,7 +480,7 @@ class _FaceScanPageState extends State<FaceScanPage>
             child: FaceLandmarkOverlay(
               normalizedLandmarks: _normalizedLandmarks,
               imageSize: _sourceImageSize,
-              mirrored: true,
+              mirrored: !_isBackCamera,
             ),
           ),
         // 渐变遮罩（上下淡出，融入米色背景）

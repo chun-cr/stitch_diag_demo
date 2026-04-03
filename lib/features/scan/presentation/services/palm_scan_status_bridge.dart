@@ -95,4 +95,8 @@ class PalmScanStatusBridge {
   Future<void> stopMonitoring() {
     return _scanChannel.invokeMethod<void>('gesture/stopDetection');
   }
+
+  Future<void> toggleCamera() {
+    return _scanChannel.invokeMethod<void>('face/toggleCamera');
+  }
 }

@@ -3636,6 +3636,12 @@ abstract class AppLocalizations {
   /// **'舌色'**
   String get reportAdviceTongueFeatureColorLabel;
 
+  /// No description provided for @scanToggleCamera.
+  ///
+  /// In zh, this message translates to:
+  /// **'反转相机'**
+  String get scanToggleCamera;
+
   /// No description provided for @reportAdviceTongueFeatureShapeLabel.
   ///
   /// In zh, this message translates to:

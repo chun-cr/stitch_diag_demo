@@ -1879,6 +1879,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportAdviceTongueFeatureColorLabel => '혀 색';
 
   @override
+  String get scanToggleCamera => '카메라 전환';
+
+  @override
   String get reportAdviceTongueFeatureShapeLabel => '혀 형태';
 
   @override

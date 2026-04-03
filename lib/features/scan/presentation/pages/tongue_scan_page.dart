@@ -291,6 +291,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                     size: 22,
                     color: Color(0xFF3A3028),
                   ),
+                  tooltip: l10n.scanToggleCamera,
                   onPressed: () {
                     unawaited(_statusBridge.toggleCamera());
                   },

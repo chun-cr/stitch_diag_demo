@@ -1823,6 +1823,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportAdviceTongueFeatureColorLabel => '舌色';
 
   @override
+  String get scanToggleCamera => '反转相机';
+
+  @override
   String get reportAdviceTongueFeatureShapeLabel => '舌形';
 
   @override

@@ -105,12 +105,15 @@ class CameraManager(private val context: Context) {
         }, ContextCompat.getMainExecutor(context))
     }
 
-    fun stopCamera() {
+    fun stopCamera(resetToggle: Boolean = true) {
         try {
             val cameraProvider = cameraProviderFuture.get()
             cameraProvider.unbindAll()
             imageCapture = null
             currentSelector = null
+            if (resetToggle) {
+                isCameraToggled = false
+            }
         } catch (exc: Exception) {}
     }
 
@@ -137,7 +140,7 @@ class CameraManager(private val context: Context) {
     }
 
     fun restartCamera() {
-        stopCamera()
+        stopCamera(resetToggle = false)
         startCamera()
     }
 

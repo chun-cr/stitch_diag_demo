@@ -651,6 +651,7 @@
   "scanFaceTag": "顔診",
   "scanFaceDetectionPermissionRequired": "顔検出にはカメラ権限が必要です。",
   "scanCameraPermissionRequired": "続行するにはカメラ権限が必要です。",
+  "scanToggleCamera": "カメラ切替",
   "scanKeepStill": "そのまま動かないでください",
   "scanMoveLeft": "左へ移動してください",
   "scanMoveRight": "右へ移動してください",
