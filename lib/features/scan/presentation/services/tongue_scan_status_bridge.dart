@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class TongueScanStatus {
-  static const double _tongueOutReadyThreshold = 0.26;
+  static const double _tongueOutReadyThreshold = 0.60;
 
   final bool tongueDetected;
   final double tongueOutScore;
@@ -28,7 +28,7 @@ class TongueScanStatus {
 
   bool get mouthPresent => mouthLandmarkCount > 0;
   bool get readyToScan =>
-      mouthPresent && (tongueDetected || tongueOutScore >= _tongueOutReadyThreshold);
+      mouthPresent && tongueDetected && tongueOutScore >= _tongueOutReadyThreshold;
 
   factory TongueScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {

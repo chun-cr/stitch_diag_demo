@@ -47,6 +47,27 @@ class _ReportCheckoutPageState extends State<ReportCheckoutPage> {
         _addressController.text.trim().isNotEmpty;
   }
 
+  void _showPaymentPlaceholderDialog({
+    required String title,
+    required String body,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(body),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(context.l10n.commonConfirm),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -71,25 +92,20 @@ class _ReportCheckoutPageState extends State<ReportCheckoutPage> {
             children: [
               _ApplePayPlaceholder(
                 enabled: !_isSubmitting,
-                onTap: () {
-                  showDialog<void>(
-                    context: context,
-                    builder: (dialogContext) {
-                      return AlertDialog(
-                        title: Text(l10n.reportProductCheckoutApplePayTitle),
-                        content: Text(
-                          l10n.reportProductCheckoutApplePayDialogBody,
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(),
-                            child: Text(l10n.commonConfirm),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                title: l10n.reportProductCheckoutApplePayTitle,
+                onTap: () => _showPaymentPlaceholderDialog(
+                  title: l10n.reportProductCheckoutApplePayTitle,
+                  body: l10n.reportProductCheckoutApplePayDialogBody,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _GooglePayPlaceholder(
+                enabled: !_isSubmitting,
+                title: l10n.reportProductCheckoutGooglePayTitle,
+                onTap: () => _showPaymentPlaceholderDialog(
+                  title: l10n.reportProductCheckoutGooglePayTitle,
+                  body: l10n.reportProductCheckoutGooglePayDialogBody,
+                ),
               ),
               const SizedBox(height: 10),
               GestureDetector(
@@ -288,45 +304,18 @@ class _ReportCheckoutPageState extends State<ReportCheckoutPage> {
                   color: product.color,
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        CupertinoIcons.creditcard_fill,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Apple Pay',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              l10n.reportProductCheckoutApplePaySubtitle,
-                              style: TextStyle(
-                                fontSize: 11,
-                                height: 1.45,
-                                color: Colors.white.withValues(alpha: 0.72),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                _PaymentMethodCard(
+                  title: l10n.reportProductCheckoutApplePayTitle,
+                  subtitle: l10n.reportProductCheckoutApplePaySubtitle,
+                  icon: CupertinoIcons.creditcard_fill,
+                  dark: true,
+                ),
+                const SizedBox(height: 10),
+                _PaymentMethodCard(
+                  title: l10n.reportProductCheckoutGooglePayTitle,
+                  subtitle: l10n.reportProductCheckoutGooglePaySubtitle,
+                  icon: Icons.account_balance_wallet_rounded,
+                  dark: false,
                 ),
               ],
             ),
@@ -453,10 +442,12 @@ class _AmountRow extends StatelessWidget {
 
 class _ApplePayPlaceholder extends StatelessWidget {
   final bool enabled;
+  final String title;
   final VoidCallback onTap;
 
   const _ApplePayPlaceholder({
     required this.enabled,
+    required this.title,
     required this.onTap,
   });
 
@@ -473,14 +464,14 @@ class _ApplePayPlaceholder extends StatelessWidget {
             color: Colors.black,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(CupertinoIcons.creditcard_fill, color: Colors.white),
-              SizedBox(width: 10),
+              const Icon(CupertinoIcons.creditcard_fill, color: Colors.white),
+              const SizedBox(width: 10),
               Text(
-                'Apple Pay',
-                style: TextStyle(
+                title,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -489,6 +480,114 @@ class _ApplePayPlaceholder extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GooglePayPlaceholder extends StatelessWidget {
+  final bool enabled;
+  final String title;
+  final VoidCallback onTap;
+
+  const _GooglePayPlaceholder({
+    required this.enabled,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.45,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF1E1810).withValues(alpha: 0.08)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF1E1810)),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1810),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentMethodCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool dark;
+
+  const _PaymentMethodCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.dark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = dark ? Colors.black : Colors.white;
+    final titleColor = dark ? Colors.white : const Color(0xFF1E1810);
+    final subtitleColor = dark
+        ? Colors.white.withValues(alpha: 0.72)
+        : const Color(0xFF3A3028).withValues(alpha: 0.68);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(18),
+        border: dark ? null : Border.all(color: const Color(0xFF1E1810).withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: titleColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.45,
+                    color: subtitleColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/services/tongue_scan_status_bridge.dart';
 
@@ -15,20 +14,20 @@ void main() {
       expect(status.readyToScan, isFalse);
     });
 
-    test('becomes ready when tongue out score reaches threshold', () {
+    test('becomes ready when tongue out score reaches native-positive threshold', () {
       const status = TongueScanStatus(
         tongueDetected: true,
-        tongueOutScore: 0.31,
+        tongueOutScore: 0.20,
         mouthLandmarkCount: 8,
       );
 
       expect(status.readyToScan, isTrue);
     });
 
-    test('parses event payload and keeps readiness gated by score', () {
+    test('parses event payload and keeps readiness gated below threshold', () {
       final status = TongueScanStatus.fromEvent({
         'tongueDetected': true,
-        'tongueOutScore': 0.24,
+        'tongueOutScore': 0.19,
         'mouthLandmarks': const [
           {'x': 0.2, 'y': 0.3},
           {'x': 0.3, 'y': 0.35},

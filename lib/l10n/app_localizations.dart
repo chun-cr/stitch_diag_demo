@@ -2571,7 +2571,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportProductDetailServiceBody.
   ///
   /// In zh, this message translates to:
-  /// **'当前为推荐商品展示与演示下单流程，后续可接入真实订单系统与 Apple Pay。'**
+  /// **'当前为推荐商品展示与演示下单流程，后续可接入真实订单系统与 Apple Pay / Google Pay。'**
   String get reportProductDetailServiceBody;
 
   /// No description provided for @reportProductDetailQuantityTitle.
@@ -2694,6 +2694,24 @@ abstract class AppLocalizations {
   /// **'当前版本尚未接入真实 Apple Pay。现在点击仅用于说明未来支付入口位置，建议继续使用演示下单流程联调页面。'**
   String get reportProductCheckoutApplePayDialogBody;
 
+  /// No description provided for @reportProductCheckoutGooglePayTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google Pay'**
+  String get reportProductCheckoutGooglePayTitle;
+
+  /// No description provided for @reportProductCheckoutGooglePaySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'预留 Google Pay 接入位，后续接真实支付能力。'**
+  String get reportProductCheckoutGooglePaySubtitle;
+
+  /// No description provided for @reportProductCheckoutGooglePayDialogBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前版本尚未接入真实 Google Pay。现在点击仅用于说明未来支付入口位置，建议继续使用演示下单流程联调页面。'**
+  String get reportProductCheckoutGooglePayDialogBody;
+
   /// No description provided for @reportProductCheckoutMockSubmit.
   ///
   /// In zh, this message translates to:
@@ -2715,7 +2733,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportProductCheckoutSuccessBody.
   ///
   /// In zh, this message translates to:
-  /// **'当前仅完成前端订单流程演示，后续接入真实下单与 Apple Pay 后会替换为正式支付链路。'**
+  /// **'当前仅完成前端订单流程演示，后续接入真实下单与 Apple Pay / Google Pay 后会替换为正式支付链路。'**
   String get reportProductCheckoutSuccessBody;
 
   /// No description provided for @reportUnlockTitle.

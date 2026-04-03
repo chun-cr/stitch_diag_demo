@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:stitch_diag_demo/features/report/application/checkout_session.dart';
+import 'package:stitch_diag_demo/features/report/application/payment_method.dart';
 
 @immutable
 class OrderPreview {
@@ -33,6 +35,47 @@ OrderPreview buildMockOrderPreview({
     shippingFeeCents: shippingFeeCents,
     serviceFeeCents: serviceFeeCents,
     totalCents: subtotalCents + shippingFeeCents + serviceFeeCents,
+  );
+}
+
+CheckoutSession buildMockCheckoutSession({
+  required int unitPriceCents,
+  required int quantity,
+  int shippingFeeCents = 1200,
+  int serviceFeeCents = 0,
+  String sessionId = 'mock-checkout-session',
+  String itemId = 'mock-product',
+  String itemTitle = 'mock-product',
+}) {
+  final preview = buildMockOrderPreview(
+    unitPriceCents: unitPriceCents,
+    quantity: quantity,
+    shippingFeeCents: shippingFeeCents,
+    serviceFeeCents: serviceFeeCents,
+  );
+
+  return CheckoutSession(
+    sessionId: sessionId,
+    items: [
+      CheckoutItem(
+        itemId: itemId,
+        title: itemTitle,
+        quantity: quantity,
+        unitPriceCents: unitPriceCents,
+      ),
+    ],
+    subtotalCents: preview.subtotalCents,
+    shippingFeeCents: preview.shippingFeeCents,
+    serviceFeeCents: preview.serviceFeeCents,
+    totalCents: preview.totalCents,
+    currencyCode: 'CNY',
+    countryCode: 'CN',
+    supportedPaymentMethods: const {
+      PaymentMethod.mock,
+      PaymentMethod.applePay,
+      PaymentMethod.googlePay,
+    },
+    status: CheckoutSessionStatus.pending,
   );
 }
 

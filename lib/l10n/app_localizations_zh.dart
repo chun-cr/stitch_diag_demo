@@ -1265,7 +1265,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportProductDetailServiceBody =>
-      '当前为推荐商品展示与演示下单流程，后续可接入真实订单系统与 Apple Pay。';
+      '当前为推荐商品展示与演示下单流程，后续可接入真实订单系统与 Apple Pay / Google Pay。';
 
   @override
   String get reportProductDetailQuantityTitle => '购买数量';
@@ -1332,6 +1332,17 @@ class AppLocalizationsZh extends AppLocalizations {
       '当前版本尚未接入真实 Apple Pay。现在点击仅用于说明未来支付入口位置，建议继续使用演示下单流程联调页面。';
 
   @override
+  String get reportProductCheckoutGooglePayTitle => 'Google Pay';
+
+  @override
+  String get reportProductCheckoutGooglePaySubtitle =>
+      '预留 Google Pay 接入位，后续接真实支付能力。';
+
+  @override
+  String get reportProductCheckoutGooglePayDialogBody =>
+      '当前版本尚未接入真实 Google Pay。现在点击仅用于说明未来支付入口位置，建议继续使用演示下单流程联调页面。';
+
+  @override
   String get reportProductCheckoutMockSubmit => '创建演示订单';
 
   @override
@@ -1342,7 +1353,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportProductCheckoutSuccessBody =>
-      '当前仅完成前端订单流程演示，后续接入真实下单与 Apple Pay 后会替换为正式支付链路。';
+      '当前仅完成前端订单流程演示，后续接入真实下单与 Apple Pay / Google Pay 后会替换为正式支付链路。';
 
   @override
   String get reportUnlockTitle => '解锁完整报告';

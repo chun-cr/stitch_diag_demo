@@ -1285,7 +1285,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reportProductDetailServiceBody =>
-      'このバージョンは商品表示と模擬注文フローのみを提供します。実際の注文システムと Apple Pay は後続で接続できます。';
+      'このバージョンは商品表示と模擬注文フローのみを提供します。実際の注文システムと Apple Pay / Google Pay は後続で接続できます。';
 
   @override
   String get reportProductDetailQuantityTitle => '購入数量';
@@ -1352,6 +1352,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'このビルドでは実際の Apple Pay はまだ接続されていません。将来の支払い入口を示すための配置なので、画面確認には模擬注文フローをご利用ください。';
 
   @override
+  String get reportProductCheckoutGooglePayTitle => 'Google Pay';
+
+  @override
+  String get reportProductCheckoutGooglePaySubtitle =>
+      '将来の Google Pay 接続に向けたプレースホルダーです。';
+
+  @override
+  String get reportProductCheckoutGooglePayDialogBody =>
+      'このビルドでは実際の Google Pay はまだ接続されていません。将来の支払い入口を示すための配置なので、画面確認には模擬注文フローをご利用ください。';
+
+  @override
   String get reportProductCheckoutMockSubmit => '模擬注文を作成';
 
   @override
@@ -1362,7 +1373,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reportProductCheckoutSuccessBody =>
-      '現在はフロントエンド上の注文体験デモのみ完了します。後で正式な注文処理と Apple Pay フローに置き換わります。';
+      '現在はフロントエンド上の注文体験デモのみ完了します。後で正式な注文処理と Apple Pay / Google Pay フローに置き換わります。';
 
   @override
   String get reportUnlockTitle => 'レポート全体を解放';

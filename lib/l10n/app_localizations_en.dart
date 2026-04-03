@@ -1366,7 +1366,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportProductDetailServiceBody =>
-      'This version only demonstrates product display and mock checkout. A real order system and Apple Pay can be added later.';
+      'This version only demonstrates product display and mock checkout. A real order system and Apple Pay / Google Pay can be added later.';
 
   @override
   String get reportProductDetailQuantityTitle => 'Quantity';
@@ -1433,6 +1433,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Real Apple Pay is not connected in this build yet. This button currently marks the future payment entry, so continue with the mock order flow for page verification.';
 
   @override
+  String get reportProductCheckoutGooglePayTitle => 'Google Pay';
+
+  @override
+  String get reportProductCheckoutGooglePaySubtitle =>
+      'Reserved for future Google Pay integration once payment capabilities are ready.';
+
+  @override
+  String get reportProductCheckoutGooglePayDialogBody =>
+      'Real Google Pay is not connected in this build yet. This button currently marks the future payment entry, so continue with the mock order flow for page verification.';
+
+  @override
   String get reportProductCheckoutMockSubmit => 'Create Mock Order';
 
   @override
@@ -1443,7 +1454,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportProductCheckoutSuccessBody =>
-      'This currently completes only the frontend order demo flow. It will be replaced by the real checkout and Apple Pay flow later.';
+      'This currently completes only the frontend order demo flow. It will be replaced by the real checkout and Apple Pay / Google Pay flow later.';
 
   @override
   String get reportUnlockTitle => 'Unlock Full Report';

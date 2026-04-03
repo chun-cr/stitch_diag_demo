@@ -16,6 +16,15 @@ const _kGreen = Color(0xFF2D6A4F);
 const _kGreenLight = Color(0xFF3DAB78);
 const _kGreenMid = Color(0xFF2D8A5E);
 
+@visibleForTesting
+bool isFaceHoldEligible({
+  required bool hasPermission,
+  required bool hasFaceDetected,
+  required String faceDirection,
+}) {
+  return hasPermission && hasFaceDetected && faceDirection.isEmpty;
+}
+
 class FaceScanPage extends StatefulWidget {
   const FaceScanPage({super.key});
   @override
@@ -25,12 +34,13 @@ class FaceScanPage extends StatefulWidget {
 class _FaceScanPageState extends State<FaceScanPage>
     with SingleTickerProviderStateMixin {
   final FaceScanStatusBridge _statusBridge = FaceScanStatusBridge();
+  static const Duration _requiredHoldDuration = Duration(seconds: 2);
 
   bool _hasPermission = false;
   bool _cameraReady = false; // PlatformView 延迟创建标志
   bool _hasFaceDetected = false;
   bool _isScanning = false;
-  int _countdown = 3;
+  double _scanProgress = 0;
   bool _isTransitioning = false;
 
   Timer? _timer;
@@ -40,6 +50,12 @@ class _FaceScanPageState extends State<FaceScanPage>
   List<Offset> _normalizedLandmarks = const [];
   Size _sourceImageSize = Size.zero;
   String _faceDirection = ''; // 位置引导文字（空 = 居中或无脸）
+
+  bool get _isFaceReadyToHold => isFaceHoldEligible(
+        hasPermission: _hasPermission,
+        hasFaceDetected: _hasFaceDetected,
+        faceDirection: _faceDirection,
+      );
 
   @override
   void initState() {
@@ -90,6 +106,9 @@ class _FaceScanPageState extends State<FaceScanPage>
           _sourceImageSize = imageSize;
           _faceDirection = hasFace ? _computeFaceDirection(landmarks) : '';
         });
+        if (_isScanning && !_isFaceReadyToHold) {
+          _cancelScanHold(resetProgress: true);
+        }
       });
       await _statusBridge.initialize();
       await _statusBridge.startMonitoring();
@@ -97,7 +116,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   }
 
   void _startScan() {
-    if (!_hasFaceDetected) {
+    if (!_isFaceReadyToHold) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(context.l10n.scanFaceAlignInFrame)));
@@ -105,14 +124,39 @@ class _FaceScanPageState extends State<FaceScanPage>
     }
     setState(() {
       _isScanning = true;
-      _countdown = 3;
+      _scanProgress = 0;
     });
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_countdown > 1) {
-        setState(() => _countdown--);
-      } else {
+    final stopwatch = Stopwatch()..start();
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (!_isFaceReadyToHold) {
+        _cancelScanHold(resetProgress: true);
+        t.cancel();
+        return;
+      }
+      final progress =
+          stopwatch.elapsedMilliseconds / _requiredHoldDuration.inMilliseconds;
+      if (progress >= 1) {
+        setState(() => _scanProgress = 1);
         t.cancel();
         unawaited(_navigateToTongueScan());
+        return;
+      }
+      setState(() => _scanProgress = progress.clamp(0.0, 1.0));
+    });
+  }
+
+  void _cancelScanHold({required bool resetProgress}) {
+    _timer?.cancel();
+    _timer = null;
+    if (!mounted) return;
+    setState(() {
+      _isScanning = false;
+      if (resetProgress) {
+        _scanProgress = 0;
       }
     });
   }
@@ -120,7 +164,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   Future<void> _navigateToTongueScan() async {
     if (_isTransitioning || !mounted) return;
     _isTransitioning = true;
-    _timer?.cancel();
+    _cancelScanHold(resetProgress: true);
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
     if (!mounted) return;
@@ -139,7 +183,6 @@ class _FaceScanPageState extends State<FaceScanPage>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1EB),
       body: Stack(
@@ -161,37 +204,6 @@ class _FaceScanPageState extends State<FaceScanPage>
               ],
             ),
           ),
-
-          // 倒计时覆盖层
-          if (_isScanning && _countdown > 0)
-            Container(
-              color: Colors.black.withValues(alpha: 0.55),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$_countdown',
-                      style: const TextStyle(
-                        fontSize: 110,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.scanKeepStill,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withValues(alpha: 0.8),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -546,14 +558,21 @@ class _FaceScanPageState extends State<FaceScanPage>
             left: -40,
             right: -40,
             child: Center(
-              child: _faceDirection.isNotEmpty
-                  ? _DirectionPill(direction: _faceDirection)
-                  : _StatusPill(
-                      label: _hasPermission
-                          ? (_hasFaceDetected ? l10n.scanFaceDetectedReady : l10n.scanFaceAlignInFrame)
-                          : l10n.scanCameraPermissionRequired,
-                      detected: _hasFaceDetected,
-                    ),
+              child: _isScanning
+                  ? _HoldFeedback(
+                      label: l10n.scanKeepStill,
+                      progress: _scanProgress,
+                    )
+                  : (_faceDirection.isNotEmpty
+                      ? _DirectionPill(direction: _faceDirection)
+                      : _StatusPill(
+                          label: _hasPermission
+                              ? (_hasFaceDetected
+                                  ? l10n.scanFaceDetectedReady
+                                  : l10n.scanFaceAlignInFrame)
+                              : l10n.scanCameraPermissionRequired,
+                          detected: _hasFaceDetected,
+                        )),
             ),
           ),
         ],
@@ -796,6 +815,8 @@ class _StatusPill extends StatelessWidget {
     ),
     child: Text(
       label,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
         color: detected
             ? const Color(0xFF2D6A4F)
@@ -804,6 +825,64 @@ class _StatusPill extends StatelessWidget {
         fontWeight: FontWeight.w500,
       ),
     ),
+  );
+}
+
+class _HoldFeedback extends StatelessWidget {
+  final String label;
+  final double progress;
+
+  const _HoldFeedback({required this.label, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _StatusPill(label: label, detected: true),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 120,
+          child: _ScanProgressBar(progress: progress),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScanProgressBar extends StatelessWidget {
+  final double progress;
+  const _ScanProgressBar({required this.progress});
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      Container(
+        height: 4,
+        decoration: BoxDecoration(
+          color: _kGreen.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      FractionallySizedBox(
+        widthFactor: progress.clamp(0.0, 1.0),
+        child: Container(
+          height: 4,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2D8A5E), Color(0xFF3DAB78)],
+            ),
+            borderRadius: BorderRadius.circular(2),
+            boxShadow: [
+              BoxShadow(
+                color: _kGreen.withValues(alpha: 0.35),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
   );
 }
 
@@ -952,6 +1031,9 @@ class _DirectionPill extends StatelessWidget {
         ),
         child: Text(
           direction,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 13,

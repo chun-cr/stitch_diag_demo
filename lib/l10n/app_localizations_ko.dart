@@ -1296,7 +1296,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportProductDetailServiceBody =>
-      '현재 버전은 상품 표시와 모의 주문 흐름만 제공합니다. 실제 주문 시스템과 Apple Pay는 이후 연결할 수 있습니다.';
+      '현재 버전은 상품 표시와 모의 주문 흐름만 제공합니다. 실제 주문 시스템과 Apple Pay / Google Pay는 이후 연결할 수 있습니다.';
 
   @override
   String get reportProductDetailQuantityTitle => '구매 수량';
@@ -1363,6 +1363,17 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 빌드에는 아직 실제 Apple Pay가 연결되어 있지 않습니다. 향후 결제 진입 위치를 보여주기 위한 버튼이므로, 화면 검증은 모의 주문 흐름으로 진행해 주세요.';
 
   @override
+  String get reportProductCheckoutGooglePayTitle => 'Google Pay';
+
+  @override
+  String get reportProductCheckoutGooglePaySubtitle =>
+      '향후 Google Pay 연동을 위한 자리표시자입니다.';
+
+  @override
+  String get reportProductCheckoutGooglePayDialogBody =>
+      '이 빌드에는 아직 실제 Google Pay가 연결되어 있지 않습니다. 향후 결제 진입 위치를 보여주기 위한 버튼이므로, 화면 검증은 모의 주문 흐름으로 진행해 주세요.';
+
+  @override
   String get reportProductCheckoutMockSubmit => '모의 주문 생성';
 
   @override
@@ -1373,7 +1384,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportProductCheckoutSuccessBody =>
-      '현재는 프런트엔드 주문 경험 데모까지만 완료됩니다. 이후 실제 주문 처리 및 Apple Pay 흐름으로 교체될 예정입니다.';
+      '현재는 프런트엔드 주문 경험 데모까지만 완료됩니다. 이후 실제 주문 처리 및 Apple Pay / Google Pay 흐름으로 교체될 예정입니다.';
 
   @override
   String get reportUnlockTitle => '전체 리포트 잠금 해제';

@@ -319,45 +319,6 @@ class _PalmScanPageState extends State<PalmScanPage>
     return l10n.scanPalmAlignHint;
   }
 
-  String _feedbackTitle() {
-    final l10n = context.l10n;
-    switch (_feedbackStage) {
-      case PalmScanFeedbackStage.waitingPermission:
-        return l10n.scanPalmWaitingPermission;
-      case PalmScanFeedbackStage.detecting:
-        return l10n.scanScanning;
-      case PalmScanFeedbackStage.handDetected:
-        final localizedGesture = _localizedGestureName(_gestureName);
-        if (localizedGesture.isNotEmpty) {
-          return l10n.scanPalmDetectedGesture(localizedGesture);
-        }
-        return l10n.scanPalmStretchOpen;
-      case PalmScanFeedbackStage.readyToHold:
-        return l10n.scanPalmReadyHold;
-      case PalmScanFeedbackStage.completed:
-        return l10n.scanPalmCompleted;
-    }
-  }
-
-  String _feedbackBody() {
-    final l10n = context.l10n;
-    switch (_feedbackStage) {
-      case PalmScanFeedbackStage.waitingPermission:
-        return l10n.scanCameraPermissionRequired;
-      case PalmScanFeedbackStage.detecting:
-        return l10n.scanPalmAlignHint;
-      case PalmScanFeedbackStage.handDetected:
-        if (_palmHint.isNotEmpty) {
-          return _palmHint;
-        }
-        return _statusText();
-      case PalmScanFeedbackStage.readyToHold:
-        return l10n.scanPalmHoldButton;
-      case PalmScanFeedbackStage.completed:
-        return l10n.scanPalmViewingReportSoon;
-    }
-  }
-
   String _localizedGestureName(String rawName) {
     final l10n = context.l10n;
     switch (rawName) {
@@ -622,7 +583,7 @@ class _PalmScanPageState extends State<PalmScanPage>
             ),
           ),
         ),
-        Align(alignment: const Alignment(0, -0.1), child: _buildPalmFrame()),
+        Align(alignment: const Alignment(0, -0.18), child: _buildPalmFrame()),
       ],
     );
   }
@@ -669,28 +630,25 @@ class _PalmScanPageState extends State<PalmScanPage>
           ),
 
           Positioned(
-              bottom: -54,
+              bottom: -16,
             left: -40,
             right: -40,
             child: Center(
-              child: _palmHint.isNotEmpty &&
-                  !_readyToScan &&
-                  !(_gestureName == 'Open_Palm' && !_handStraight)
-                  ? _PalmDirectionPill(hint: _palmHint)
-                  : _StatusPill(
-                label: _statusText(),
-                detected:
-                _readyToScan || _scanState == PalmScanState.completed,
-              ),
+              child: _readyToScan && _scanState == PalmScanState.scanning
+                  ? _PalmHoldFeedback(
+                      label: context.l10n.scanPalmReadyHold,
+                      progress: _scanProgress,
+                    )
+                  : (_palmHint.isNotEmpty &&
+                          !(_gestureName == 'Open_Palm' && !_handStraight)
+                      ? _PalmDirectionPill(hint: _palmHint)
+                      : _StatusPill(
+                          label: _statusText(),
+                          detected:
+                              _readyToScan || _scanState == PalmScanState.completed,
+                        )),
             ),
           ),
-          if (_scanState == PalmScanState.scanning && _readyToScan)
-            Positioned(
-               bottom: -88,
-              left: frameW * 0.18,
-              right: frameW * 0.18,
-              child: _ScanProgressBar(progress: _scanProgress),
-            ),
         ],
       ),
     );
@@ -733,22 +691,10 @@ class _PalmScanPageState extends State<PalmScanPage>
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(
               children: [
-                _LiveFeedbackCard(
-                  title: _feedbackTitle(),
-                  body: _feedbackBody(),
-                  active: _isMonitoring,
-                  resolved: _feedbackStage == PalmScanFeedbackStage.readyToHold ||
-                      _feedbackStage == PalmScanFeedbackStage.completed,
-                ),
-                const SizedBox(height: 12),
                 _buildPrimaryButton(
                   label: _scanState == PalmScanState.completed
                       ? l10n.scanPalmViewingReportSoon
-                      : (_feedbackStage == PalmScanFeedbackStage.waitingPermission
-                          ? l10n.scanPalmWaitingPermission
-                          : (_feedbackStage == PalmScanFeedbackStage.readyToHold
-                              ? l10n.scanPalmHoldButton
-                              : l10n.scanScanning)),
+                      : l10n.scanScanning,
                   enabled: false,
                   onTap: _navigateToReport,
                 ),
@@ -881,6 +827,8 @@ class _StatusPill extends StatelessWidget {
     ),
     child: Text(
       label,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
         color: detected
             ? const Color(0xFF6B5B95)
@@ -923,86 +871,24 @@ class _ScanProgressBar extends StatelessWidget {
   );
 }
 
-class _LiveFeedbackCard extends StatelessWidget {
-  final String title;
-  final String body;
-  final bool active;
-  final bool resolved;
+class _PalmHoldFeedback extends StatelessWidget {
+  final String label;
+  final double progress;
 
-  const _LiveFeedbackCard({
-    required this.title,
-    required this.body,
-    required this.active,
-    required this.resolved,
-  });
+  const _PalmHoldFeedback({required this.label, required this.progress});
 
   @override
   Widget build(BuildContext context) {
-    final accent = resolved ? _kAccentLight : _kAccent;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: resolved ? 0.12 : 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            margin: const EdgeInsets.only(top: 5),
-            decoration: BoxDecoration(
-              color: active ? accent : accent.withValues(alpha: 0.45),
-              shape: BoxShape.circle,
-              boxShadow: active
-                  ? [
-                      BoxShadow(
-                        color: accent.withValues(alpha: 0.25),
-                        blurRadius: 8,
-                      ),
-                    ]
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    height: 1.45,
-                    color: const Color(0xFF3A3028).withValues(alpha: 0.72),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            resolved ? Icons.check_circle_rounded : Icons.radar_rounded,
-            size: 18,
-            color: accent.withValues(alpha: 0.9),
-          ),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _StatusPill(label: label, detected: true),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 132,
+          child: _ScanProgressBar(progress: progress),
+        ),
+      ],
     );
   }
 }
@@ -1261,6 +1147,9 @@ class _PalmDirectionPill extends StatelessWidget {
         ),
         child: Text(
           hint,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 13,
