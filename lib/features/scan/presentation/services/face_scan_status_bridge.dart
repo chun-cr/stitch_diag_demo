@@ -11,6 +11,8 @@ abstract class VisionChannelBridge {
   Future<void> startMonitoring();
 
   Future<void> stopMonitoring();
+
+  Future<void> toggleCamera();
 }
 
 class FaceScanStatusBridge implements VisionChannelBridge {
@@ -96,6 +98,18 @@ class FaceScanStatusBridge implements VisionChannelBridge {
 
     if (Platform.isIOS) {
       await _iosMethodChannel.invokeMethod<void>('face/stopDetection');
+    }
+  }
+
+  @override
+  Future<void> toggleCamera() async {
+    if (Platform.isAndroid) {
+      await _androidMethodChannel.invokeMethod<void>('face/toggleCamera');
+      return;
+    }
+
+    if (Platform.isIOS) {
+      await _iosMethodChannel.invokeMethod<void>('face/toggleCamera');
     }
   }
 

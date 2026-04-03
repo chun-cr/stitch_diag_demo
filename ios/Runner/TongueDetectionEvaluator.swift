@@ -67,7 +67,7 @@ enum TongueDetectionEvaluator {
             return abs(Double(lowerLip.y) - Double(upperLip.y))
         }()
 
-        let detected = tongueOutScore >= tongueThreshold || mouthOpenRatio >= 0.08
+        let detected = tongueOutScore >= tongueThreshold || mouthOpenRatio >= 0.06
 
         let mouthLandmarks = mouthIndices.compactMap { index -> [String: Double]? in
             guard landmarks.indices.contains(index) else {

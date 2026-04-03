@@ -35,9 +35,15 @@ class CameraManager(private val context: Context) {
 
     private var currentSelector: CameraSelector? = null
 
+    private var isCameraToggled = false
+
+    fun toggleCamera() {
+        isCameraToggled = !isCameraToggled
+        restartCamera()
+    }
+
     private fun applyPreviewTransform() {
         // CameraX PreviewView automatically handles mirroring for the front camera.
-        // Overriding scaleX to -1f actually un-mirrors it.
         lastPreviewView?.scaleX = 1f
     }
 
@@ -47,9 +53,9 @@ class CameraManager(private val context: Context) {
                 val cameraProvider = cameraProviderFuture.get()
 
                 val cameraSelector = if (mode == "gesture") {
-                    CameraSelector.DEFAULT_BACK_CAMERA
+                    if (isCameraToggled) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
                 } else {
-                    CameraSelector.DEFAULT_FRONT_CAMERA
+                    if (isCameraToggled) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
                 }
 
                 // 核心：防止重复绑定导致抖动。

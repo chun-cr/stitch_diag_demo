@@ -285,7 +285,18 @@ class _TongueScanPageState extends State<TongueScanPage>
                 const Expanded(
                   child: Center(child: ScanStepIndicator(currentStep: 1)),
                 ),
-                const SizedBox(width: 40),
+                IconButton(
+                  icon: const Icon(
+                    Icons.flip_camera_ios,
+                    size: 22,
+                    color: Color(0xFF3A3028),
+                  ),
+                  onPressed: () {
+                    unawaited(_statusBridge.toggleCamera());
+                  },
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
               ],
             ),
           ),

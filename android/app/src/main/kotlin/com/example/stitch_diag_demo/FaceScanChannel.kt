@@ -100,6 +100,10 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                 cameraManager.stopCamera()
                 result.success(null)
             }
+            "face/toggleCamera" -> {
+                cameraManager.toggleCamera()
+                result.success(null)
+            }
             "gesture/startDetection" -> {
                 if (!cameraManager.hasCameraPermission()) {
                     result.error("PERMISSION_DENIED", "Camera permission not granted", null)

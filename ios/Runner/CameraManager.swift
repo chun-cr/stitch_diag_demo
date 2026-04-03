@@ -42,6 +42,11 @@ final class CameraManager: NSObject {
         previewLayer?.frame = bounds
     }
 
+    func toggleCamera() {
+        let newPosition: AVCaptureDevice.Position = currentPosition == .front ? .back : .front
+        startSession(isBackCamera: newPosition == .back)
+    }
+
     func startSession(isBackCamera: Bool = false, completion: (() -> Void)? = nil) {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }

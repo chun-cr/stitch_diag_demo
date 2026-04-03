@@ -62,6 +62,10 @@ import UIKit
         FaceLandmarkerViewFactory.shared.performStop(mode: "gesture")
         result(nil)
 
+      case "face/toggleCamera":
+        CameraManager.shared.toggleCamera()
+        result(nil)
+
       case "tongue/capture":
         guard let view = FaceLandmarkerViewFactory.shared.currentView else {
           result(FlutterError(code: "NO_VIEW", message: "No active camera view", details: nil))

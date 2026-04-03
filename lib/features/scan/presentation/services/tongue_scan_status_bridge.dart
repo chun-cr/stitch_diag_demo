@@ -112,4 +112,8 @@ class TongueScanStatusBridge {
   Future<void> stopMonitoring() {
     return _scanChannel.invokeMethod<void>('tongue/stopDetection');
   }
+
+  Future<void> toggleCamera() {
+    return _scanChannel.invokeMethod<void>('face/toggleCamera');
+  }
 }
