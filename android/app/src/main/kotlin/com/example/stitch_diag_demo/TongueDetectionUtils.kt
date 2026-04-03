@@ -33,7 +33,7 @@ object TongueDetectionUtils {
             0.0
         }
 
-        val detected = tongueOutScore >= TONGUE_THRESHOLD || mouthOpenRatio >= 0.05
+        val detected = tongueOutScore >= TONGUE_THRESHOLD || mouthOpenRatio >= 0.08
 
         val mouthLandmarks = mouthIndices.mapNotNull { index ->
             landmarks.getOrNull(index)?.let { landmark ->
