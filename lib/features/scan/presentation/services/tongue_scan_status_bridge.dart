@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class TongueScanStatus {
-  static const double _tongueOutReadyThreshold = 0.60;
+  static const double _tongueOutReadyThreshold = 0.35;
 
   final bool tongueDetected;
   final double tongueOutScore;
