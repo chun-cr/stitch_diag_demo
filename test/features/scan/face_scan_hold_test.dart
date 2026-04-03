@@ -36,4 +36,58 @@ void main() {
       );
     });
   });
+
+  group('shouldAutoStartFaceScan', () {
+    test('returns true only when face is ready and scan is idle', () {
+      expect(
+        shouldAutoStartFaceScan(
+          hasPermission: true,
+          hasFaceDetected: true,
+          faceDirection: '',
+          isScanning: false,
+          isTransitioning: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('returns false when scan is already running', () {
+      expect(
+        shouldAutoStartFaceScan(
+          hasPermission: true,
+          hasFaceDetected: true,
+          faceDirection: '',
+          isScanning: true,
+          isTransitioning: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('returns false when navigation is in progress', () {
+      expect(
+        shouldAutoStartFaceScan(
+          hasPermission: true,
+          hasFaceDetected: true,
+          faceDirection: '',
+          isScanning: false,
+          isTransitioning: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('returns false when face is not yet ready to hold', () {
+      expect(
+        shouldAutoStartFaceScan(
+          hasPermission: true,
+          hasFaceDetected: true,
+          faceDirection: 'Move left',
+          isScanning: false,
+          isTransitioning: false,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

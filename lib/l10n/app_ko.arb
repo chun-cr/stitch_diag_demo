@@ -674,7 +674,6 @@
   "scanFaceDetail": "얼굴색, 표정, 전체적인 얼굴 상태를 확인합니다.",
   "scanFaceTipNoMakeup": "짙은 메이크업은 피해주세요",
   "scanFaceTipLookForward": "정면을 바라봐 주세요",
-  "scanFaceStartButton": "얼굴 스캔 시작",
   "scanTongueCompleted": "혀 스캔 완료 ✓",
   "scanTongueTapToStart": "아래 버튼으로 혀 스캔을 시작해 주세요",
   "scanTongueDetectedHold": "혀를 인식했습니다. 2초간 유지해 주세요.",

@@ -628,7 +628,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scanFaceTipLookForward => '정면을 바라봐 주세요';
 
   @override
-  String get scanFaceStartButton => '얼굴 스캔 시작';
+  String get scanFaceStartButton => '开始面部扫描';
 
   @override
   String get scanTongueCompleted => '혀 스캔 완료 ✓';

@@ -627,7 +627,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get scanFaceTipLookForward => '正面を見てください';
 
   @override
-  String get scanFaceStartButton => '顔スキャン開始';
+  String get scanFaceStartButton => '开始面部扫描';
 
   @override
   String get scanTongueCompleted => '舌スキャン完了 ✓';

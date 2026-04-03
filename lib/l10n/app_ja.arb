@@ -667,7 +667,6 @@
   "scanFaceDetail": "顔色、表情、全体的な顔の状態を確認します。",
   "scanFaceTipNoMakeup": "濃いメイクは避けてください",
   "scanFaceTipLookForward": "正面を見てください",
-  "scanFaceStartButton": "顔スキャン開始",
   "scanTongueCompleted": "舌スキャン完了 ✓",
   "scanTongueTapToStart": "下のボタンから舌スキャンを開始してください",
   "scanTongueDetectedHold": "舌を認識しました。2秒間そのまま保ってください。",

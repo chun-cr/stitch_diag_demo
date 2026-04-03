@@ -14,7 +14,6 @@ import '../services/face_scan_status_bridge.dart';
 // ── 颜色系（与 scan_guide_page 绿色体系一致）
 const _kGreen = Color(0xFF2D6A4F);
 const _kGreenLight = Color(0xFF3DAB78);
-const _kGreenMid = Color(0xFF2D8A5E);
 
 @visibleForTesting
 bool isFaceHoldEligible({
@@ -23,6 +22,23 @@ bool isFaceHoldEligible({
   required String faceDirection,
 }) {
   return hasPermission && hasFaceDetected && faceDirection.isEmpty;
+}
+
+@visibleForTesting
+bool shouldAutoStartFaceScan({
+  required bool hasPermission,
+  required bool hasFaceDetected,
+  required String faceDirection,
+  required bool isScanning,
+  required bool isTransitioning,
+}) {
+  return !isScanning &&
+      !isTransitioning &&
+      isFaceHoldEligible(
+        hasPermission: hasPermission,
+        hasFaceDetected: hasFaceDetected,
+        faceDirection: faceDirection,
+      );
 }
 
 class FaceScanPage extends StatefulWidget {
@@ -56,6 +72,30 @@ class _FaceScanPageState extends State<FaceScanPage>
         hasFaceDetected: _hasFaceDetected,
         faceDirection: _faceDirection,
       );
+
+  bool get _shouldAutoStartScan => shouldAutoStartFaceScan(
+        hasPermission: _hasPermission,
+        hasFaceDetected: _hasFaceDetected,
+        faceDirection: _faceDirection,
+        isScanning: _isScanning,
+        isTransitioning: _isTransitioning,
+      );
+
+  String get _bottomStatusLabel {
+    final l10n = context.l10n;
+    if (!_hasPermission) {
+      return l10n.scanCameraPermissionRequired;
+    }
+    if (_isScanning) {
+      return l10n.scanKeepStill;
+    }
+    if (_isFaceReadyToHold) {
+      return l10n.scanFaceDetectedReady;
+    }
+    return l10n.scanFaceAlignInFrame;
+  }
+
+  bool get _bottomStatusHighlighted => _isScanning || _isFaceReadyToHold;
 
   @override
   void initState() {
@@ -108,6 +148,8 @@ class _FaceScanPageState extends State<FaceScanPage>
         });
         if (_isScanning && !_isFaceReadyToHold) {
           _cancelScanHold(resetProgress: true);
+        } else if (_shouldAutoStartScan) {
+          _startScan();
         }
       });
       await _statusBridge.initialize();
@@ -116,10 +158,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   }
 
   void _startScan() {
-    if (!_isFaceReadyToHold) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.scanFaceAlignInFrame)));
+    if (!mounted || _isScanning || _isTransitioning || !_isFaceReadyToHold) {
       return;
     }
     setState(() {
@@ -616,27 +655,19 @@ class _FaceScanPageState extends State<FaceScanPage>
           Divider(height: 1, color: _kGreen.withValues(alpha: 0.08)),
           // 按钮区
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
             child: Column(
               children: [
-                IgnorePointer(
-                  ignoring: _isScanning,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 180),
-                    opacity: _isScanning ? 0 : 1,
-                    child: _buildPrimaryButton(
-                      label: l10n.scanFaceStartButton,
-                      enabled: _hasPermission && _hasFaceDetected,
-                      onTap: _startScan,
-                    ),
-                  ),
+                _BottomStatusPrompt(
+                  label: _bottomStatusLabel,
+                  highlighted: _bottomStatusHighlighted,
                 ),
                 const SizedBox(height: 10),
                 GestureDetector(
                   onTap: () => unawaited(_navigateToTongueScan()),
-                    child: Text(
-                      l10n.scanSkipThisStep,
-                      style: TextStyle(
+                  child: Text(
+                    l10n.scanSkipThisStep,
+                    style: TextStyle(
                       fontSize: 13,
                       color: const Color(0xFF3A3028).withValues(alpha: 0.35),
                       letterSpacing: 0.3,
@@ -647,52 +678,6 @@ class _FaceScanPageState extends State<FaceScanPage>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPrimaryButton({
-    required String label,
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        height: 52,
-        decoration: BoxDecoration(
-          gradient: enabled
-              ? const LinearGradient(
-                  colors: [Color(0xFF1D5E40), _kGreenMid, _kGreenLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: enabled ? null : const Color(0xFFE0DDD8),
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: enabled
-              ? [
-                  BoxShadow(
-                    color: _kGreen.withValues(alpha: 0.35),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: enabled ? Colors.white : const Color(0xFF9A9590),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -846,6 +831,59 @@ class _HoldFeedback extends StatelessWidget {
           child: _ScanProgressBar(progress: progress),
         ),
       ],
+    );
+  }
+}
+
+class _BottomStatusPrompt extends StatelessWidget {
+  final String label;
+  final bool highlighted;
+
+  const _BottomStatusPrompt({
+    required this.label,
+    required this.highlighted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: highlighted
+            ? const LinearGradient(
+                colors: [Color(0xFF1D5E40), _kGreen, _kGreenLight],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        color: highlighted ? null : const Color(0xFFEAE6E0),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: highlighted
+            ? [
+                BoxShadow(
+                  color: _kGreen.withValues(alpha: 0.22),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Text(
+        label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: highlighted ? Colors.white : const Color(0xFF6F6861),
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
+      ),
     );
   }
 }
