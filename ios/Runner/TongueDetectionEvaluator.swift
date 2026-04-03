@@ -4,8 +4,8 @@ import MediaPipeTasksVision
 enum TongueDetectionEvaluator {
     private static let mouthIndices = [13, 14, 17, 37, 267, 269, 270, 291]
     private static let tongueThreshold = 0.35
-    private static let lowerLipIndex = 17
-    private static let chinIndex = 152
+    private static let upperLipInner = 13
+    private static let lowerLipInner = 14
 
     struct Result {
         let tongueDetected: Bool
@@ -57,17 +57,17 @@ enum TongueDetectionEvaluator {
             ]
         }
 
-        let lipChinRatio: Double = {
-            guard landmarks.indices.contains(lowerLipIndex), landmarks.indices.contains(chinIndex) else {
+        let mouthOpenRatio: Double = {
+            guard landmarks.indices.contains(upperLipInner), landmarks.indices.contains(lowerLipInner) else {
                 return 0
             }
 
-            let lowerLip = landmarks[lowerLipIndex]
-            let chin = landmarks[chinIndex]
-            return abs(Double(lowerLip.y) - Double(chin.y))
+            let upperLip = landmarks[upperLipInner]
+            let lowerLip = landmarks[lowerLipInner]
+            return abs(Double(lowerLip.y) - Double(upperLip.y))
         }()
 
-        let detected = tongueOutScore >= tongueThreshold || lipChinRatio >= 0.025
+        let detected = tongueOutScore >= tongueThreshold || mouthOpenRatio >= 0.05
 
         let mouthLandmarks = mouthIndices.compactMap { index -> [String: Double]? in
             guard landmarks.indices.contains(index) else {
