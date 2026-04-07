@@ -3,7 +3,7 @@ import 'package:stitch_diag_demo/features/scan/presentation/services/tongue_scan
 
 void main() {
   group('TongueScanStatus', () {
-    test('does not become ready when only fallback detection fires', () {
+    test('becomes ready when detector reports tongue present even with low score', () {
       const status = TongueScanStatus(
         tongueDetected: true,
         tongueOutScore: 0.0,
@@ -11,20 +11,20 @@ void main() {
       );
 
       expect(status.mouthPresent, isTrue);
-      expect(status.readyToScan, isFalse);
+      expect(status.readyToScan, isTrue);
     });
 
-    test('becomes ready when tongue out score reaches native-positive threshold', () {
+    test('becomes ready when tongue out score reaches bridge threshold', () {
       const status = TongueScanStatus(
-        tongueDetected: true,
-        tongueOutScore: 0.20,
+        tongueDetected: false,
+        tongueOutScore: 0.35,
         mouthLandmarkCount: 8,
       );
 
       expect(status.readyToScan, isTrue);
     });
 
-    test('parses event payload and keeps readiness gated below threshold', () {
+    test('parses event payload and keeps detector-positive readiness', () {
       final status = TongueScanStatus.fromEvent({
         'tongueDetected': true,
         'tongueOutScore': 0.19,
@@ -41,7 +41,7 @@ void main() {
       });
 
       expect(status.mouthPresent, isTrue);
-      expect(status.readyToScan, isFalse);
+      expect(status.readyToScan, isTrue);
       expect(status.mouthCenter, const Offset(0.25, 0.325));
       expect(status.tongueLandmarks, const [Offset(0.25, 0.36)]);
     });

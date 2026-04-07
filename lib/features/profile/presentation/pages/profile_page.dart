@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/l10n/locale_controller.dart';
+import 'package:stitch_diag_demo/core/router/app_router.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
 const _kPageBg        = Color(0xFFF4F1EB); // 宣纸米色
@@ -564,7 +566,10 @@ class ProfilePage extends ConsumerWidget {
   Widget _buildLogoutButton(BuildContext context) {
     return Center(
       child: TextButton.icon(
-        onPressed: () {},
+        onPressed: () {
+          setPreviewAuthenticated(false);
+          context.go(AppRoutes.login);
+        },
         icon: Icon(Icons.logout_rounded,
             color: _kTextHint.withValues(alpha: 0.82), size: 16),
         label: Text(

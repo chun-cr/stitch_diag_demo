@@ -22,22 +22,27 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+enum _LoginButtonPhase { idle, submitting }
+
 class _LoginPageState extends State<LoginPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscurePass = true;
-  bool _isLoading = false;
+  _LoginButtonPhase _buttonPhase = _LoginButtonPhase.idle;
 
   late AnimationController _breatheController;
   late AnimationController _fadeController;
   late AnimationController _btnScaleCtrl;
   late AnimationController _exitCtrl;
-  late AnimationController _spinCtrl;
   late Animation<double> _breatheAnim;
   late Animation<double> _fadeAnim;
   late Animation<double> _btnScaleAnim;
+
+  static const Duration _submittingDuration = Duration(milliseconds: 800);
+
+  bool get _isBusy => _buttonPhase != _LoginButtonPhase.idle;
 
   @override
   void initState() {
@@ -76,11 +81,6 @@ class _LoginPageState extends State<LoginPage>
       duration: const Duration(milliseconds: 550),
     );
 
-    // ── 加载青玉呼吸光环 ──
-    _spinCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
   }
 
   @override
@@ -89,7 +89,6 @@ class _LoginPageState extends State<LoginPage>
     _fadeController.dispose();
     _btnScaleCtrl.dispose();
     _exitCtrl.dispose();
-    _spinCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -103,10 +102,11 @@ class _LoginPageState extends State<LoginPage>
       _passCtrl.text = 'preview123';
     }
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
+    setState(() => _buttonPhase = _LoginButtonPhase.submitting);
+    await _btnScaleCtrl.reverse();
 
-    // 模拟验证（此时按钮显示青玉呼吸光环）
-    await Future.delayed(const Duration(milliseconds: 800));
+    // 模拟验证：按钮进入更克制的提交中态，再交给整页退场
+    await Future.delayed(_submittingDuration);
     if (!mounted) return;
 
     // ── 拨云见日：所有元素如晨雾散去 ──
@@ -504,71 +504,61 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ── Primary Button（触碰缩放 + 触觉反馈 + 青玉呼吸光环）───────────
+  // ── Primary Button（轻按压 → 提交态压暗 → 页面退场）───────────
   Widget _buildPrimaryButton() {
     return GestureDetector(
       onTapDown: (_) {
-        if (_isLoading) return;
+        if (_isBusy) return;
         HapticFeedback.lightImpact();
         _btnScaleCtrl.forward();
       },
       onTap: () {
-        if (_isLoading) return;
+        if (_isBusy) return;
         _onLogin();
       },
-      onTapUp: (_) => _btnScaleCtrl.reverse(),
-      onTapCancel: () => _btnScaleCtrl.reverse(),
+      onTapUp: (_) {
+        if (_isBusy) return;
+        _btnScaleCtrl.reverse();
+      },
+      onTapCancel: () {
+        if (_isBusy) return;
+        _btnScaleCtrl.reverse();
+      },
       child: AnimatedBuilder(
         animation: _btnScaleAnim,
         builder: (context, child) => Transform.scale(
           scale: _btnScaleAnim.value,
           child: child,
         ),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
           height: 54,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF6FA585), Color(0xFF8DBB9D)],
+            gradient: LinearGradient(
+              colors: _buttonPhase == _LoginButtonPhase.idle
+                  ? const [Color(0xFF6FA585), Color(0xFF8DBB9D)]
+                  : const [Color(0xFF5A8D70), Color(0xFF7CA68B)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6FA585).withValues(alpha: 0.2),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                color: const Color(0xFF6FA585).withValues(
+                  alpha: _buttonPhase == _LoginButtonPhase.idle ? 0.2 : 0.08,
+                ),
+                blurRadius: _buttonPhase == _LoginButtonPhase.idle ? 16 : 10,
+                offset: Offset(
+                  0,
+                  _buttonPhase == _LoginButtonPhase.idle ? 6 : 3,
+                ),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                child: _isLoading
-                    ? _buildJadeSpinner()
-                    : Row(
-                        key: const ValueKey('login_text'),
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.login_rounded,
-                              color: Colors.white, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            context.l10n.authLoginButton,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
+              child: _buildButtonContent(context),
             ),
           ),
         ),
@@ -576,30 +566,42 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  /// 青玉绿色呼吸光晕旋转极简圆环
-  Widget _buildJadeSpinner() {
-    return AnimatedBuilder(
-      key: const ValueKey('jade_spinner'),
-      animation: _spinCtrl,
-      builder: (context, _) {
-        return Transform.rotate(
-          angle: _spinCtrl.value * 2 * math.pi,
-          child: Opacity(
-            opacity: 0.55 + 0.45 * math.sin(_spinCtrl.value * 4 * math.pi),
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                value: 0.7,
-                strokeWidth: 1.5,
-                color: Colors.white.withValues(alpha: 0.9),
-              ),
-            ),
-          ),
-        );
-      },
+  Widget _buildButtonContent(BuildContext context) {
+    final label = Text(
+      context.l10n.authLoginButton,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        letterSpacing: 1.5,
+      ),
     );
+
+    switch (_buttonPhase) {
+      case _LoginButtonPhase.idle:
+        return Row(
+          key: const ValueKey('login_idle'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.login_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            label,
+          ],
+        );
+      case _LoginButtonPhase.submitting:
+        return Row(
+          key: const ValueKey('login_submitting'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.login_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            label,
+          ],
+        );
+    }
   }
+
+
 
   // ── OR Divider ─────────────────────────────────────────────────
   Widget _buildOrDivider() {
