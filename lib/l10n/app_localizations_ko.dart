@@ -152,6 +152,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authAppleLogin => 'Apple로 로그인';
 
   @override
+  String get authVerificationCodeLabel => '인증코드';
+
+  @override
+  String get authVerificationCodeHint => '인증코드를 입력해 주세요';
+
+  @override
+  String get authSendCode => '코드 보내기';
+
+  @override
+  String authResendCode(int seconds) {
+    return '${seconds}s 후 재전송';
+  }
+
+  @override
+  String get authPasswordLogin => '비밀번호 로그인';
+
+  @override
+  String get authCodeLogin => '인증코드 로그인';
+
+  @override
+  String get authLoggingIn => '로그인 중…';
+
+  @override
+  String get authSendCodeFailed => '인증코드 전송에 실패했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get authCodeSent => '인증코드를 보냈어요. 메시지를 확인해 주세요.';
+
+  @override
+  String get authSendCodeFirst => '먼저 인증코드를 받아 주세요.';
+
+  @override
+  String get authCaptchaRequiredUnsupported =>
+      '현재 환경에서는 캡차 인증을 지원하지 않아요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get authForgotPasswordTip => '가입한 전화번호로 비밀번호를 재설정하거나 고객센터로 문의해 주세요.';
+
+  @override
+  String get commonConfirm => '알겠어요';
+
+  @override
   String get authNoAccount => '아직 계정이 없으신가요?';
 
   @override
@@ -164,13 +206,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get registerCreateAccountTitle => '계정 만들기';
 
   @override
-  String get registerCreateAccountSubtitle => '전화번호와 비밀번호로 계정을 만들고 빠르게 시작해 보세요';
+  String get registerCreateAccountSubtitle =>
+      '전화번호와 인증 코드로 계정을 만들고 빠르게 시작해 보세요';
 
   @override
   String get registerCreateAccountAction => '계정 만들기';
 
   @override
   String get registerCreateFailed => '계정 생성에 실패했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get registerPasswordSetupPrompt =>
+      '가입이 완료되었어요. 나중에 \'내 정보 - 설정 - 계정 및 보안\'에서 로그인 비밀번호를 설정할 수 있어요.';
 
   @override
   String get registerGenderOptional => '성별';
@@ -198,7 +245,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get registerGenderFemale => '여성';
 
   @override
-  String get registerGenderUndisclosed => '선택 안 함';
+  String get registerGenderOther => '선택 안 함';
 
   @override
   String get registerPasswordHint => '8자 이상, 영문과 숫자를 포함해 주세요';
@@ -251,9 +298,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get commonCancel => '취소';
-
-  @override
-  String get commonConfirm => '확인';
 
   @override
   String get commonSave => '저장';
@@ -501,6 +545,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileMenuAccountSub => '개인 정보, 가족 정보, 건강 기록을 관리합니다';
 
   @override
+  String get profileMenuSettings => '설정';
+
+  @override
+  String get profileMenuSettingsSub => '계정 보안, 로그인 방식, 일반 설정을 관리합니다';
+
+  @override
   String get profileMenuReminder => '절기 건강 알림';
 
   @override
@@ -526,6 +576,51 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileLogout => '로그아웃';
+
+  @override
+  String get settingsTitle => '설정';
+
+  @override
+  String get settingsSectionAccount => '계정';
+
+  @override
+  String get settingsAccountSecurity => '계정 및 보안';
+
+  @override
+  String get settingsAccountSecuritySub => '로그인 방식, 전화번호, 비밀번호 보안을 관리합니다';
+
+  @override
+  String get accountSecurityTitle => '계정 및 보안';
+
+  @override
+  String get accountSecurityPhoneCodeTip =>
+      '현재 가입은 휴대폰 인증 코드 로그인이 기본입니다. 필요하면 나중에 로그인 비밀번호를 추가할 수 있어요.';
+
+  @override
+  String get accountSecurityLoginPassword => '로그인 비밀번호 설정';
+
+  @override
+  String get accountSecurityLoginPasswordSub =>
+      '설정 후에는 전화번호와 비밀번호로 로그인할 수 있습니다. 설정하지 않으면 인증 코드 로그인을 계속 사용합니다.';
+
+  @override
+  String get accountSecurityPasswordSet => '설정됨';
+
+  @override
+  String get accountSecurityPasswordUnset => '미설정';
+
+  @override
+  String get setLoginPasswordTitle => '로그인 비밀번호 설정';
+
+  @override
+  String get setLoginPasswordSubtitle =>
+      '설정 후에는 전화번호와 비밀번호로 로그인할 수 있습니다. 지금 설정하지 않아도 인증 코드 로그인은 계속 사용할 수 있어요.';
+
+  @override
+  String get setLoginPasswordAction => '비밀번호 저장';
+
+  @override
+  String get setLoginPasswordSuccess => '로그인 비밀번호가 설정되었어요';
 
   @override
   String get localeSheetTitle => '언어 선택';

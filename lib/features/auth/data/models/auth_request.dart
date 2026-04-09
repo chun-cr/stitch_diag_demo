@@ -8,7 +8,8 @@ abstract class AuthRequest with _$AuthRequest {
   const factory AuthRequest({
     required String countryCode,
     required String phoneNumber,
-    required String password,
+    String? password,
+    String? code,
   }) = _AuthRequest;
 
   factory AuthRequest.fromJson(Map<String, dynamic> json) => _$AuthRequestFromJson(json);

@@ -152,6 +152,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authAppleLogin => 'Apple 登录';
 
   @override
+  String get authVerificationCodeLabel => '验证码';
+
+  @override
+  String get authVerificationCodeHint => '请输入验证码';
+
+  @override
+  String get authSendCode => '发送验证码';
+
+  @override
+  String authResendCode(int seconds) {
+    return '${seconds}s 后重发';
+  }
+
+  @override
+  String get authPasswordLogin => '密码登录';
+
+  @override
+  String get authCodeLogin => '验证码登录';
+
+  @override
+  String get authLoggingIn => '登录中…';
+
+  @override
+  String get authSendCodeFailed => '验证码发送失败，请稍后重试';
+
+  @override
+  String get authCodeSent => '验证码已发送，请注意查收';
+
+  @override
+  String get authSendCodeFirst => '请先获取验证码';
+
+  @override
+  String get authCaptchaRequiredUnsupported => '当前环境暂不支持人机验证，请稍后再试';
+
+  @override
+  String get authForgotPasswordTip => '请通过注册手机号重置密码，或联系客服处理';
+
+  @override
+  String get commonConfirm => '确认';
+
+  @override
   String get authNoAccount => '还没有账号？';
 
   @override
@@ -164,13 +205,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get registerCreateAccountTitle => '创建你的账号';
 
   @override
-  String get registerCreateAccountSubtitle => '通过手机号与密码创建账号，快速开始体验';
+  String get registerCreateAccountSubtitle => '通过手机号与验证码创建账号，快速开始体验';
 
   @override
   String get registerCreateAccountAction => '创建账号';
 
   @override
   String get registerCreateFailed => '创建账号失败，请稍后重试';
+
+  @override
+  String get registerPasswordSetupPrompt => '注册成功，可在“我的 - 设置 - 账号与安全”中设置登录密码';
 
   @override
   String get registerGenderOptional => '性别';
@@ -197,7 +241,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get registerGenderFemale => '女';
 
   @override
-  String get registerGenderUndisclosed => '不透露';
+  String get registerGenderOther => '不透露';
 
   @override
   String get registerPasswordHint => '至少8位，包含字母和数字';
@@ -249,9 +293,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonCancel => '取消';
-
-  @override
-  String get commonConfirm => '确认';
 
   @override
   String get commonSave => '保存';
@@ -495,6 +536,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileMenuAccountSub => '个人资料、家人信息与健康档案';
 
   @override
+  String get profileMenuSettings => '设置';
+
+  @override
+  String get profileMenuSettingsSub => '账号与安全、登录方式和通用偏好';
+
+  @override
   String get profileMenuReminder => '健康节气提醒';
 
   @override
@@ -520,6 +567,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileLogout => '退出登录';
+
+  @override
+  String get settingsTitle => '设置';
+
+  @override
+  String get settingsSectionAccount => '账号';
+
+  @override
+  String get settingsAccountSecurity => '账号与安全';
+
+  @override
+  String get settingsAccountSecuritySub => '登录方式、手机号与密码安全管理';
+
+  @override
+  String get accountSecurityTitle => '账号与安全';
+
+  @override
+  String get accountSecurityPhoneCodeTip => '当前注册默认使用手机验证码登录，后续可按需补充设置登录密码。';
+
+  @override
+  String get accountSecurityLoginPassword => '设置登录密码';
+
+  @override
+  String get accountSecurityLoginPasswordSub => '设置后可使用手机号与密码登录；未设置时继续使用验证码登录。';
+
+  @override
+  String get accountSecurityPasswordSet => '已设置';
+
+  @override
+  String get accountSecurityPasswordUnset => '未设置';
+
+  @override
+  String get setLoginPasswordTitle => '设置登录密码';
+
+  @override
+  String get setLoginPasswordSubtitle => '设置后可使用手机号与密码登录；若暂不设置，仍可使用验证码登录。';
+
+  @override
+  String get setLoginPasswordAction => '保存密码';
+
+  @override
+  String get setLoginPasswordSuccess => '登录密码已设置';
 
   @override
   String get localeSheetTitle => '选择语言';

@@ -4,6 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
+AppLocalizations _localizations(WidgetTester tester) {
+  final context = tester.element(find.byType(CompleteProfilePage));
+  return AppLocalizations.of(context);
+}
+
 void main() {
   testWidgets('complete profile page shows skip nickname and gender fields', (
     tester,
@@ -25,19 +30,38 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 700));
 
-    expect(find.text('跳过'), findsOneWidget);
-    expect(find.text('昵称'), findsOneWidget);
-    expect(find.text('性别'), findsOneWidget);
-    expect(find.text('手机号'), findsNothing);
-    expect(find.text('密码'), findsNothing);
-    expect(find.text('微信'), findsNothing);
+    final l10n = _localizations(tester);
+
+    expect(find.text(l10n.completeProfileSkip), findsOneWidget);
+    expect(find.text(l10n.completeProfileTitle), findsOneWidget);
+    expect(find.text(l10n.completeProfileSubtitle), findsOneWidget);
+    expect(find.text(l10n.authNameLabel), findsOneWidget);
+    expect(find.text(l10n.registerGenderOptional), findsOneWidget);
+    expect(
+      find.text('${l10n.appBrandPrefix}AI${l10n.appBrandSuffix}'),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsOneWidget);
+    expect(find.text(l10n.authPhoneLabel), findsNothing);
+    expect(find.text(l10n.authPasswordLabel), findsNothing);
+    expect(find.text(l10n.registerGenderOther), findsNothing);
+    expect(
+      find.byKey(const ValueKey('complete_profile_face_scan_placeholder')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('complete_profile_bottom_bar')),
+      findsNothing,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('complete profile avatar ring no longer breathes', (tester) async {
+  testWidgets('complete profile avatar ring no longer breathes', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1280, 2400));
 
     await tester.pumpWidget(
@@ -55,13 +79,36 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 700));
 
-    final ringFinder = find.byKey(const ValueKey('complete_profile_avatar_ring'));
+    final ringFinder = find.byKey(
+      const ValueKey('complete_profile_avatar_ring'),
+    );
     expect(ringFinder, findsOneWidget);
     final initialSize = tester.getSize(ringFinder);
     await tester.pump(const Duration(milliseconds: 1200));
     final laterSize = tester.getSize(ringFinder);
 
     expect(laterSize, equals(initialSize));
+
+    final l10n = _localizations(tester);
+    expect(find.text(l10n.registerGenderMale), findsOneWidget);
+    expect(find.text(l10n.registerGenderFemale), findsOneWidget);
+    expect(find.text(l10n.registerGenderOther), findsNothing);
+
+    final maleSize = tester.getSize(
+      find.byKey(const ValueKey('complete_profile_gender_male')),
+    );
+    final femaleSize = tester.getSize(
+      find.byKey(const ValueKey('complete_profile_gender_female')),
+    );
+    expect((maleSize.width - femaleSize.width).abs(), lessThanOrEqualTo(1));
+
+    final maleTopLeft = tester.getTopLeft(
+      find.byKey(const ValueKey('complete_profile_gender_male')),
+    );
+    final femaleTopLeft = tester.getTopLeft(
+      find.byKey(const ValueKey('complete_profile_gender_female')),
+    );
+    expect(femaleTopLeft.dx, greaterThan(maleTopLeft.dx));
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

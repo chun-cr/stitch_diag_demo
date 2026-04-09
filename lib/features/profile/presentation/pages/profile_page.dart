@@ -496,6 +496,13 @@ class ProfilePage extends ConsumerWidget {
         color: Color(0xFF2D6A4F),
       ),
       _MenuData(
+        icon: Icons.settings_outlined,
+        label: context.l10n.profileMenuSettings,
+        sub: context.l10n.profileMenuSettingsSub,
+        color: Color(0xFF8A6F3C),
+        onTap: () => context.push(AppRoutes.settings),
+      ),
+      _MenuData(
         icon: Icons.calendar_month_outlined,
         label: context.l10n.profileMenuReminder,
         sub: context.l10n.profileMenuReminderSub,

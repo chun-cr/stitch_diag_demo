@@ -1,17 +1,25 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
-import 'package:stitch_diag_demo/features/auth/data/models/auth_request.dart';
+import 'package:stitch_diag_demo/core/security/login_password_store.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/providers/captcha_resolver_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({super.key, this.inviteTicket});
+
+  final String? inviteTicket;
+
   @override
   ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
@@ -20,48 +28,41 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  final _confirmCtrl = TextEditingController();
-  bool _obscurePass = true;
-  bool _obscureConfirm = true;
+  final _codeCtrl = TextEditingController();
+  final _countryMenuController = MenuController();
   bool _agreeTerms = false;
   bool _isLoading = false;
+  bool _codeSending = false;
+  bool _codeCountingDown = false;
+  int _codeCountdown = 60;
+  Timer? _countdownTimer;
+  String? _codeTargetPhone;
+  String? _codeTargetCountryCode;
+  String? _challengeId;
+  DateTime? _challengeExpireAt;
+  String? _maskedReceiver;
+  String? _captchaProvider;
+  Map<String, dynamic>? _captchaInitPayload;
+  bool _captchaVerified = false;
+  String _selectedCountryCode = '+86';
+  String _selectedCountryFlag = '🇨🇳';
 
   late AnimationController _rotateController;
   late AnimationController _fadeController;
 
   static final RegExp _phonePattern = RegExp(r'^[0-9]{6,15}$');
+  final List<Map<String, String>> _countryCodes = const [
+    {'name': '中国', 'code': '+86', 'flag': '🇨🇳'},
+    {'name': '英国', 'code': '+44', 'flag': '🇬🇧'},
+    {'name': '西班牙', 'code': '+34', 'flag': '🇪🇸'},
+    {'name': '葡萄牙', 'code': '+351', 'flag': '🇵🇹'},
+    {'name': '法国', 'code': '+33', 'flag': '🇫🇷'},
+    {'name': '德国', 'code': '+49', 'flag': '🇩🇪'},
+    {'name': '日本', 'code': '+81', 'flag': '🇯🇵'},
+    {'name': '韩国', 'code': '+82', 'flag': '🇰🇷'},
+  ];
 
   // 密码强度
-  double get _passStrength {
-    final p = _passCtrl.text;
-    if (p.isEmpty) return 0;
-    double s = 0;
-    if (p.length >= 8) s += 0.25;
-    if (p.contains(RegExp(r'[A-Z]'))) s += 0.25;
-    if (p.contains(RegExp(r'[0-9]'))) s += 0.25;
-    if (p.contains(RegExp(r'[!@#\$&*~]'))) s += 0.25;
-    return s;
-  }
-
-  Color get _passStrengthColor {
-    final s = _passStrength;
-    if (s <= 0.25) return const Color(0xFFE24B4A);
-    if (s <= 0.5) return const Color(0xFFEF9F27);
-    if (s <= 0.75) return const Color(0xFF0D7A5A);
-    return const Color(0xFF2D6A4F);
-  }
-
-  String get _passStrengthLabel {
-    final s = _passStrength;
-    final l10n = context.l10n;
-    if (s <= 0) return '';
-    if (s <= 0.25) return l10n.passwordStrengthWeak;
-    if (s <= 0.5) return l10n.passwordStrengthMedium;
-    if (s <= 0.75) return l10n.passwordStrengthStrong;
-    return l10n.passwordStrengthVeryStrong;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -80,34 +81,376 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     _rotateController.dispose();
     _fadeController.dispose();
     _phoneCtrl.dispose();
-    _passCtrl.dispose();
-    _confirmCtrl.dispose();
+    _codeCtrl.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _onRegister() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
+  String? _validatePhone(String? value) {
+    final input = value?.trim() ?? '';
+    if (input.isEmpty) {
+      return context.l10n.authPhoneHint;
+    }
+    if (!_phonePattern.hasMatch(input)) {
+      return context.l10n.authPhoneFormatError;
+    }
+    return null;
+  }
+
+  void _resetCodeState({bool clearCode = true, bool clearChallenge = true}) {
+    _countdownTimer?.cancel();
+    _codeSending = false;
+    _codeCountingDown = false;
+    _codeCountdown = 60;
+    _codeTargetPhone = null;
+    _codeTargetCountryCode = null;
+    _maskedReceiver = null;
+    if (clearChallenge) {
+      _challengeId = null;
+      _challengeExpireAt = null;
+      _captchaProvider = null;
+      _captchaInitPayload = null;
+      _captchaVerified = false;
+    }
+    if (clearCode) {
+      _codeCtrl.clear();
+    }
+  }
+
+  String? get _inviteTicket {
+    final inviteTicket = widget.inviteTicket?.trim();
+    if (inviteTicket == null || inviteTicket.isEmpty) {
+      return null;
+    }
+    return inviteTicket;
+  }
+
+  String get _loginLocation {
+    final inviteTicket = _inviteTicket;
+    if (inviteTicket == null) {
+      return AppRoutes.login;
+    }
+    return Uri(
+      path: AppRoutes.login,
+      queryParameters: {'inviteTicket': inviteTicket},
+    ).toString();
+  }
+
+  int _secondsUntil(DateTime? target) {
+    if (target == null) {
+      return 60;
+    }
+    final diff = target.difference(DateTime.now()).inSeconds;
+    return diff <= 0 ? 0 : diff;
+  }
+
+  bool get _shouldRefreshChallenge {
+    final challengeId = _challengeId;
+    final expireAt = _challengeExpireAt;
+    if (challengeId == null || challengeId.isEmpty || expireAt == null) {
+      return true;
+    }
+    return !expireAt.isAfter(DateTime.now());
+  }
+
+  void _startCodeCountdown(VerificationCodeSendEntity sendResult) {
+    final seconds = _secondsUntil(sendResult.resendAt);
+    setState(() {
+      _codeSending = false;
+      _codeCountingDown = seconds > 0;
+      _codeCountdown = seconds > 0 ? seconds : 60;
+      _codeTargetPhone = _phoneCtrl.text.trim();
+      _codeTargetCountryCode = _selectedCountryCode;
+      _maskedReceiver = sendResult.maskedReceiver;
+    });
+
+    if (seconds <= 0) {
+      return;
+    }
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _codeCountdown--);
+      if (_codeCountdown <= 0) {
+        timer.cancel();
+        setState(() {
+          _codeCountingDown = false;
+          _codeCountdown = 60;
+          _codeTargetPhone = null;
+          _codeTargetCountryCode = null;
+        });
+      }
+    });
+  }
+
+  void _handlePhoneChanged(String value) {
+    final targetPhone = _codeTargetPhone;
+    if (targetPhone == null) {
+      return;
+    }
+    if (value.trim() != targetPhone) {
+      setState(() => _resetCodeState());
+    }
+  }
+
+  Object? _responseCode(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+    return responseData['code'];
+  }
+
+  String? _responseMessage(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+    final message = responseData['message'];
+    if (message is String && message.trim().isNotEmpty) {
+      return message.trim();
+    }
+    return null;
+  }
+
+  VerificationCodeSendEntity? _sendEntityFromEnvelope(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+    final data = responseData['data'];
+    if (data is! Map<String, dynamic>) {
+      return null;
+    }
+    final resendAtRaw = data['resendAt'] as String?;
+    final expireAtRaw = data['expireAt'] as String?;
+    return VerificationCodeSendEntity(
+      channel: (data['channel'] as String?) ?? 'PHONE',
+      maskedReceiver:
+          (data['maskedReceiver'] as String?) ?? (_maskedReceiver ?? ''),
+      expireAt: expireAtRaw == null ? null : DateTime.tryParse(expireAtRaw),
+      resendAt: resendAtRaw == null ? null : DateTime.tryParse(resendAtRaw),
+    );
+  }
+
+  Future<bool> _ensureCaptchaVerifiedIfNeeded(AuthRepository repository) async {
+    final challengeId = _challengeId;
+    final provider = _captchaProvider;
+    if (challengeId == null || challengeId.isEmpty) {
+      return false;
+    }
+    if (provider == null || provider.isEmpty || _captchaVerified) {
+      return true;
+    }
+
+    final payload = await ref
+        .read(captchaResolverProvider)
+        .resolve(
+          context: context,
+          provider: provider,
+          initPayload: _captchaInitPayload,
+        );
+    if (!mounted || payload == null) {
+      return false;
+    }
+
+    try {
+      final verified = await repository.verifyVerificationCodeCaptcha(
+        challengeId: challengeId,
+        captchaProvider: provider,
+        captchaPayload: payload,
+      );
+      if (!mounted) {
+        return false;
+      }
+      if (!verified) {
+        _showErrorSnack('人机验证未通过，请重试');
+        return false;
+      }
+      setState(() => _captchaVerified = true);
+      return true;
+    } on DioException catch (error) {
+      final responseData = error.response?.data;
+      final code = _responseCode(responseData);
+      if (mounted && (code == 11119 || code == 11121)) {
+        setState(() => _resetCodeState(clearCode: false));
+      }
+      _showErrorSnack(_responseMessage(responseData) ?? '人机验证未通过，请重试');
+      return false;
+    } catch (_) {
+      _showErrorSnack('人机验证未通过，请重试');
+      return false;
+    }
+  }
+
+  void _showErrorSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
         SnackBar(
-          content: Text(context.l10n.registerAgreeTermsFirst),
-          backgroundColor: const Color(0xFF2D6A4F),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF8F3B3B),
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 3),
         ),
       );
+  }
+
+  void _showSuccessSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2D6A4F),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  Future<void> _onSendCode() async {
+    final l10n = context.l10n;
+    final phoneError = _validatePhone(_phoneCtrl.text);
+    if (phoneError != null) {
+      _showErrorSnack(phoneError);
+      return;
+    }
+    if (_codeSending || _codeCountingDown) {
+      return;
+    }
+
+    setState(() => _codeSending = true);
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      VerificationCodeSendEntity? sendResult;
+      if (_shouldRefreshChallenge) {
+        final challenge = await repository.createVerificationCodeChallenge(
+          scene: VerificationCodeScene.register,
+          countryCode: _selectedCountryCode,
+          phoneNumber: _phoneCtrl.text.trim(),
+        );
+        _challengeId = challenge.challengeId;
+        _challengeExpireAt = challenge.expireAt;
+        _codeTargetPhone = _phoneCtrl.text.trim();
+        _codeTargetCountryCode = _selectedCountryCode;
+        _captchaProvider = challenge.captchaProvider;
+        _captchaInitPayload = challenge.captchaPayload;
+        _captchaVerified = !challenge.captchaRequired;
+
+        if (challenge.channel != null &&
+            challenge.maskedReceiver != null &&
+            challenge.resendAt != null) {
+          sendResult = VerificationCodeSendEntity(
+            channel: challenge.channel!,
+            maskedReceiver: challenge.maskedReceiver!,
+            expireAt: challenge.expireAt,
+            resendAt: challenge.resendAt,
+          );
+        }
+      }
+
+      final captchaVerified = await _ensureCaptchaVerifiedIfNeeded(repository);
+      if (!captchaVerified) {
+        if (mounted) {
+          setState(() => _codeSending = false);
+        }
+        return;
+      }
+
+      sendResult ??= await repository.sendCode(challengeId: _challengeId!);
+      _showSuccessSnack(l10n.authCodeSent);
+      if (!mounted) return;
+      _startCodeCountdown(sendResult);
+    } on DioException catch (error) {
+      final responseData = error.response?.data;
+      final serverMessage = _responseMessage(responseData);
+      if (mounted) {
+        setState(() => _codeSending = false);
+      }
+      final code = _responseCode(responseData);
+      if (code == 11119 || code == 11121) {
+        if (mounted) {
+          setState(() => _resetCodeState());
+        }
+      }
+      if (code == 11122 || code == 11123) {
+        if (mounted) {
+          setState(() => _captchaVerified = false);
+        }
+      }
+      if (code == 11120) {
+        final sendResult = _sendEntityFromEnvelope(responseData);
+        if (sendResult != null && mounted) {
+          _startCodeCountdown(sendResult);
+        }
+      }
+      _showErrorSnack(serverMessage ?? l10n.authSendCodeFailed);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _codeSending = false);
+      }
+      _showErrorSnack(l10n.authSendCodeFailed);
+    }
+  }
+
+  Future<void> _onRegister() async {
+    if (_challengeId == null || _challengeId!.isEmpty) {
+      _showErrorSnack(context.l10n.authSendCodeFirst);
+      return;
+    }
+    if (!_formKey.currentState!.validate()) return;
+    if (!_agreeTerms) {
+      _showErrorSnack(context.l10n.registerAgreeTermsFirst);
       return;
     }
     setState(() => _isLoading = true);
     try {
       final repository = ref.read(authRepositoryProvider);
-      final session = await repository.register(
-        AuthRequest(
-          countryCode: '+86',
-          phoneNumber: _phoneCtrl.text.trim(),
-          password: _passCtrl.text,
-        ),
+      final session = await repository.authenticateVerificationCode(
+        challengeId: _challengeId!,
+        verificationCode: _codeCtrl.text.trim(),
+        inviteTicket: _inviteTicket,
       );
       await getIt<AuthSessionStore>().saveSession(session);
       if (!mounted) return;
@@ -117,37 +460,24 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       if (!mounted) return;
       setState(() => _isLoading = false);
       final responseData = error.response?.data;
-      String? serverMessage;
-      if (responseData is Map<String, dynamic>) {
-        final message = responseData['message'];
-        if (message is String && message.trim().isNotEmpty) {
-          serverMessage = message.trim();
-        }
+      final serverMessage = _responseMessage(responseData);
+      final code = _responseCode(responseData);
+      if (code == 11119 || code == 11121) {
+        _resetCodeState();
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(serverMessage ?? context.l10n.registerCreateFailed),
-          backgroundColor: const Color(0xFF8F3B3B),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      if (code == 11122 || code == 11123) {
+        _captchaVerified = false;
+      }
+      _showErrorSnack(serverMessage ?? context.l10n.registerCreateFailed);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.registerCreateFailed),
-          backgroundColor: const Color(0xFF8F3B3B),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      _showErrorSnack(context.l10n.registerCreateFailed);
     }
   }
 
   void _goToLogin() {
-    context.go(AppRoutes.login);
+    context.go(_loginLocation);
   }
 
   @override
@@ -164,8 +494,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                 animation: _rotateController,
                 builder: (context, child) => CustomPaint(
                   painter: _RegBgPainter(
-                    rotation:
-                        _rotateController.value * 2 * math.pi,
+                    rotation: _rotateController.value * 2 * math.pi,
                   ),
                 ),
               ),
@@ -173,13 +502,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
             SafeArea(
               child: FadeTransition(
                 opacity: CurvedAnimation(
-                    parent: _fadeController, curve: Curves.easeOut),
+                  parent: _fadeController,
+                  curve: Curves.easeOut,
+                ),
                 child: Column(
                   children: [
                     _buildTopBar(),
-                    Expanded(
-                      child: _buildAccountCreationPage(),
-                    ),
+                    Expanded(child: _buildAccountCreationPage()),
                   ],
                 ),
               ),
@@ -194,9 +523,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        child: Row(
-          children: [
-            GestureDetector(
+      child: Row(
+        children: [
+          GestureDetector(
             onTap: _goToLogin,
             child: Container(
               width: 40,
@@ -216,8 +545,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
-                  size: 16, color: Color(0xFF3A3028)),
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 16,
+                color: Color(0xFF3A3028),
+              ),
             ),
           ),
           const Spacer(),
@@ -312,72 +644,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
             _buildTextField(
               controller: _phoneCtrl,
               hint: context.l10n.authPhoneHint,
-              prefixIcon: Icons.phone_outlined,
+              prefixIconWidget: _buildCountryCodePrefix(),
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 0,
+                minHeight: 0,
+              ),
               keyboardType: TextInputType.phone,
-              validator: (v) {
-                final input = v?.trim() ?? '';
-                if (input.isEmpty) return context.l10n.authPhoneHint;
-                if (!_phonePattern.hasMatch(input)) {
-                  return context.l10n.authPhoneFormatError;
-                }
-                return null;
-              },
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              onChanged: _handlePhoneChanged,
+              validator: _validatePhone,
             ),
             const SizedBox(height: 16),
-            _InputLabel(text: context.l10n.authPasswordLabel),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _passCtrl,
-              hint: context.l10n.registerPasswordHint,
-              prefixIcon: Icons.lock_outline,
-              obscureText: _obscurePass,
-              suffixIcon: GestureDetector(
-                onTap: () => setState(() => _obscurePass = !_obscurePass),
-                child: Icon(
-                  _obscurePass
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 18,
-                  color: const Color(0xFFA09080),
-                ),
-              ),
-              onChanged: (_) => setState(() {}),
-              validator: (v) {
-                if (v == null || v.length < 8) {
-                  return context.l10n.authPasswordMin8;
-                }
-                return null;
-              },
-            ),
-            if (_passCtrl.text.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _buildPasswordStrength(),
-            ],
-            const SizedBox(height: 16),
-            _InputLabel(text: context.l10n.authConfirmPasswordLabel),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _confirmCtrl,
-              hint: context.l10n.authConfirmPasswordHint,
-              prefixIcon: Icons.lock_outline,
-              obscureText: _obscureConfirm,
-              suffixIcon: GestureDetector(
-                onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                child: Icon(
-                  _obscureConfirm
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 18,
-                  color: const Color(0xFFA09080),
-                ),
-              ),
-              validator: (v) {
-                if (v != _passCtrl.text) {
-                  return context.l10n.authPasswordMismatch;
-                }
-                return null;
-              },
-            ),
+            _buildCodeField(),
             const SizedBox(height: 20),
             _buildTermsRow(),
             const SizedBox(height: 24),
@@ -451,52 +729,227 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           ),
           // 四角刻度
           Positioned(
-              top: 6, left: 6,
-              child: _Bracket(
-                  color: const Color(0xFF2D6A4F), tl: true)),
+            top: 6,
+            left: 6,
+            child: _Bracket(color: const Color(0xFF2D6A4F), tl: true),
+          ),
           Positioned(
-              top: 6, right: 6,
-              child: _Bracket(
-                  color: const Color(0xFF2D6A4F), tr: true)),
+            top: 6,
+            right: 6,
+            child: _Bracket(color: const Color(0xFF2D6A4F), tr: true),
+          ),
           Positioned(
-              bottom: 6, left: 6,
-              child: _Bracket(
-                  color: const Color(0xFFC9A84C), bl: true)),
+            bottom: 6,
+            left: 6,
+            child: _Bracket(color: const Color(0xFFC9A84C), bl: true),
+          ),
           Positioned(
-              bottom: 6, right: 6,
-              child: _Bracket(
-                  color: const Color(0xFFC9A84C), br: true)),
+            bottom: 6,
+            right: 6,
+            child: _Bracket(color: const Color(0xFFC9A84C), br: true),
+          ),
         ],
       ),
     );
   }
 
   // ── Password Strength ──────────────────────────────────────────
-  Widget _buildPasswordStrength() {
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: _passStrength,
-              backgroundColor:
-                  const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(_passStrengthColor),
-              minHeight: 4,
+  Widget _buildCountryCodePrefix() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 8),
+      child: MenuAnchor(
+        controller: _countryMenuController,
+        alignmentOffset: const Offset(-8, 8),
+        style: MenuStyle(
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(0),
+          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+        ),
+        menuChildren: [
+          SizedBox(
+            width: 220,
+            child: TweenAnimationBuilder<double>(
+              key: const ValueKey('register_country_code_menu_transition'),
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, -6 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                key: const ValueKey('register_country_code_menu_surface'),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 228),
+                  child: SingleChildScrollView(
+                    primary: false,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final item in _countryCodes)
+                          _RegisterCountryCodeMenuItem(
+                            countryName: item['name']!,
+                            countryCode: item['code']!,
+                            countryFlag: item['flag']!,
+                            isSelected: _selectedCountryCode == item['code'],
+                            onTap: () {
+                              setState(() {
+                                if (_codeTargetCountryCode != null &&
+                                    _codeTargetCountryCode != item['code']) {
+                                  _resetCodeState();
+                                }
+                                _selectedCountryCode = item['code']!;
+                                _selectedCountryFlag = item['flag']!;
+                              });
+                              _countryMenuController.close();
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          _passStrengthLabel,
-          style: TextStyle(
-            fontSize: 11,
-            color: _passStrengthColor,
-            fontWeight: FontWeight.w600,
+        ],
+        builder: (context, controller, child) {
+          return GestureDetector(
+            key: const ValueKey('register_country_code_menu_trigger'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _selectedCountryFlag,
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _selectedCountryCode,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E1810),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_drop_down,
+                  size: 18,
+                  color: Color(0xFFA09080),
+                ),
+                const SizedBox(width: 8),
+                Container(width: 1, height: 16, color: Colors.black12),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCodeField() {
+    final l10n = context.l10n;
+    final maskedReceiver = _maskedReceiver;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InputLabel(text: l10n.authVerificationCodeLabel),
+        const SizedBox(height: 6),
+        _buildTextField(
+          controller: _codeCtrl,
+          hint: l10n.authVerificationCodeHint,
+          prefixIcon: Icons.verified_user_outlined,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: _codeSending
+                  ? const SizedBox(
+                      key: ValueKey('register_send_code_loading'),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF2D6A4F),
+                      ),
+                    )
+                  : _codeCountingDown
+                  ? Text(
+                      l10n.authResendCode(_codeCountdown),
+                      key: const ValueKey('register_send_code_countdown'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFA09080),
+                      ),
+                    )
+                  : TextButton(
+                      key: const ValueKey('register_send_code_button'),
+                      onPressed: _onSendCode,
+                      child: Text(
+                        l10n.authSendCode,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2D6A4F),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+            ),
           ),
+          validator: (value) {
+            if (value == null || value.trim().length != 6) {
+              return l10n.authVerificationCodeHint;
+            }
+            return null;
+          },
         ),
+        if (maskedReceiver != null && maskedReceiver.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '验证码已发送至 $maskedReceiver',
+            key: const ValueKey('register_masked_receiver_hint'),
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.58),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -584,8 +1037,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.eco_outlined,
-              size: 17, color: Color(0xFFC9A84C)),
+          const Icon(Icons.eco_outlined, size: 17, color: Color(0xFFC9A84C)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -630,7 +1082,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -655,10 +1109,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    required IconData prefixIcon,
+    IconData? prefixIcon,
+    Widget? prefixIconWidget,
+    BoxConstraints? prefixIconConstraints,
     bool obscureText = false,
     Widget? suffixIcon,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    AutovalidateMode? autovalidateMode,
     String? Function(String?)? validator,
     void Function(String)? onChanged,
   }) {
@@ -666,43 +1124,52 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      autovalidateMode: autovalidateMode,
       onChanged: onChanged,
       style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-            fontSize: 13.5, color: Color(0xFFA09080)),
+        hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFA09080)),
         filled: true,
         fillColor: const Color(0xFFF9F7F2),
         prefixIcon:
-            Icon(prefixIcon, size: 18, color: const Color(0xFFA09080)),
+            prefixIconWidget ??
+            (prefixIcon == null
+                ? null
+                : Icon(prefixIcon, size: 18, color: const Color(0xFFA09080))),
+        prefixIconConstraints: prefixIconConstraints,
         suffixIcon: suffixIcon != null
             ? Padding(
                 padding: const EdgeInsets.only(right: 4),
-                child: suffixIcon)
+                child: suffixIcon,
+              )
             : null,
         contentPadding: const EdgeInsets.symmetric(vertical: 15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
           borderSide: BorderSide(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-              width: 1.5),
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
           borderSide: BorderSide(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-              width: 1.5),
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide:
-              const BorderSide(color: Color(0xFF2D6A4F), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
           borderSide: BorderSide(
-              color: Colors.red.withValues(alpha: 0.5), width: 1.5),
+            color: Colors.red.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
@@ -727,35 +1194,60 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   final _nicknameCtrl = TextEditingController();
   int _selectedGender = -1;
 
-  late AnimationController _rotateController;
   late AnimationController _fadeController;
 
   @override
   void initState() {
     super.initState();
-    _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowPasswordSetupPrompt();
+    });
   }
 
   @override
   void dispose() {
-    _rotateController.dispose();
     _fadeController.dispose();
     _nicknameCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _completeOrSkip({required bool skip}) async {
-    if (!skip && !_formKey.currentState!.validate()) {
+  Future<void> _maybeShowPasswordSetupPrompt() async {
+    if (!getIt.isRegistered<LoginPasswordStore>()) {
       return;
     }
+    final shouldShow = await getIt<LoginPasswordStore>()
+        .consumePasswordSetupPrompt();
+    if (!mounted || !shouldShow) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.registerPasswordSetupPrompt),
+          backgroundColor: const Color(0xFF2D6A4F),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+  }
 
+  Future<void> _goBack() async {
+    final hasSession = await getIt<AuthSessionStore>().hasSession();
+    if (!mounted) {
+      return;
+    }
+    context.go(hasSession ? AppRoutes.register : AppRoutes.login);
+  }
+
+  Future<void> _completeOrSkip({required bool skip}) async {
     final hasSession = await getIt<AuthSessionStore>().hasSession();
     if (!mounted) {
       return;
@@ -767,8 +1259,359 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
       return;
     }
 
+    if (!skip && !_formKey.currentState!.validate()) {
+      return;
+    }
+
     setPreviewAuthenticated(true);
     context.go(AppRoutes.home);
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    const brandColor = Color(0xFF89C5B4);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SizedBox(
+            height: 44,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Center(
+                  child: Text(
+                    '${context.l10n.appBrandPrefix}AI${context.l10n.appBrandSuffix}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: brandColor,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _goBack,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 44,
+                        height: 44,
+                      ),
+                      splashRadius: 22,
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                        color: brandColor,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => _completeOrSkip(skip: true),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(44, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        foregroundColor: brandColor,
+                      ),
+                      child: Text(
+                        context.l10n.completeProfileSkip,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF303331),
+      ),
+    );
+  }
+
+  Widget _buildAvatarSection() {
+    return SizedBox(
+      height: 166,
+      child: Center(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              key: const ValueKey('complete_profile_avatar_ring'),
+              width: 150,
+              height: 150,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD7DDE0),
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE5EBEE),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.account_circle_rounded,
+                    size: 114,
+                    color: Color(0xFFC7D1D5),
+                  ),
+                  Positioned(
+                    bottom: 40,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF49504D),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        size: 20,
+                        color: Color(0xFFF5F7F6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              right: -2,
+              bottom: 12,
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF008B5D),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF008B5D).withValues(alpha: 0.20),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.photo_camera_rounded,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNicknameField(BuildContext context) {
+    return TextFormField(
+      controller: _nicknameCtrl,
+      style: const TextStyle(
+        fontSize: 15,
+        color: Color(0xFF1D1F1E),
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        hintText: context.l10n.authNameHint,
+        hintStyle: const TextStyle(
+          fontSize: 15,
+          color: Color(0xFFBDC6C1),
+          fontWeight: FontWeight.w500,
+        ),
+        filled: true,
+        fillColor: const Color(0xFFF5F7F5),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: Color(0xFFBDEFD9), width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: Colors.red, width: 1.2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: Colors.red, width: 1.2),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return context.l10n.authNameHint;
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildGenderField(BuildContext context) {
+    return FormField<int>(
+      initialValue: _selectedGender,
+      validator: (_) =>
+          _selectedGender == -1 ? context.l10n.registerGenderRequired : null,
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _CompleteProfileGenderChip(
+                    chipKey: const ValueKey('complete_profile_gender_male'),
+                    icon: Icons.male_rounded,
+                    label: context.l10n.registerGenderMale,
+                    selected: _selectedGender == 0,
+                    onTap: () {
+                      setState(() => _selectedGender = 0);
+                      field.didChange(0);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: _CompleteProfileGenderChip(
+                    chipKey: const ValueKey('complete_profile_gender_female'),
+                    icon: Icons.female_rounded,
+                    label: context.l10n.registerGenderFemale,
+                    selected: _selectedGender == 1,
+                    onTap: () {
+                      setState(() => _selectedGender = 1);
+                      field.didChange(1);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (field.hasError) ...[
+              const SizedBox(height: 8),
+              Text(
+                field.errorText!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.withValues(alpha: 0.85),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFaceScanPlaceholder() {
+    return Container(
+      key: const ValueKey('complete_profile_face_scan_placeholder'),
+      width: 112,
+      height: 112,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF6F0),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: const Color(0xFFB7D5C7), width: 1.4),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCEFE6),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.face_retouching_natural_rounded,
+                size: 40,
+                color: Color(0xFF5A8E79),
+              ),
+            ),
+          ),
+          const Positioned(
+            top: 12,
+            left: 12,
+            child: _ScanCorner(top: true, left: true),
+          ),
+          const Positioned(
+            top: 12,
+            right: 12,
+            child: _ScanCorner(top: true, right: true),
+          ),
+          const Positioned(
+            bottom: 12,
+            left: 12,
+            child: _ScanCorner(bottom: true, left: true),
+          ),
+          const Positioned(
+            bottom: 12,
+            right: 12,
+            child: _ScanCorner(bottom: true, right: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryButton(BuildContext context) {
+    return GestureDetector(
+      key: const ValueKey('complete_profile_primary_button'),
+      onTap: () => _completeOrSkip(skip: false),
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFF056845),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF056845).withValues(alpha: 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            context.l10n.completeProfileStart,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -778,319 +1621,81 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _rotateController,
-                builder: (context, child) => CustomPaint(
-                  painter: _RegBgPainter(
-                    rotation: _rotateController.value * 2 * math.pi,
-                  ),
-                ),
-              ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: CurvedAnimation(
+              parent: _fadeController,
+              curve: Curves.easeOut,
             ),
-            SafeArea(
-              child: FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: _fadeController,
-                  curve: Curves.easeOut,
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 40, height: 40),
-                          const Spacer(),
-                          Row(
-                            children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF1D5E40),
-                                      Color(0xFF3DAB78),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(9),
-                                ),
-                                child: const Center(child: _BrandMark()),
-                              ),
-                              const SizedBox(width: 8),
-                              RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    color: Color(0xFF1E1810),
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
+            child: Column(
+              children: [
+                _buildHeader(context),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 10, 24, 26),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: 360,
+                              minHeight: constraints.maxHeight - 36,
+                            ),
+                            child: Form(
+                              key: _formKey,
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    TextSpan(text: context.l10n.appBrandPrefix),
-                                    const TextSpan(
-                                      text: 'AI',
-                                      style: TextStyle(color: Color(0xFF2D6A4F)),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      context.l10n.completeProfileTitle,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF141715),
+                                      ),
                                     ),
-                                    TextSpan(text: context.l10n.appBrandSuffix),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      context.l10n.completeProfileSubtitle,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        height: 1.6,
+                                        color: Color(0xFF7A837E),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 38),
+                                    Center(child: _buildAvatarSection()),
+                                    const SizedBox(height: 28),
+                                    _buildSectionLabel(
+                                      context.l10n.authNameLabel,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildNicknameField(context),
+                                    const SizedBox(height: 30),
+                                    _buildSectionLabel(
+                                      context.l10n.registerGenderOptional,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    _buildGenderField(context),
+                                    const Spacer(),
+                                    Center(child: _buildFaceScanPlaceholder()),
+                                    const SizedBox(height: 48),
+                                    _buildPrimaryButton(context),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () => _completeOrSkip(skip: true),
-                            child: Text(
-                              context.l10n.completeProfileSkip,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color:
-                                    const Color(0xFF3A3028).withValues(alpha: 0.55),
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                context.l10n.completeProfileTitle,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E1810),
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                context.l10n.completeProfileSubtitle,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: const Color(0xFF3A3028)
-                                      .withValues(alpha: 0.58),
-                                  height: 1.6,
-                                ),
-                              ),
-                              const SizedBox(height: 36),
-                              Center(
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Container(
-                                      key: const ValueKey(
-                                        'complete_profile_avatar_ring',
-                                      ),
-                                      width: 112,
-                                      height: 112,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE8F5EE),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: const Color(0xFF2D6A4F)
-                                              .withValues(alpha: 0.12),
-                                          width: 1.2,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.person_outline,
-                                        size: 46,
-                                        color: Color(0xFF7FA891),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      right: -2,
-                                      bottom: -2,
-                                      child: Container(
-                                        width: 34,
-                                        height: 34,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.06,
-                                              ),
-                                              blurRadius: 12,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: const Icon(
-                                          Icons.photo_camera_outlined,
-                                          size: 18,
-                                          color: Color(0xFF3DAB78),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 36),
-                              _InputLabel(text: context.l10n.authNameLabel),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                controller: _nicknameCtrl,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: Color(0xFF1E1810),
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: context.l10n.authNameHint,
-                                  hintStyle: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFFA09080),
-                                  ),
-                                  isDense: true,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  enabledBorder: UnderlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color: const Color(0xFF2D6A4F)
-                                          .withValues(alpha: 0.18),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: const UnderlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF2D6A4F),
-                                      width: 1.2,
-                                    ),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return context.l10n.authNameHint;
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 28),
-                              _InputLabel(text: context.l10n.registerGenderOptional),
-                              const SizedBox(height: 12),
-                              FormField<int>(
-                                initialValue: _selectedGender,
-                                validator: (_) => _selectedGender == -1
-                                    ? context.l10n.registerGenderRequired
-                                    : null,
-                                builder: (field) {
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Wrap(
-                                        spacing: 10,
-                                        runSpacing: 10,
-                                        children: [
-                                          _CompleteProfileGenderChip(
-                                            label:
-                                                context.l10n.registerGenderMale,
-                                            selected: _selectedGender == 0,
-                                            onTap: () {
-                                              setState(() => _selectedGender = 0);
-                                              field.didChange(0);
-                                            },
-                                          ),
-                                          _CompleteProfileGenderChip(
-                                            label: context
-                                                .l10n.registerGenderFemale,
-                                            selected: _selectedGender == 1,
-                                            onTap: () {
-                                              setState(() => _selectedGender = 1);
-                                              field.didChange(1);
-                                            },
-                                          ),
-                                          _CompleteProfileGenderChip(
-                                            label: context
-                                                .l10n.registerGenderUndisclosed,
-                                            selected: _selectedGender == 2,
-                                            onTap: () {
-                                              setState(() => _selectedGender = 2);
-                                              field.didChange(2);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      if (field.hasError) ...[
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          field.errorText!,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.red.withValues(
-                                              alpha: 0.85,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 36),
-                              GestureDetector(
-                                onTap: () => _completeOrSkip(skip: false),
-                                child: Container(
-                                  height: 54,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF1D5E40),
-                                        Color(0xFF2D8A5E),
-                                        Color(0xFF3DAB78),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF2D6A4F)
-                                            .withValues(alpha: 0.25),
-                                        blurRadius: 18,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      context.l10n.completeProfileStart,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -1109,28 +1714,38 @@ class _RegBgPainter extends CustomPainter {
       Offset(size.width + 30, -30),
       190,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFFC9A84C).withValues(alpha: 0.07),
-            Colors.transparent,
-          ],
-          stops: const [0, 0.7],
-        ).createShader(Rect.fromCircle(
-            center: Offset(size.width + 30, -30), radius: 190)),
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFFC9A84C).withValues(alpha: 0.07),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.7],
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(size.width + 30, -30),
+                radius: 190,
+              ),
+            ),
     );
     // 左下墨绿光晕
     canvas.drawCircle(
       Offset(-40, size.height + 30),
       200,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF2D6A4F).withValues(alpha: 0.09),
-            Colors.transparent,
-          ],
-          stops: const [0, 0.7],
-        ).createShader(Rect.fromCircle(
-            center: Offset(-40, size.height + 30), radius: 200)),
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFF2D6A4F).withValues(alpha: 0.09),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.7],
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(-40, size.height + 30),
+                radius: 200,
+              ),
+            ),
     );
     // 格纹
     final g = Paint()
@@ -1208,14 +1823,18 @@ class _BrandMark extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-                color: Colors.white.withValues(alpha: 0.9), width: 1.3),
+              color: Colors.white.withValues(alpha: 0.9),
+              width: 1.3,
+            ),
           ),
         ),
         Container(
           width: 6,
           height: 6,
           decoration: const BoxDecoration(
-              shape: BoxShape.circle, color: Colors.white),
+            shape: BoxShape.circle,
+            color: Colors.white,
+          ),
         ),
       ],
     );
@@ -1239,12 +1858,85 @@ class _InputLabel extends StatelessWidget {
   }
 }
 
+class _RegisterCountryCodeMenuItem extends StatelessWidget {
+  final String countryName;
+  final String countryCode;
+  final String countryFlag;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _RegisterCountryCodeMenuItem({
+    required this.countryName,
+    required this.countryCode,
+    required this.countryFlag,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const highlight = Color(0xFFFAF3E0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Material(
+        color: isSelected ? highlight : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Text(countryFlag, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    countryName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF2D6A4F)
+                          : const Color(0xFF1E1810),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  countryCode,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? const Color(0xFF2D6A4F)
+                        : const Color(0xFFA09080),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CompleteProfileGenderChip extends StatelessWidget {
+  final Key? chipKey;
+  final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _CompleteProfileGenderChip({
+    this.chipKey,
+    required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -1252,34 +1944,92 @@ class _CompleteProfileGenderChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected
-          ? const Color(0xFF2D6A4F).withValues(alpha: 0.10)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF2D6A4F)
-                  : const Color(0xFF2D6A4F).withValues(alpha: 0.18),
-              width: 1,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        key: chipKey,
+        duration: const Duration(milliseconds: 180),
+        height: 54,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF82F3C8) : const Color(0xFFF4F5F4),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF82F3C8).withValues(alpha: 0.30),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: const Color(0xFF48514D)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2F3432),
+                ),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanCorner extends StatelessWidget {
+  final bool top;
+  final bool right;
+  final bool bottom;
+  final bool left;
+
+  const _ScanCorner({
+    this.top = false,
+    this.right = false,
+    this.bottom = false,
+    this.left = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const color = Color(0xFF76A892);
+
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: const BoxDecoration(),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: top
+                ? const BorderSide(color: color, width: 2)
+                : BorderSide.none,
+            right: right
+                ? const BorderSide(color: color, width: 2)
+                : BorderSide.none,
+            bottom: bottom
+                ? const BorderSide(color: color, width: 2)
+                : BorderSide.none,
+            left: left
+                ? const BorderSide(color: color, width: 2)
+                : BorderSide.none,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected
-                  ? const Color(0xFF2D6A4F)
-                  : const Color(0xFF3A3028).withValues(alpha: 0.7),
-            ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(top && left ? 6 : 0),
+            topRight: Radius.circular(top && right ? 6 : 0),
+            bottomLeft: Radius.circular(bottom && left ? 6 : 0),
+            bottomRight: Radius.circular(bottom && right ? 6 : 0),
           ),
         ),
       ),
@@ -1290,12 +2040,13 @@ class _CompleteProfileGenderChip extends StatelessWidget {
 class _Bracket extends StatelessWidget {
   final Color color;
   final bool tl, tr, bl, br;
-  const _Bracket(
-      {required this.color,
-      this.tl = false,
-      this.tr = false,
-      this.bl = false,
-      this.br = false});
+  const _Bracket({
+    required this.color,
+    this.tl = false,
+    this.tr = false,
+    this.bl = false,
+    this.br = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1321,4 +2072,3 @@ class _Bracket extends StatelessWidget {
     );
   }
 }
-

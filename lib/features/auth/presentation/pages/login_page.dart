@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +10,11 @@ import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import '../../../../core/router/app_router.dart';
 import '../providers/auth_repository_provider.dart';
+import '../providers/captcha_resolver_provider.dart';
 import '../../data/models/auth_request.dart';
 
 // ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
@@ -25,7 +29,10 @@ import '../../data/models/auth_request.dart';
 // tcmGoldLight = Color(0xFFFAF3E0)
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.inviteTicket});
+
+  final String? inviteTicket;
+
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
@@ -37,8 +44,22 @@ class _LoginPageState extends ConsumerState<LoginPage>
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _codeCtrl = TextEditingController();
   final _countryMenuController = MenuController();
   bool _obscurePass = true;
+  bool _isPasswordLogin = false; // 默认为验证码登录
+  bool _codeSending = false;
+  bool _codeCountingDown = false;
+  int _codeCountdown = 60;
+  Timer? _countdownTimer;
+  String? _codeTargetPhone;
+  String? _codeTargetCountryCode;
+  String? _challengeId;
+  DateTime? _challengeExpireAt;
+  String? _maskedReceiver;
+  String? _captchaProvider;
+  Map<String, dynamic>? _captchaInitPayload;
+  bool _captchaVerified = false;
   _LoginButtonPhase _buttonPhase = _LoginButtonPhase.idle;
   String _selectedCountryCode = '+86';
   String _selectedCountryFlag = '🇨🇳';
@@ -80,29 +101,29 @@ class _LoginPageState extends ConsumerState<LoginPage>
       duration: const Duration(milliseconds: 700),
     )..forward();
 
-    _breatheAnim =
-        Tween<double>(begin: 0.96, end: 1.04).animate(
+    _breatheAnim = Tween<double>(begin: 0.96, end: 1.04).animate(
       CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
     );
-    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
+    _fadeAnim = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
 
     // ── 按钮按压缩放 ──
     _btnScaleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 120),
     );
-    _btnScaleAnim = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _btnScaleCtrl, curve: Curves.easeInOut),
-    );
+    _btnScaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _btnScaleCtrl, curve: Curves.easeInOut));
 
     // ── 拨云见日退场动画 ──
     _exitCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 550),
     );
-
   }
 
   @override
@@ -113,6 +134,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _exitCtrl.dispose();
     _phoneCtrl.dispose();
     _passCtrl.dispose();
+    _codeCtrl.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -127,20 +150,353 @@ class _LoginPageState extends ConsumerState<LoginPage>
     return null;
   }
 
+  void _resetCodeState({bool clearCode = true}) {
+    _countdownTimer?.cancel();
+    _codeSending = false;
+    _codeCountingDown = false;
+    _codeCountdown = 60;
+    _codeTargetPhone = null;
+    _codeTargetCountryCode = null;
+    _challengeId = null;
+    _challengeExpireAt = null;
+    _maskedReceiver = null;
+    _captchaProvider = null;
+    _captchaInitPayload = null;
+    _captchaVerified = false;
+    if (clearCode) {
+      _codeCtrl.clear();
+    }
+  }
+
+  String? get _inviteTicket {
+    final inviteTicket = widget.inviteTicket?.trim();
+    if (inviteTicket == null || inviteTicket.isEmpty) {
+      return null;
+    }
+    return inviteTicket;
+  }
+
+  String get _registerLocation {
+    final inviteTicket = _inviteTicket;
+    if (inviteTicket == null) {
+      return AppRoutes.register;
+    }
+    return Uri(
+      path: AppRoutes.register,
+      queryParameters: {'inviteTicket': inviteTicket},
+    ).toString();
+  }
+
+  int _secondsUntil(DateTime? target) {
+    if (target == null) {
+      return 60;
+    }
+    final diff = target.difference(DateTime.now()).inSeconds;
+    return diff <= 0 ? 0 : diff;
+  }
+
+  bool get _shouldRefreshChallenge {
+    final challengeId = _challengeId;
+    final expireAt = _challengeExpireAt;
+    if (challengeId == null || challengeId.isEmpty || expireAt == null) {
+      return true;
+    }
+    return !expireAt.isAfter(DateTime.now());
+  }
+
+  void _startCodeCountdown(VerificationCodeSendEntity sendResult) {
+    final seconds = _secondsUntil(sendResult.resendAt);
+    setState(() {
+      _codeSending = false;
+      _codeCountingDown = seconds > 0;
+      _codeCountdown = seconds > 0 ? seconds : 60;
+      _codeTargetPhone = _phoneCtrl.text.trim();
+      _codeTargetCountryCode = _selectedCountryCode;
+      _maskedReceiver = sendResult.maskedReceiver;
+    });
+
+    if (seconds <= 0) {
+      return;
+    }
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() => _codeCountdown--);
+      if (_codeCountdown <= 0) {
+        t.cancel();
+        setState(() {
+          _codeCountingDown = false;
+          _codeCountdown = 60;
+          _codeTargetPhone = null;
+          _codeTargetCountryCode = null;
+        });
+      }
+    });
+  }
+
+  void _handlePhoneChanged(String value) {
+    final targetPhone = _codeTargetPhone;
+    if (targetPhone == null) {
+      return;
+    }
+    if (value.trim() != targetPhone) {
+      setState(() => _resetCodeState());
+    }
+  }
+
+  Object? _responseCode(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+    return responseData['code'];
+  }
+
+  String? _responseMessage(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+    final message = responseData['message'];
+    if (message is String && message.trim().isNotEmpty) {
+      return message.trim();
+    }
+    return null;
+  }
+
+  VerificationCodeSendEntity? _sendEntityFromEnvelope(dynamic responseData) {
+    if (responseData is! Map<String, dynamic>) {
+      return null;
+    }
+    final data = responseData['data'];
+    if (data is! Map<String, dynamic>) {
+      return null;
+    }
+    final resendAtRaw = data['resendAt'] as String?;
+    final expireAtRaw = data['expireAt'] as String?;
+    return VerificationCodeSendEntity(
+      channel: (data['channel'] as String?) ?? 'PHONE',
+      maskedReceiver:
+          (data['maskedReceiver'] as String?) ?? (_maskedReceiver ?? ''),
+      expireAt: expireAtRaw == null ? null : DateTime.tryParse(expireAtRaw),
+      resendAt: resendAtRaw == null ? null : DateTime.tryParse(resendAtRaw),
+    );
+  }
+
+  Future<bool> _ensureCaptchaVerifiedIfNeeded(AuthRepository repository) async {
+    final challengeId = _challengeId;
+    final provider = _captchaProvider;
+    if (challengeId == null || challengeId.isEmpty) {
+      return false;
+    }
+    if (provider == null || provider.isEmpty || _captchaVerified) {
+      return true;
+    }
+
+    final payload = await ref
+        .read(captchaResolverProvider)
+        .resolve(
+          context: context,
+          provider: provider,
+          initPayload: _captchaInitPayload,
+        );
+    if (!mounted || payload == null) {
+      return false;
+    }
+
+    try {
+      final verified = await repository.verifyVerificationCodeCaptcha(
+        challengeId: challengeId,
+        captchaProvider: provider,
+        captchaPayload: payload,
+      );
+      if (!mounted) {
+        return false;
+      }
+      if (!verified) {
+        _showErrorSnack('人机验证未通过，请重试');
+        return false;
+      }
+      setState(() => _captchaVerified = true);
+      return true;
+    } on DioException catch (error) {
+      final responseData = error.response?.data;
+      final code = _responseCode(responseData);
+      if (mounted && (code == 11119 || code == 11121)) {
+        setState(() => _resetCodeState(clearCode: false));
+      }
+      _showErrorSnack(_responseMessage(responseData) ?? '人机验证未通过，请重试');
+      return false;
+    } catch (_) {
+      _showErrorSnack('人机验证未通过，请重试');
+      return false;
+    }
+  }
+
+  void _showErrorSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF8F3B3B),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+  }
+
+  void _showSuccessSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2D6A4F),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  Future<void> _onSendCode() async {
+    final l10n = context.l10n;
+    final phoneError = _validatePhone(_phoneCtrl.text);
+    if (phoneError != null) {
+      _showErrorSnack(phoneError);
+      return;
+    }
+    if (_codeSending || _codeCountingDown) {
+      return;
+    }
+
+    setState(() => _codeSending = true);
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      if (_shouldRefreshChallenge) {
+        final challenge = await repository.createVerificationCodeChallenge(
+          scene: VerificationCodeScene.login,
+          countryCode: _selectedCountryCode,
+          phoneNumber: _phoneCtrl.text.trim(),
+        );
+        _challengeId = challenge.challengeId;
+        _challengeExpireAt = challenge.expireAt;
+        _codeTargetPhone = _phoneCtrl.text.trim();
+        _codeTargetCountryCode = _selectedCountryCode;
+        _captchaProvider = challenge.captchaProvider;
+        _captchaInitPayload = challenge.captchaPayload;
+        _captchaVerified = !challenge.captchaRequired;
+      }
+
+      final captchaVerified = await _ensureCaptchaVerifiedIfNeeded(repository);
+      if (!captchaVerified) {
+        if (mounted) {
+          setState(() => _codeSending = false);
+        }
+        return;
+      }
+
+      final sendResult = await repository.sendCode(challengeId: _challengeId!);
+      _showSuccessSnack(l10n.authCodeSent);
+      if (!mounted) return;
+      _startCodeCountdown(sendResult);
+    } on DioException catch (error) {
+      final responseData = error.response?.data;
+      final serverMessage = _responseMessage(responseData);
+      if (mounted) {
+        setState(() => _codeSending = false);
+      }
+      final code = _responseCode(responseData);
+      if (code == 11119 || code == 11121) {
+        if (mounted) {
+          setState(() => _resetCodeState());
+        }
+      }
+      if (code == 11122 || code == 11123) {
+        if (mounted) {
+          setState(() => _captchaVerified = false);
+        }
+      }
+      if (code == 11120) {
+        final sendResult = _sendEntityFromEnvelope(responseData);
+        if (sendResult != null && mounted) {
+          _startCodeCountdown(sendResult);
+        }
+      }
+      _showErrorSnack(serverMessage ?? l10n.authSendCodeFailed);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _codeSending = false);
+      }
+      _showErrorSnack(l10n.authSendCodeFailed);
+    }
+  }
+
   Future<void> _onLogin() async {
+    if (!_isPasswordLogin && (_challengeId == null || _challengeId!.isEmpty)) {
+      _showErrorSnack(context.l10n.authSendCodeFirst);
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _buttonPhase = _LoginButtonPhase.submitting);
     await _btnScaleCtrl.reverse();
 
     try {
       final repository = ref.read(authRepositoryProvider);
-      final loginFuture = repository.login(
-        AuthRequest(
-          countryCode: _selectedCountryCode,
-          phoneNumber: _phoneCtrl.text.trim(),
-          password: _passCtrl.text,
-        ),
-      );
+      final Future<AuthSessionEntity> loginFuture = _isPasswordLogin
+          ? repository.login(
+              AuthRequest(
+                countryCode: _selectedCountryCode,
+                phoneNumber: _phoneCtrl.text.trim(),
+                password: _passCtrl.text,
+              ),
+            )
+          : repository.authenticateVerificationCode(
+              challengeId: _challengeId!,
+              verificationCode: _codeCtrl.text.trim(),
+              inviteTicket: _inviteTicket,
+            );
 
       final results = await Future.wait<dynamic>([
         loginFuture,
@@ -161,32 +517,19 @@ class _LoginPageState extends ConsumerState<LoginPage>
       if (!mounted) return;
       setState(() => _buttonPhase = _LoginButtonPhase.idle);
       final responseData = error.response?.data;
-      String? serverMessage;
-      if (responseData is Map<String, dynamic>) {
-        final message = responseData['message'];
-        if (message is String && message.trim().isNotEmpty) {
-          serverMessage = message.trim();
-        }
+      final serverMessage = _responseMessage(responseData);
+      final code = _responseCode(responseData);
+      if (code == 11119 || code == 11121) {
+        _resetCodeState();
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(serverMessage ?? context.l10n.authLoginFailed),
-          backgroundColor: const Color(0xFF8F3B3B),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      if (code == 11122 || code == 11123) {
+        _captchaVerified = false;
+      }
+      _showErrorSnack(serverMessage ?? context.l10n.authLoginFailed);
     } catch (_) {
       if (!mounted) return;
       setState(() => _buttonPhase = _LoginButtonPhase.idle);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.authLoginFailed),
-          backgroundColor: const Color(0xFF8F3B3B),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      _showErrorSnack(context.l10n.authLoginFailed);
     }
   }
 
@@ -216,7 +559,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             return SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(horizontal: 28),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                              ),
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(
                                   minHeight: constraints.maxHeight,
@@ -235,11 +580,34 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                         const SizedBox(height: 12),
                                         _buildHeroText(),
                                         const SizedBox(height: 28),
-                                        _buildEmailField(),
+                                        _buildPhoneField(),
                                         const SizedBox(height: 14),
-                                        _buildPasswordField(),
+                                        AnimatedSwitcher(
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ),
+                                          transitionBuilder:
+                                              (child, animation) {
+                                                return FadeTransition(
+                                                  opacity: animation,
+                                                  child: SlideTransition(
+                                                    position: Tween<Offset>(
+                                                      begin: const Offset(
+                                                        0,
+                                                        0.1,
+                                                      ),
+                                                      end: Offset.zero,
+                                                    ).animate(animation),
+                                                    child: child,
+                                                  ),
+                                                );
+                                              },
+                                          child: _isPasswordLogin
+                                              ? _buildPasswordField()
+                                              : _buildCodeField(),
+                                        ),
                                         const SizedBox(height: 8),
-                                        _buildForgotPassword(),
+                                        _buildFieldsFooter(),
                                         const SizedBox(height: 22),
                                         _buildPrimaryButton(),
                                         const Spacer(),
@@ -268,9 +636,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   // ── Background ──────────────────────────────────────────────────
   Widget _buildBackground() {
     return const RepaintBoundary(
-      child: CustomPaint(
-        painter: _LoginBgPainter(),
-      ),
+      child: CustomPaint(painter: _LoginBgPainter()),
     );
   }
 
@@ -285,68 +651,68 @@ class _LoginPageState extends ConsumerState<LoginPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: const Center(child: _BrandMark()),
-        ),
-        const SizedBox(width: 10),
-        RichText(
-            maxLines: 1,
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 18,
-                color: Color(0xFF1E1810),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-              children: [
-                TextSpan(text: context.l10n.appBrandPrefix),
-                TextSpan(
-                  text: 'AI',
-                  style: TextStyle(color: Color(0xFF2D6A4F)),
-                ),
-                TextSpan(text: context.l10n.appBrandSuffix),
-              ],
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-        const Spacer(),
-        // 节气装饰标签
-        Transform.translate(
-            offset: const Offset(12, -4),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF3E0),
-                borderRadius: BorderRadius.circular(99),
-                border: Border.all(
-                  color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
-                  width: 1,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(11),
               ),
-              child: Text(
-                seasonalTag,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: const Center(child: _BrandMark()),
+            ),
+            const SizedBox(width: 10),
+            RichText(
+              maxLines: 1,
+              text: TextSpan(
                 style: TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFFC9A84C),
+                  fontSize: 18,
+                  color: Color(0xFF1E1810),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
+                children: [
+                  TextSpan(text: context.l10n.appBrandPrefix),
+                  TextSpan(
+                    text: 'AI',
+                    style: TextStyle(color: Color(0xFF2D6A4F)),
+                  ),
+                  TextSpan(text: context.l10n.appBrandSuffix),
+                ],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        const Spacer(),
+        // 节气装饰标签
+        Transform.translate(
+          offset: const Offset(12, -4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF3E0),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              seasonalTag,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: Color(0xFFC9A84C),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
             ),
           ),
+        ),
       ],
     );
   }
@@ -357,10 +723,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       child: AnimatedBuilder(
         animation: _breatheAnim,
         builder: (context, child) {
-          return Transform.scale(
-            scale: _breatheAnim.value,
-            child: child,
-          );
+          return Transform.scale(scale: _breatheAnim.value, child: child);
         },
         child: SizedBox(
           width: 148,
@@ -372,8 +735,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
               AnimatedBuilder(
                 animation: _breatheAnim,
                 builder: (_, child) => Opacity(
-                  opacity: (0.88 + (_breatheAnim.value - 0.96) * 2.0)
-                      .clamp(0.0, 1.0),
+                  opacity: (0.88 + (_breatheAnim.value - 0.96) * 2.0).clamp(
+                    0.0,
+                    1.0,
+                  ),
                   child: child,
                 ),
                 child: CustomPaint(
@@ -464,7 +829,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Widget _buildHeroText() {
     return Column(
       children: [
-        // 装饰横线
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -472,7 +836,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
             const SizedBox(width: 12),
             Text(
               context.l10n.authInspectionMotto,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
                 letterSpacing: 3,
                 color: Color(0xFF2D6A4F),
@@ -487,44 +851,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
-  Widget _ornamentLine() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 20, height: 1,
-          color: const Color(0xFF2D6A4F).withValues(alpha: 0.3),
-        ),
-        const SizedBox(width: 4),
-        Container(
-          width: 4, height: 4,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.4),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Section Divider ────────────────────────────────────────────
-  Widget _buildSectionDivider() {
-    return Container(
-      height: 1,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.transparent,
-            const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-            Colors.transparent,
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Email Field ────────────────────────────────────────────────
-  Widget _buildEmailField() {
+  // ── Phone Field ────────────────────────────────────────────────
+  Widget _buildPhoneField() {
     final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,14 +862,240 @@ class _LoginPageState extends ConsumerState<LoginPage>
         TextFormField(
           controller: _phoneCtrl,
           keyboardType: TextInputType.phone,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: _handlePhoneChanged,
           style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
             hint: l10n.authPhoneHint,
-            prefix: _buildCountryCodePrefix(),
-            prefixIcon: null,
+            prefixIcon: _buildCountryCodePrefix(),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
+            ),
           ),
           validator: _validatePhone,
         ),
+      ],
+    );
+  }
+
+  // ── Verification Code Field ────────────────────────────────────
+  Widget _buildCodeField() {
+    final l10n = context.l10n;
+    final maskedReceiver = _maskedReceiver;
+    return Column(
+      key: const ValueKey('code_field'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InputLabel(text: l10n.authVerificationCodeLabel),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _codeCtrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          decoration: _inputDecoration(
+            hint: l10n.authVerificationCodeHint,
+            prefixIcon: const Icon(
+              Icons.verified_user_outlined,
+              size: 18,
+              color: Color(0xFFA09080),
+            ),
+            suffixIcon: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: _codeSending
+                    ? const SizedBox(
+                        key: ValueKey('send_code_loading'),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF2D6A4F),
+                        ),
+                      )
+                    : _codeCountingDown
+                    ? Text(
+                        l10n.authResendCode(_codeCountdown),
+                        key: const ValueKey('send_code_countdown'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFA09080),
+                        ),
+                      )
+                    : TextButton(
+                        key: const ValueKey('send_code_button'),
+                        onPressed: _onSendCode,
+                        child: Text(
+                          l10n.authSendCode,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF2D6A4F),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          validator: (v) =>
+              (!_isPasswordLogin && (v == null || v.trim().length != 6))
+              ? l10n.authVerificationCodeHint
+              : null,
+        ),
+        if (!_isPasswordLogin &&
+            maskedReceiver != null &&
+            maskedReceiver.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '验证码已发送至 $maskedReceiver',
+            key: const ValueKey('login_masked_receiver_hint'),
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.58),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── Password Field ─────────────────────────────────────────────
+  Widget _buildPasswordField() {
+    return Column(
+      key: const ValueKey('password_field'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InputLabel(text: context.l10n.authPasswordLabel),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _passCtrl,
+          obscureText: _obscurePass,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          decoration: _inputDecoration(
+            hint: context.l10n.authPasswordHint,
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              size: 18,
+              color: Color(0xFFA09080),
+            ),
+            suffixIcon: GestureDetector(
+              onTap: () => setState(() => _obscurePass = !_obscurePass),
+              child: Icon(
+                _obscurePass
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                size: 18,
+                color: const Color(0xFFA09080),
+              ),
+            ),
+          ),
+          validator: (v) {
+            if (!_isPasswordLogin) return null;
+            if (v == null || v.isEmpty) return context.l10n.authPasswordHint;
+            if (v.length < 6) return context.l10n.authPasswordMin6;
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  // ── Field Footer (Toggle & Forgot Password) ──────────────────────
+  Widget _buildFieldsFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        TextButton(
+          onPressed: () {
+            setState(() {
+              final preservedPhone = _phoneCtrl.text;
+              _isPasswordLogin = !_isPasswordLogin;
+              if (_isPasswordLogin) {
+                _resetCodeState();
+              } else {
+                _passCtrl.clear();
+              }
+              _formKey.currentState?.reset();
+              _phoneCtrl.text = preservedPhone;
+            });
+          },
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            _isPasswordLogin
+                ? context.l10n.authCodeLogin
+                : context.l10n.authPasswordLogin,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: Color(0xFF2D6A4F),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (_isPasswordLogin)
+          TextButton(
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  backgroundColor: const Color(0xFFF9F7F2),
+                  title: Text(
+                    context.l10n.authForgotPassword,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2D6A4F),
+                    ),
+                  ),
+                  content: Text(
+                    context.l10n.authForgotPasswordTip,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: const Color(0xFF3A3028).withValues(alpha: 0.7),
+                      height: 1.6,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        context.l10n.commonConfirm,
+                        style: const TextStyle(
+                          color: Color(0xFF2D6A4F),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              context.l10n.authForgotPassword,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -556,9 +1110,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
           backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
           elevation: const WidgetStatePropertyAll(0),
-          shadowColor: WidgetStatePropertyAll(
-            Colors.transparent,
-          ),
+          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         ),
         menuChildren: [
           SizedBox(
@@ -611,6 +1163,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             isSelected: _selectedCountryCode == item['code'],
                             onTap: () {
                               setState(() {
+                                if (_codeTargetCountryCode != null &&
+                                    _codeTargetCountryCode != item['code']) {
+                                  _resetCodeState();
+                                }
                                 _selectedCountryCode = item['code']!;
                                 _selectedCountryFlag = item['flag']!;
                               });
@@ -640,7 +1196,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_selectedCountryFlag, style: const TextStyle(fontSize: 18)),
+                Text(
+                  _selectedCountryFlag,
+                  style: const TextStyle(fontSize: 18),
+                ),
                 const SizedBox(width: 4),
                 Text(
                   _selectedCountryCode,
@@ -665,65 +1224,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
-  // ── Password Field ─────────────────────────────────────────────
-  Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _InputLabel(text: context.l10n.authPasswordLabel),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: _passCtrl,
-          obscureText: _obscurePass,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
-          decoration: _inputDecoration(
-            hint: context.l10n.authPasswordHint,
-            prefixIcon: const Icon(Icons.lock_outline,
-                size: 18, color: Color(0xFFA09080)),
-            suffixIcon: GestureDetector(
-              onTap: () => setState(() => _obscurePass = !_obscurePass),
-              child: Icon(
-                _obscurePass
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-                color: const Color(0xFFA09080),
-              ),
-            ),
-          ),
-          validator: (v) =>
-              (v == null || v.length < 6) ? context.l10n.authPasswordMin6 : null,
-        ),
-      ],
-    );
-  }
-
-  // ── Forgot Password ────────────────────────────────────────────
-  Widget _buildForgotPassword() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () {},
-        style: TextButton.styleFrom(
-          padding: EdgeInsets.zero,
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: Text(
-          context.l10n.authForgotPassword,
-          style: TextStyle(
-            fontSize: 12.5,
-            color: Color(0xFF2D6A4F),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
   // ── Primary Button（轻按压 → 提交态压暗 → 页面退场）───────────
   Widget _buildPrimaryButton() {
     return GestureDetector(
+      key: const ValueKey('login_primary_button'),
+      behavior: HitTestBehavior.opaque,
       onTapDown: (_) {
         if (_isBusy) return;
         HapticFeedback.lightImpact();
@@ -743,10 +1248,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
       },
       child: AnimatedBuilder(
         animation: _btnScaleAnim,
-        builder: (context, child) => Transform.scale(
-          scale: _btnScaleAnim.value,
-          child: child,
-        ),
+        builder: (context, child) =>
+            Transform.scale(scale: _btnScaleAnim.value, child: child),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           height: 54,
@@ -774,9 +1277,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Center(
-              child: _buildButtonContent(context),
-            ),
+            child: Center(child: _buildButtonContent(context)),
           ),
         ),
       ),
@@ -810,9 +1311,24 @@ class _LoginPageState extends ConsumerState<LoginPage>
           key: const ValueKey('login_submitting'),
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.login_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            label,
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              context.l10n.authLoggingIn,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 1.5,
+              ),
+            ),
           ],
         );
     }
@@ -834,8 +1350,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
       ),
     );
   }
-
-
 
   // ── OR Divider ─────────────────────────────────────────────────
   Widget _buildOrDivider() {
@@ -895,17 +1409,17 @@ class _LoginPageState extends ConsumerState<LoginPage>
           ),
         ),
         TextButton(
-          onPressed: () => context.push(AppRoutes.register),
+          onPressed: () => context.push(_registerLocation),
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-        child: Text(
-          context.l10n.authRegisterNow,
-          style: TextStyle(
-            fontSize: 13,
-            color: Color(0xFF2D6A4F),
+          child: Text(
+            context.l10n.authRegisterNow,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF2D6A4F),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -919,6 +1433,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     required String hint,
     Widget? prefixIcon,
     Widget? prefix,
+    BoxConstraints? prefixIconConstraints,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
@@ -927,25 +1442,25 @@ class _LoginPageState extends ConsumerState<LoginPage>
       filled: true,
       fillColor: const Color(0xFFF9F7F2),
       prefixIcon: prefixIcon,
+      prefixIconConstraints: prefixIconConstraints,
       prefix: prefix,
       suffixIcon: suffixIcon != null
-          ? Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: suffixIcon,
-            )
+          ? Padding(padding: const EdgeInsets.only(right: 4), child: suffixIcon)
           : null,
       contentPadding: const EdgeInsets.symmetric(vertical: 15),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
         borderSide: BorderSide(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-            width: 1.5),
+          color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+          width: 1.5,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
         borderSide: BorderSide(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-            width: 1.5),
+          color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
+          width: 1.5,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
@@ -953,12 +1468,51 @@ class _LoginPageState extends ConsumerState<LoginPage>
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide:
-            BorderSide(color: Colors.red.withValues(alpha: 0.5), width: 1.5),
+        borderSide: BorderSide(
+          color: Colors.red.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+
+  Widget _ornamentLine() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 1,
+          color: const Color(0xFF2D6A4F).withValues(alpha: 0.3),
+        ),
+        const SizedBox(width: 4),
+        Container(
+          width: 4,
+          height: 4,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionDivider() {
+    return Container(
+      height: 1,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+            Colors.transparent,
+          ],
+        ),
       ),
     );
   }
@@ -1004,7 +1558,9 @@ class _CountryCodeMenuItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       color: isSelected
                           ? const Color(0xFF2D6A4F)
                           : const Color(0xFF1E1810),
@@ -1042,28 +1598,38 @@ class _LoginBgPainter extends CustomPainter {
       Offset(size.width + 40, -40),
       200,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-            Colors.transparent,
-          ],
-          stops: const [0, 0.7],
-        ).createShader(Rect.fromCircle(
-            center: Offset(size.width + 40, -40), radius: 200)),
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFF2D6A4F).withValues(alpha: 0.1),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.7],
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(size.width + 40, -40),
+                radius: 200,
+              ),
+            ),
     );
     // 左下金色光晕
     canvas.drawCircle(
       Offset(-50, size.height + 40),
       180,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFFC9A84C).withValues(alpha: 0.07),
-            Colors.transparent,
-          ],
-          stops: const [0, 0.7],
-        ).createShader(Rect.fromCircle(
-            center: Offset(-50, size.height + 40), radius: 180)),
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFFC9A84C).withValues(alpha: 0.07),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.7],
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(-50, size.height + 40),
+                radius: 180,
+              ),
+            ),
     );
     // 极淡格纹
     final gridPaint = Paint()
@@ -1149,9 +1715,15 @@ class _CornerBrackets extends StatelessWidget {
         Positioned(top: 10, left: 10, child: _Bracket(color: color, tl: true)),
         Positioned(top: 10, right: 10, child: _Bracket(color: color, tr: true)),
         Positioned(
-            bottom: 10, left: 10, child: _Bracket(color: color, bl: true)),
+          bottom: 10,
+          left: 10,
+          child: _Bracket(color: color, bl: true),
+        ),
         Positioned(
-            bottom: 10, right: 10, child: _Bracket(color: color, br: true)),
+          bottom: 10,
+          right: 10,
+          child: _Bracket(color: color, br: true),
+        ),
       ],
     );
   }
@@ -1160,12 +1732,13 @@ class _CornerBrackets extends StatelessWidget {
 class _Bracket extends StatelessWidget {
   final Color color;
   final bool tl, tr, bl, br;
-  const _Bracket(
-      {required this.color,
-      this.tl = false,
-      this.tr = false,
-      this.bl = false,
-      this.br = false});
+  const _Bracket({
+    required this.color,
+    this.tl = false,
+    this.tr = false,
+    this.bl = false,
+    this.br = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1205,8 +1778,10 @@ class _BrandMark extends StatelessWidget {
           height: 18,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border:
-                Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.5),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.9),
+              width: 1.5,
+            ),
           ),
         ),
         Container(

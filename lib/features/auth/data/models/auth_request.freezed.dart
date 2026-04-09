@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AuthRequest {
 
- String get countryCode; String get phoneNumber; String get password;
+ String get countryCode; String get phoneNumber; String? get password; String? get code;
 /// Create a copy of AuthRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AuthRequestCopyWith<AuthRequest> get copyWith => _$AuthRequestCopyWithImpl<Auth
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthRequest&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.password, password) || other.password == password));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthRequest&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.password, password) || other.password == password)&&(identical(other.code, code) || other.code == code));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,countryCode,phoneNumber,password);
+int get hashCode => Object.hash(runtimeType,countryCode,phoneNumber,password,code);
 
 @override
 String toString() {
-  return 'AuthRequest(countryCode: $countryCode, phoneNumber: $phoneNumber, password: $password)';
+  return 'AuthRequest(countryCode: $countryCode, phoneNumber: $phoneNumber, password: $password, code: $code)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AuthRequestCopyWith<$Res>  {
   factory $AuthRequestCopyWith(AuthRequest value, $Res Function(AuthRequest) _then) = _$AuthRequestCopyWithImpl;
 @useResult
 $Res call({
- String countryCode, String phoneNumber, String password
+ String countryCode, String phoneNumber, String? password, String? code
 });
 
 
@@ -65,12 +65,13 @@ class _$AuthRequestCopyWithImpl<$Res>
 
 /// Create a copy of AuthRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? countryCode = null,Object? phoneNumber = null,Object? password = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? countryCode = null,Object? phoneNumber = null,Object? password = freezed,Object? code = freezed,}) {
   return _then(_self.copyWith(
 countryCode: null == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
 as String,phoneNumber: null == phoneNumber ? _self.phoneNumber : phoneNumber // ignore: cast_nullable_to_non_nullable
-as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
-as String,
+as String,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
+as String?,code: freezed == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -155,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String countryCode,  String phoneNumber,  String password)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String countryCode,  String phoneNumber,  String? password,  String? code)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthRequest() when $default != null:
-return $default(_that.countryCode,_that.phoneNumber,_that.password);case _:
+return $default(_that.countryCode,_that.phoneNumber,_that.password,_that.code);case _:
   return orElse();
 
 }
@@ -176,10 +177,10 @@ return $default(_that.countryCode,_that.phoneNumber,_that.password);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String countryCode,  String phoneNumber,  String password)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String countryCode,  String phoneNumber,  String? password,  String? code)  $default,) {final _that = this;
 switch (_that) {
 case _AuthRequest():
-return $default(_that.countryCode,_that.phoneNumber,_that.password);case _:
+return $default(_that.countryCode,_that.phoneNumber,_that.password,_that.code);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +197,10 @@ return $default(_that.countryCode,_that.phoneNumber,_that.password);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String countryCode,  String phoneNumber,  String password)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String countryCode,  String phoneNumber,  String? password,  String? code)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthRequest() when $default != null:
-return $default(_that.countryCode,_that.phoneNumber,_that.password);case _:
+return $default(_that.countryCode,_that.phoneNumber,_that.password,_that.code);case _:
   return null;
 
 }
@@ -211,12 +212,13 @@ return $default(_that.countryCode,_that.phoneNumber,_that.password);case _:
 @JsonSerializable()
 
 class _AuthRequest implements AuthRequest {
-  const _AuthRequest({required this.countryCode, required this.phoneNumber, required this.password});
+  const _AuthRequest({required this.countryCode, required this.phoneNumber, this.password, this.code});
   factory _AuthRequest.fromJson(Map<String, dynamic> json) => _$AuthRequestFromJson(json);
 
 @override final  String countryCode;
 @override final  String phoneNumber;
-@override final  String password;
+@override final  String? password;
+@override final  String? code;
 
 /// Create a copy of AuthRequest
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthRequest&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.password, password) || other.password == password));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthRequest&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.password, password) || other.password == password)&&(identical(other.code, code) || other.code == code));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,countryCode,phoneNumber,password);
+int get hashCode => Object.hash(runtimeType,countryCode,phoneNumber,password,code);
 
 @override
 String toString() {
-  return 'AuthRequest(countryCode: $countryCode, phoneNumber: $phoneNumber, password: $password)';
+  return 'AuthRequest(countryCode: $countryCode, phoneNumber: $phoneNumber, password: $password, code: $code)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$AuthRequestCopyWith<$Res> implements $AuthRequestCopyWith
   factory _$AuthRequestCopyWith(_AuthRequest value, $Res Function(_AuthRequest) _then) = __$AuthRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String countryCode, String phoneNumber, String password
+ String countryCode, String phoneNumber, String? password, String? code
 });
 
 
@@ -268,12 +270,13 @@ class __$AuthRequestCopyWithImpl<$Res>
 
 /// Create a copy of AuthRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? countryCode = null,Object? phoneNumber = null,Object? password = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? countryCode = null,Object? phoneNumber = null,Object? password = freezed,Object? code = freezed,}) {
   return _then(_AuthRequest(
 countryCode: null == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
 as String,phoneNumber: null == phoneNumber ? _self.phoneNumber : phoneNumber // ignore: cast_nullable_to_non_nullable
-as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
-as String,
+as String,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
+as String?,code: freezed == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

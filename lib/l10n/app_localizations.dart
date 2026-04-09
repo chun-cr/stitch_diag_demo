@@ -384,6 +384,84 @@ abstract class AppLocalizations {
   /// **'Apple 登录'**
   String get authAppleLogin;
 
+  /// No description provided for @authVerificationCodeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码'**
+  String get authVerificationCodeLabel;
+
+  /// No description provided for @authVerificationCodeHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入验证码'**
+  String get authVerificationCodeHint;
+
+  /// No description provided for @authSendCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'发送验证码'**
+  String get authSendCode;
+
+  /// No description provided for @authResendCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'{seconds}s 后重发'**
+  String authResendCode(int seconds);
+
+  /// No description provided for @authPasswordLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'密码登录'**
+  String get authPasswordLogin;
+
+  /// No description provided for @authCodeLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码登录'**
+  String get authCodeLogin;
+
+  /// No description provided for @authLoggingIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录中…'**
+  String get authLoggingIn;
+
+  /// No description provided for @authSendCodeFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码发送失败，请稍后重试'**
+  String get authSendCodeFailed;
+
+  /// No description provided for @authCodeSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码已发送，请注意查收'**
+  String get authCodeSent;
+
+  /// No description provided for @authSendCodeFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先获取验证码'**
+  String get authSendCodeFirst;
+
+  /// No description provided for @authCaptchaRequiredUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前环境暂不支持人机验证，请稍后再试'**
+  String get authCaptchaRequiredUnsupported;
+
+  /// No description provided for @authForgotPasswordTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'请通过注册手机号重置密码，或联系客服处理'**
+  String get authForgotPasswordTip;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认'**
+  String get commonConfirm;
+
   /// No description provided for @authNoAccount.
   ///
   /// In zh, this message translates to:
@@ -411,7 +489,7 @@ abstract class AppLocalizations {
   /// No description provided for @registerCreateAccountSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'通过手机号与密码创建账号，快速开始体验'**
+  /// **'通过手机号与验证码创建账号，快速开始体验'**
   String get registerCreateAccountSubtitle;
 
   /// No description provided for @registerCreateAccountAction.
@@ -425,6 +503,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'创建账号失败，请稍后重试'**
   String get registerCreateFailed;
+
+  /// No description provided for @registerPasswordSetupPrompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'注册成功，可在“我的 - 设置 - 账号与安全”中设置登录密码'**
+  String get registerPasswordSetupPrompt;
 
   /// No description provided for @registerGenderOptional.
   ///
@@ -474,11 +558,11 @@ abstract class AppLocalizations {
   /// **'女'**
   String get registerGenderFemale;
 
-  /// No description provided for @registerGenderUndisclosed.
+  /// No description provided for @registerGenderOther.
   ///
   /// In zh, this message translates to:
   /// **'不透露'**
-  String get registerGenderUndisclosed;
+  String get registerGenderOther;
 
   /// No description provided for @registerPasswordHint.
   ///
@@ -581,12 +665,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'取消'**
   String get commonCancel;
-
-  /// No description provided for @commonConfirm.
-  ///
-  /// In zh, this message translates to:
-  /// **'确认'**
-  String get commonConfirm;
 
   /// No description provided for @commonSave.
   ///
@@ -1062,6 +1140,18 @@ abstract class AppLocalizations {
   /// **'个人资料、家人信息与健康档案'**
   String get profileMenuAccountSub;
 
+  /// No description provided for @profileMenuSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置'**
+  String get profileMenuSettings;
+
+  /// No description provided for @profileMenuSettingsSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'账号与安全、登录方式和通用偏好'**
+  String get profileMenuSettingsSub;
+
   /// No description provided for @profileMenuReminder.
   ///
   /// In zh, this message translates to:
@@ -1115,6 +1205,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'退出登录'**
   String get profileLogout;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSectionAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'账号'**
+  String get settingsSectionAccount;
+
+  /// No description provided for @settingsAccountSecurity.
+  ///
+  /// In zh, this message translates to:
+  /// **'账号与安全'**
+  String get settingsAccountSecurity;
+
+  /// No description provided for @settingsAccountSecuritySub.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录方式、手机号与密码安全管理'**
+  String get settingsAccountSecuritySub;
+
+  /// No description provided for @accountSecurityTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'账号与安全'**
+  String get accountSecurityTitle;
+
+  /// No description provided for @accountSecurityPhoneCodeTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前注册默认使用手机验证码登录，后续可按需补充设置登录密码。'**
+  String get accountSecurityPhoneCodeTip;
+
+  /// No description provided for @accountSecurityLoginPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置登录密码'**
+  String get accountSecurityLoginPassword;
+
+  /// No description provided for @accountSecurityLoginPasswordSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置后可使用手机号与密码登录；未设置时继续使用验证码登录。'**
+  String get accountSecurityLoginPasswordSub;
+
+  /// No description provided for @accountSecurityPasswordSet.
+  ///
+  /// In zh, this message translates to:
+  /// **'已设置'**
+  String get accountSecurityPasswordSet;
+
+  /// No description provided for @accountSecurityPasswordUnset.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设置'**
+  String get accountSecurityPasswordUnset;
+
+  /// No description provided for @setLoginPasswordTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置登录密码'**
+  String get setLoginPasswordTitle;
+
+  /// No description provided for @setLoginPasswordSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置后可使用手机号与密码登录；若暂不设置，仍可使用验证码登录。'**
+  String get setLoginPasswordSubtitle;
+
+  /// No description provided for @setLoginPasswordAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存密码'**
+  String get setLoginPasswordAction;
+
+  /// No description provided for @setLoginPasswordSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录密码已设置'**
+  String get setLoginPasswordSuccess;
 
   /// No description provided for @localeSheetTitle.
   ///

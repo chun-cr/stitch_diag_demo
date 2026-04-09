@@ -9,6 +9,9 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page
 import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_page.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/settings_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/account_security_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/set_login_password_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
@@ -31,6 +34,10 @@ class AppRoutes {
   static const reportCheckout = '/report/checkout';
   static const history = '/history';
   static const profile = '/profile';
+  static const settings = '/profile/settings';
+  static const accountSecurity = '/profile/settings/account-security';
+  static const setLoginPassword =
+      '/profile/settings/account-security/set-login-password';
 }
 
 final ValueNotifier<bool> _previewAuthState = ValueNotifier<bool>(false);
@@ -50,7 +57,8 @@ final appRouter = GoRouter(
   debugLogDiagnostics: true,
   refreshListenable: _previewAuthState,
   redirect: (context, state) {
-    final isEntryAuthRoute = state.matchedLocation == AppRoutes.login ||
+    final isEntryAuthRoute =
+        state.matchedLocation == AppRoutes.login ||
         state.matchedLocation == AppRoutes.register;
     final isProfileCompletionRoute =
         state.matchedLocation == AppRoutes.completeProfile;
@@ -81,24 +89,26 @@ final appRouter = GoRouter(
             parent: animation,
             curve: Curves.easeOut,
           );
-          final scaleAnim = Tween<double>(begin: 0.96, end: 1.0).animate(curved);
+          final scaleAnim = Tween<double>(
+            begin: 0.96,
+            end: 1.0,
+          ).animate(curved);
           return FadeTransition(
             opacity: curved,
-            child: ScaleTransition(
-              scale: scaleAnim,
-              child: child,
-            ),
+            child: ScaleTransition(scale: scaleAnim, child: child),
           );
         },
       ),
     ),
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) => const LoginPage(),
+      builder: (context, state) =>
+          LoginPage(inviteTicket: state.uri.queryParameters['inviteTicket']),
     ),
     GoRoute(
       path: AppRoutes.register,
-      builder: (context, state) => const RegisterPage(),
+      builder: (context, state) =>
+          RegisterPage(inviteTicket: state.uri.queryParameters['inviteTicket']),
     ),
     GoRoute(
       path: AppRoutes.completeProfile,
@@ -164,6 +174,17 @@ final appRouter = GoRouter(
       path: AppRoutes.profile,
       builder: (context, state) => const ProfilePage(),
     ),
+    GoRoute(
+      path: AppRoutes.settings,
+      builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.accountSecurity,
+      builder: (context, state) => const AccountSecurityPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.setLoginPassword,
+      builder: (context, state) => const SetLoginPasswordPage(),
+    ),
   ],
 );
-

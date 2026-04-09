@@ -23,20 +23,39 @@ Future<void> _openCountrySelector(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('country selector opens as lightweight menu instead of bottom sheet', (
-    tester,
-  ) async {
-    await _pumpLoginPage(tester);
+  testWidgets(
+    'country selector prefix is visible before focusing phone field',
+    (tester) async {
+      await _pumpLoginPage(tester);
 
-    await _openCountrySelector(tester);
+      expect(
+        find.byKey(const ValueKey('country_code_menu_trigger')),
+        findsOneWidget,
+      );
+      expect(find.text('+86'), findsOneWidget);
+      expect(find.text('🇨🇳'), findsOneWidget);
 
-    expect(find.byType(BottomSheet), findsNothing);
-    expect(find.text('选择国家/地区码'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    await tester.binding.setSurfaceSize(null);
-  });
+  testWidgets(
+    'country selector opens as lightweight menu instead of bottom sheet',
+    (tester) async {
+      await _pumpLoginPage(tester);
+
+      await _openCountrySelector(tester);
+
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.text('选择国家/地区码'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 
   testWidgets('country selector does not show trailing selected check icon', (
     tester,
@@ -77,7 +96,9 @@ void main() {
 
     await _openCountrySelector(tester);
 
-    final surfaceFinder = find.byKey(const ValueKey('country_code_menu_surface'));
+    final surfaceFinder = find.byKey(
+      const ValueKey('country_code_menu_surface'),
+    );
     final transitionFinder = find.byKey(
       const ValueKey('country_code_menu_transition'),
     );

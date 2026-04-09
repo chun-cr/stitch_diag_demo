@@ -9,7 +9,8 @@ part of 'auth_request.dart';
 _AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) => _AuthRequest(
   countryCode: json['countryCode'] as String,
   phoneNumber: json['phoneNumber'] as String,
-  password: json['password'] as String,
+  password: json['password'] as String?,
+  code: json['code'] as String?,
 );
 
 Map<String, dynamic> _$AuthRequestToJson(_AuthRequest instance) =>
@@ -17,4 +18,5 @@ Map<String, dynamic> _$AuthRequestToJson(_AuthRequest instance) =>
       'countryCode': instance.countryCode,
       'phoneNumber': instance.phoneNumber,
       'password': instance.password,
+      'code': instance.code,
     };

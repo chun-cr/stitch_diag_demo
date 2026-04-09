@@ -152,6 +152,48 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authAppleLogin => 'Appleでサインイン';
 
   @override
+  String get authVerificationCodeLabel => '認証コード';
+
+  @override
+  String get authVerificationCodeHint => '認証コードを入力してください';
+
+  @override
+  String get authSendCode => 'コードを送信';
+
+  @override
+  String authResendCode(int seconds) {
+    return '${seconds}s 後に再送';
+  }
+
+  @override
+  String get authPasswordLogin => 'パスワードログイン';
+
+  @override
+  String get authCodeLogin => '認証コードログイン';
+
+  @override
+  String get authLoggingIn => 'ログイン中…';
+
+  @override
+  String get authSendCodeFailed => '認証コードの送信に失敗しました。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get authCodeSent => '認証コードを送信しました。ご確認ください。';
+
+  @override
+  String get authSendCodeFirst => '先に認証コードを取得してください。';
+
+  @override
+  String get authCaptchaRequiredUnsupported =>
+      '現在の環境では人機検証に対応していません。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get authForgotPasswordTip => '登録済みの電話番号でパスワードを再設定するか、サポートへお問い合わせください。';
+
+  @override
+  String get commonConfirm => '了解しました';
+
+  @override
   String get authNoAccount => 'アカウントをお持ちでないですか？';
 
   @override
@@ -165,13 +207,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get registerCreateAccountSubtitle =>
-      '電話番号とパスワードでアカウントを作成して、すぐに体験を始めましょう';
+      '電話番号と認証コードでアカウントを作成し、すぐに使い始めましょう';
 
   @override
   String get registerCreateAccountAction => 'アカウントを作成';
 
   @override
   String get registerCreateFailed => 'アカウントの作成に失敗しました。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get registerPasswordSetupPrompt =>
+      '登録が完了しました。「マイページ - 設定 - アカウントとセキュリティ」からログインパスワードを設定できます。';
 
   @override
   String get registerGenderOptional => '性別';
@@ -199,7 +245,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get registerGenderFemale => '女性';
 
   @override
-  String get registerGenderUndisclosed => '回答しない';
+  String get registerGenderOther => '回答しない';
 
   @override
   String get registerPasswordHint => '8文字以上で、英字と数字を含めてください';
@@ -252,9 +298,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonCancel => 'キャンセル';
-
-  @override
-  String get commonConfirm => '確認';
 
   @override
   String get commonSave => '保存';
@@ -501,6 +544,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileMenuAccountSub => '個人情報、家族情報、健康記録を管理します';
 
   @override
+  String get profileMenuSettings => '設定';
+
+  @override
+  String get profileMenuSettingsSub => 'アカウントの安全性、ログイン方法、一般設定を管理します';
+
+  @override
   String get profileMenuReminder => '季節の健康リマインダー';
 
   @override
@@ -526,6 +575,51 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileLogout => 'ログアウト';
+
+  @override
+  String get settingsTitle => '設定';
+
+  @override
+  String get settingsSectionAccount => 'アカウント';
+
+  @override
+  String get settingsAccountSecurity => 'アカウントとセキュリティ';
+
+  @override
+  String get settingsAccountSecuritySub => 'ログイン方法、電話番号、パスワードの安全性を管理します';
+
+  @override
+  String get accountSecurityTitle => 'アカウントとセキュリティ';
+
+  @override
+  String get accountSecurityPhoneCodeTip =>
+      '現在の登録は電話番号認証コードログインが既定です。必要に応じて後からログインパスワードを追加できます。';
+
+  @override
+  String get accountSecurityLoginPassword => 'ログインパスワードを設定';
+
+  @override
+  String get accountSecurityLoginPasswordSub =>
+      '設定後は電話番号とパスワードでログインできます。未設定の場合は認証コードでログインしてください。';
+
+  @override
+  String get accountSecurityPasswordSet => '設定済み';
+
+  @override
+  String get accountSecurityPasswordUnset => '未設定';
+
+  @override
+  String get setLoginPasswordTitle => 'ログインパスワードを設定';
+
+  @override
+  String get setLoginPasswordSubtitle =>
+      '設定後は電話番号とパスワードでログインできます。今は設定しない場合でも、認証コードログインは引き続き利用できます。';
+
+  @override
+  String get setLoginPasswordAction => 'パスワードを保存';
+
+  @override
+  String get setLoginPasswordSuccess => 'ログインパスワードを設定しました';
 
   @override
   String get localeSheetTitle => '言語を選択';

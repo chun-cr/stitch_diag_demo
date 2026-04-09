@@ -5,39 +5,45 @@ import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 void main() {
-  testWidgets('tapping outside input fields on register page dismisses the keyboard', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1280, 2400));
+  testWidgets(
+    'tapping outside input fields on register page dismisses the keyboard',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 2400));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const RegisterPage(),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const RegisterPage(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 900));
 
-    expect(find.byType(RegisterPage), findsOneWidget);
+      expect(find.byType(RegisterPage), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('register_country_code_menu_trigger')),
+        findsOneWidget,
+      );
+      expect(find.text('+86'), findsOneWidget);
 
-    await tester.tap(find.byType(TextFormField).first);
-    await tester.pump();
+      await tester.tap(find.byType(TextFormField).first);
+      await tester.pump();
 
-    expect(tester.testTextInput.isVisible, isTrue);
+      expect(tester.testTextInput.isVisible, isTrue);
 
-    await tester.tapAt(const Offset(8, 8));
-    await tester.pump();
+      await tester.tapAt(const Offset(8, 8));
+      await tester.pump();
 
-    expect(tester.testTextInput.isVisible, isFalse);
+      expect(tester.testTextInput.isVisible, isFalse);
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    await tester.binding.setSurfaceSize(null);
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 }

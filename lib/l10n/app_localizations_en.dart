@@ -149,7 +149,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authWechatLogin => 'WeChat';
 
   @override
-  String get authAppleLogin => 'Sign in with Apple';
+  String get authAppleLogin => 'Continue with Apple';
+
+  @override
+  String get authVerificationCodeLabel => 'Verification Code';
+
+  @override
+  String get authVerificationCodeHint => 'Enter code';
+
+  @override
+  String get authSendCode => 'Send Code';
+
+  @override
+  String authResendCode(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String get authPasswordLogin => 'Password Login';
+
+  @override
+  String get authCodeLogin => 'Code Login';
+
+  @override
+  String get authLoggingIn => 'Logging in…';
+
+  @override
+  String get authSendCodeFailed =>
+      'Failed to send verification code. Please try again later.';
+
+  @override
+  String get authCodeSent =>
+      'Verification code sent. Please check your messages.';
+
+  @override
+  String get authSendCodeFirst => 'Please request a verification code first.';
+
+  @override
+  String get authCaptchaRequiredUnsupported =>
+      'This environment does not support captcha verification yet. Please try again later.';
+
+  @override
+  String get authForgotPasswordTip =>
+      'Please reset your password using your registered phone number, or contact support.';
+
+  @override
+  String get commonConfirm => 'Confirm';
 
   @override
   String get authNoAccount => 'No account yet? ';
@@ -165,7 +210,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registerCreateAccountSubtitle =>
-      'Create your account with your phone number and password to get started quickly';
+      'Create your account with your phone number and verification code to get started quickly';
 
   @override
   String get registerCreateAccountAction => 'Create account';
@@ -173,6 +218,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get registerCreateFailed =>
       'Account creation failed. Please try again later.';
+
+  @override
+  String get registerPasswordSetupPrompt =>
+      'Registration succeeded. You can set a login password later in Me - Settings - Account & Security.';
 
   @override
   String get registerGenderOptional => 'Gender';
@@ -200,7 +249,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get registerGenderFemale => 'Female';
 
   @override
-  String get registerGenderUndisclosed => 'Prefer not to say';
+  String get registerGenderOther => 'Prefer not to say';
 
   @override
   String get registerPasswordHint =>
@@ -256,9 +305,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonCancel => 'Cancel';
-
-  @override
-  String get commonConfirm => 'Confirm';
 
   @override
   String get commonSave => 'Save';
@@ -515,6 +561,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Personal details, family information, and health records';
 
   @override
+  String get profileMenuSettings => 'Settings';
+
+  @override
+  String get profileMenuSettingsSub =>
+      'Account security, sign-in options, and general preferences';
+
+  @override
   String get profileMenuReminder => 'Seasonal Health Reminders';
 
   @override
@@ -543,6 +596,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileLogout => 'Log out';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSectionAccount => 'Account';
+
+  @override
+  String get settingsAccountSecurity => 'Account & Security';
+
+  @override
+  String get settingsAccountSecuritySub =>
+      'Manage sign-in methods, phone, and password security';
+
+  @override
+  String get accountSecurityTitle => 'Account & Security';
+
+  @override
+  String get accountSecurityPhoneCodeTip =>
+      'Registration currently uses phone verification codes by default. You can add a password later if needed.';
+
+  @override
+  String get accountSecurityLoginPassword => 'Set Login Password';
+
+  @override
+  String get accountSecurityLoginPasswordSub =>
+      'After setting it, you can sign in with your phone number and password. If not set, continue using verification codes.';
+
+  @override
+  String get accountSecurityPasswordSet => 'Set';
+
+  @override
+  String get accountSecurityPasswordUnset => 'Not set';
+
+  @override
+  String get setLoginPasswordTitle => 'Set Login Password';
+
+  @override
+  String get setLoginPasswordSubtitle =>
+      'After setting it, you can sign in with your phone number and password. If you skip it for now, verification code login stays available.';
+
+  @override
+  String get setLoginPasswordAction => 'Save Password';
+
+  @override
+  String get setLoginPasswordSuccess => 'Login password set successfully';
 
   @override
   String get localeSheetTitle => 'Choose Language';
