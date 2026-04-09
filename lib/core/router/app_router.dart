@@ -20,6 +20,7 @@ class AppRoutes {
   static const home = '/home';
   static const login = '/login';
   static const register = '/register';
+  static const completeProfile = '/complete-profile';
   static const scan = '/scan';
   static const scanFace = '/scan/face';
   static const scanTongue = '/scan/tongue';
@@ -49,14 +50,18 @@ final appRouter = GoRouter(
   debugLogDiagnostics: true,
   refreshListenable: _previewAuthState,
   redirect: (context, state) {
-    final isAuthRoute = state.matchedLocation == AppRoutes.login ||
+    final isEntryAuthRoute = state.matchedLocation == AppRoutes.login ||
         state.matchedLocation == AppRoutes.register;
+    final isProfileCompletionRoute =
+        state.matchedLocation == AppRoutes.completeProfile;
 
-    if (!isPreviewAuthenticated && !isAuthRoute) {
+    if (!isPreviewAuthenticated &&
+        !isEntryAuthRoute &&
+        !isProfileCompletionRoute) {
       return AppRoutes.login;
     }
 
-    if (isPreviewAuthenticated && isAuthRoute) {
+    if (isPreviewAuthenticated && isEntryAuthRoute) {
       return AppRoutes.home;
     }
 
@@ -94,6 +99,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.register,
       builder: (context, state) => const RegisterPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.completeProfile,
+      builder: (context, state) => const CompleteProfilePage(),
     ),
     GoRoute(
       path: AppRoutes.scan,

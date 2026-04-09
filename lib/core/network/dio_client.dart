@@ -3,7 +3,7 @@ import 'interceptors/log_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
 
 class DioClient {
-  static const String baseUrl = '';
+  static const String baseUrl = 'https://saas-api.dev51.permillet.com';
   late final Dio dio;
 
   DioClient() {

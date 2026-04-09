@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/l10n/formatters.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
+import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
@@ -643,8 +644,9 @@ class _HomePageState extends State<HomePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(title: l10n.homeFunctionNavTitle),
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
         GridView.count(
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 3,
@@ -668,6 +670,8 @@ class _HomePageState extends State<HomePage>
   // ── Health Tips ─────────────────────────────────────────────────
   Widget _buildHealthTips() {
     final l10n = context.l10n;
+    final seasonalTag = l10n.seasonalTagLabel(SeasonalContext.now());
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -675,7 +679,9 @@ class _HomePageState extends State<HomePage>
           children: [
             _SectionTitle(title: l10n.homeTodayCareTitle),
             const SizedBox(width: 8),
-            _TcmTag(label: l10n.homeTodayCareSeasonTag, color: AppColors.tcmGold),
+            Flexible(
+              child: _TcmTag(label: seasonalTag, color: AppColors.tcmGold),
+            ),
             const Spacer(),
             Flexible(
               child: Text(
@@ -1894,6 +1900,8 @@ class _TcmTag extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 10,
           color: color,

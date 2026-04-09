@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/l10n/locale_controller.dart';
+import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
@@ -566,7 +568,11 @@ class ProfilePage extends ConsumerWidget {
   Widget _buildLogoutButton(BuildContext context) {
     return Center(
       child: TextButton.icon(
-        onPressed: () {
+        onPressed: () async {
+          await getIt<AuthSessionStore>().clear();
+          if (!context.mounted) {
+            return;
+          }
           setPreviewAuthenticated(false);
           context.go(AppRoutes.login);
         },

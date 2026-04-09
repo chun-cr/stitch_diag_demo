@@ -120,11 +120,155 @@ abstract class AppLocalizations {
   /// **' 健康'**
   String get appBrandSuffix;
 
-  /// No description provided for @authSeasonalTag.
+  /// No description provided for @seasonalSolarTermTag.
   ///
   /// In zh, this message translates to:
-  /// **'春分 · 木旺'**
-  String get authSeasonalTag;
+  /// **'{solarTerm} · {element}'**
+  String seasonalSolarTermTag(String solarTerm, String element);
+
+  /// No description provided for @solarTermMinorCold.
+  ///
+  /// In zh, this message translates to:
+  /// **'小寒'**
+  String get solarTermMinorCold;
+
+  /// No description provided for @solarTermMajorCold.
+  ///
+  /// In zh, this message translates to:
+  /// **'大寒'**
+  String get solarTermMajorCold;
+
+  /// No description provided for @solarTermStartOfSpring.
+  ///
+  /// In zh, this message translates to:
+  /// **'立春'**
+  String get solarTermStartOfSpring;
+
+  /// No description provided for @solarTermRainWater.
+  ///
+  /// In zh, this message translates to:
+  /// **'雨水'**
+  String get solarTermRainWater;
+
+  /// No description provided for @solarTermAwakeningOfInsects.
+  ///
+  /// In zh, this message translates to:
+  /// **'惊蛰'**
+  String get solarTermAwakeningOfInsects;
+
+  /// No description provided for @solarTermSpringEquinox.
+  ///
+  /// In zh, this message translates to:
+  /// **'春分'**
+  String get solarTermSpringEquinox;
+
+  /// No description provided for @solarTermClearAndBright.
+  ///
+  /// In zh, this message translates to:
+  /// **'清明'**
+  String get solarTermClearAndBright;
+
+  /// No description provided for @solarTermGrainRain.
+  ///
+  /// In zh, this message translates to:
+  /// **'谷雨'**
+  String get solarTermGrainRain;
+
+  /// No description provided for @solarTermStartOfSummer.
+  ///
+  /// In zh, this message translates to:
+  /// **'立夏'**
+  String get solarTermStartOfSummer;
+
+  /// No description provided for @solarTermGrainFull.
+  ///
+  /// In zh, this message translates to:
+  /// **'小满'**
+  String get solarTermGrainFull;
+
+  /// No description provided for @solarTermGrainInEar.
+  ///
+  /// In zh, this message translates to:
+  /// **'芒种'**
+  String get solarTermGrainInEar;
+
+  /// No description provided for @solarTermSummerSolstice.
+  ///
+  /// In zh, this message translates to:
+  /// **'夏至'**
+  String get solarTermSummerSolstice;
+
+  /// No description provided for @solarTermMinorHeat.
+  ///
+  /// In zh, this message translates to:
+  /// **'小暑'**
+  String get solarTermMinorHeat;
+
+  /// No description provided for @solarTermMajorHeat.
+  ///
+  /// In zh, this message translates to:
+  /// **'大暑'**
+  String get solarTermMajorHeat;
+
+  /// No description provided for @solarTermStartOfAutumn.
+  ///
+  /// In zh, this message translates to:
+  /// **'立秋'**
+  String get solarTermStartOfAutumn;
+
+  /// No description provided for @solarTermEndOfHeat.
+  ///
+  /// In zh, this message translates to:
+  /// **'处暑'**
+  String get solarTermEndOfHeat;
+
+  /// No description provided for @solarTermWhiteDew.
+  ///
+  /// In zh, this message translates to:
+  /// **'白露'**
+  String get solarTermWhiteDew;
+
+  /// No description provided for @solarTermAutumnEquinox.
+  ///
+  /// In zh, this message translates to:
+  /// **'秋分'**
+  String get solarTermAutumnEquinox;
+
+  /// No description provided for @solarTermColdDew.
+  ///
+  /// In zh, this message translates to:
+  /// **'寒露'**
+  String get solarTermColdDew;
+
+  /// No description provided for @solarTermFrostDescent.
+  ///
+  /// In zh, this message translates to:
+  /// **'霜降'**
+  String get solarTermFrostDescent;
+
+  /// No description provided for @solarTermStartOfWinter.
+  ///
+  /// In zh, this message translates to:
+  /// **'立冬'**
+  String get solarTermStartOfWinter;
+
+  /// No description provided for @solarTermMinorSnow.
+  ///
+  /// In zh, this message translates to:
+  /// **'小雪'**
+  String get solarTermMinorSnow;
+
+  /// No description provided for @solarTermMajorSnow.
+  ///
+  /// In zh, this message translates to:
+  /// **'大雪'**
+  String get solarTermMajorSnow;
+
+  /// No description provided for @solarTermWinterSolstice.
+  ///
+  /// In zh, this message translates to:
+  /// **'冬至'**
+  String get solarTermWinterSolstice;
 
   /// No description provided for @authInspectionMotto.
   ///
@@ -132,28 +276,34 @@ abstract class AppLocalizations {
   /// **'望 · 闻 · 问 · 切'**
   String get authInspectionMotto;
 
-  /// No description provided for @authEmailOrPhoneLabel.
+  /// No description provided for @authPhoneLabel.
   ///
   /// In zh, this message translates to:
-  /// **'手机号 / 邮箱'**
-  String get authEmailOrPhoneLabel;
+  /// **'手机号'**
+  String get authPhoneLabel;
 
-  /// No description provided for @authEmailOrPhoneHint.
+  /// No description provided for @authPhoneHint.
   ///
   /// In zh, this message translates to:
-  /// **'请输入手机号或邮箱'**
-  String get authEmailOrPhoneHint;
+  /// **'请输入手机号'**
+  String get authPhoneHint;
+
+  /// No description provided for @authPhoneFormatError.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入正确的手机号'**
+  String get authPhoneFormatError;
 
   /// No description provided for @authNameLabel.
   ///
   /// In zh, this message translates to:
-  /// **'姓名'**
+  /// **'昵称'**
   String get authNameLabel;
 
   /// No description provided for @authNameHint.
   ///
   /// In zh, this message translates to:
-  /// **'请输入你的姓名'**
+  /// **'请输入你的昵称'**
   String get authNameHint;
 
   /// No description provided for @authPasswordLabel.
@@ -210,6 +360,12 @@ abstract class AppLocalizations {
   /// **'登录账号'**
   String get authLoginButton;
 
+  /// No description provided for @authLoginFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录失败，请稍后重试'**
+  String get authLoginFailed;
+
   /// No description provided for @authOtherMethods.
   ///
   /// In zh, this message translates to:
@@ -240,41 +396,11 @@ abstract class AppLocalizations {
   /// **'立即注册'**
   String get authRegisterNow;
 
-  /// No description provided for @authFeatureFaceScan.
-  ///
-  /// In zh, this message translates to:
-  /// **'面部扫描'**
-  String get authFeatureFaceScan;
-
-  /// No description provided for @authFeatureTongueAnalysis.
-  ///
-  /// In zh, this message translates to:
-  /// **'舌象分析'**
-  String get authFeatureTongueAnalysis;
-
-  /// No description provided for @authFeatureAiDiagnosis.
-  ///
-  /// In zh, this message translates to:
-  /// **'AI 诊断'**
-  String get authFeatureAiDiagnosis;
-
   /// No description provided for @registerGoLogin.
   ///
   /// In zh, this message translates to:
   /// **'去登录'**
   String get registerGoLogin;
-
-  /// No description provided for @registerStepBasicInfo.
-  ///
-  /// In zh, this message translates to:
-  /// **'基本信息'**
-  String get registerStepBasicInfo;
-
-  /// No description provided for @registerStepSetPassword.
-  ///
-  /// In zh, this message translates to:
-  /// **'设置密码'**
-  String get registerStepSetPassword;
 
   /// No description provided for @registerCreateAccountTitle.
   ///
@@ -285,26 +411,56 @@ abstract class AppLocalizations {
   /// No description provided for @registerCreateAccountSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'填写基本信息，开启你的健康之旅'**
+  /// **'通过手机号与密码创建账号，快速开始体验'**
   String get registerCreateAccountSubtitle;
 
-  /// No description provided for @registerSetPasswordTitle.
+  /// No description provided for @registerCreateAccountAction.
   ///
   /// In zh, this message translates to:
-  /// **'设置登录密码'**
-  String get registerSetPasswordTitle;
+  /// **'创建账号'**
+  String get registerCreateAccountAction;
 
-  /// No description provided for @registerSetPasswordSubtitle.
+  /// No description provided for @registerCreateFailed.
   ///
   /// In zh, this message translates to:
-  /// **'设置一个安全密码保护你的健康数据'**
-  String get registerSetPasswordSubtitle;
+  /// **'创建账号失败，请稍后重试'**
+  String get registerCreateFailed;
 
   /// No description provided for @registerGenderOptional.
   ///
   /// In zh, this message translates to:
-  /// **'性别（可选）'**
+  /// **'性别'**
   String get registerGenderOptional;
+
+  /// No description provided for @registerGenderRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请选择性别'**
+  String get registerGenderRequired;
+
+  /// No description provided for @completeProfileTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'完善资料'**
+  String get completeProfileTitle;
+
+  /// No description provided for @completeProfileSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'补充头像、昵称和性别，以便后续理疗建议更贴合你。'**
+  String get completeProfileSubtitle;
+
+  /// No description provided for @completeProfileSkip.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过'**
+  String get completeProfileSkip;
+
+  /// No description provided for @completeProfileStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启体验'**
+  String get completeProfileStart;
 
   /// No description provided for @registerGenderMale.
   ///
@@ -330,41 +486,11 @@ abstract class AppLocalizations {
   /// **'至少8位，包含字母和数字'**
   String get registerPasswordHint;
 
-  /// No description provided for @registerNeedBasicInfo.
-  ///
-  /// In zh, this message translates to:
-  /// **'请填写姓名和手机号/邮箱'**
-  String get registerNeedBasicInfo;
-
   /// No description provided for @registerAgreeTermsFirst.
   ///
   /// In zh, this message translates to:
   /// **'请先同意用户协议和隐私政策'**
   String get registerAgreeTermsFirst;
-
-  /// No description provided for @registerNextStep.
-  ///
-  /// In zh, this message translates to:
-  /// **'下一步'**
-  String get registerNextStep;
-
-  /// No description provided for @registerComplete.
-  ///
-  /// In zh, this message translates to:
-  /// **'完成注册'**
-  String get registerComplete;
-
-  /// No description provided for @registerThirdParty.
-  ///
-  /// In zh, this message translates to:
-  /// **'或使用第三方账号'**
-  String get registerThirdParty;
-
-  /// No description provided for @registerWechat.
-  ///
-  /// In zh, this message translates to:
-  /// **'微信'**
-  String get registerWechat;
 
   /// No description provided for @registerReadAndAgree.
   ///
@@ -677,12 +803,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'今日养生'**
   String get homeTodayCareTitle;
-
-  /// No description provided for @homeTodayCareSeasonTag.
-  ///
-  /// In zh, this message translates to:
-  /// **'春分 · 木旺'**
-  String get homeTodayCareSeasonTag;
 
   /// No description provided for @homeTodayCareCount.
   ///
@@ -2892,11 +3012,23 @@ abstract class AppLocalizations {
   /// **'解锁成因深度分析'**
   String get reportUnlockCausalAnalysisTitle;
 
+  /// No description provided for @reportUnlockCausalAnalysisSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看体质成因与关键诱因。'**
+  String get reportUnlockCausalAnalysisSubtitle;
+
   /// No description provided for @reportUnlockDiseaseTendencyTitle.
   ///
   /// In zh, this message translates to:
   /// **'解锁疾病倾向预警'**
   String get reportUnlockDiseaseTendencyTitle;
+
+  /// No description provided for @reportUnlockDiseaseTendencySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看易发问题与预警重点。'**
+  String get reportUnlockDiseaseTendencySubtitle;
 
   /// No description provided for @reportUnlockBadHabitsTitle.
   ///
@@ -2904,11 +3036,23 @@ abstract class AppLocalizations {
   /// **'解锁不当行为提示'**
   String get reportUnlockBadHabitsTitle;
 
+  /// No description provided for @reportUnlockBadHabitsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看需要调整的日常习惯。'**
+  String get reportUnlockBadHabitsSubtitle;
+
   /// No description provided for @reportUnlockAcupuncturePointsTitle.
   ///
   /// In zh, this message translates to:
   /// **'解锁专属穴位方案'**
   String get reportUnlockAcupuncturePointsTitle;
+
+  /// No description provided for @reportUnlockAcupuncturePointsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看专属穴位与调理重点。'**
+  String get reportUnlockAcupuncturePointsSubtitle;
 
   /// No description provided for @reportUnlockMentalWellnessTitle.
   ///
@@ -2916,11 +3060,35 @@ abstract class AppLocalizations {
   /// **'解锁精神养生建议'**
   String get reportUnlockMentalWellnessTitle;
 
+  /// No description provided for @reportUnlockMentalWellnessSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看情绪调养与舒缓建议。'**
+  String get reportUnlockMentalWellnessSubtitle;
+
   /// No description provided for @reportUnlockSeasonalCareTitle.
   ///
   /// In zh, this message translates to:
   /// **'解锁四季养生方案'**
   String get reportUnlockSeasonalCareTitle;
+
+  /// No description provided for @reportSeasonalCareCurrentTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前节气：{solarTerm}'**
+  String reportSeasonalCareCurrentTitle(String solarTerm);
+
+  /// No description provided for @reportSeasonalCareCurrentSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'已为你定位当前时令，可优先查看对应养护建议。'**
+  String get reportSeasonalCareCurrentSubtitle;
+
+  /// No description provided for @reportUnlockSeasonalCareSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看本季作息与养护重点。'**
+  String get reportUnlockSeasonalCareSubtitle;
 
   /// No description provided for @reportUnlockTongueAnalysisTitle.
   ///
@@ -2928,11 +3096,23 @@ abstract class AppLocalizations {
   /// **'解锁舌象详细解读'**
   String get reportUnlockTongueAnalysisTitle;
 
+  /// No description provided for @reportUnlockTongueAnalysisSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看舌象评分与细项解读。'**
+  String get reportUnlockTongueAnalysisSubtitle;
+
   /// No description provided for @reportUnlockDietAdviceTitle.
   ///
   /// In zh, this message translates to:
   /// **'解锁个性化饮食方案'**
   String get reportUnlockDietAdviceTitle;
+
+  /// No description provided for @reportUnlockDietAdviceSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看适宜食材与饮食方向。'**
+  String get reportUnlockDietAdviceSubtitle;
 
   /// No description provided for @reportPremiumConstitutionSubtitle.
   ///

@@ -73,9 +73,9 @@ class ReportUnlockState {
 
 class ReportUnlockService {
   ReportUnlockService({InAppPurchase? inAppPurchase})
-      : _inAppPurchase = inAppPurchase ?? InAppPurchase.instance;
+      : _inAppPurchase = inAppPurchase;
 
-  final InAppPurchase _inAppPurchase;
+  InAppPurchase? _inAppPurchase;
   final ValueNotifier<ReportUnlockState> state =
       ValueNotifier(const ReportUnlockState.unknown());
 
@@ -90,7 +90,34 @@ class ReportUnlockService {
       return;
     }
     _initialized = true;
-    _purchaseSubscription = _inAppPurchase.purchaseStream.listen(
+
+    final preferences = await SharedPreferences.getInstance();
+    final cachedUnlocked =
+        preferences.getBool(_reportUnlockPreferenceKey) ?? false;
+    final cachedVerifiedMillis =
+        preferences.getInt('${_reportUnlockPreferenceKey}_verified_at');
+    final cachedVerifiedAt = cachedVerifiedMillis == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(cachedVerifiedMillis);
+
+    final inAppPurchase = _resolveInAppPurchase();
+
+    if (inAppPurchase == null) {
+      _setState(
+        ReportUnlockState(
+          status: cachedUnlocked
+              ? ReportUnlockStatus.unlocked
+              : ReportUnlockStatus.unavailable,
+          isStoreAvailable: false,
+          productDetails: null,
+          message: cachedUnlocked ? null : 'store-unavailable',
+          lastVerifiedAt: cachedVerifiedAt,
+        ),
+      );
+      return;
+    }
+
+    _purchaseSubscription = inAppPurchase.purchaseStream.listen(
       _handlePurchaseUpdates,
       onError: (_) {
         _setState(
@@ -103,16 +130,7 @@ class ReportUnlockService {
       },
     );
 
-    final preferences = await SharedPreferences.getInstance();
-    final cachedUnlocked =
-        preferences.getBool(_reportUnlockPreferenceKey) ?? false;
-    final cachedVerifiedMillis =
-        preferences.getInt('${_reportUnlockPreferenceKey}_verified_at');
-    final cachedVerifiedAt = cachedVerifiedMillis == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(cachedVerifiedMillis);
-
-    final isStoreAvailable = await _inAppPurchase.isAvailable();
+    final isStoreAvailable = await inAppPurchase.isAvailable();
 
     if (!isStoreAvailable) {
       _setState(
@@ -129,7 +147,7 @@ class ReportUnlockService {
       return;
     }
 
-    final response = await _inAppPurchase.queryProductDetails({
+    final response = await inAppPurchase.queryProductDetails({
       reportUnlockProductId,
     });
 
@@ -158,7 +176,19 @@ class ReportUnlockService {
       return;
     }
 
-    if (!state.value.isStoreAvailable || _productDetails == null) {
+    final inAppPurchase = _inAppPurchase;
+
+    if (!state.value.isStoreAvailable || inAppPurchase == null) {
+      _setState(
+        state.value.copyWith(
+          status: ReportUnlockStatus.error,
+          message: 'store-unavailable',
+        ),
+      );
+      return;
+    }
+
+    if (_productDetails == null) {
       _setState(
         state.value.copyWith(
           status: ReportUnlockStatus.error,
@@ -175,7 +205,7 @@ class ReportUnlockService {
       ),
     );
 
-    final launched = await _inAppPurchase.buyNonConsumable(
+    final launched = await inAppPurchase.buyNonConsumable(
       purchaseParam: PurchaseParam(productDetails: _productDetails!),
     );
 
@@ -194,7 +224,9 @@ class ReportUnlockService {
       return;
     }
 
-    if (!state.value.isStoreAvailable) {
+    final inAppPurchase = _inAppPurchase;
+
+    if (!state.value.isStoreAvailable || inAppPurchase == null) {
       _setState(
         state.value.copyWith(
           status: ReportUnlockStatus.error,
@@ -213,7 +245,7 @@ class ReportUnlockService {
       ),
     );
 
-    await _inAppPurchase.restorePurchases();
+    await inAppPurchase.restorePurchases();
 
     _restoreTimeoutTimer = Timer(const Duration(seconds: 12), () {
       if (state.value.status == ReportUnlockStatus.restoring) {
@@ -231,10 +263,16 @@ class ReportUnlockService {
   Future<void> _handlePurchaseUpdates(
     List<PurchaseDetails> purchaseDetailsList,
   ) async {
+    final inAppPurchase = _inAppPurchase;
+
+    if (inAppPurchase == null) {
+      return;
+    }
+
     for (final purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.productID != reportUnlockProductId) {
         if (purchaseDetails.pendingCompletePurchase) {
-          await _inAppPurchase.completePurchase(purchaseDetails);
+          await inAppPurchase.completePurchase(purchaseDetails);
         }
         continue;
       }
@@ -287,9 +325,40 @@ class ReportUnlockService {
       }
 
       if (purchaseDetails.pendingCompletePurchase) {
-        await _inAppPurchase.completePurchase(purchaseDetails);
+        await inAppPurchase.completePurchase(purchaseDetails);
       }
     }
+  }
+
+  InAppPurchase? _resolveInAppPurchase() {
+    final current = _inAppPurchase;
+
+    if (current != null) {
+      return current;
+    }
+
+    if (!_supportsStorePlatform) {
+      return null;
+    }
+
+    final inAppPurchase = InAppPurchase.instance;
+    _inAppPurchase = inAppPurchase;
+    return inAppPurchase;
+  }
+
+  bool get _supportsStorePlatform {
+    if (kIsWeb) {
+      return false;
+    }
+
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.macOS => true,
+      TargetPlatform.fuchsia ||
+      TargetPlatform.linux ||
+      TargetPlatform.windows => false,
+    };
   }
 
   Future<void> _persistUnlocked() async {

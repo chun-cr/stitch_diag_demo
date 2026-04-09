@@ -1,30 +1,36 @@
 import 'dart:math' as math;
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
+import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
+import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/auth/data/models/auth_request.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage>
+class _RegisterPageState extends ConsumerState<RegisterPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   bool _agreeTerms = false;
   bool _isLoading = false;
-  int _currentStep = 0;
 
-  late AnimationController _pulseController;
   late AnimationController _rotateController;
   late AnimationController _fadeController;
-  late PageController _pageController;
+
+  static final RegExp _phonePattern = RegExp(r'^[0-9]{6,15}$');
 
   // 密码强度
   double get _passStrength {
@@ -59,10 +65,6 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
     _rotateController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
@@ -71,50 +73,16 @@ class _RegisterPageState extends State<RegisterPage>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..forward();
-    _pageController = PageController();
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
     _rotateController.dispose();
     _fadeController.dispose();
-    _pageController.dispose();
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
-  }
-
-  void _nextStep() {
-    if (_currentStep == 0) {
-      if (_nameCtrl.text.isEmpty || _emailCtrl.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.registerNeedBasicInfo),
-            backgroundColor: const Color(0xFF2D6A4F),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-      setState(() => _currentStep = 1);
-      _pageController.animateToPage(1,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut);
-    }
-  }
-
-  void _prevStep() {
-    if (_currentStep == 1) {
-      setState(() => _currentStep = 0);
-      _pageController.animateToPage(0,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut);
-    }
   }
 
   Future<void> _onRegister() async {
@@ -132,53 +100,92 @@ class _RegisterPageState extends State<RegisterPage>
       return;
     }
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _isLoading = false);
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final session = await repository.register(
+        AuthRequest(
+          countryCode: '+86',
+          phoneNumber: _phoneCtrl.text.trim(),
+          password: _passCtrl.text,
+        ),
+      );
+      await getIt<AuthSessionStore>().saveSession(session);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      context.go(AppRoutes.completeProfile);
+    } on DioException catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      final responseData = error.response?.data;
+      String? serverMessage;
+      if (responseData is Map<String, dynamic>) {
+        final message = responseData['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          serverMessage = message.trim();
+        }
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(serverMessage ?? context.l10n.registerCreateFailed),
+          backgroundColor: const Color(0xFF8F3B3B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.registerCreateFailed),
+          backgroundColor: const Color(0xFF8F3B3B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
+  void _goToLogin() {
+    context.go(AppRoutes.login);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1EB),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _rotateController,
-              builder: (context, child) => CustomPaint(
-                painter: _RegBgPainter(
-                  rotation:
-                      _rotateController.value * 2 * math.pi,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _rotateController,
+                builder: (context, child) => CustomPaint(
+                  painter: _RegBgPainter(
+                    rotation:
+                        _rotateController.value * 2 * math.pi,
+                  ),
                 ),
               ),
             ),
-          ),
-          SafeArea(
-            child: FadeTransition(
-              opacity: CurvedAnimation(
-                  parent: _fadeController, curve: Curves.easeOut),
-              child: Column(
-                children: [
-                  _buildTopBar(),
-                  _buildStepIndicator(),
-                  Expanded(
-                    child: Form(
-                      key: _formKey,
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildStep1(),
-                          _buildStep2(),
-                        ],
-                      ),
+            SafeArea(
+              child: FadeTransition(
+                opacity: CurvedAnimation(
+                    parent: _fadeController, curve: Curves.easeOut),
+                child: Column(
+                  children: [
+                    _buildTopBar(),
+                    Expanded(
+                      child: _buildAccountCreationPage(),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -187,13 +194,10 @@ class _RegisterPageState extends State<RegisterPage>
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Row(
-        children: [
-          // 返回按钮（与扫描页风格一致）
-          GestureDetector(
-            onTap: _currentStep == 0
-                ? () => Navigator.maybePop(context)
-                : _prevStep,
+        child: Row(
+          children: [
+            GestureDetector(
+            onTap: _goToLogin,
             child: Container(
               width: 40,
               height: 40,
@@ -256,7 +260,7 @@ class _RegisterPageState extends State<RegisterPage>
           ),
           const Spacer(),
           TextButton(
-            onPressed: () => Navigator.maybePop(context),
+            onPressed: _goToLogin,
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
             child: Text(
               context.l10n.registerGoLogin,
@@ -272,278 +276,117 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  // ── Step Indicator ─────────────────────────────────────────────
-  Widget _buildStepIndicator() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 22, 28, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 步骤圆点 + 连线
-          Row(
-            children: [
-              _StepDot(
-                index: 0,
-                current: _currentStep,
-                label: context.l10n.registerStepBasicInfo,
+  Widget _buildAccountCreationPage() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(child: _buildSecurityVisual()),
+            const SizedBox(height: 28),
+            Text(
+              context.l10n.registerCreateAccountTitle,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E1810),
+                letterSpacing: 0.8,
               ),
-              Expanded(
-                child: Container(
-                  height: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(1),
-                    gradient: LinearGradient(
-                      colors: _currentStep >= 1
-                          ? [
-                              const Color(0xFF2D6A4F),
-                              const Color(0xFF3DAB78)
-                            ]
-                          : [
-                              const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-                              const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-                            ],
-                    ),
-                  ),
-                ),
-              ),
-              _StepDot(
-                index: 1,
-                current: _currentStep,
-                label: context.l10n.registerStepSetPassword,
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          // 装饰横线
-          Row(
-            children: [
-              Container(
-                  width: 3,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2D6A4F),
-                    borderRadius: BorderRadius.circular(2),
-                  )),
-              const SizedBox(width: 10),
-              Text(
-                _currentStep == 0
-                    ? context.l10n.registerCreateAccountTitle
-                    : context.l10n.registerSetPasswordTitle,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E1810),
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Padding(
-            padding: const EdgeInsets.only(left: 13),
-            child: Text(
-              _currentStep == 0
-                  ? context.l10n.registerCreateAccountSubtitle
-                  : context.l10n.registerSetPasswordSubtitle,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.l10n.registerCreateAccountSubtitle,
               style: TextStyle(
                 fontSize: 13,
-                color: const Color(0xFF3A3028).withValues(alpha: 0.55),
-                height: 1.5,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.58),
+                height: 1.6,
               ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Step 1: 基本信息 ───────────────────────────────────────────
-  Widget _buildStep1() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(child: _buildAvatarPicker()),
-          const SizedBox(height: 28),
-          _InputLabel(text: context.l10n.authNameLabel),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _nameCtrl,
-            hint: context.l10n.authNameHint,
-            prefixIcon: Icons.person_outline,
-            validator: (v) =>
-                (v == null || v.isEmpty) ? context.l10n.commonPleaseEnterName : null,
-          ),
-          const SizedBox(height: 16),
-          _InputLabel(text: context.l10n.authEmailOrPhoneLabel),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _emailCtrl,
-            hint: context.l10n.authEmailOrPhoneHint,
-            prefixIcon: Icons.email_outlined,
-            keyboardType: TextInputType.emailAddress,
-            validator: (v) =>
-                (v == null || v.isEmpty) ? context.l10n.authEmailOrPhoneHint : null,
-          ),
-          const SizedBox(height: 16),
-          _InputLabel(text: context.l10n.registerGenderOptional),
-          const SizedBox(height: 8),
-          _GenderSelector(),
-          const SizedBox(height: 28),
-          _buildNextButton(),
-          const SizedBox(height: 20),
-          _buildSocialRow(),
-        ],
-      ),
-    );
-  }
-
-  // ── Step 2: 设置密码 ───────────────────────────────────────────
-  Widget _buildStep2() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(child: _buildSecurityVisual()),
-          const SizedBox(height: 28),
-          _InputLabel(text: context.l10n.authPasswordLabel),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _passCtrl,
-            hint: context.l10n.registerPasswordHint,
-            prefixIcon: Icons.lock_outline,
-            obscureText: _obscurePass,
-            suffixIcon: GestureDetector(
-              onTap: () => setState(() => _obscurePass = !_obscurePass),
-              child: Icon(
-                _obscurePass
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-                color: const Color(0xFFA09080),
+            const SizedBox(height: 28),
+            _InputLabel(text: context.l10n.authPhoneLabel),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _phoneCtrl,
+              hint: context.l10n.authPhoneHint,
+              prefixIcon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+              validator: (v) {
+                final input = v?.trim() ?? '';
+                if (input.isEmpty) return context.l10n.authPhoneHint;
+                if (!_phonePattern.hasMatch(input)) {
+                  return context.l10n.authPhoneFormatError;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _InputLabel(text: context.l10n.authPasswordLabel),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _passCtrl,
+              hint: context.l10n.registerPasswordHint,
+              prefixIcon: Icons.lock_outline,
+              obscureText: _obscurePass,
+              suffixIcon: GestureDetector(
+                onTap: () => setState(() => _obscurePass = !_obscurePass),
+                child: Icon(
+                  _obscurePass
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  size: 18,
+                  color: const Color(0xFFA09080),
+                ),
               ),
+              onChanged: (_) => setState(() {}),
+              validator: (v) {
+                if (v == null || v.length < 8) {
+                  return context.l10n.authPasswordMin8;
+                }
+                return null;
+              },
             ),
-            onChanged: (_) => setState(() {}),
-            validator: (v) {
-              if (v == null || v.length < 8) return context.l10n.authPasswordMin8;
-              return null;
-            },
-          ),
-          if (_passCtrl.text.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _buildPasswordStrength(),
+            if (_passCtrl.text.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildPasswordStrength(),
+            ],
+            const SizedBox(height: 16),
+            _InputLabel(text: context.l10n.authConfirmPasswordLabel),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _confirmCtrl,
+              hint: context.l10n.authConfirmPasswordHint,
+              prefixIcon: Icons.lock_outline,
+              obscureText: _obscureConfirm,
+              suffixIcon: GestureDetector(
+                onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                child: Icon(
+                  _obscureConfirm
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  size: 18,
+                  color: const Color(0xFFA09080),
+                ),
+              ),
+              validator: (v) {
+                if (v != _passCtrl.text) {
+                  return context.l10n.authPasswordMismatch;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+            _buildTermsRow(),
+            const SizedBox(height: 24),
+            _buildRegisterButton(),
+            const SizedBox(height: 20),
+            _buildPrivacyTip(),
           ],
-          const SizedBox(height: 16),
-          _InputLabel(text: context.l10n.authConfirmPasswordLabel),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _confirmCtrl,
-            hint: context.l10n.authConfirmPasswordHint,
-            prefixIcon: Icons.lock_outline,
-            obscureText: _obscureConfirm,
-            suffixIcon: GestureDetector(
-              onTap: () =>
-                  setState(() => _obscureConfirm = !_obscureConfirm),
-              child: Icon(
-                _obscureConfirm
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-                color: const Color(0xFFA09080),
-              ),
-            ),
-            validator: (v) {
-              if (v != _passCtrl.text) return context.l10n.authPasswordMismatch;
-              return null;
-            },
-          ),
-          const SizedBox(height: 20),
-          _buildTermsRow(),
-          const SizedBox(height: 24),
-          _buildRegisterButton(),
-          const SizedBox(height: 20),
-          _buildPrivacyTip(),
-        ],
+        ),
       ),
-    );
-  }
-
-  // ── Avatar Picker ──────────────────────────────────────────────
-  Widget _buildAvatarPicker() {
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (_, child) {
-        final pulse = math.sin(_pulseController.value * 2 * math.pi);
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            // 脉冲外环
-            Container(
-              width: 98 + pulse * 3,
-              height: 98 + pulse * 3,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF2D6A4F)
-                      .withValues(alpha: 0.1 + pulse * 0.08),
-                  width: 1.2,
-                ),
-              ),
-            ),
-            // 头像主体
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFE8F5EE), Color(0xFFD4EEE3)],
-                ),
-                border: Border.all(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 36,
-                color: Color(0xFF2D6A4F),
-              ),
-            ),
-            // 编辑按钮
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2D6A4F)
-                          .withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.add, size: 16, color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -566,25 +409,16 @@ class _RegisterPageState extends State<RegisterPage>
               ),
             ),
           ),
-          // 脉冲外圆
-          AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, child) {
-              final pulse =
-                  math.sin(_pulseController.value * 2 * math.pi);
-              return Container(
-                width: 84 + pulse * 3,
-                height: 84 + pulse * 3,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF2D6A4F)
-                        .withValues(alpha: 0.15 + pulse * 0.08),
-                    width: 1.2,
-                  ),
-                ),
-              );
-            },
+          Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFF2D6A4F).withValues(alpha: 0.18),
+                width: 1.2,
+              ),
+            ),
           ),
           // 内圆
           Container(
@@ -670,6 +504,7 @@ class _RegisterPageState extends State<RegisterPage>
   // ── Terms Row ──────────────────────────────────────────────────
   Widget _buildTermsRow() {
     return GestureDetector(
+      key: const ValueKey('register_terms_row'),
       onTap: () => setState(() => _agreeTerms = !_agreeTerms),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,51 +602,10 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  // ── Next Button ────────────────────────────────────────────────
-  Widget _buildNextButton() {
-    return GestureDetector(
-      onTap: _nextStep,
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1D5E40), Color(0xFF2D8A5E), Color(0xFF3DAB78)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              context.l10n.registerNextStep,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 1,
-              ),
-            ),
-            SizedBox(width: 6),
-            Icon(Icons.arrow_forward_rounded,
-                size: 17, color: Colors.white),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ── Register Button ────────────────────────────────────────────
   Widget _buildRegisterButton() {
     return GestureDetector(
+      key: const ValueKey('register_create_account_button'),
       onTap: _isLoading ? null : _onRegister,
       child: Container(
         height: 54,
@@ -841,11 +635,8 @@ class _RegisterPageState extends State<RegisterPage>
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle_outline,
-                        color: Colors.white, size: 18),
-                    SizedBox(width: 8),
                     Text(
-                      context.l10n.registerComplete,
+                      context.l10n.registerCreateAccountAction,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -857,76 +648,6 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
         ),
       ),
-    );
-  }
-
-  // ── Social Row ─────────────────────────────────────────────────
-  Widget _buildSocialRow() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      const Color(0xFF2D6A4F).withValues(alpha: 0.15)
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                context.l10n.registerThirdParty,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF3A3028).withValues(alpha: 0.4),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-                      Colors.transparent
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _SocialButton(
-                icon: Icons.wechat,
-                iconColor: const Color(0xFF07C160),
-                label: context.l10n.registerWechat,
-                onTap: () {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SocialButton(
-                icon: Icons.apple,
-                iconColor: const Color(0xFF1E1810),
-                label: context.l10n.authAppleLogin,
-                onTap: () {},
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -989,6 +710,389 @@ class _RegisterPageState extends State<RegisterPage>
         ),
       ),
       validator: validator,
+    );
+  }
+}
+
+class CompleteProfilePage extends StatefulWidget {
+  const CompleteProfilePage({super.key});
+
+  @override
+  State<CompleteProfilePage> createState() => _CompleteProfilePageState();
+}
+
+class _CompleteProfilePageState extends State<CompleteProfilePage>
+    with TickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
+  final _nicknameCtrl = TextEditingController();
+  int _selectedGender = -1;
+
+  late AnimationController _rotateController;
+  late AnimationController _fadeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _rotateController.dispose();
+    _fadeController.dispose();
+    _nicknameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _completeOrSkip({required bool skip}) async {
+    if (!skip && !_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final hasSession = await getIt<AuthSessionStore>().hasSession();
+    if (!mounted) {
+      return;
+    }
+
+    if (!hasSession) {
+      setPreviewAuthenticated(false);
+      context.go(AppRoutes.login);
+      return;
+    }
+
+    setPreviewAuthenticated(true);
+    context.go(AppRoutes.home);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F1EB),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _rotateController,
+                builder: (context, child) => CustomPaint(
+                  painter: _RegBgPainter(
+                    rotation: _rotateController.value * 2 * math.pi,
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: _fadeController,
+                  curve: Curves.easeOut,
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 40, height: 40),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF1D5E40),
+                                      Color(0xFF3DAB78),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: const Center(child: _BrandMark()),
+                              ),
+                              const SizedBox(width: 8),
+                              RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF1E1810),
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                  children: [
+                                    TextSpan(text: context.l10n.appBrandPrefix),
+                                    const TextSpan(
+                                      text: 'AI',
+                                      style: TextStyle(color: Color(0xFF2D6A4F)),
+                                    ),
+                                    TextSpan(text: context.l10n.appBrandSuffix),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () => _completeOrSkip(skip: true),
+                            child: Text(
+                              context.l10n.completeProfileSkip,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    const Color(0xFF3A3028).withValues(alpha: 0.55),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                context.l10n.completeProfileTitle,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1E1810),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                context.l10n.completeProfileSubtitle,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: const Color(0xFF3A3028)
+                                      .withValues(alpha: 0.58),
+                                  height: 1.6,
+                                ),
+                              ),
+                              const SizedBox(height: 36),
+                              Center(
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Container(
+                                      key: const ValueKey(
+                                        'complete_profile_avatar_ring',
+                                      ),
+                                      width: 112,
+                                      height: 112,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8F5EE),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: const Color(0xFF2D6A4F)
+                                              .withValues(alpha: 0.12),
+                                          width: 1.2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person_outline,
+                                        size: 46,
+                                        color: Color(0xFF7FA891),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      right: -2,
+                                      bottom: -2,
+                                      child: Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.06,
+                                              ),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.photo_camera_outlined,
+                                          size: 18,
+                                          color: Color(0xFF3DAB78),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 36),
+                              _InputLabel(text: context.l10n.authNameLabel),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _nicknameCtrl,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Color(0xFF1E1810),
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: context.l10n.authNameHint,
+                                  hintStyle: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFFA09080),
+                                  ),
+                                  isDense: true,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: const Color(0xFF2D6A4F)
+                                          .withValues(alpha: 0.18),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  focusedBorder: const UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: Color(0xFF2D6A4F),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return context.l10n.authNameHint;
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 28),
+                              _InputLabel(text: context.l10n.registerGenderOptional),
+                              const SizedBox(height: 12),
+                              FormField<int>(
+                                initialValue: _selectedGender,
+                                validator: (_) => _selectedGender == -1
+                                    ? context.l10n.registerGenderRequired
+                                    : null,
+                                builder: (field) {
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 10,
+                                        children: [
+                                          _CompleteProfileGenderChip(
+                                            label:
+                                                context.l10n.registerGenderMale,
+                                            selected: _selectedGender == 0,
+                                            onTap: () {
+                                              setState(() => _selectedGender = 0);
+                                              field.didChange(0);
+                                            },
+                                          ),
+                                          _CompleteProfileGenderChip(
+                                            label: context
+                                                .l10n.registerGenderFemale,
+                                            selected: _selectedGender == 1,
+                                            onTap: () {
+                                              setState(() => _selectedGender = 1);
+                                              field.didChange(1);
+                                            },
+                                          ),
+                                          _CompleteProfileGenderChip(
+                                            label: context
+                                                .l10n.registerGenderUndisclosed,
+                                            selected: _selectedGender == 2,
+                                            onTap: () {
+                                              setState(() => _selectedGender = 2);
+                                              field.didChange(2);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      if (field.hasError) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          field.errorText!,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.red.withValues(
+                                              alpha: 0.85,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 36),
+                              GestureDetector(
+                                onTap: () => _completeOrSkip(skip: false),
+                                child: Container(
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF1D5E40),
+                                        Color(0xFF2D8A5E),
+                                        Color(0xFF3DAB78),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF2D6A4F)
+                                            .withValues(alpha: 0.25),
+                                        blurRadius: 18,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      context.l10n.completeProfileStart,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1135,156 +1239,50 @@ class _InputLabel extends StatelessWidget {
   }
 }
 
-class _StepDot extends StatelessWidget {
-  final int index;
-  final int current;
+class _CompleteProfileGenderChip extends StatelessWidget {
   final String label;
-  const _StepDot(
-      {required this.index, required this.current, required this.label});
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CompleteProfileGenderChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isActive = current >= index;
-    final isCurrent = current == index;
-    return Column(
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: isCurrent ? 34 : 26,
-          height: 26,
+    return Material(
+      color: selected
+          ? const Color(0xFF2D6A4F).withValues(alpha: 0.10)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13),
-            gradient: isActive
-                ? const LinearGradient(
-                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: isActive ? null : const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color:
-                          const Color(0xFF2D6A4F).withValues(alpha: 0.28),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: isActive && !isCurrent
-                ? const Icon(Icons.check, size: 13, color: Colors.white)
-                : Text(
-                    '${index + 1}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isActive
-                          ? Colors.white
-                          : const Color(0xFFA09080),
-                    ),
-                  ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isActive
-                ? const Color(0xFF2D6A4F)
-                : const Color(0xFFA09080),
-            fontWeight:
-                isActive ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _GenderSelector extends StatefulWidget {
-  @override
-  State<_GenderSelector> createState() => _GenderSelectorState();
-}
-
-class _GenderSelectorState extends State<_GenderSelector> {
-  int _selected = -1;
-
-  @override
-  Widget build(BuildContext context) {
-    final options = [
-      (Icons.male, context.l10n.registerGenderMale),
-      (Icons.female, context.l10n.registerGenderFemale),
-      (Icons.remove_circle_outline, context.l10n.registerGenderUndisclosed),
-    ];
-    return Row(
-      children: List.generate(options.length, (i) {
-        final sel = _selected == i;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i < options.length - 1 ? 8 : 0),
-            child: GestureDetector(
-              onTap: () =>
-                  setState(() => _selected = _selected == i ? -1 : i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(11),
-                  gradient: sel
-                      ? const LinearGradient(
-                          colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: sel ? null : const Color(0xFFF9F7F2),
-                  border: Border.all(
-                    color: sel
-                        ? Colors.transparent
-                        : const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-                    width: 1.2,
-                  ),
-                  boxShadow: sel
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF2D6A4F)
-                                .withValues(alpha: 0.25),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(options[i].$1,
-                        size: 16,
-                        color: sel
-                            ? Colors.white
-                            : const Color(0xFFA09080)),
-                    const SizedBox(width: 4),
-                    Text(
-                      options[i].$2,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: sel
-                            ? Colors.white
-                            : const Color(0xFF3A3028),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF2D6A4F)
+                  : const Color(0xFF2D6A4F).withValues(alpha: 0.18),
+              width: 1,
             ),
           ),
-        );
-      }),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected
+                  ? const Color(0xFF2D6A4F)
+                  : const Color(0xFF3A3028).withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1324,55 +1322,3 @@ class _Bracket extends StatelessWidget {
   }
 }
 
-class _SocialButton extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final VoidCallback onTap;
-  const _SocialButton({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: iconColor),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1E1810),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

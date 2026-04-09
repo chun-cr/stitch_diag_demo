@@ -18,22 +18,99 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBrandSuffix => ' 健康';
 
   @override
-  String get authSeasonalTag => '春分・木旺';
+  String seasonalSolarTermTag(String solarTerm, String element) {
+    return '$solarTerm・$element';
+  }
+
+  @override
+  String get solarTermMinorCold => '小寒';
+
+  @override
+  String get solarTermMajorCold => '大寒';
+
+  @override
+  String get solarTermStartOfSpring => '立春';
+
+  @override
+  String get solarTermRainWater => '雨水';
+
+  @override
+  String get solarTermAwakeningOfInsects => '啓蟄';
+
+  @override
+  String get solarTermSpringEquinox => '春分';
+
+  @override
+  String get solarTermClearAndBright => '清明';
+
+  @override
+  String get solarTermGrainRain => '穀雨';
+
+  @override
+  String get solarTermStartOfSummer => '立夏';
+
+  @override
+  String get solarTermGrainFull => '小満';
+
+  @override
+  String get solarTermGrainInEar => '芒種';
+
+  @override
+  String get solarTermSummerSolstice => '夏至';
+
+  @override
+  String get solarTermMinorHeat => '小暑';
+
+  @override
+  String get solarTermMajorHeat => '大暑';
+
+  @override
+  String get solarTermStartOfAutumn => '立秋';
+
+  @override
+  String get solarTermEndOfHeat => '処暑';
+
+  @override
+  String get solarTermWhiteDew => '白露';
+
+  @override
+  String get solarTermAutumnEquinox => '秋分';
+
+  @override
+  String get solarTermColdDew => '寒露';
+
+  @override
+  String get solarTermFrostDescent => '霜降';
+
+  @override
+  String get solarTermStartOfWinter => '立冬';
+
+  @override
+  String get solarTermMinorSnow => '小雪';
+
+  @override
+  String get solarTermMajorSnow => '大雪';
+
+  @override
+  String get solarTermWinterSolstice => '冬至';
 
   @override
   String get authInspectionMotto => '望・聞・問・切';
 
   @override
-  String get authEmailOrPhoneLabel => '電話番号 / メール';
+  String get authPhoneLabel => '電話番号';
 
   @override
-  String get authEmailOrPhoneHint => '電話番号またはメールを入力してください';
+  String get authPhoneHint => '電話番号を入力してください';
 
   @override
-  String get authNameLabel => '氏名';
+  String get authPhoneFormatError => '正しい電話番号を入力してください';
 
   @override
-  String get authNameHint => 'お名前を入力してください';
+  String get authNameLabel => 'ニックネーム';
+
+  @override
+  String get authNameHint => 'ニックネームを入力してください';
 
   @override
   String get authPasswordLabel => 'パスワード';
@@ -63,6 +140,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authLoginButton => 'ログイン';
 
   @override
+  String get authLoginFailed => 'ログインに失敗しました。しばらくしてからもう一度お試しください。';
+
+  @override
   String get authOtherMethods => 'その他の方法';
 
   @override
@@ -78,37 +158,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authRegisterNow => '今すぐ登録';
 
   @override
-  String get authFeatureFaceScan => '顔診スキャン';
-
-  @override
-  String get authFeatureTongueAnalysis => '舌診分析';
-
-  @override
-  String get authFeatureAiDiagnosis => 'AI診断';
-
-  @override
   String get registerGoLogin => 'ログインへ';
-
-  @override
-  String get registerStepBasicInfo => '基本情報';
-
-  @override
-  String get registerStepSetPassword => 'パスワード設定';
 
   @override
   String get registerCreateAccountTitle => 'アカウントを作成';
 
   @override
-  String get registerCreateAccountSubtitle => '基本情報を入力して健康の旅を始めましょう';
+  String get registerCreateAccountSubtitle =>
+      '電話番号とパスワードでアカウントを作成して、すぐに体験を始めましょう';
 
   @override
-  String get registerSetPasswordTitle => 'ログインパスワードを設定';
+  String get registerCreateAccountAction => 'アカウントを作成';
 
   @override
-  String get registerSetPasswordSubtitle => '健康データを守るための安全なパスワードを設定してください';
+  String get registerCreateFailed => 'アカウントの作成に失敗しました。しばらくしてからもう一度お試しください。';
 
   @override
-  String get registerGenderOptional => '性別（任意）';
+  String get registerGenderOptional => '性別';
+
+  @override
+  String get registerGenderRequired => '性別を選択してください';
+
+  @override
+  String get completeProfileTitle => 'プロフィールを整える';
+
+  @override
+  String get completeProfileSubtitle =>
+      'アバター、ニックネーム、性別を補足すると、今後のケア提案をより自分向けにできます。';
+
+  @override
+  String get completeProfileSkip => 'スキップ';
+
+  @override
+  String get completeProfileStart => '体験を始める';
 
   @override
   String get registerGenderMale => '男性';
@@ -123,22 +205,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get registerPasswordHint => '8文字以上で、英字と数字を含めてください';
 
   @override
-  String get registerNeedBasicInfo => '氏名と電話番号またはメールを入力してください';
-
-  @override
   String get registerAgreeTermsFirst => '先に利用規約とプライバシーポリシーに同意してください';
-
-  @override
-  String get registerNextStep => '次へ';
-
-  @override
-  String get registerComplete => '登録完了';
-
-  @override
-  String get registerThirdParty => 'または外部アカウントで続行';
-
-  @override
-  String get registerWechat => 'WeChat';
 
   @override
   String get registerReadAndAgree => '私は以下に同意します：';
@@ -300,9 +367,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeTodayCareTitle => '本日の養生';
-
-  @override
-  String get homeTodayCareSeasonTag => '春分・木旺';
 
   @override
   String get homeTodayCareCount => 'おすすめ2件';
@@ -1461,25 +1525,58 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportUnlockCausalAnalysisTitle => '成因の深掘り分析を解放';
 
   @override
+  String get reportUnlockCausalAnalysisSubtitle => '查看体质成因与关键诱因。';
+
+  @override
   String get reportUnlockDiseaseTendencyTitle => '疾患傾向アラートを解放';
+
+  @override
+  String get reportUnlockDiseaseTendencySubtitle => '查看易发问题与预警重点。';
 
   @override
   String get reportUnlockBadHabitsTitle => '望ましくない行動の注意点を解放';
 
   @override
+  String get reportUnlockBadHabitsSubtitle => '查看需要调整的日常习惯。';
+
+  @override
   String get reportUnlockAcupuncturePointsTitle => '専用の経穴プランを解放';
+
+  @override
+  String get reportUnlockAcupuncturePointsSubtitle => '查看专属穴位与调理重点。';
 
   @override
   String get reportUnlockMentalWellnessTitle => '精神養生アドバイスを解放';
 
   @override
+  String get reportUnlockMentalWellnessSubtitle => '查看情绪调养与舒缓建议。';
+
+  @override
   String get reportUnlockSeasonalCareTitle => '四季の養生プランを解放';
+
+  @override
+  String reportSeasonalCareCurrentTitle(String solarTerm) {
+    return '現在の節気：$solarTerm';
+  }
+
+  @override
+  String get reportSeasonalCareCurrentSubtitle =>
+      '今の時令に合わせて、対応する養生ガイダンスから優先して確認できます。';
+
+  @override
+  String get reportUnlockSeasonalCareSubtitle => '查看本季作息与养护重点。';
 
   @override
   String get reportUnlockTongueAnalysisTitle => '舌象の詳細解説を解放';
 
   @override
+  String get reportUnlockTongueAnalysisSubtitle => '查看舌象评分与细项解读。';
+
+  @override
   String get reportUnlockDietAdviceTitle => '個別の食養生プランを解放';
+
+  @override
+  String get reportUnlockDietAdviceSubtitle => '查看适宜食材与饮食方向。';
 
   @override
   String get reportPremiumConstitutionSubtitle => '体質の原因やリスク傾向を含む詳しい分析を確認できます。';

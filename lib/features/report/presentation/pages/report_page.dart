@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
+import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 import '../../../../core/router/app_router.dart';
 import 'dart:math' as math;
@@ -1108,30 +1109,37 @@ class _Tab2Constitution extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
         _buildConstitutionDetail(context),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _FloatingSectionTitle(title: l10n.reportCausalAnalysisTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockCausalAnalysisTitle,
           onUnlock: onUnlock,
-          child: _buildCausalAnalysis(context),
+          child: _buildCausalAnalysisContent(context),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _FloatingSectionTitle(title: l10n.reportDiseaseTendencyTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockDiseaseTendencyTitle,
           onUnlock: onUnlock,
-          child: _buildDiseaseTendency(context),
+          child: _buildDiseaseTendencyContent(context),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _FloatingSectionTitle(title: l10n.reportBadHabitsTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockBadHabitsTitle,
           onUnlock: onUnlock,
-          child: _buildBadHabits(context),
+          child: _buildBadHabitsContent(context),
         ),
       ],
     );
@@ -1261,7 +1269,7 @@ class _Tab2Constitution extends StatelessWidget {
   ];
 
   // ── 分析成因 ─────────────────────────────────────────────────────
-  Widget _buildCausalAnalysis(BuildContext context) {
+  Widget _buildCausalAnalysisContent(BuildContext context) {
     final l10n = context.l10n;
     final causes = [
       (Icons.bedtime_outlined, l10n.reportCauseRoutine, l10n.reportCauseRoutineBody),
@@ -1270,12 +1278,7 @@ class _Tab2Constitution extends StatelessWidget {
       (Icons.directions_run_outlined, l10n.reportCauseExercise, l10n.reportCauseExerciseBody),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportCausalAnalysisTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             children: List.generate(causes.length, (index) {
               final c = causes[index];
@@ -1327,13 +1330,11 @@ class _Tab2Constitution extends StatelessWidget {
               );
             }),
           ),
-        ),
-      ],
-    );
+        );
   }
 
   // ── 易诱发疾病 ───────────────────────────────────────────────────
-  Widget _buildDiseaseTendency(BuildContext context) {
+  Widget _buildDiseaseTendencyContent(BuildContext context) {
     final l10n = context.l10n;
     final diseases = [
       (l10n.reportDiseaseSpleenWeak, l10n.reportDiseaseSpleenWeakBody, const Color(0xFFD4794A), Icons.warning_amber_outlined),
@@ -1342,12 +1343,7 @@ class _Tab2Constitution extends StatelessWidget {
       (l10n.reportDiseaseEmotional, l10n.reportDiseaseEmotionalBody, const Color(0xFF7A6BA0), Icons.psychology_outlined),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportDiseaseTendencyTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1405,13 +1401,11 @@ class _Tab2Constitution extends StatelessWidget {
               )),
             ],
           ),
-        ),
-      ],
     );
   }
 
   // ── 不当举动 ─────────────────────────────────────────────────────
-  Widget _buildBadHabits(BuildContext context) {
+  Widget _buildBadHabitsContent(BuildContext context) {
     final l10n = context.l10n;
     final habits = [
       (l10n.reportBadHabitOverwork, l10n.reportBadHabitOverworkBody),
@@ -1421,12 +1415,7 @@ class _Tab2Constitution extends StatelessWidget {
       (l10n.reportBadHabitBinge, l10n.reportBadHabitBingeBody),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportBadHabitsTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             children: List.generate(habits.length, (index) {
               final h = habits[index];
@@ -1484,9 +1473,7 @@ class _Tab2Constitution extends StatelessWidget {
               );
             }),
           ),
-        ),
-      ],
-    );
+        );
   }
 }
 
@@ -1506,35 +1493,53 @@ class _Tab3Therapy extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final seasonalContext = SeasonalContext.now();
+    final seasonalTag = l10n.seasonalTagLabel(seasonalContext);
+    final seasonalTitle = l10n.reportSeasonalCareCurrentTitle(
+      l10n.solarTermLabel(seasonalContext.solarTerm),
+    );
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
+        _FloatingSectionTitle(title: l10n.reportTherapyAcupointsTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockAcupuncturePointsTitle,
           onUnlock: onUnlock,
-          child: _buildAcupuncturePoints(context),
+          child: _buildAcupuncturePointsContent(context),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _FloatingSectionTitle(title: l10n.reportMentalWellnessTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockMentalWellnessTitle,
           onUnlock: onUnlock,
-          child: _buildMentalWellness(context),
+          child: _buildMentalWellnessContent(context),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _FloatingSectionTitle(title: l10n.reportSeasonalCareTitle),
+        const SizedBox(height: 10),
+        _SeasonalFocusBanner(
+          title: seasonalTitle,
+          tag: seasonalTag,
+          subtitle: l10n.reportSeasonalCareCurrentSubtitle,
+        ),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockSeasonalCareTitle,
           onUnlock: onUnlock,
-          child: _buildSeasonalCare(context),
+          child: _buildSeasonalCareContent(context),
         ),
       ],
     );
   }
 
   // ── 辩证取穴 ─────────────────────────────────────────────────────
-  Widget _buildAcupuncturePoints(BuildContext context) {
+  Widget _buildAcupuncturePointsContent(BuildContext context) {
     final l10n = context.l10n;
     final points = [
       _AcuPoint(
@@ -1567,12 +1572,7 @@ class _Tab3Therapy extends StatelessWidget {
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportTherapyAcupointsTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1621,13 +1621,11 @@ class _Tab3Therapy extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
+        );
   }
 
   // ── 精神养生 ─────────────────────────────────────────────────────
-  Widget _buildMentalWellness(BuildContext context) {
+  Widget _buildMentalWellnessContent(BuildContext context) {
     final l10n = context.l10n;
     final tips = [
       (l10n.reportMentalTipCalm, Icons.self_improvement_outlined, l10n.reportMentalTipCalmBody),
@@ -1636,12 +1634,7 @@ class _Tab3Therapy extends StatelessWidget {
       (l10n.reportMentalTipMeditation, Icons.spa_outlined, l10n.reportMentalTipMeditationBody),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportMentalWellnessTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             children: List.generate(tips.length, (index) {
               final t = tips[index];
@@ -1692,13 +1685,11 @@ class _Tab3Therapy extends StatelessWidget {
               );
             }),
           ),
-        ),
-      ],
-    );
+        );
   }
 
   // ── 四季保养 ─────────────────────────────────────────────────────
-  Widget _buildSeasonalCare(BuildContext context) {
+  Widget _buildSeasonalCareContent(BuildContext context) {
     final l10n = context.l10n;
     final seasons = [
       _SeasonData(
@@ -1731,12 +1722,7 @@ class _Tab3Therapy extends StatelessWidget {
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportSeasonalCareTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1815,9 +1801,7 @@ class _Tab3Therapy extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
+        );
   }
 }
 
@@ -1840,18 +1824,22 @@ class _Tab4Advice extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
+        _FloatingSectionTitle(title: l10n.reportAdviceTongueAnalysisTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockTongueAnalysisTitle,
           onUnlock: onUnlock,
-          child: _buildTongueAnalysis(context),
+          child: _buildTongueAnalysisContent(context),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _FloatingSectionTitle(title: l10n.reportAdviceDietTitle),
+        const SizedBox(height: 10),
         _Lockable(
           isUnlocked: isUnlocked,
           lockTitle: l10n.reportUnlockDietAdviceTitle,
           onUnlock: onUnlock,
-          child: _buildDietAdvice(context),
+          child: _buildDietAdviceContent(context),
         ),
         const SizedBox(height: 16),
         _buildProductRecommendations(context),
@@ -1860,7 +1848,7 @@ class _Tab4Advice extends StatelessWidget {
   }
 
   // ── 舌象详解 ─────────────────────────────────────────────────────
-  Widget _buildTongueAnalysis(BuildContext context) {
+  Widget _buildTongueAnalysisContent(BuildContext context) {
     final l10n = context.l10n;
     final features = [
       (l10n.reportAdviceTongueFeatureColor, l10n.reportAdviceTongueFeatureColorValue, l10n.reportAdviceTongueFeatureColorDesc, const Color(0xFF2D6A4F)),
@@ -1870,12 +1858,7 @@ class _Tab4Advice extends StatelessWidget {
       (l10n.reportAdviceTongueFeatureTeethMarks, l10n.reportAdviceTongueFeatureTeethMarksValue, l10n.reportAdviceTongueFeatureTeethMarksDesc, const Color(0xFFD4794A)),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportAdviceTongueAnalysisTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2017,13 +2000,11 @@ class _Tab4Advice extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
+        );
   }
 
   // ── 饮食建议 ─────────────────────────────────────────────────────
-  Widget _buildDietAdvice(BuildContext context) {
+  Widget _buildDietAdviceContent(BuildContext context) {
     final l10n = context.l10n;
     final recommended = [
       (l10n.reportAdviceFoodShanyao, l10n.reportAdviceFoodShanyaoDesc, const Color(0xFF2D6A4F)),
@@ -2042,12 +2023,7 @@ class _Tab4Advice extends StatelessWidget {
       l10n.reportAdviceAvoidAlcohol,
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportAdviceDietTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
+    return _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2190,9 +2166,7 @@ class _Tab4Advice extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
+        );
   }
 
   // ── 产品推荐 ─────────────────────────────────────────────────────
@@ -2309,6 +2283,81 @@ class _FloatingSectionTitle extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: Color(0xFF1E1810),
               letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeasonalFocusBanner extends StatelessWidget {
+  final String title;
+  final String tag;
+  final String subtitle;
+
+  const _SeasonalFocusBanner({
+    required this.title,
+    required this.tag,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF3E0).withValues(alpha: 0.52),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFC9A84C).withValues(alpha: 0.16),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E1810),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: const Color(0xFFC9A84C).withValues(alpha: 0.22),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              tag,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF8B6914),
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.5,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.7),
             ),
           ),
         ],

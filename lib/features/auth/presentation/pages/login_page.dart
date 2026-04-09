@@ -1,9 +1,17 @@
 import 'dart:math' as math;
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stitch_diag_demo/core/di/injector.dart';
+import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
+import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
 import '../../../../core/router/app_router.dart';
+import '../providers/auth_repository_provider.dart';
+import '../../data/models/auth_request.dart';
 
 // ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
 // primary      = Color(0xFF2D6A4F)  墨绿
@@ -16,21 +24,35 @@ import '../../../../core/router/app_router.dart';
 // tcmGold      = Color(0xFFC9A84C)
 // tcmGoldLight = Color(0xFFFAF3E0)
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
 enum _LoginButtonPhase { idle, submitting }
 
-class _LoginPageState extends State<LoginPage>
+class _LoginPageState extends ConsumerState<LoginPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _countryMenuController = MenuController();
   bool _obscurePass = true;
   _LoginButtonPhase _buttonPhase = _LoginButtonPhase.idle;
+  String _selectedCountryCode = '+86';
+  String _selectedCountryFlag = '🇨🇳';
+
+  final List<Map<String, String>> _countryCodes = [
+    {'name': '中国', 'code': '+86', 'flag': '🇨🇳'},
+    {'name': '英国', 'code': '+44', 'flag': '🇬🇧'},
+    {'name': '西班牙', 'code': '+34', 'flag': '🇪🇸'},
+    {'name': '葡萄牙', 'code': '+351', 'flag': '🇵🇹'},
+    {'name': '法国', 'code': '+33', 'flag': '🇫🇷'},
+    {'name': '德国', 'code': '+49', 'flag': '🇩🇪'},
+    {'name': '日本', 'code': '+81', 'flag': '🇯🇵'},
+    {'name': '韩国', 'code': '+82', 'flag': '🇰🇷'},
+  ];
 
   late AnimationController _breatheController;
   late AnimationController _fadeController;
@@ -44,11 +66,11 @@ class _LoginPageState extends State<LoginPage>
 
   bool get _isBusy => _buttonPhase != _LoginButtonPhase.idle;
 
+  static final RegExp _phonePattern = RegExp(r'^[0-9]{6,15}$');
+
   @override
   void initState() {
     super.initState();
-    _emailCtrl.text = 'preview@mai-ai.local';
-    _passCtrl.text = 'preview123';
     _breatheController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -89,32 +111,83 @@ class _LoginPageState extends State<LoginPage>
     _fadeController.dispose();
     _btnScaleCtrl.dispose();
     _exitCtrl.dispose();
-    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
 
+  String? _validatePhone(String? value) {
+    final input = value?.trim() ?? '';
+    if (input.isEmpty) {
+      return context.l10n.authPhoneHint;
+    }
+    if (!_phonePattern.hasMatch(input)) {
+      return context.l10n.authPhoneFormatError;
+    }
+    return null;
+  }
+
   Future<void> _onLogin() async {
-    if (_emailCtrl.text.trim().isEmpty) {
-      _emailCtrl.text = 'preview@mai-ai.local';
-    }
-    if (_passCtrl.text.trim().isEmpty) {
-      _passCtrl.text = 'preview123';
-    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _buttonPhase = _LoginButtonPhase.submitting);
     await _btnScaleCtrl.reverse();
 
-    // 模拟验证：按钮进入更克制的提交中态，再交给整页退场
-    await Future.delayed(_submittingDuration);
-    if (!mounted) return;
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final loginFuture = repository.login(
+        AuthRequest(
+          countryCode: _selectedCountryCode,
+          phoneNumber: _phoneCtrl.text.trim(),
+          password: _passCtrl.text,
+        ),
+      );
 
-    // ── 拨云见日：所有元素如晨雾散去 ──
-    await _exitCtrl.forward();
-    if (!mounted) return;
+      final results = await Future.wait<dynamic>([
+        loginFuture,
+        Future.delayed(_submittingDuration),
+      ]);
+      final session = results.first as AuthSessionEntity;
 
-    setPreviewAuthenticated(true);
-    context.go(AppRoutes.home);
+      await getIt<AuthSessionStore>().saveSession(session);
+
+      if (!mounted) return;
+
+      await _exitCtrl.forward();
+      if (!mounted) return;
+
+      setPreviewAuthenticated(true);
+      context.go(AppRoutes.home);
+    } on DioException catch (error) {
+      if (!mounted) return;
+      setState(() => _buttonPhase = _LoginButtonPhase.idle);
+      final responseData = error.response?.data;
+      String? serverMessage;
+      if (responseData is Map<String, dynamic>) {
+        final message = responseData['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          serverMessage = message.trim();
+        }
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(serverMessage ?? context.l10n.authLoginFailed),
+          backgroundColor: const Color(0xFF8F3B3B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _buttonPhase = _LoginButtonPhase.idle);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.authLoginFailed),
+          backgroundColor: const Color(0xFF8F3B3B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   @override
@@ -125,57 +198,67 @@ class _LoginPageState extends State<LoginPage>
         animation: _exitCtrl,
         builder: (context, _) {
           final t = Curves.easeInCubic.transform(_exitCtrl.value);
-          return Stack(
-            children: [
-              // 背景装饰层
-              Positioned.fill(child: _buildBackground()),
-              // 主内容（退场时向上微滑 + 淡出，如晨雾散去）
-              SafeArea(
-                child: Transform.translate(
-                  offset: Offset(0, -40 * t),
-                  child: Opacity(
-                    opacity: (1.0 - t).clamp(0.0, 1.0),
-                    child: FadeTransition(
-                      opacity: _fadeAnim,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const SizedBox(height: 24),
-                              _buildBrandRow(),
-                              const SizedBox(height: 36),
-                              _buildHeroVisual(),
-                              const SizedBox(height: 12),
-                              _buildHeroText(),
-                              const SizedBox(height: 18),
-                              _buildEmailField(),
-                              const SizedBox(height: 14),
-                              _buildPasswordField(),
-                              const SizedBox(height: 8),
-                              _buildForgotPassword(),
-                              const SizedBox(height: 22),
-                              _buildPrimaryButton(),
-                              const SizedBox(height: 20),
-                              _buildOrDivider(),
-                              const SizedBox(height: 16),
-                              _buildSocialRow(),
-                              const SizedBox(height: 22),
-                              _buildSignUpRow(),
-                              const SizedBox(height: 20),
-                              _buildFeatureChips(),
-                              const SizedBox(height: 36),
-                            ],
-                          ),
+          return GestureDetector(
+            behavior: HitTestBehavior.deferToChild,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: Stack(
+              children: [
+                // 背景装饰层
+                Positioned.fill(child: _buildBackground()),
+                // 主内容（退场时向上微滑 + 淡出，如晨雾散去）
+                SafeArea(
+                  child: Transform.translate(
+                    offset: Offset(0, -40 * t),
+                    child: Opacity(
+                      opacity: (1.0 - t).clamp(0.0, 1.0),
+                      child: FadeTransition(
+                        opacity: _fadeAnim,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(horizontal: 28),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: IntrinsicHeight(
+                                  child: Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        const SizedBox(height: 24),
+                                        _buildBrandRow(),
+                                        const SizedBox(height: 36),
+                                        _buildHeroVisual(),
+                                        const SizedBox(height: 12),
+                                        _buildHeroText(),
+                                        const SizedBox(height: 28),
+                                        _buildEmailField(),
+                                        const SizedBox(height: 14),
+                                        _buildPasswordField(),
+                                        const SizedBox(height: 8),
+                                        _buildForgotPassword(),
+                                        const SizedBox(height: 22),
+                                        _buildPrimaryButton(),
+                                        const Spacer(),
+                                        _buildBottomAuxiliarySections(),
+                                        const SizedBox(height: 36),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -193,9 +276,15 @@ class _LoginPageState extends State<LoginPage>
 
   // ── Brand Row ──────────────────────────────────────────────────
   Widget _buildBrandRow() {
+    final seasonalTag = context.l10n.seasonalTagLabel(SeasonalContext.now());
+
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
           width: 38,
           height: 38,
           decoration: BoxDecoration(
@@ -210,45 +299,54 @@ class _LoginPageState extends State<LoginPage>
         ),
         const SizedBox(width: 10),
         RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 18,
-              color: Color(0xFF1E1810),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-            children: [
-              TextSpan(text: context.l10n.appBrandPrefix),
-              TextSpan(
-                text: 'AI',
-                style: TextStyle(color: Color(0xFF2D6A4F)),
+            maxLines: 1,
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 18,
+                color: Color(0xFF1E1810),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
-              TextSpan(text: context.l10n.appBrandSuffix),
-            ],
+              children: [
+                TextSpan(text: context.l10n.appBrandPrefix),
+                TextSpan(
+                  text: 'AI',
+                  style: TextStyle(color: Color(0xFF2D6A4F)),
+                ),
+                TextSpan(text: context.l10n.appBrandSuffix),
+              ],
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
+        ],
+      ),
         const Spacer(),
         // 节气装饰标签
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFAF3E0),
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(
-              color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
-              width: 1,
+        Transform.translate(
+            offset: const Offset(12, -4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF3E0),
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                  color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                seasonalTag,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFFC9A84C),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
-          child: Text(
-            context.l10n.authSeasonalTag,
-            style: TextStyle(
-              fontSize: 10,
-              color: Color(0xFFC9A84C),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -427,24 +525,143 @@ class _LoginPageState extends State<LoginPage>
 
   // ── Email Field ────────────────────────────────────────────────
   Widget _buildEmailField() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InputLabel(text: context.l10n.authEmailOrPhoneLabel),
+        _InputLabel(text: l10n.authPhoneLabel),
         const SizedBox(height: 6),
         TextFormField(
-          controller: _emailCtrl,
-          keyboardType: TextInputType.emailAddress,
+          controller: _phoneCtrl,
+          keyboardType: TextInputType.phone,
           style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
-            hint: context.l10n.authEmailOrPhoneHint,
-            prefixIcon: const Icon(Icons.email_outlined,
-                size: 18, color: Color(0xFFA09080)),
+            hint: l10n.authPhoneHint,
+            prefix: _buildCountryCodePrefix(),
+            prefixIcon: null,
           ),
-          validator: (v) =>
-              (v == null || v.isEmpty) ? context.l10n.authEmailOrPhoneHint : null,
+          validator: _validatePhone,
         ),
       ],
+    );
+  }
+
+  Widget _buildCountryCodePrefix() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 8),
+      child: MenuAnchor(
+        controller: _countryMenuController,
+        alignmentOffset: const Offset(-8, 8),
+        style: MenuStyle(
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(0),
+          shadowColor: WidgetStatePropertyAll(
+            Colors.transparent,
+          ),
+        ),
+        menuChildren: [
+          SizedBox(
+            width: 220,
+            child: TweenAnimationBuilder<double>(
+              key: const ValueKey('country_code_menu_transition'),
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, -6 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                key: const ValueKey('country_code_menu_surface'),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 228),
+                  child: SingleChildScrollView(
+                    primary: false,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final item in _countryCodes)
+                          _CountryCodeMenuItem(
+                            countryName: item['name']!,
+                            countryCode: item['code']!,
+                            countryFlag: item['flag']!,
+                            isSelected: _selectedCountryCode == item['code'],
+                            onTap: () {
+                              setState(() {
+                                _selectedCountryCode = item['code']!;
+                                _selectedCountryFlag = item['flag']!;
+                              });
+                              _countryMenuController.close();
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+        builder: (context, controller, child) {
+          return GestureDetector(
+            key: const ValueKey('country_code_menu_trigger'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_selectedCountryFlag, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 4),
+                Text(
+                  _selectedCountryCode,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E1810),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_drop_down,
+                  size: 18,
+                  color: Color(0xFFA09080),
+                ),
+                const SizedBox(width: 8),
+                Container(width: 1, height: 16, color: Colors.black12),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -601,6 +818,23 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
+  Widget _buildBottomAuxiliarySections() {
+    return Container(
+      key: const ValueKey('login_bottom_auxiliary'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 20),
+          _buildOrDivider(),
+          const SizedBox(height: 16),
+          _buildSocialRow(),
+          const SizedBox(height: 22),
+          _buildSignUpRow(),
+        ],
+      ),
+    );
+  }
+
 
 
   // ── OR Divider ─────────────────────────────────────────────────
@@ -680,59 +914,11 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ── Feature Chips ──────────────────────────────────────────────
-  Widget _buildFeatureChips() {
-    final chips = [
-      (context.l10n.authFeatureFaceScan, const Color(0xFF2D6A4F)),
-      (context.l10n.authFeatureTongueAnalysis, const Color(0xFF0D7A5A)),
-      (context.l10n.authFeatureAiDiagnosis, const Color(0xFF6B5B95)),
-    ];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: chips.map((c) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9F7F2),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: c.$2.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6, height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: c.$2,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  c.$1,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF3A3028).withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   // ── Input Decoration ───────────────────────────────────────────
   InputDecoration _inputDecoration({
     required String hint,
     Widget? prefixIcon,
+    Widget? prefix,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
@@ -741,6 +927,7 @@ class _LoginPageState extends State<LoginPage>
       filled: true,
       fillColor: const Color(0xFFF9F7F2),
       prefixIcon: prefixIcon,
+      prefix: prefix,
       suffixIcon: suffixIcon != null
           ? Padding(
               padding: const EdgeInsets.only(right: 4),
@@ -772,6 +959,73 @@ class _LoginPageState extends State<LoginPage>
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+}
+
+class _CountryCodeMenuItem extends StatelessWidget {
+  final String countryName;
+  final String countryCode;
+  final String countryFlag;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CountryCodeMenuItem({
+    required this.countryName,
+    required this.countryCode,
+    required this.countryFlag,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final highlight = const Color(0xFFFAF3E0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Material(
+        color: isSelected ? highlight : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Text(countryFlag, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    countryName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF2D6A4F)
+                          : const Color(0xFF1E1810),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  countryCode,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? const Color(0xFF2D6A4F)
+                        : const Color(0xFFA09080),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1026,12 +1280,16 @@ class _SocialButton extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: iconColor),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1E1810),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1E1810),
+                ),
               ),
             ),
           ],

@@ -18,22 +18,99 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appBrandSuffix => ' Health';
 
   @override
-  String get authSeasonalTag => 'Spring Equinox · Wood';
+  String seasonalSolarTermTag(String solarTerm, String element) {
+    return '$solarTerm · $element';
+  }
+
+  @override
+  String get solarTermMinorCold => 'Minor Cold';
+
+  @override
+  String get solarTermMajorCold => 'Major Cold';
+
+  @override
+  String get solarTermStartOfSpring => 'Start of Spring';
+
+  @override
+  String get solarTermRainWater => 'Rain Water';
+
+  @override
+  String get solarTermAwakeningOfInsects => 'Awakening of Insects';
+
+  @override
+  String get solarTermSpringEquinox => 'Spring Equinox';
+
+  @override
+  String get solarTermClearAndBright => 'Clear and Bright';
+
+  @override
+  String get solarTermGrainRain => 'Grain Rain';
+
+  @override
+  String get solarTermStartOfSummer => 'Start of Summer';
+
+  @override
+  String get solarTermGrainFull => 'Grain Full';
+
+  @override
+  String get solarTermGrainInEar => 'Grain in Ear';
+
+  @override
+  String get solarTermSummerSolstice => 'Summer Solstice';
+
+  @override
+  String get solarTermMinorHeat => 'Minor Heat';
+
+  @override
+  String get solarTermMajorHeat => 'Major Heat';
+
+  @override
+  String get solarTermStartOfAutumn => 'Start of Autumn';
+
+  @override
+  String get solarTermEndOfHeat => 'End of Heat';
+
+  @override
+  String get solarTermWhiteDew => 'White Dew';
+
+  @override
+  String get solarTermAutumnEquinox => 'Autumn Equinox';
+
+  @override
+  String get solarTermColdDew => 'Cold Dew';
+
+  @override
+  String get solarTermFrostDescent => 'Frost Descent';
+
+  @override
+  String get solarTermStartOfWinter => 'Start of Winter';
+
+  @override
+  String get solarTermMinorSnow => 'Minor Snow';
+
+  @override
+  String get solarTermMajorSnow => 'Major Snow';
+
+  @override
+  String get solarTermWinterSolstice => 'Winter Solstice';
 
   @override
   String get authInspectionMotto => 'Inspect · Listen · Ask · Feel';
 
   @override
-  String get authEmailOrPhoneLabel => 'Phone / Email';
+  String get authPhoneLabel => 'Phone';
 
   @override
-  String get authEmailOrPhoneHint => 'Enter phone number or email';
+  String get authPhoneHint => 'Enter phone number';
 
   @override
-  String get authNameLabel => 'Name';
+  String get authPhoneFormatError => 'Please enter a valid phone number';
 
   @override
-  String get authNameHint => 'Enter your name';
+  String get authNameLabel => 'Nickname';
+
+  @override
+  String get authNameHint => 'Enter your nickname';
 
   @override
   String get authPasswordLabel => 'Password';
@@ -63,6 +140,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authLoginButton => 'Log In';
 
   @override
+  String get authLoginFailed => 'Login failed. Please try again later.';
+
+  @override
   String get authOtherMethods => 'Other methods';
 
   @override
@@ -78,39 +158,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authRegisterNow => 'Sign up now';
 
   @override
-  String get authFeatureFaceScan => 'Face Scan';
-
-  @override
-  String get authFeatureTongueAnalysis => 'Tongue Analysis';
-
-  @override
-  String get authFeatureAiDiagnosis => 'AI Diagnosis';
-
-  @override
   String get registerGoLogin => 'Go to login';
-
-  @override
-  String get registerStepBasicInfo => 'Basic Info';
-
-  @override
-  String get registerStepSetPassword => 'Set Password';
 
   @override
   String get registerCreateAccountTitle => 'Create your account';
 
   @override
   String get registerCreateAccountSubtitle =>
-      'Fill in the basics to begin your health journey';
+      'Create your account with your phone number and password to get started quickly';
 
   @override
-  String get registerSetPasswordTitle => 'Set your password';
+  String get registerCreateAccountAction => 'Create account';
 
   @override
-  String get registerSetPasswordSubtitle =>
-      'Protect your health data with a secure password';
+  String get registerCreateFailed =>
+      'Account creation failed. Please try again later.';
 
   @override
-  String get registerGenderOptional => 'Gender (optional)';
+  String get registerGenderOptional => 'Gender';
+
+  @override
+  String get registerGenderRequired => 'Please select a gender';
+
+  @override
+  String get completeProfileTitle => 'Complete your profile';
+
+  @override
+  String get completeProfileSubtitle =>
+      'Add your avatar, nickname, and gender so future therapy suggestions can fit you better.';
+
+  @override
+  String get completeProfileSkip => 'Skip';
+
+  @override
+  String get completeProfileStart => 'Start now';
 
   @override
   String get registerGenderMale => 'Male';
@@ -126,23 +207,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'At least 8 characters, including letters and numbers';
 
   @override
-  String get registerNeedBasicInfo => 'Please enter your name and phone/email';
-
-  @override
   String get registerAgreeTermsFirst =>
       'Please agree to the User Agreement and Privacy Policy first';
-
-  @override
-  String get registerNextStep => 'Next';
-
-  @override
-  String get registerComplete => 'Complete Registration';
-
-  @override
-  String get registerThirdParty => 'Or continue with';
-
-  @override
-  String get registerWechat => 'WeChat';
 
   @override
   String get registerReadAndAgree => 'I have read and agree to the ';
@@ -306,9 +372,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeTodayCareTitle => 'Today’s Wellness';
-
-  @override
-  String get homeTodayCareSeasonTag => 'Spring Equinox · Wood';
 
   @override
   String get homeTodayCareCount => 'Two tips';
@@ -1550,29 +1613,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportUnlockCausalAnalysisTitle => 'Unlock Deep Causal Analysis';
 
   @override
+  String get reportUnlockCausalAnalysisSubtitle => '查看体质成因与关键诱因。';
+
+  @override
   String get reportUnlockDiseaseTendencyTitle =>
       'Unlock Disease Tendency Alerts';
 
   @override
+  String get reportUnlockDiseaseTendencySubtitle => '查看易发问题与预警重点。';
+
+  @override
   String get reportUnlockBadHabitsTitle => 'Unlock Harmful Habit Warnings';
+
+  @override
+  String get reportUnlockBadHabitsSubtitle => '查看需要调整的日常习惯。';
 
   @override
   String get reportUnlockAcupuncturePointsTitle =>
       'Unlock Personalized Acupoint Plan';
 
   @override
+  String get reportUnlockAcupuncturePointsSubtitle => '查看专属穴位与调理重点。';
+
+  @override
   String get reportUnlockMentalWellnessTitle =>
       'Unlock Mental Wellness Guidance';
 
   @override
+  String get reportUnlockMentalWellnessSubtitle => '查看情绪调养与舒缓建议。';
+
+  @override
   String get reportUnlockSeasonalCareTitle => 'Unlock Seasonal Wellness Plan';
+
+  @override
+  String reportSeasonalCareCurrentTitle(String solarTerm) {
+    return 'Current solar term: $solarTerm';
+  }
+
+  @override
+  String get reportSeasonalCareCurrentSubtitle =>
+      'We’ve highlighted the current seasonal rhythm so you can start with the matching care guidance.';
+
+  @override
+  String get reportUnlockSeasonalCareSubtitle => '查看本季作息与养护重点。';
 
   @override
   String get reportUnlockTongueAnalysisTitle =>
       'Unlock Detailed Tongue Analysis';
 
   @override
+  String get reportUnlockTongueAnalysisSubtitle => '查看舌象评分与细项解读。';
+
+  @override
   String get reportUnlockDietAdviceTitle => 'Unlock Personalized Diet Plan';
+
+  @override
+  String get reportUnlockDietAdviceSubtitle => '查看适宜食材与饮食方向。';
 
   @override
   String get reportPremiumConstitutionSubtitle =>

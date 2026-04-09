@@ -11,6 +11,8 @@ import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 // 临时直接引用（正式时删掉，改用上面的包名 import）
 import 'core/l10n/l10n.dart';
 import 'core/l10n/locale_controller.dart';
+import 'core/di/injector.dart';
+import 'core/network/auth_session_store.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
@@ -30,6 +32,9 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  initInjector();
+  setPreviewAuthenticated(await getIt<AuthSessionStore>().hasSession());
+
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -42,6 +47,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    initInjector();
     final locale = ref.watch(localeControllerProvider).asData?.value;
 
     return MaterialApp.router(
