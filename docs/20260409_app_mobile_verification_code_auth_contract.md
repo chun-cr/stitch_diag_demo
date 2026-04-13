@@ -18,12 +18,12 @@
 3. `send`
 4. `authenticate`
 
-公开接口不再区分 login / register 两套路由，只通过 `scene` 区分场景：
+`challenge` 登录和注册共用同一个接口，只通过 `scene` 区分场景：
 
-- 登录页：`scene = LOGIN`
-- 注册页：`scene = REGISTER`
+- 登录页：`POST /api/v1/saas/mobile/auth/verification-code/challenge`，body 传 `scene = LOGIN`
+- 注册页：`POST /api/v1/saas/mobile/auth/verification-code/challenge`，body 传 `scene = REGISTER`
 
-旧接口已下线，不要再调：
+旧分场景验证码路由已下线，不要再调：
 
 - `/api/v1/saas/mobile/auth/login/verification-code/**`
 - `/api/v1/saas/mobile/auth/register/verification-code/**`
@@ -32,12 +32,12 @@
 
 ### 3.1 公共请求头
 
-所有下面 4 个接口都按以下约定调用：
+所有下面验证码认证相关接口都按以下约定调用：
 
 - `Content-Type: application/json`
 - `X-App-Id`: 必填，标识当前 APP
 - `X-Platform`: 建议必传，建议值由客户端统一约定，例如 `IOS`、`ANDROID`、`WX_MA`
-- `Authorization`: 这 4 个接口都不需要登录态
+- `Authorization`: 这些接口都不需要登录态
 
 兼容头：
 
@@ -124,19 +124,34 @@ challenge
 
 ```json
 {
+  "scene": "LOGIN",
+  "countryCode": "+86",
+  "phoneNumber": "13800138000",
+  "loginValue": "13800138000"
+}
+```
+
+- 注册 challenge 仍然走同一路径：`/api/v1/saas/mobile/auth/verification-code/challenge`
+
+请求体：
+
+```json
+{
   "scene": "REGISTER",
   "countryCode": "+86",
-  "phoneNumber": "13800138000"
+  "phoneNumber": "13800138000",
+  "loginValue": "13800138000"
 }
 ```
 
 字段说明：
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `scene` | `String` | 是 | 只支持 `LOGIN` / `REGISTER` |
-| `countryCode` | `String` | 是 | 国际区号，例如 `+86` |
-| `phoneNumber` | `String` | 是 | 手机号正文，不要带空格和横杠 |
+| 字段 | 类型 | 登录 challenge | 注册 challenge | 说明 |
+| --- | --- | --- | --- | --- |
+| `scene` | `String` | 是，仅支持 `LOGIN` | 是，仅支持 `REGISTER` | 用于区分登录/注册 challenge 场景 |
+| `countryCode` | `String` | 是 | 是 | 国际区号，例如 `+86` |
+| `phoneNumber` | `String` | 是 | 是 | 手机号正文，不要带空格和横杠 |
+| `loginValue` | `String` | 是 | 是 | 当前仍传手机号正文，与 `phoneNumber` 保持一致 |
 
 成功响应：
 
@@ -178,6 +193,8 @@ challenge
 
 注意：
 
+- 登录和注册 challenge 都走同一个接口，只通过 `scene` 区分
+- `loginValue` 当前仍传手机号正文，和 `phoneNumber` 一致
 - `REGISTER` 场景下，APP 不需要传 `registerSource`，服务端会根据 `X-App-Id` 自动推导
 - `challenge` 不会发短信
 

@@ -11,6 +11,7 @@ _AuthRequest _$AuthRequestFromJson(Map<String, dynamic> json) => _AuthRequest(
   phoneNumber: json['phoneNumber'] as String,
   password: json['password'] as String?,
   code: json['code'] as String?,
+  inviteTicket: json['inviteTicket'] as String?,
 );
 
 Map<String, dynamic> _$AuthRequestToJson(_AuthRequest instance) =>
@@ -19,4 +20,5 @@ Map<String, dynamic> _$AuthRequestToJson(_AuthRequest instance) =>
       'phoneNumber': instance.phoneNumber,
       'password': instance.password,
       'code': instance.code,
+      'inviteTicket': instance.inviteTicket,
     };

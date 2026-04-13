@@ -44,19 +44,7 @@ class _SetLoginPasswordPageState extends State<SetLoginPasswordPage> {
     }
 
     setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.setLoginPasswordSuccess),
-          backgroundColor: _kPasswordPrimary,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    context.pop();
+    context.pop(true);
   }
 
   @override
@@ -128,8 +116,7 @@ class _SetLoginPasswordPageState extends State<SetLoginPasswordPage> {
                   obscureText: _obscureConfirmPassword,
                   onToggle: () {
                     setState(
-                      () =>
-                          _obscureConfirmPassword = !_obscureConfirmPassword,
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword,
                     );
                   },
                   validator: (value) {
@@ -211,16 +198,10 @@ class _PasswordField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           validator: validator,
-          style: const TextStyle(
-            fontSize: 14,
-            color: _kPasswordTextPrimary,
-          ),
+          style: const TextStyle(fontSize: 14, color: _kPasswordTextPrimary),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFFA09080),
-            ),
+            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFA09080)),
             filled: true,
             fillColor: const Color(0xFFF9F7F2),
             prefixIcon: const Icon(

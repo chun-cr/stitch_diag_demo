@@ -46,12 +46,12 @@ void main() {
     expect(find.text(l10n.authPasswordLabel), findsNothing);
     expect(find.text(l10n.registerGenderOther), findsNothing);
     expect(
-      find.byKey(const ValueKey('complete_profile_face_scan_placeholder')),
+      find.byKey(const ValueKey('complete_profile_avatar')),
       findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('complete_profile_bottom_bar')),
-      findsNothing,
+      findsOneWidget,
     );
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -59,59 +59,66 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('complete profile avatar ring no longer breathes', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1280, 2400));
+  testWidgets(
+    'complete profile avatar ring pulses and gender cards stay balanced',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 2400));
 
-    await tester.pumpWidget(
-      const MaterialApp(
-        locale: Locale('zh'),
-        localizationsDelegates: [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: CompleteProfilePage(),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: Locale('zh'),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: CompleteProfilePage(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 700));
 
-    final ringFinder = find.byKey(
-      const ValueKey('complete_profile_avatar_ring'),
-    );
-    expect(ringFinder, findsOneWidget);
-    final initialSize = tester.getSize(ringFinder);
-    await tester.pump(const Duration(milliseconds: 1200));
-    final laterSize = tester.getSize(ringFinder);
+      final ringFinder = find.byKey(
+        const ValueKey('complete_profile_avatar_ring'),
+      );
+      expect(ringFinder, findsOneWidget);
+      final initialScale = tester
+          .widget<Transform>(ringFinder)
+          .transform
+          .getMaxScaleOnAxis();
+      await tester.pump(const Duration(milliseconds: 1200));
+      final laterScale = tester
+          .widget<Transform>(ringFinder)
+          .transform
+          .getMaxScaleOnAxis();
 
-    expect(laterSize, equals(initialSize));
+      expect((laterScale - initialScale).abs(), greaterThan(0.01));
 
-    final l10n = _localizations(tester);
-    expect(find.text(l10n.registerGenderMale), findsOneWidget);
-    expect(find.text(l10n.registerGenderFemale), findsOneWidget);
-    expect(find.text(l10n.registerGenderOther), findsNothing);
+      final l10n = _localizations(tester);
+      expect(find.text(l10n.registerGenderMale), findsOneWidget);
+      expect(find.text(l10n.registerGenderFemale), findsOneWidget);
+      expect(find.text(l10n.registerGenderOther), findsNothing);
 
-    final maleSize = tester.getSize(
-      find.byKey(const ValueKey('complete_profile_gender_male')),
-    );
-    final femaleSize = tester.getSize(
-      find.byKey(const ValueKey('complete_profile_gender_female')),
-    );
-    expect((maleSize.width - femaleSize.width).abs(), lessThanOrEqualTo(1));
+      final maleSize = tester.getSize(
+        find.byKey(const ValueKey('complete_profile_gender_male')),
+      );
+      final femaleSize = tester.getSize(
+        find.byKey(const ValueKey('complete_profile_gender_female')),
+      );
+      expect((maleSize.width - femaleSize.width).abs(), lessThanOrEqualTo(1));
 
-    final maleTopLeft = tester.getTopLeft(
-      find.byKey(const ValueKey('complete_profile_gender_male')),
-    );
-    final femaleTopLeft = tester.getTopLeft(
-      find.byKey(const ValueKey('complete_profile_gender_female')),
-    );
-    expect(femaleTopLeft.dx, greaterThan(maleTopLeft.dx));
+      final maleTopLeft = tester.getTopLeft(
+        find.byKey(const ValueKey('complete_profile_gender_male')),
+      );
+      final femaleTopLeft = tester.getTopLeft(
+        find.byKey(const ValueKey('complete_profile_gender_female')),
+      );
+      expect(femaleTopLeft.dx, greaterThan(maleTopLeft.dx));
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    await tester.binding.setSurfaceSize(null);
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 }

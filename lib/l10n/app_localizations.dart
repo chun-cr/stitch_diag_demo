@@ -276,6 +276,18 @@ abstract class AppLocalizations {
   /// **'望 · 闻 · 问 · 切'**
   String get authInspectionMotto;
 
+  /// No description provided for @authPhoneLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机号登录'**
+  String get authPhoneLogin;
+
+  /// No description provided for @authEmailLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'邮箱登录'**
+  String get authEmailLogin;
+
   /// No description provided for @authPhoneLabel.
   ///
   /// In zh, this message translates to:
@@ -293,6 +305,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'请输入正确的手机号'**
   String get authPhoneFormatError;
+
+  /// No description provided for @authEmailLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'邮箱'**
+  String get authEmailLabel;
+
+  /// No description provided for @authEmailHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入邮箱'**
+  String get authEmailHint;
+
+  /// No description provided for @authEmailFormatError.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入正确的邮箱'**
+  String get authEmailFormatError;
 
   /// No description provided for @authNameLabel.
   ///

@@ -4,6 +4,7 @@ import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/security/login_password_store.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/widgets/auth_top_toast.dart';
 
 const _kAccountPageBg = Color(0xFFF4F1EB);
 const _kAccountCardBg = Colors.white;
@@ -20,11 +21,18 @@ class AccountSecurityPage extends StatefulWidget {
 
 class _AccountSecurityPageState extends State<AccountSecurityPage> {
   bool? _hasLoginPassword;
+  final _toastController = AuthTopToastController();
 
   @override
   void initState() {
     super.initState();
     _loadPasswordStatus();
+  }
+
+  @override
+  void dispose() {
+    _toastController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPasswordStatus() async {
@@ -36,11 +44,20 @@ class _AccountSecurityPageState extends State<AccountSecurityPage> {
   }
 
   Future<void> _openSetPasswordPage() async {
-    await context.push(AppRoutes.setLoginPassword);
+    final didSetPassword = await context.push<bool>(AppRoutes.setLoginPassword);
     if (!mounted) {
       return;
     }
     await _loadPasswordStatus();
+    if (!mounted || didSetPassword != true) {
+      return;
+    }
+    _toastController.show(
+      context,
+      context.l10n.setLoginPasswordSuccess,
+      kind: AuthTopToastKind.success,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   @override
@@ -141,9 +158,7 @@ class _AccountSecurityPageState extends State<AccountSecurityPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  context
-                                      .l10n
-                                      .accountSecurityLoginPasswordSub,
+                                  context.l10n.accountSecurityLoginPasswordSub,
                                   style: const TextStyle(
                                     fontSize: 12,
                                     height: 1.5,

@@ -102,13 +102,17 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) =>
-          LoginPage(inviteTicket: state.uri.queryParameters['inviteTicket']),
+      builder: (context, state) => LoginPage(
+        inviteTicket: state.uri.queryParameters['inviteTicket'],
+        initialMode: state.uri.queryParameters['mode'],
+      ),
     ),
     GoRoute(
       path: AppRoutes.register,
-      builder: (context, state) =>
-          RegisterPage(inviteTicket: state.uri.queryParameters['inviteTicket']),
+      builder: (context, state) => RegisterPage(
+        inviteTicket: state.uri.queryParameters['inviteTicket'],
+        initialMode: state.uri.queryParameters['mode'],
+      ),
     ),
     GoRoute(
       path: AppRoutes.completeProfile,

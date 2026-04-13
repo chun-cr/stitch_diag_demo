@@ -84,6 +84,9 @@ class _SlowAuthRepository implements AuthRepository {
       scope: 'mobile',
     );
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 class _FailingAuthRepository implements AuthRepository {
@@ -162,6 +165,9 @@ class _FailingAuthRepository implements AuthRepository {
       ),
     );
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 void main() {

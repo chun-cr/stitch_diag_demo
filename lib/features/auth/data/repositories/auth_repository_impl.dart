@@ -136,4 +136,9 @@ class AuthRepositoryImpl implements AuthRepository {
       scope: model.scope,
     );
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) {
+    return _remoteSource.logout(refreshToken: refreshToken);
+  }
 }

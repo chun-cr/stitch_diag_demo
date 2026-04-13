@@ -6,6 +6,8 @@ import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/l10n/locale_controller.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/core/utils/logger.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
 const _kPageBg        = Color(0xFFF4F1EB); // 宣纸米色
@@ -80,7 +82,7 @@ class ProfilePage extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   // 退出登录
-                  _buildLogoutButton(context),
+                  _buildLogoutButton(context, ref),
                 ],
               ),
             ),
@@ -572,11 +574,22 @@ class ProfilePage extends ConsumerWidget {
   // ══════════════════════════════════════════════════════════════
   //  退出登录按钮
   // ══════════════════════════════════════════════════════════════
-  Widget _buildLogoutButton(BuildContext context) {
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return Center(
       child: TextButton.icon(
         onPressed: () async {
-          await getIt<AuthSessionStore>().clear();
+          final sessionStore = getIt<AuthSessionStore>();
+          final refreshToken = await sessionStore.refreshToken();
+          if (refreshToken != null && refreshToken.isNotEmpty) {
+            try {
+              await ref
+                  .read(authRepositoryProvider)
+                  .logout(refreshToken: refreshToken);
+            } on Object catch (error) {
+              AppLogger.log('Logout request failed: $error');
+            }
+          }
+          await sessionStore.clear();
           if (!context.mounted) {
             return;
           }

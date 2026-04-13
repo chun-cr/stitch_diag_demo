@@ -10,7 +10,9 @@ abstract class AuthRequest with _$AuthRequest {
     required String phoneNumber,
     String? password,
     String? code,
+    String? inviteTicket,
   }) = _AuthRequest;
 
-  factory AuthRequest.fromJson(Map<String, dynamic> json) => _$AuthRequestFromJson(json);
+  factory AuthRequest.fromJson(Map<String, dynamic> json) =>
+      _$AuthRequestFromJson(json);
 }

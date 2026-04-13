@@ -98,6 +98,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authInspectionMotto => 'Inspect · Listen · Ask · Feel';
 
   @override
+  String get authPhoneLogin => 'Phone Login';
+
+  @override
+  String get authEmailLogin => 'Email Login';
+
+  @override
   String get authPhoneLabel => 'Phone';
 
   @override
@@ -105,6 +111,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPhoneFormatError => 'Please enter a valid phone number';
+
+  @override
+  String get authEmailLabel => 'Email';
+
+  @override
+  String get authEmailHint => 'Enter email address';
+
+  @override
+  String get authEmailFormatError => 'Please enter a valid email address';
 
   @override
   String get authNameLabel => 'Nickname';
@@ -146,7 +161,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authOtherMethods => 'Other methods';
 
   @override
-  String get authWechatLogin => 'WeChat';
+  String get authWechatLogin => 'WeChat Mini Program';
 
   @override
   String get authAppleLogin => 'Continue with Apple';

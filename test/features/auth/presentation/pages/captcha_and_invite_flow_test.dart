@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:riverpod/src/framework.dart' show Override;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stitch_diag_demo/features/auth/data/models/auth_request.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
@@ -97,17 +96,30 @@ class _CaptchaRequiredRepository implements AuthRepository {
   }) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 class _InviteTicketCapturingRepository implements AuthRepository {
-  _InviteTicketCapturingRepository({this.throwOnAuthenticate = true});
-
-  final bool throwOnAuthenticate;
   String? lastInviteTicket;
+  String? lastPasswordLoginInviteTicket;
 
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
-    throw UnimplementedError();
+    lastPasswordLoginInviteTicket = request.inviteTicket;
+    throw DioException(
+      requestOptions: RequestOptions(
+        path: '/api/v1/saas/mobile/auth/login/password',
+      ),
+      response: Response(
+        requestOptions: RequestOptions(
+          path: '/api/v1/saas/mobile/auth/login/password',
+        ),
+        statusCode: 400,
+        data: {'message': 'capture'},
+      ),
+    );
   }
 
   @override
@@ -159,40 +171,34 @@ class _InviteTicketCapturingRepository implements AuthRepository {
     String? inviteTicket,
   }) async {
     lastInviteTicket = inviteTicket;
-    if (throwOnAuthenticate) {
-      throw DioException(
+    throw DioException(
+      requestOptions: RequestOptions(
+        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+      ),
+      response: Response(
         requestOptions: RequestOptions(
           path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
         ),
-        response: Response(
-          requestOptions: RequestOptions(
-            path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
-          ),
-          statusCode: 400,
-          data: {'message': 'capture'},
-        ),
-      );
-    }
-    return const AuthSessionEntity(
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      tokenType: 'Bearer',
-      expiresIn: 3600,
-      scope: 'profile',
+        statusCode: 400,
+        data: {'message': 'capture'},
+      ),
     );
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 Future<void> _pumpLocalizedApp(
   WidgetTester tester, {
   required Widget child,
-  required List<Override> overrides,
+  required List<dynamic> overrides,
 }) async {
   SharedPreferences.setMockInitialValues({});
   await tester.binding.setSurfaceSize(const Size(1280, 2400));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      overrides: overrides.cast(),
       child: MaterialApp(
         locale: const Locale('zh'),
         localizationsDelegates: const [
@@ -275,6 +281,37 @@ void main() {
       await tester.binding.setSurfaceSize(null);
     },
   );
+
+  testWidgets('login page forwards invite ticket on password login', (
+    tester,
+  ) async {
+    final repository = _InviteTicketCapturingRepository();
+    await _pumpLocalizedApp(
+      tester,
+      child: const LoginPage(inviteTicket: 'invite-password-1'),
+      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
+    await tester.tap(find.text('密码登录'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.enterText(find.byType(TextFormField).at(1), 'secret123');
+    await tester.pump();
+
+    final button = tester.widget<GestureDetector>(
+      find.byKey(const ValueKey('login_primary_button')),
+    );
+    button.onTap!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    expect(repository.lastPasswordLoginInviteTicket, 'invite-password-1');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
 
   testWidgets(
     'register page forwards invite ticket on verification authenticate',

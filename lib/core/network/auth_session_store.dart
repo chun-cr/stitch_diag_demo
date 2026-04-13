@@ -31,6 +31,15 @@ class AuthSessionStore {
     return (preferences.getString(_accessTokenKey) ?? '').isNotEmpty;
   }
 
+  Future<String?> refreshToken() async {
+    final preferences = await SharedPreferences.getInstance();
+    final refreshToken = preferences.getString(_refreshTokenKey);
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return null;
+    }
+    return refreshToken;
+  }
+
   Future<String?> authorizationHeader() async {
     final preferences = await SharedPreferences.getInstance();
     final accessToken = preferences.getString(_accessTokenKey);

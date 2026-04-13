@@ -26,4 +26,5 @@ abstract class AuthRepository {
     required String verificationCode,
     String? inviteTicket,
   });
+  Future<void> logout({required String refreshToken});
 }

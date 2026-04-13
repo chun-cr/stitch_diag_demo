@@ -79,6 +79,9 @@ class _SuccessfulRegisterAuthRepository implements AuthRepository {
     expiresIn: 3600,
     scope: 'profile',
   );
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 void main() {

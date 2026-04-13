@@ -68,7 +68,12 @@ class _SuccessfulSendCodeRepository implements AuthRepository {
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
-  }) => throw UnimplementedError();
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 class _FailingSendCodeRepository implements AuthRepository {
@@ -107,7 +112,7 @@ class _FailingSendCodeRepository implements AuthRepository {
       response: Response(
         requestOptions: RequestOptions(path: '/send-code'),
         statusCode: 400,
-        data: {'message': '发送过于频繁'},
+        data: {'message': 'too-many-requests'},
       ),
     );
   }
@@ -124,7 +129,12 @@ class _FailingSendCodeRepository implements AuthRepository {
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
-  }) => throw UnimplementedError();
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 Future<void> _pumpLoginPage(
@@ -153,9 +163,10 @@ Future<void> _pumpLoginPage(
 }
 
 void main() {
-  testWidgets('send code success enters countdown and shows success snackbar', (
+  testWidgets('send code success enters countdown and shows success toast', (
     tester,
   ) async {
+    final l10n = lookupAppLocalizations(const Locale('zh'));
     await _pumpLoginPage(tester, repository: _SuccessfulSendCodeRepository());
 
     await tester.enterText(find.byType(TextFormField).first, '13800138000');
@@ -166,7 +177,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('验证码已发送，请注意查收'), findsOneWidget);
+    expect(find.text(l10n.authCodeSent), findsOneWidget);
     expect(find.byKey(const ValueKey('send_code_countdown')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -182,7 +193,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('发送过于频繁'), findsOneWidget);
+    expect(find.text('too-many-requests'), findsOneWidget);
     expect(find.byKey(const ValueKey('send_code_button')), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -201,13 +212,19 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.enterText(find.byType(TextFormField).at(1), '1234');
 
-    await tester.tap(find.text('密码登录'));
+    final switchToPassword = tester.widget<TextButton>(
+      find.byKey(const ValueKey('switch_to_password_login')),
+    );
+    switchToPassword.onPressed!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const ValueKey('password_field')), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField).at(1), 'abcdef');
-    await tester.tap(find.text('验证码登录'));
+    final switchToCode = tester.widget<TextButton>(
+      find.byKey(const ValueKey('switch_to_code_login')),
+    );
+    switchToCode.onPressed!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -220,7 +237,10 @@ void main() {
     expect(find.byKey(const ValueKey('send_code_button')), findsWidgets);
     expect(find.text('1234'), findsNothing);
 
-    await tester.tap(find.text('密码登录'));
+    final switchBackToPassword = tester.widget<TextButton>(
+      find.byKey(const ValueKey('switch_to_password_login')),
+    );
+    switchBackToPassword.onPressed!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('abcdef'), findsNothing);
@@ -261,16 +281,20 @@ void main() {
   });
 
   testWidgets('forgot password shows guidance dialog', (tester) async {
+    final l10n = lookupAppLocalizations(const Locale('zh'));
     await _pumpLoginPage(tester, repository: _SuccessfulSendCodeRepository());
 
-    await tester.tap(find.text('密码登录'));
+    final switchToPassword = tester.widget<TextButton>(
+      find.byKey(const ValueKey('switch_to_password_login')),
+    );
+    switchToPassword.onPressed!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.text('忘记密码？'));
+    await tester.tap(find.text(l10n.authForgotPassword));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('请通过注册手机号重置密码，或联系客服处理'), findsOneWidget);
+    expect(find.text(l10n.authForgotPasswordTip), findsOneWidget);
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.byType(TextButton), findsWidgets);
 
@@ -278,7 +302,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('请通过注册手机号重置密码，或联系客服处理'), findsNothing);
+    expect(find.text(l10n.authForgotPasswordTip), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

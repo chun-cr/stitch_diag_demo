@@ -53,6 +53,7 @@ dependencies:
   cached_network_image: ^3.4.1
   in_app_purchase: ^3.2.0
   intl: any
+  webview_flutter: ^4.13.1
 
 dev_dependencies:
   flutter_test:

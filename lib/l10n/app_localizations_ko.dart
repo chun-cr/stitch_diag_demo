@@ -98,6 +98,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authInspectionMotto => '망 · 문 · 문 · 절';
 
   @override
+  String get authPhoneLogin => '手机号登录';
+
+  @override
+  String get authEmailLogin => '邮箱登录';
+
+  @override
   String get authPhoneLabel => '전화번호';
 
   @override
@@ -105,6 +111,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authPhoneFormatError => '올바른 전화번호를 입력해 주세요';
+
+  @override
+  String get authEmailLabel => '邮箱';
+
+  @override
+  String get authEmailHint => '请输入邮箱';
+
+  @override
+  String get authEmailFormatError => '请输入正确的邮箱';
 
   @override
   String get authNameLabel => '닉네임';

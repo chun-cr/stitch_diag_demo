@@ -98,6 +98,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authInspectionMotto => '望 · 闻 · 问 · 切';
 
   @override
+  String get authPhoneLogin => '手机号登录';
+
+  @override
+  String get authEmailLogin => '邮箱登录';
+
+  @override
   String get authPhoneLabel => '手机号';
 
   @override
@@ -105,6 +111,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authPhoneFormatError => '请输入正确的手机号';
+
+  @override
+  String get authEmailLabel => '邮箱';
+
+  @override
+  String get authEmailHint => '请输入邮箱';
+
+  @override
+  String get authEmailFormatError => '请输入正确的邮箱';
 
   @override
   String get authNameLabel => '昵称';

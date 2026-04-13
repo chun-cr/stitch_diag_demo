@@ -98,6 +98,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authInspectionMotto => '望・聞・問・切';
 
   @override
+  String get authPhoneLogin => '手机号登录';
+
+  @override
+  String get authEmailLogin => '邮箱登录';
+
+  @override
   String get authPhoneLabel => '電話番号';
 
   @override
@@ -105,6 +111,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get authPhoneFormatError => '正しい電話番号を入力してください';
+
+  @override
+  String get authEmailLabel => '邮箱';
+
+  @override
+  String get authEmailHint => '请输入邮箱';
+
+  @override
+  String get authEmailFormatError => '请输入正确的邮箱';
 
   @override
   String get authNameLabel => 'ニックネーム';

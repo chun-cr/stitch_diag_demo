@@ -15,6 +15,7 @@ import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_reposito
 import '../../../../core/router/app_router.dart';
 import '../providers/auth_repository_provider.dart';
 import '../providers/captcha_resolver_provider.dart';
+import '../widgets/auth_top_toast.dart';
 import '../../data/models/auth_request.dart';
 
 // ─── TCM Color Tokens (与首页/扫描页统一) ────────────────────────────
@@ -29,9 +30,10 @@ import '../../data/models/auth_request.dart';
 // tcmGoldLight = Color(0xFFFAF3E0)
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key, this.inviteTicket});
+  const LoginPage({super.key, this.inviteTicket, this.initialMode});
 
   final String? inviteTicket;
+  final String? initialMode;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -43,15 +45,18 @@ class _LoginPageState extends ConsumerState<LoginPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
   final _countryMenuController = MenuController();
+  bool _isEmailLogin = false;
   bool _obscurePass = true;
   bool _isPasswordLogin = false; // 默认为验证码登录
   bool _codeSending = false;
   bool _codeCountingDown = false;
   int _codeCountdown = 60;
   Timer? _countdownTimer;
+  final _errorToastController = AuthTopToastController();
   String? _codeTargetPhone;
   String? _codeTargetCountryCode;
   String? _challengeId;
@@ -86,12 +91,16 @@ class _LoginPageState extends ConsumerState<LoginPage>
   static const Duration _submittingDuration = Duration(milliseconds: 800);
 
   bool get _isBusy => _buttonPhase != _LoginButtonPhase.idle;
+  bool get _usesPasswordCredential => _isEmailLogin || _isPasswordLogin;
+  String get _currentEntryMode => _isEmailLogin ? 'email' : 'phone';
 
   static final RegExp _phonePattern = RegExp(r'^[0-9]{6,15}$');
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
   @override
   void initState() {
     super.initState();
+    _isEmailLogin = widget.initialMode == 'email';
     _breatheController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -133,19 +142,38 @@ class _LoginPageState extends ConsumerState<LoginPage>
     _btnScaleCtrl.dispose();
     _exitCtrl.dispose();
     _phoneCtrl.dispose();
+    _emailCtrl.dispose();
     _passCtrl.dispose();
     _codeCtrl.dispose();
     _countdownTimer?.cancel();
+    _errorToastController.dispose();
     super.dispose();
   }
 
   String? _validatePhone(String? value) {
+    if (_isEmailLogin) {
+      return null;
+    }
     final input = value?.trim() ?? '';
     if (input.isEmpty) {
       return context.l10n.authPhoneHint;
     }
     if (!_phonePattern.hasMatch(input)) {
       return context.l10n.authPhoneFormatError;
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (!_isEmailLogin) {
+      return null;
+    }
+    final input = value?.trim() ?? '';
+    if (input.isEmpty) {
+      return context.l10n.authEmailHint;
+    }
+    if (!_emailPattern.hasMatch(input)) {
+      return context.l10n.authEmailFormatError;
     }
     return null;
   }
@@ -178,12 +206,13 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   String get _registerLocation {
     final inviteTicket = _inviteTicket;
-    if (inviteTicket == null) {
-      return AppRoutes.register;
+    final queryParameters = <String, String>{'mode': _currentEntryMode};
+    if (inviteTicket != null) {
+      queryParameters['inviteTicket'] = inviteTicket;
     }
     return Uri(
       path: AppRoutes.register,
-      queryParameters: {'inviteTicket': inviteTicket},
+      queryParameters: queryParameters,
     ).toString();
   }
 
@@ -245,6 +274,51 @@ class _LoginPageState extends ConsumerState<LoginPage>
     if (value.trim() != targetPhone) {
       setState(() => _resetCodeState());
     }
+  }
+
+  void _togglePhoneAuthMode() {
+    if (_isEmailLogin) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() {
+      final preservedPhone = _phoneCtrl.text;
+      _isPasswordLogin = !_isPasswordLogin;
+      if (_isPasswordLogin) {
+        _resetCodeState();
+      } else {
+        _passCtrl.clear();
+      }
+      _formKey.currentState?.reset();
+      _phoneCtrl.text = preservedPhone;
+    });
+  }
+
+  void _activateEmailLogin() {
+    if (_isEmailLogin) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isEmailLogin = true;
+      _obscurePass = true;
+      _passCtrl.clear();
+      _resetCodeState();
+      _formKey.currentState?.reset();
+    });
+  }
+
+  void _returnToPhoneLogin() {
+    if (!_isEmailLogin) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isEmailLogin = false;
+      _obscurePass = true;
+      _passCtrl.clear();
+      _formKey.currentState?.reset();
+    });
   }
 
   Object? _responseCode(dynamic responseData) {
@@ -336,68 +410,17 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   void _showErrorSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF8F3B3B),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+    _errorToastController.show(context, message);
   }
 
   void _showSuccessSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.check_circle_outline_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF2D6A4F),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    _errorToastController.show(
+      context,
+      message,
+      kind: AuthTopToastKind.success,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   Future<void> _onSendCode() async {
@@ -474,7 +497,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Future<void> _onLogin() async {
-    if (!_isPasswordLogin && (_challengeId == null || _challengeId!.isEmpty)) {
+    if (!_isEmailLogin &&
+        !_isPasswordLogin &&
+        (_challengeId == null || _challengeId!.isEmpty)) {
       _showErrorSnack(context.l10n.authSendCodeFirst);
       return;
     }
@@ -484,19 +509,32 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     try {
       final repository = ref.read(authRepositoryProvider);
-      final Future<AuthSessionEntity> loginFuture = _isPasswordLogin
-          ? repository.login(
-              AuthRequest(
-                countryCode: _selectedCountryCode,
-                phoneNumber: _phoneCtrl.text.trim(),
-                password: _passCtrl.text,
-              ),
-            )
-          : repository.authenticateVerificationCode(
-              challengeId: _challengeId!,
-              verificationCode: _codeCtrl.text.trim(),
-              inviteTicket: _inviteTicket,
-            );
+      final Future<AuthSessionEntity> loginFuture;
+      if (_isEmailLogin) {
+        loginFuture = repository.login(
+          AuthRequest(
+            countryCode: '',
+            phoneNumber: _emailCtrl.text.trim(),
+            password: _passCtrl.text,
+            inviteTicket: _inviteTicket,
+          ),
+        );
+      } else if (_isPasswordLogin) {
+        loginFuture = repository.login(
+          AuthRequest(
+            countryCode: _selectedCountryCode,
+            phoneNumber: _phoneCtrl.text.trim(),
+            password: _passCtrl.text,
+            inviteTicket: _inviteTicket,
+          ),
+        );
+      } else {
+        loginFuture = repository.authenticateVerificationCode(
+          challengeId: _challengeId!,
+          verificationCode: _codeCtrl.text.trim(),
+          inviteTicket: _inviteTicket,
+        );
+      }
 
       final results = await Future.wait<dynamic>([
         loginFuture,
@@ -519,10 +557,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
       final responseData = error.response?.data;
       final serverMessage = _responseMessage(responseData);
       final code = _responseCode(responseData);
-      if (code == 11119 || code == 11121) {
+      if (!_usesPasswordCredential && (code == 11119 || code == 11121)) {
         _resetCodeState();
       }
-      if (code == 11122 || code == 11123) {
+      if (!_usesPasswordCredential && (code == 11122 || code == 11123)) {
         _captchaVerified = false;
       }
       _showErrorSnack(serverMessage ?? context.l10n.authLoginFailed);
@@ -535,6 +573,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardVisible = keyboardInset > 0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1EB),
       body: AnimatedBuilder(
@@ -550,76 +591,126 @@ class _LoginPageState extends ConsumerState<LoginPage>
                 Positioned.fill(child: _buildBackground()),
                 // 主内容（退场时向上微滑 + 淡出，如晨雾散去）
                 SafeArea(
-                  child: Transform.translate(
-                    offset: Offset(0, -40 * t),
-                    child: Opacity(
-                      opacity: (1.0 - t).clamp(0.0, 1.0),
-                      child: FadeTransition(
-                        opacity: _fadeAnim,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 28,
-                              ),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight,
+                  child: AnimatedPadding(
+                    duration: const Duration(milliseconds: 240),
+                    curve: Curves.easeOutCubic,
+                    padding: EdgeInsets.only(bottom: keyboardVisible ? 12 : 0),
+                    child: Transform.translate(
+                      offset: Offset(0, -40 * t),
+                      child: Opacity(
+                        opacity: (1.0 - t).clamp(0.0, 1.0),
+                        child: FadeTransition(
+                          opacity: _fadeAnim,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return SingleChildScrollView(
+                                keyboardDismissBehavior:
+                                    ScrollViewKeyboardDismissBehavior.onDrag,
+                                padding: EdgeInsets.fromLTRB(
+                                  28,
+                                  0,
+                                  28,
+                                  keyboardVisible ? 20 : 0,
                                 ),
-                                child: IntrinsicHeight(
-                                  child: Form(
-                                    key: _formKey,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        const SizedBox(height: 24),
-                                        _buildBrandRow(),
-                                        const SizedBox(height: 36),
-                                        _buildHeroVisual(),
-                                        const SizedBox(height: 12),
-                                        _buildHeroText(),
-                                        const SizedBox(height: 28),
-                                        _buildPhoneField(),
-                                        const SizedBox(height: 14),
-                                        AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 300,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: constraints.maxHeight,
+                                  ),
+                                  child: IntrinsicHeight(
+                                    child: Form(
+                                      key: _formKey,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          const SizedBox(height: 24),
+                                          _buildBrandRow(),
+                                          SizedBox(
+                                            height: keyboardVisible ? 20 : 36,
                                           ),
-                                          transitionBuilder:
-                                              (child, animation) {
-                                                return FadeTransition(
-                                                  opacity: animation,
-                                                  child: SlideTransition(
-                                                    position: Tween<Offset>(
-                                                      begin: const Offset(
-                                                        0,
-                                                        0.1,
+                                          AnimatedSlide(
+                                            duration: const Duration(
+                                              milliseconds: 240,
+                                            ),
+                                            curve: Curves.easeOutCubic,
+                                            offset: Offset(
+                                              0,
+                                              keyboardVisible ? -0.14 : 0,
+                                            ),
+                                            child: AnimatedScale(
+                                              duration: const Duration(
+                                                milliseconds: 240,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              scale: keyboardVisible ? 0.7 : 1,
+                                              alignment: Alignment.topCenter,
+                                              child: _buildHeroVisual(),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: keyboardVisible ? 4 : 12,
+                                          ),
+                                          _buildHeroText(),
+                                          SizedBox(
+                                            height: keyboardVisible ? 16 : 28,
+                                          ),
+                                          _buildInputArea(),
+                                          const SizedBox(height: 22),
+                                          AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 220,
+                                            ),
+                                            curve: Curves.easeOutCubic,
+                                            margin: EdgeInsets.only(
+                                              bottom: keyboardVisible ? 8 : 0,
+                                            ),
+                                            child: _buildPrimaryButton(),
+                                          ),
+                                          const Spacer(),
+                                          AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 220,
+                                            ),
+                                            switchInCurve: Curves.easeOutCubic,
+                                            switchOutCurve: Curves.easeInCubic,
+                                            transitionBuilder:
+                                                (child, animation) {
+                                                  return FadeTransition(
+                                                    opacity: animation,
+                                                    child: SizeTransition(
+                                                      sizeFactor: animation,
+                                                      axisAlignment: -1,
+                                                      child: child,
+                                                    ),
+                                                  );
+                                                },
+                                            child: keyboardVisible
+                                                ? const SizedBox(
+                                                    key: ValueKey(
+                                                      'login_keyboard_compact',
+                                                    ),
+                                                    height: 12,
+                                                  )
+                                                : Column(
+                                                    key: const ValueKey(
+                                                      'login_keyboard_full',
+                                                    ),
+                                                    children: [
+                                                      _buildBottomAuxiliarySections(),
+                                                      const SizedBox(
+                                                        height: 36,
                                                       ),
-                                                      end: Offset.zero,
-                                                    ).animate(animation),
-                                                    child: child,
+                                                    ],
                                                   ),
-                                                );
-                                              },
-                                          child: _isPasswordLogin
-                                              ? _buildPasswordField()
-                                              : _buildCodeField(),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildFieldsFooter(),
-                                        const SizedBox(height: 22),
-                                        _buildPrimaryButton(),
-                                        const Spacer(),
-                                        _buildBottomAuxiliarySections(),
-                                        const SizedBox(height: 36),
-                                      ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -851,13 +942,143 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
+  Widget _buildHorizontalFadeTransition(
+    Widget child,
+    Animation<double> animation,
+  ) {
+    final curvedAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final begin = Offset(_isPasswordLogin ? 0.08 : -0.08, 0);
+    return FadeTransition(
+      opacity: curvedAnimation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: begin,
+          end: Offset.zero,
+        ).animate(curvedAnimation),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildModeFadeTransition(Widget child, Animation<double> animation) {
+    final curvedAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final slidesFromRight = child.key == const ValueKey('email_input_area');
+    return FadeTransition(
+      opacity: curvedAnimation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset(slidesFromRight ? 0.12 : -0.12, 0),
+          end: Offset.zero,
+        ).animate(curvedAnimation),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: _buildModeFadeTransition,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              ...previousChildren,
+              ...switch (currentChild) {
+                null => const <Widget>[],
+                final child => <Widget>[child],
+              },
+            ],
+          );
+        },
+        child: _isEmailLogin ? _buildEmailInputArea() : _buildPhoneInputArea(),
+      ),
+    );
+  }
+
+  Widget _buildPhoneInputArea() {
+    return Column(
+      key: const ValueKey('phone_input_area'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPhoneField(),
+        const SizedBox(height: 14),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: _buildHorizontalFadeTransition,
+          child: _usesPasswordCredential
+              ? _buildPasswordField()
+              : _buildCodeField(),
+        ),
+        const SizedBox(height: 8),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: _buildHorizontalFadeTransition,
+          child: _buildFieldsFooter(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailInputArea() {
+    return Column(
+      key: const ValueKey('email_input_area'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: const ValueKey('return_phone_login_button'),
+            onPressed: _returnToPhoneLogin,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: const Color(0xFF2D6A4F),
+            ),
+            icon: const Icon(Icons.arrow_back_rounded, size: 16),
+            label: Text(
+              context.l10n.authPhoneLogin,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildEmailField(),
+        const SizedBox(height: 14),
+        _buildPasswordField(fieldKey: const ValueKey('email_password_field')),
+      ],
+    );
+  }
+
   // ── Phone Field ────────────────────────────────────────────────
   Widget _buildPhoneField() {
-    final l10n = context.l10n;
     return Column(
+      key: const ValueKey('phone_field'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InputLabel(text: l10n.authPhoneLabel),
+        _InputLabel(text: context.l10n.authPhoneLabel),
         const SizedBox(height: 6),
         TextFormField(
           controller: _phoneCtrl,
@@ -866,7 +1087,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           onChanged: _handlePhoneChanged,
           style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
-            hint: l10n.authPhoneHint,
+            hint: context.l10n.authPhoneHint,
             prefixIcon: _buildCountryCodePrefix(),
             prefixIconConstraints: const BoxConstraints(
               minWidth: 0,
@@ -874,6 +1095,32 @@ class _LoginPageState extends ConsumerState<LoginPage>
             ),
           ),
           validator: _validatePhone,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      key: const ValueKey('email_field'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InputLabel(text: context.l10n.authEmailLabel),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          decoration: _inputDecoration(
+            hint: context.l10n.authEmailHint,
+            prefixIcon: const Icon(
+              Icons.email_outlined,
+              size: 18,
+              color: Color(0xFFA09080),
+            ),
+          ),
+          validator: _validateEmail,
         ),
       ],
     );
@@ -914,7 +1161,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF2D6A4F),
+                          color: Color(0xFF6FA585),
                         ),
                       )
                     : _codeCountingDown
@@ -924,6 +1171,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFFA09080),
+                          fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       )
                     : TextButton(
@@ -943,11 +1191,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
           ),
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: (v) =>
-              (!_isPasswordLogin && (v == null || v.trim().length != 6))
+              (!_usesPasswordCredential && (v == null || v.trim().length != 6))
               ? l10n.authVerificationCodeHint
               : null,
         ),
-        if (!_isPasswordLogin &&
+        if (!_usesPasswordCredential &&
             maskedReceiver != null &&
             maskedReceiver.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -965,9 +1213,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   // ── Password Field ─────────────────────────────────────────────
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField({Key? fieldKey}) {
     return Column(
-      key: const ValueKey('password_field'),
+      key: fieldKey ?? const ValueKey('password_field'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _InputLabel(text: context.l10n.authPasswordLabel),
@@ -996,7 +1244,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
             ),
           ),
           validator: (v) {
-            if (!_isPasswordLogin) return null;
+            if (!_usesPasswordCredential) return null;
             if (v == null || v.isEmpty) return context.l10n.authPasswordHint;
             if (v.length < 6) return context.l10n.authPasswordMin6;
             return null;
@@ -1009,22 +1257,18 @@ class _LoginPageState extends ConsumerState<LoginPage>
   // ── Field Footer (Toggle & Forgot Password) ──────────────────────
   Widget _buildFieldsFooter() {
     return Row(
+      key: ValueKey(
+        _isPasswordLogin ? 'password_fields_footer' : 'code_fields_footer',
+      ),
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         TextButton(
-          onPressed: () {
-            setState(() {
-              final preservedPhone = _phoneCtrl.text;
-              _isPasswordLogin = !_isPasswordLogin;
-              if (_isPasswordLogin) {
-                _resetCodeState();
-              } else {
-                _passCtrl.clear();
-              }
-              _formKey.currentState?.reset();
-              _phoneCtrl.text = preservedPhone;
-            });
-          },
+          key: ValueKey(
+            _isPasswordLogin
+                ? 'switch_to_code_login'
+                : 'switch_to_password_login',
+          ),
+          onPressed: _togglePhoneAuthMode,
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size.zero,
@@ -1035,68 +1279,71 @@ class _LoginPageState extends ConsumerState<LoginPage>
                 ? context.l10n.authCodeLogin
                 : context.l10n.authPasswordLogin,
             style: const TextStyle(
-              fontSize: 12.5,
-              color: Color(0xFF2D6A4F),
-              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: Color(0xFFA09080),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        if (_isPasswordLogin)
-          TextButton(
-            onPressed: () {
-              showDialog<void>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  backgroundColor: const Color(0xFFF9F7F2),
-                  title: Text(
-                    context.l10n.authForgotPassword,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2D6A4F),
-                    ),
-                  ),
-                  content: Text(
-                    context.l10n.authForgotPasswordTip,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: const Color(0xFF3A3028).withValues(alpha: 0.7),
-                      height: 1.6,
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        context.l10n.commonConfirm,
-                        style: const TextStyle(
-                          color: Color(0xFF2D6A4F),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        if (_isPasswordLogin) _buildForgotPasswordButton(),
+      ],
+    );
+  }
+
+  Widget _buildForgotPasswordButton() {
+    return TextButton(
+      onPressed: () {
+        showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: Text(
+            backgroundColor: const Color(0xFFF9F7F2),
+            title: Text(
               context.l10n.authForgotPassword,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: const Color(0xFF3A3028).withValues(alpha: 0.6),
-                fontWeight: FontWeight.w500,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2D6A4F),
               ),
             ),
+            content: Text(
+              context.l10n.authForgotPasswordTip,
+              style: TextStyle(
+                fontSize: 13,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.7),
+                height: 1.6,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  context.l10n.commonConfirm,
+                  style: const TextStyle(
+                    color: Color(0xFF2D6A4F),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-      ],
+        );
+      },
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        context.l10n.authForgotPassword,
+        style: TextStyle(
+          fontSize: 12.5,
+          color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 
@@ -1214,8 +1461,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   size: 18,
                   color: Color(0xFFA09080),
                 ),
-                const SizedBox(width: 8),
-                Container(width: 1, height: 16, color: Colors.black12),
+                const SizedBox(width: 14),
               ],
             ),
           );
@@ -1373,23 +1619,32 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   // ── Social Row ─────────────────────────────────────────────────
   Widget _buildSocialRow() {
+    final locale = Localizations.localeOf(context).languageCode;
+    final wechatLabel = locale == 'zh'
+        ? '微信小程序登录'
+        : context.l10n.authWechatLogin;
+
     return Row(
       children: [
         Expanded(
           child: _SocialButton(
+            buttonKey: const ValueKey('login_wechat_button'),
             icon: Icons.wechat,
             iconColor: const Color(0xFF07C160),
-            label: context.l10n.authWechatLogin,
+            label: wechatLabel,
+            labelColor: const Color(0xFF1E1810),
             onTap: () {},
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _SocialButton(
-            icon: Icons.apple,
-            iconColor: const Color(0xFF1E1810),
-            label: context.l10n.authAppleLogin,
-            onTap: () {},
+            buttonKey: const ValueKey('login_email_button'),
+            icon: Icons.email_outlined,
+            iconColor: const Color(0xFF3A3028),
+            label: context.l10n.authEmailLogin,
+            labelColor: const Color(0xFF3A3028),
+            onTap: _activateEmailLogin,
           ),
         ),
       ],
@@ -1450,21 +1705,19 @@ class _LoginPageState extends ConsumerState<LoginPage>
       contentPadding: const EdgeInsets.symmetric(vertical: 15),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: BorderSide(
-          color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-          width: 1.5,
-        ),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: BorderSide(
-          color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-          width: 1.5,
-        ),
+        borderSide: BorderSide.none,
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 1),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
@@ -1818,13 +2071,17 @@ class _InputLabel extends StatelessWidget {
 
 // ─── Social Button ────────────────────────────────────────────────
 class _SocialButton extends StatelessWidget {
+  final Key? buttonKey;
   final IconData icon;
   final Color iconColor;
+  final Color? labelColor;
   final String label;
   final VoidCallback onTap;
   const _SocialButton({
+    this.buttonKey,
     required this.icon,
     required this.iconColor,
+    this.labelColor,
     required this.label,
     required this.onTap,
   });
@@ -1832,21 +2089,18 @@ class _SocialButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: buttonKey,
       onTap: onTap,
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-            width: 1.2,
-          ),
+          color: Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.025),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -1860,10 +2114,10 @@ class _SocialButton extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF1E1810),
+                  color: labelColor ?? const Color(0xFF1E1810),
                 ),
               ),
             ),

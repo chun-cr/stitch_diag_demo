@@ -90,6 +90,9 @@ class _FailingRegisterAuthRepository implements AuthRepository {
       ),
     );
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 class _CapturingRegisterAuthRepository implements AuthRepository {
@@ -180,6 +183,9 @@ class _CapturingRegisterAuthRepository implements AuthRepository {
       ),
     );
   }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 Future<void> _pumpRegisterPage(
@@ -262,7 +268,7 @@ void main() {
   );
 
   testWidgets(
-    'register page uses register challenge response for initial send',
+    'register page sends verification code after register challenge',
     (tester) async {
       final repository = _CapturingRegisterAuthRepository();
       await _pumpRegisterPage(tester, repository: repository);
@@ -273,10 +279,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(repository.createChallengeCallCount, 1);
-      expect(repository.sendCodeCallCount, 0);
+      expect(repository.sendCodeCallCount, 1);
       expect(repository.lastScene, VerificationCodeScene.register);
       expect(repository.lastCountryCode, '+86');
       expect(repository.lastPhoneNumber, '13800138000');
+      expect(repository.lastChallengeId, 'challenge-1');
       expect(find.text('验证码已发送，请注意查收'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('register_send_code_countdown')),

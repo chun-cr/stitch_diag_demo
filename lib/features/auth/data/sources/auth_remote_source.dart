@@ -11,6 +11,14 @@ class AuthRemoteSource {
 
   AuthRemoteSource(this._dioClient);
 
+  String? _trimmedOrNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
+  }
+
   Map<String, dynamic> _dataMap(dynamic responseData) {
     if (responseData is! Map<String, dynamic>) {
       throw const FormatException('Invalid response envelope');
@@ -29,10 +37,40 @@ class AuthRemoteSource {
     };
   }
 
+  Map<String, dynamic> _loginPayload(AuthRequest request) {
+    final loginValue = request.phoneNumber.trim();
+    final password = _trimmedOrNull(request.password);
+    final countryCode = _trimmedOrNull(request.countryCode);
+    final inviteTicket = _trimmedOrNull(request.inviteTicket);
+    final payload = <String, dynamic>{'loginValue': loginValue};
+    if (countryCode != null) {
+      payload['countryCode'] = countryCode;
+    }
+    if (password != null) {
+      payload['password'] = password;
+    }
+    if (inviteTicket != null) {
+      payload['inviteTicket'] = inviteTicket;
+    }
+    return payload;
+  }
+
+  Map<String, dynamic> _passwordRegisterPayload(AuthRequest request) {
+    final password = _trimmedOrNull(request.password);
+    final payload = <String, dynamic>{
+      'countryCode': request.countryCode.trim(),
+      'phoneNumber': request.phoneNumber.trim(),
+    };
+    if (password != null) {
+      payload['password'] = password;
+    }
+    return payload;
+  }
+
   Future<AuthSessionModel> login(AuthRequest request) async {
     final response = await _dioClient.dio.post(
       '/api/v1/saas/mobile/auth/login/password',
-      data: request.toJson(),
+      data: _loginPayload(request),
     );
     return AuthSessionModel.fromJson(_dataMap(response.data));
   }
@@ -40,7 +78,7 @@ class AuthRemoteSource {
   Future<AuthSessionModel> register(AuthRequest request) async {
     final response = await _dioClient.dio.post(
       '/api/v1/saas/mobile/auth/register/password',
-      data: request.toJson(),
+      data: _passwordRegisterPayload(request),
     );
     return AuthSessionModel.fromJson(_dataMap(response.data));
   }
@@ -50,7 +88,7 @@ class AuthRemoteSource {
   ) async {
     final response = await _dioClient.dio.post(
       '/api/v1/saas/mobile/auth/register/password',
-      data: request.toJson(),
+      data: _passwordRegisterPayload(request),
     );
     return PasswordRegisterResultModel.fromJson(_dataMap(response.data));
   }
@@ -60,17 +98,15 @@ class AuthRemoteSource {
     required String countryCode,
     required String phoneNumber,
   }) async {
+    final challengePayload = {
+      'scene': _sceneValue(scene),
+      'countryCode': countryCode,
+      'phoneNumber': phoneNumber,
+      'loginValue': phoneNumber,
+    };
     final response = await _dioClient.dio.post(
-      scene == VerificationCodeScene.register
-          ? '/api/v1/saas/mobile/auth/register/verification-code/challenge'
-          : '/api/v1/saas/mobile/auth/verification-code/challenge',
-      data: scene == VerificationCodeScene.register
-          ? {'countryCode': countryCode, 'phoneNumber': phoneNumber}
-          : {
-              'scene': _sceneValue(scene),
-              'countryCode': countryCode,
-              'phoneNumber': phoneNumber,
-            },
+      '/api/v1/saas/mobile/auth/verification-code/challenge',
+      data: challengePayload,
     );
     return VerificationCodeChallengeModel.fromJson(_dataMap(response.data));
   }
@@ -116,5 +152,12 @@ class AuthRemoteSource {
       },
     );
     return AuthSessionModel.fromJson(_dataMap(response.data));
+  }
+
+  Future<void> logout({required String refreshToken}) async {
+    await _dioClient.dio.post(
+      '/api/v1/saas/mobile/auth/logout',
+      data: {'refreshToken': refreshToken},
+    );
   }
 }
