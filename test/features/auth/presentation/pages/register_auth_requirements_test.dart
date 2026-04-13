@@ -9,6 +9,7 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_enti
 import 'package:stitch_diag_demo/features/auth/domain/entities/password_register_result_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_challenge_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
@@ -44,8 +45,7 @@ class _FailingRegisterAuthRepository implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async => VerificationCodeChallengeEntity(
     challengeId: 'challenge-1',
     captchaRequired: false,
@@ -122,13 +122,12 @@ class _CapturingRegisterAuthRepository implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async {
     createChallengeCallCount++;
     lastScene = scene;
-    lastCountryCode = countryCode;
-    lastPhoneNumber = phoneNumber;
+    lastCountryCode = target.countryCode ?? '';
+    lastPhoneNumber = target.value;
     return VerificationCodeChallengeEntity(
       challengeId: 'challenge-1',
       captchaRequired: false,
@@ -306,9 +305,12 @@ void main() {
       find.byKey(const ValueKey('register_country_code_menu_trigger')),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text('+44').last);
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.tap(
+      find.byKey(const ValueKey('country_code_picker_item_+44')),
+    );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
 
     await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
     await tester.enterText(find.byType(TextFormField).at(1), '123456');

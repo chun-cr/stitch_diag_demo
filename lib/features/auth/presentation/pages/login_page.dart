@@ -11,10 +11,13 @@ import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import '../../../../core/router/app_router.dart';
 import '../providers/auth_repository_provider.dart';
 import '../providers/captcha_resolver_provider.dart';
+import '../utils/verification_code_feedback.dart';
+import '../widgets/country_code_picker.dart';
 import '../widgets/auth_top_toast.dart';
 import '../../data/models/auth_request.dart';
 
@@ -48,7 +51,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
-  final _countryMenuController = MenuController();
   bool _isEmailLogin = false;
   bool _obscurePass = true;
   bool _isPasswordLogin = false; // 默认为验证码登录
@@ -69,16 +71,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   String _selectedCountryCode = '+86';
   String _selectedCountryFlag = '🇨🇳';
 
-  final List<Map<String, String>> _countryCodes = [
-    {'name': '中国', 'code': '+86', 'flag': '🇨🇳'},
-    {'name': '英国', 'code': '+44', 'flag': '🇬🇧'},
-    {'name': '西班牙', 'code': '+34', 'flag': '🇪🇸'},
-    {'name': '葡萄牙', 'code': '+351', 'flag': '🇵🇹'},
-    {'name': '法国', 'code': '+33', 'flag': '🇫🇷'},
-    {'name': '德国', 'code': '+49', 'flag': '🇩🇪'},
-    {'name': '日本', 'code': '+81', 'flag': '🇯🇵'},
-    {'name': '韩国', 'code': '+82', 'flag': '🇰🇷'},
-  ];
+  final List<CountryCodeOption> _countryCodes = authCountryCodeOptions;
 
   late AnimationController _breatheController;
   late AnimationController _fadeController;
@@ -91,8 +84,18 @@ class _LoginPageState extends ConsumerState<LoginPage>
   static const Duration _submittingDuration = Duration(milliseconds: 800);
 
   bool get _isBusy => _buttonPhase != _LoginButtonPhase.idle;
-  bool get _usesPasswordCredential => _isEmailLogin || _isPasswordLogin;
+  bool get _usesPasswordCredential => !_isEmailLogin && _isPasswordLogin;
   String get _currentEntryMode => _isEmailLogin ? 'email' : 'phone';
+  String get _currentAccountValue =>
+      _isEmailLogin ? _emailCtrl.text.trim() : _phoneCtrl.text.trim();
+  String? get _currentAccountCountryCode =>
+      _isEmailLogin ? null : _selectedCountryCode;
+  VerificationCodeTarget get _currentVerificationCodeTarget => _isEmailLogin
+      ? VerificationCodeTarget.email(value: _emailCtrl.text.trim())
+      : VerificationCodeTarget.phone(
+          value: _phoneCtrl.text.trim(),
+          countryCode: _selectedCountryCode,
+        );
 
   static final RegExp _phonePattern = RegExp(r'^[0-9]{6,15}$');
   static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
@@ -239,8 +242,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
       _codeSending = false;
       _codeCountingDown = seconds > 0;
       _codeCountdown = seconds > 0 ? seconds : 60;
-      _codeTargetPhone = _phoneCtrl.text.trim();
-      _codeTargetCountryCode = _selectedCountryCode;
+      _codeTargetPhone = _currentAccountValue;
+      _codeTargetCountryCode = _currentAccountCountryCode;
       _maskedReceiver = sendResult.maskedReceiver;
     });
 
@@ -267,6 +270,16 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   void _handlePhoneChanged(String value) {
+    final targetPhone = _codeTargetPhone;
+    if (targetPhone == null) {
+      return;
+    }
+    if (value.trim() != targetPhone) {
+      setState(() => _resetCodeState());
+    }
+  }
+
+  void _handleEmailChanged(String value) {
     final targetPhone = _codeTargetPhone;
     if (targetPhone == null) {
       return;
@@ -319,6 +332,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
       _passCtrl.clear();
       _formKey.currentState?.reset();
     });
+  }
+
+  void _toggleIdentityLoginMode() {
+    if (_isEmailLogin) {
+      _returnToPhoneLogin();
+    } else {
+      _activateEmailLogin();
+    }
   }
 
   Object? _responseCode(dynamic responseData) {
@@ -423,11 +444,21 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
+  String _codeSentSuccessMessage() {
+    return verificationCodeSentSuccessMessage(
+      context,
+      isEmail: _isEmailLogin,
+      fallbackMessage: context.l10n.authCodeSent,
+    );
+  }
+
   Future<void> _onSendCode() async {
     final l10n = context.l10n;
-    final phoneError = _validatePhone(_phoneCtrl.text);
-    if (phoneError != null) {
-      _showErrorSnack(phoneError);
+    final accountError = _isEmailLogin
+        ? _validateEmail(_emailCtrl.text)
+        : _validatePhone(_phoneCtrl.text);
+    if (accountError != null) {
+      _showErrorSnack(accountError);
       return;
     }
     if (_codeSending || _codeCountingDown) {
@@ -440,13 +471,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
       if (_shouldRefreshChallenge) {
         final challenge = await repository.createVerificationCodeChallenge(
           scene: VerificationCodeScene.login,
-          countryCode: _selectedCountryCode,
-          phoneNumber: _phoneCtrl.text.trim(),
+          target: _currentVerificationCodeTarget,
         );
         _challengeId = challenge.challengeId;
         _challengeExpireAt = challenge.expireAt;
-        _codeTargetPhone = _phoneCtrl.text.trim();
-        _codeTargetCountryCode = _selectedCountryCode;
+        _codeTargetPhone = _currentAccountValue;
+        _codeTargetCountryCode = _currentAccountCountryCode;
         _captchaProvider = challenge.captchaProvider;
         _captchaInitPayload = challenge.captchaPayload;
         _captchaVerified = !challenge.captchaRequired;
@@ -461,7 +491,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       }
 
       final sendResult = await repository.sendCode(challengeId: _challengeId!);
-      _showSuccessSnack(l10n.authCodeSent);
+      _showSuccessSnack(_codeSentSuccessMessage());
       if (!mounted) return;
       _startCodeCountdown(sendResult);
     } on DioException catch (error) {
@@ -497,8 +527,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Future<void> _onLogin() async {
-    if (!_isEmailLogin &&
-        !_isPasswordLogin &&
+    if (!_usesPasswordCredential &&
         (_challengeId == null || _challengeId!.isEmpty)) {
       _showErrorSnack(context.l10n.authSendCodeFirst);
       return;
@@ -510,16 +539,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     try {
       final repository = ref.read(authRepositoryProvider);
       final Future<AuthSessionEntity> loginFuture;
-      if (_isEmailLogin) {
-        loginFuture = repository.login(
-          AuthRequest(
-            countryCode: '',
-            phoneNumber: _emailCtrl.text.trim(),
-            password: _passCtrl.text,
-            inviteTicket: _inviteTicket,
-          ),
-        );
-      } else if (_isPasswordLogin) {
+      if (_usesPasswordCredential) {
         loginFuture = repository.login(
           AuthRequest(
             countryCode: _selectedCountryCode,
@@ -575,8 +595,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardVisible = keyboardInset > 0;
+    final keyboardViewportInset = keyboardVisible ? 12.0 : 0.0;
+    final formBottomPadding = keyboardVisible ? keyboardInset + 20 : 0.0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF4F1EB),
       body: AnimatedBuilder(
         animation: _exitCtrl,
@@ -592,9 +615,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                 // 主内容（退场时向上微滑 + 淡出，如晨雾散去）
                 SafeArea(
                   child: AnimatedPadding(
-                    duration: const Duration(milliseconds: 240),
+                    duration: const Duration(milliseconds: 280),
                     curve: Curves.easeOutCubic,
-                    padding: EdgeInsets.only(bottom: keyboardVisible ? 12 : 0),
+                    padding: EdgeInsets.only(bottom: keyboardViewportInset),
                     child: Transform.translate(
                       offset: Offset(0, -40 * t),
                       child: Opacity(
@@ -606,104 +629,127 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               return SingleChildScrollView(
                                 keyboardDismissBehavior:
                                     ScrollViewKeyboardDismissBehavior.onDrag,
-                                padding: EdgeInsets.fromLTRB(
+                                padding: const EdgeInsets.fromLTRB(
                                   28,
                                   0,
                                   28,
-                                  keyboardVisible ? 20 : 0,
+                                  0,
                                 ),
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    minHeight: constraints.maxHeight,
+                                child: AnimatedPadding(
+                                  duration: const Duration(milliseconds: 280),
+                                  curve: Curves.easeOutCubic,
+                                  padding: EdgeInsets.only(
+                                    bottom: formBottomPadding,
                                   ),
-                                  child: IntrinsicHeight(
-                                    child: Form(
-                                      key: _formKey,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          const SizedBox(height: 24),
-                                          _buildBrandRow(),
-                                          SizedBox(
-                                            height: keyboardVisible ? 20 : 36,
-                                          ),
-                                          AnimatedSlide(
-                                            duration: const Duration(
-                                              milliseconds: 240,
-                                            ),
-                                            curve: Curves.easeOutCubic,
-                                            offset: Offset(
-                                              0,
-                                              keyboardVisible ? -0.14 : 0,
-                                            ),
-                                            child: AnimatedScale(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: IntrinsicHeight(
+                                      child: Form(
+                                        key: _formKey,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            const SizedBox(height: 24),
+                                            _buildBrandRow(),
+                                            AnimatedContainer(
                                               duration: const Duration(
-                                                milliseconds: 240,
+                                                milliseconds: 280,
                                               ),
                                               curve: Curves.easeOutCubic,
-                                              scale: keyboardVisible ? 0.7 : 1,
-                                              alignment: Alignment.topCenter,
-                                              child: _buildHeroVisual(),
+                                              height: keyboardVisible ? 26 : 36,
                                             ),
-                                          ),
-                                          SizedBox(
-                                            height: keyboardVisible ? 4 : 12,
-                                          ),
-                                          _buildHeroText(),
-                                          SizedBox(
-                                            height: keyboardVisible ? 16 : 28,
-                                          ),
-                                          _buildInputArea(),
-                                          const SizedBox(height: 22),
-                                          AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 220,
+                                            AnimatedSlide(
+                                              duration: const Duration(
+                                                milliseconds: 280,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              offset: Offset(
+                                                0,
+                                                keyboardVisible ? -0.06 : 0,
+                                              ),
+                                              child: AnimatedScale(
+                                                duration: const Duration(
+                                                  milliseconds: 280,
+                                                ),
+                                                curve: Curves.easeOutCubic,
+                                                scale: keyboardVisible
+                                                    ? 0.86
+                                                    : 1,
+                                                alignment: Alignment.topCenter,
+                                                child: _buildHeroVisual(),
+                                              ),
                                             ),
-                                            curve: Curves.easeOutCubic,
-                                            margin: EdgeInsets.only(
-                                              bottom: keyboardVisible ? 8 : 0,
+                                            AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 280,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              height: keyboardVisible ? 8 : 12,
                                             ),
-                                            child: _buildPrimaryButton(),
-                                          ),
-                                          const Spacer(),
-                                          AnimatedSwitcher(
-                                            duration: const Duration(
-                                              milliseconds: 220,
+                                            _buildHeroText(),
+                                            AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 280,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              height: keyboardVisible ? 20 : 28,
                                             ),
-                                            switchInCurve: Curves.easeOutCubic,
-                                            switchOutCurve: Curves.easeInCubic,
-                                            transitionBuilder:
-                                                (child, animation) {
-                                                  return FadeTransition(
-                                                    opacity: animation,
-                                                    child: SizeTransition(
-                                                      sizeFactor: animation,
-                                                      axisAlignment: -1,
-                                                      child: child,
-                                                    ),
-                                                  );
-                                                },
-                                            child: keyboardVisible
-                                                ? const SizedBox(
-                                                    key: ValueKey(
-                                                      'login_keyboard_compact',
-                                                    ),
-                                                    height: 12,
-                                                  )
-                                                : Column(
-                                                    key: const ValueKey(
-                                                      'login_keyboard_full',
-                                                    ),
-                                                    children: [
-                                                      _buildBottomAuxiliarySections(),
-                                                      const SizedBox(
-                                                        height: 36,
+                                            _buildInputArea(),
+                                            const SizedBox(height: 22),
+                                            AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 220,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              margin: EdgeInsets.only(
+                                                bottom: keyboardVisible ? 8 : 0,
+                                              ),
+                                              child: _buildPrimaryButton(),
+                                            ),
+                                            const Spacer(),
+                                            AnimatedSwitcher(
+                                              duration: const Duration(
+                                                milliseconds: 220,
+                                              ),
+                                              switchInCurve:
+                                                  Curves.easeOutCubic,
+                                              switchOutCurve:
+                                                  Curves.easeInCubic,
+                                              transitionBuilder:
+                                                  (child, animation) {
+                                                    return FadeTransition(
+                                                      opacity: animation,
+                                                      child: SizeTransition(
+                                                        sizeFactor: animation,
+                                                        axisAlignment: -1,
+                                                        child: child,
                                                       ),
-                                                    ],
-                                                  ),
-                                          ),
-                                        ],
+                                                    );
+                                                  },
+                                              child: keyboardVisible
+                                                  ? const SizedBox(
+                                                      key: ValueKey(
+                                                        'login_keyboard_compact',
+                                                      ),
+                                                      height: 12,
+                                                    )
+                                                  : Column(
+                                                      key: const ValueKey(
+                                                        'login_keyboard_full',
+                                                      ),
+                                                      children: [
+                                                        _buildBottomAuxiliarySections(),
+                                                        const SizedBox(
+                                                          height: 36,
+                                                        ),
+                                                      ],
+                                                    ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1043,31 +1089,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
       key: const ValueKey('email_input_area'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            key: const ValueKey('return_phone_login_button'),
-            onPressed: _returnToPhoneLogin,
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              foregroundColor: const Color(0xFF2D6A4F),
-            ),
-            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-            label: Text(
-              context.l10n.authPhoneLogin,
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
         _buildEmailField(),
         const SizedBox(height: 14),
-        _buildPasswordField(fieldKey: const ValueKey('email_password_field')),
+        _buildCodeField(),
       ],
     );
   }
@@ -1111,6 +1135,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: _handleEmailChanged,
           style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
           decoration: _inputDecoration(
             hint: context.l10n.authEmailHint,
@@ -1347,125 +1372,34 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
+  Future<void> _openCountryCodePicker() async {
+    FocusScope.of(context).unfocus();
+    final selected = await showAuthCountryCodePicker(
+      context,
+      options: _countryCodes,
+      selectedCode: _selectedCountryCode,
+    );
+    if (!mounted || selected == null || selected.code == _selectedCountryCode) {
+      return;
+    }
+    setState(() {
+      if (_codeTargetCountryCode != null &&
+          _codeTargetCountryCode != selected.code) {
+        _resetCodeState();
+      }
+      _selectedCountryCode = selected.code;
+      _selectedCountryFlag = selected.flag;
+    });
+  }
+
   Widget _buildCountryCodePrefix() {
     return Padding(
       padding: const EdgeInsets.only(left: 12, right: 8),
-      child: MenuAnchor(
-        controller: _countryMenuController,
-        alignmentOffset: const Offset(-8, 8),
-        style: MenuStyle(
-          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-          elevation: const WidgetStatePropertyAll(0),
-          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-        ),
-        menuChildren: [
-          SizedBox(
-            width: 220,
-            child: TweenAnimationBuilder<double>(
-              key: const ValueKey('country_code_menu_transition'),
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, -6 * (1 - value)),
-                    child: child,
-                  ),
-                );
-              },
-              child: Container(
-                key: const ValueKey('country_code_menu_surface'),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 16,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 228),
-                  child: SingleChildScrollView(
-                    primary: false,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final item in _countryCodes)
-                          _CountryCodeMenuItem(
-                            countryName: item['name']!,
-                            countryCode: item['code']!,
-                            countryFlag: item['flag']!,
-                            isSelected: _selectedCountryCode == item['code'],
-                            onTap: () {
-                              setState(() {
-                                if (_codeTargetCountryCode != null &&
-                                    _codeTargetCountryCode != item['code']) {
-                                  _resetCodeState();
-                                }
-                                _selectedCountryCode = item['code']!;
-                                _selectedCountryFlag = item['flag']!;
-                              });
-                              _countryMenuController.close();
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-        builder: (context, controller, child) {
-          return GestureDetector(
-            key: const ValueKey('country_code_menu_trigger'),
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              FocusScope.of(context).unfocus();
-              if (controller.isOpen) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _selectedCountryFlag,
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _selectedCountryCode,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E1810),
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_drop_down,
-                  size: 18,
-                  color: Color(0xFFA09080),
-                ),
-                const SizedBox(width: 14),
-              ],
-            ),
-          );
-        },
+      child: CountryCodePickerTrigger(
+        key: const ValueKey('country_code_menu_trigger'),
+        flag: _selectedCountryFlag,
+        code: _selectedCountryCode,
+        onTap: _openCountryCodePicker,
       ),
     );
   }
@@ -1640,11 +1574,15 @@ class _LoginPageState extends ConsumerState<LoginPage>
         Expanded(
           child: _SocialButton(
             buttonKey: const ValueKey('login_email_button'),
-            icon: Icons.email_outlined,
+            icon: _isEmailLogin
+                ? Icons.phone_iphone_rounded
+                : Icons.email_outlined,
             iconColor: const Color(0xFF3A3028),
-            label: context.l10n.authEmailLogin,
+            label: _isEmailLogin
+                ? context.l10n.authPhoneLogin
+                : context.l10n.authEmailLogin,
             labelColor: const Color(0xFF3A3028),
-            onTap: _activateEmailLogin,
+            onTap: _toggleIdentityLoginMode,
           ),
         ),
       ],
@@ -1765,75 +1703,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
             const Color(0xFF2D6A4F).withValues(alpha: 0.15),
             Colors.transparent,
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CountryCodeMenuItem extends StatelessWidget {
-  final String countryName;
-  final String countryCode;
-  final String countryFlag;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CountryCodeMenuItem({
-    required this.countryName,
-    required this.countryCode,
-    required this.countryFlag,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final highlight = const Color(0xFFFAF3E0);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      child: Material(
-        color: isSelected ? highlight : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Text(countryFlag, style: const TextStyle(fontSize: 18)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    countryName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isSelected
-                          ? const Color(0xFF2D6A4F)
-                          : const Color(0xFF1E1810),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  countryCode,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? const Color(0xFF2D6A4F)
-                        : const Color(0xFFA09080),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

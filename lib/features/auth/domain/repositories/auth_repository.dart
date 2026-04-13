@@ -3,6 +3,7 @@ import '../entities/auth_session_entity.dart';
 import '../entities/password_register_result_entity.dart';
 import '../entities/verification_code_challenge_entity.dart';
 import '../entities/verification_code_send_entity.dart';
+import '../entities/verification_code_target.dart';
 
 enum VerificationCodeScene { login, register }
 
@@ -12,8 +13,7 @@ abstract class AuthRepository {
   Future<PasswordRegisterResultEntity> registerPassword(AuthRequest request);
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   });
   Future<VerificationCodeSendEntity> sendCode({required String challengeId});
   Future<bool> verifyVerificationCodeCaptcha({

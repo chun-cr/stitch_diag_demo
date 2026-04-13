@@ -1,4 +1,5 @@
 import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/verification_code_target.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/auth_request.dart';
 import '../models/auth_session_model.dart';
@@ -95,15 +96,18 @@ class AuthRemoteSource {
 
   Future<VerificationCodeChallengeModel> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async {
-    final challengePayload = {
+    final loginValue = _trimmedOrNull(target.value) ?? '';
+    final normalizedCountryCode = _trimmedOrNull(target.countryCode);
+    final challengePayload = <String, dynamic>{
       'scene': _sceneValue(scene),
-      'countryCode': countryCode,
-      'phoneNumber': phoneNumber,
-      'loginValue': phoneNumber,
+      'phoneNumber': loginValue,
+      'loginValue': loginValue,
     };
+    if (normalizedCountryCode != null) {
+      challengePayload['countryCode'] = normalizedCountryCode;
+    }
     final response = await _dioClient.dio.post(
       '/api/v1/saas/mobile/auth/verification-code/challenge',
       data: challengePayload,

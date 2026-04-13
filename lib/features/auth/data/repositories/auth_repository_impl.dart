@@ -2,6 +2,7 @@ import '../../domain/entities/auth_session_entity.dart';
 import '../../domain/entities/password_register_result_entity.dart';
 import '../../domain/entities/verification_code_challenge_entity.dart';
 import '../../domain/entities/verification_code_send_entity.dart';
+import '../../domain/entities/verification_code_target.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/auth_request.dart';
 import '../models/password_register_result_model.dart';
@@ -71,13 +72,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async {
     final model = await _remoteSource.createVerificationCodeChallenge(
       scene: scene,
-      countryCode: countryCode,
-      phoneNumber: phoneNumber,
+      target: target,
     );
     return VerificationCodeChallengeEntity(
       challengeId: model.challengeId,

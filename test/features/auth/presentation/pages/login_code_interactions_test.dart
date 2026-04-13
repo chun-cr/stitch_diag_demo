@@ -9,6 +9,7 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_enti
 import 'package:stitch_diag_demo/features/auth/domain/entities/password_register_result_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_challenge_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
@@ -33,8 +34,7 @@ class _SuccessfulSendCodeRepository implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async => VerificationCodeChallengeEntity(
     challengeId: 'challenge-1',
     captchaRequired: false,
@@ -95,8 +95,7 @@ class _FailingSendCodeRepository implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async => VerificationCodeChallengeEntity(
     challengeId: 'challenge-1',
     captchaRequired: false,
@@ -178,6 +177,30 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text(l10n.authCodeSent), findsOneWidget);
+    expect(find.byKey(const ValueKey('send_code_countdown')), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('email send code success shows spam-folder toast copy', (
+    tester,
+  ) async {
+    await _pumpLoginPage(tester, repository: _SuccessfulSendCodeRepository());
+
+    await tester.tap(find.byKey(const ValueKey('login_email_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'doctor@example.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('send_code_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('验证码已发送，如未收到请检查垃圾邮件箱。'), findsOneWidget);
     expect(find.byKey(const ValueKey('send_code_countdown')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -269,9 +292,12 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('country_code_menu_trigger')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text('+44'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.tap(
+      find.byKey(const ValueKey('country_code_picker_item_+44')),
+    );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
 
     expect(find.byKey(const ValueKey('send_code_button')), findsWidgets);
 

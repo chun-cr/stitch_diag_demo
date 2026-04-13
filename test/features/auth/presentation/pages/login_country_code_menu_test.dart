@@ -1,9 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/main.dart';
 
 Future<void> _pumpLoginPage(WidgetTester tester) async {
@@ -16,10 +17,9 @@ Future<void> _pumpLoginPage(WidgetTester tester) async {
 }
 
 Future<void> _openCountrySelector(WidgetTester tester) async {
-  final menuAnchor = tester.widget<MenuAnchor>(find.byType(MenuAnchor));
-  menuAnchor.controller?.open();
+  await tester.tap(find.byKey(const ValueKey('country_code_menu_trigger')));
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pump(const Duration(milliseconds: 450));
 }
 
 void main() {
@@ -33,7 +33,6 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('+86'), findsOneWidget);
-      expect(find.text('🇨🇳'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -41,78 +40,96 @@ void main() {
     },
   );
 
-  testWidgets(
-    'country selector opens as lightweight menu instead of bottom sheet',
-    (tester) async {
-      await _pumpLoginPage(tester);
-
-      await _openCountrySelector(tester);
-
-      expect(find.byType(BottomSheet), findsNothing);
-      expect(find.text('选择国家/地区码'), findsNothing);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      await tester.binding.setSurfaceSize(null);
-    },
-  );
-
-  testWidgets('country selector does not show trailing selected check icon', (
+  testWidgets('country selector opens as Cupertino-style picker page', (
     tester,
   ) async {
     await _pumpLoginPage(tester);
 
     await _openCountrySelector(tester);
 
-    expect(find.byIcon(Icons.check_circle), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(
+      find.byKey(const ValueKey('country_code_picker_page')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('country_code_picker_search')),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('selecting a country updates the prefix and closes the menu', (
+  testWidgets('country selector shows selected check mark in picker page', (
     tester,
   ) async {
     await _pumpLoginPage(tester);
 
     await _openCountrySelector(tester);
-    await tester.tap(find.text('+44'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('+44'), findsOneWidget);
-    expect(find.text('英国'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('country_code_picker_item_+86')),
+        matching: find.byIcon(CupertinoIcons.check_mark),
+      ),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('country selector uses a shadowed animated popup surface', (
+  testWidgets('selecting a country updates the prefix and closes the picker', (
     tester,
   ) async {
     await _pumpLoginPage(tester);
 
     await _openCountrySelector(tester);
-
-    final surfaceFinder = find.byKey(
-      const ValueKey('country_code_menu_surface'),
+    await tester.tap(
+      find.byKey(const ValueKey('country_code_picker_item_+44')),
     );
-    final transitionFinder = find.byKey(
-      const ValueKey('country_code_menu_transition'),
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+
+    expect(
+      find.byKey(const ValueKey('country_code_menu_trigger')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('country_code_menu_trigger')),
+        matching: find.text('+44'),
+      ),
+      findsOneWidget,
     );
 
-    expect(surfaceFinder, findsOneWidget);
-    expect(transitionFinder, findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
 
-    final surface = tester.widget<Container>(surfaceFinder);
-    final decoration = surface.decoration as BoxDecoration;
+  testWidgets('country selector search filters the list', (tester) async {
+    await _pumpLoginPage(tester);
 
-    expect(decoration.boxShadow, isNotNull);
-    expect(decoration.boxShadow, isNotEmpty);
-    expect(decoration.boxShadow!.first.blurRadius, greaterThanOrEqualTo(12));
-    expect(decoration.boxShadow!.first.color.a, lessThanOrEqualTo(0.08));
+    await _openCountrySelector(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('country_code_picker_search')),
+      'japan',
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(
+      find.byKey(const ValueKey('country_code_picker_item_+81')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('country_code_picker_item_+49')),
+      findsNothing,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

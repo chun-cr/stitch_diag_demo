@@ -10,6 +10,7 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_enti
 import 'package:stitch_diag_demo/features/auth/domain/entities/password_register_result_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_challenge_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
@@ -42,8 +43,7 @@ class _SlowAuthRepository implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async => VerificationCodeChallengeEntity(
     challengeId: 'challenge-1',
     captchaRequired: false,
@@ -119,8 +119,7 @@ class _FailingAuthRepository implements AuthRepository {
   @override
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
-    required String countryCode,
-    required String phoneNumber,
+    required VerificationCodeTarget target,
   }) async => VerificationCodeChallengeEntity(
     challengeId: 'challenge-1',
     captchaRequired: false,

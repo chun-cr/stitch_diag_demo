@@ -14,9 +14,12 @@ import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/security/login_password_store.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/captcha_resolver_provider.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/utils/verification_code_feedback.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/widgets/country_code_picker.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/auth_top_toast.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -29,12 +32,16 @@ class RegisterPage extends ConsumerStatefulWidget {
   ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
+enum _RegisterMode { phone, email }
+
 class _RegisterPageState extends ConsumerState<RegisterPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
-  final _countryMenuController = MenuController();
+  final _phoneFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
   bool _agreeTerms = false;
   bool _isLoading = false;
   bool _codeSending = false;
@@ -50,6 +57,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   String? _captchaProvider;
   Map<String, dynamic>? _captchaInitPayload;
   bool _captchaVerified = false;
+  _RegisterMode _registerMode = _RegisterMode.phone;
   String _selectedCountryCode = '+86';
   String _selectedCountryFlag = '🇨🇳';
 
@@ -57,21 +65,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   late AnimationController _fadeController;
 
   static final RegExp _phonePattern = RegExp(r'^[0-9]{6,15}$');
-  final List<Map<String, String>> _countryCodes = const [
-    {'name': '中国', 'code': '+86', 'flag': '🇨🇳'},
-    {'name': '英国', 'code': '+44', 'flag': '🇬🇧'},
-    {'name': '西班牙', 'code': '+34', 'flag': '🇪🇸'},
-    {'name': '葡萄牙', 'code': '+351', 'flag': '🇵🇹'},
-    {'name': '法国', 'code': '+33', 'flag': '🇫🇷'},
-    {'name': '德国', 'code': '+49', 'flag': '🇩🇪'},
-    {'name': '日本', 'code': '+81', 'flag': '🇯🇵'},
-    {'name': '韩国', 'code': '+82', 'flag': '🇰🇷'},
-  ];
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+  final List<CountryCodeOption> _countryCodes = authCountryCodeOptions;
 
   // 密码强度
   @override
   void initState() {
     super.initState();
+    _registerMode = widget.initialMode == 'email'
+        ? _RegisterMode.email
+        : _RegisterMode.phone;
     _rotateController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
@@ -87,19 +90,39 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     _rotateController.dispose();
     _fadeController.dispose();
     _phoneCtrl.dispose();
+    _emailCtrl.dispose();
     _codeCtrl.dispose();
+    _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
     _countdownTimer?.cancel();
     _errorToastController.dispose();
     super.dispose();
   }
 
   String? _validatePhone(String? value) {
+    if (_registerMode == _RegisterMode.email) {
+      return null;
+    }
     final input = value?.trim() ?? '';
     if (input.isEmpty) {
       return context.l10n.authPhoneHint;
     }
     if (!_phonePattern.hasMatch(input)) {
       return context.l10n.authPhoneFormatError;
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (_registerMode == _RegisterMode.phone) {
+      return null;
+    }
+    final input = value?.trim() ?? '';
+    if (input.isEmpty) {
+      return context.l10n.authEmailHint;
+    }
+    if (!_emailPattern.hasMatch(input)) {
+      return context.l10n.authEmailFormatError;
     }
     return null;
   }
@@ -132,13 +155,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     return inviteTicket;
   }
 
+  bool get _isEmailRegister => _registerMode == _RegisterMode.email;
+  String get _currentEntryMode => _isEmailRegister ? 'email' : 'phone';
+  String get _currentAccountValue =>
+      _isEmailRegister ? _emailCtrl.text.trim() : _phoneCtrl.text.trim();
+  VerificationCodeTarget get _currentVerificationCodeTarget => _isEmailRegister
+      ? VerificationCodeTarget.email(value: _emailCtrl.text.trim())
+      : VerificationCodeTarget.phone(
+          value: _phoneCtrl.text.trim(),
+          countryCode: _selectedCountryCode,
+        );
+
   String get _loginLocation {
     final inviteTicket = _inviteTicket;
     final queryParameters = <String, String>{};
-    final initialMode = widget.initialMode?.trim();
-    if (initialMode != null && initialMode.isNotEmpty) {
-      queryParameters['mode'] = initialMode;
-    }
+    queryParameters['mode'] = _currentEntryMode;
     if (inviteTicket != null) {
       queryParameters['inviteTicket'] = inviteTicket;
     }
@@ -174,8 +205,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       _codeSending = false;
       _codeCountingDown = seconds > 0;
       _codeCountdown = seconds > 0 ? seconds : 60;
-      _codeTargetPhone = _phoneCtrl.text.trim();
-      _codeTargetCountryCode = _selectedCountryCode;
+      _codeTargetPhone = _currentAccountValue;
+      _codeTargetCountryCode = _isEmailRegister ? null : _selectedCountryCode;
       _maskedReceiver = sendResult.maskedReceiver;
     });
 
@@ -202,6 +233,28 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   void _handlePhoneChanged(String value) {
+    final trimmed = value.trim();
+    if (_registerMode == _RegisterMode.phone && trimmed.contains('@')) {
+      _switchRegisterMode(_RegisterMode.email, incomingValue: trimmed);
+      _phoneCtrl.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        FocusScope.of(context).requestFocus(_emailFocusNode);
+      });
+      return;
+    }
+    final targetPhone = _codeTargetPhone;
+    if (targetPhone == null) {
+      return;
+    }
+    if (trimmed != targetPhone) {
+      setState(() => _resetCodeState());
+    }
+  }
+
+  void _handleEmailChanged(String value) {
     final targetPhone = _codeTargetPhone;
     if (targetPhone == null) {
       return;
@@ -209,6 +262,57 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     if (value.trim() != targetPhone) {
       setState(() => _resetCodeState());
     }
+  }
+
+  void _switchRegisterMode(_RegisterMode mode, {String? incomingValue}) {
+    if (_registerMode == mode && incomingValue == null) {
+      return;
+    }
+    setState(() {
+      _registerMode = mode;
+      _resetCodeState();
+      _formKey.currentState?.reset();
+      if (incomingValue != null) {
+        _emailCtrl.value = TextEditingValue(
+          text: incomingValue,
+          selection: TextSelection.collapsed(offset: incomingValue.length),
+        );
+      }
+    });
+  }
+
+  String _registerModeLabel(_RegisterMode mode) {
+    final locale = Localizations.localeOf(context).languageCode;
+    return switch ((locale, mode)) {
+      ('en', _RegisterMode.phone) => 'Phone Sign Up',
+      ('en', _RegisterMode.email) => 'Email Sign Up',
+      ('ja', _RegisterMode.phone) => '電話登録',
+      ('ja', _RegisterMode.email) => 'メール登録',
+      ('ko', _RegisterMode.phone) => '휴대폰 가입',
+      ('ko', _RegisterMode.email) => '이메일 가입',
+      (_, _RegisterMode.phone) => '手机注册',
+      (_, _RegisterMode.email) => '邮箱注册',
+    };
+  }
+
+  String _registerLoginPrompt() {
+    final locale = Localizations.localeOf(context).languageCode;
+    return switch (locale) {
+      'en' => 'Already have an account? ',
+      'ja' => 'すでにアカウントをお持ちですか？',
+      'ko' => '이미 계정이 있으신가요? ',
+      _ => '已有账号？',
+    };
+  }
+
+  String _registerLoginActionLabel() {
+    final locale = Localizations.localeOf(context).languageCode;
+    return switch (locale) {
+      'en' => 'Log in now',
+      'ja' => '今すぐログイン',
+      'ko' => '지금 로그인',
+      _ => '立即登录',
+    };
   }
 
   Object? _responseCode(dynamic responseData) {
@@ -313,11 +417,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
+  String _codeSentSuccessMessage() {
+    return verificationCodeSentSuccessMessage(
+      context,
+      isEmail: _isEmailRegister,
+      fallbackMessage: context.l10n.authCodeSent,
+    );
+  }
+
   Future<void> _onSendCode() async {
     final l10n = context.l10n;
-    final phoneError = _validatePhone(_phoneCtrl.text);
-    if (phoneError != null) {
-      _showErrorSnack(phoneError);
+    final accountError = _isEmailRegister
+        ? _validateEmail(_emailCtrl.text)
+        : _validatePhone(_phoneCtrl.text);
+    if (accountError != null) {
+      _showErrorSnack(accountError);
       return;
     }
     if (_codeSending || _codeCountingDown) {
@@ -330,13 +444,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       if (_shouldRefreshChallenge) {
         final challenge = await repository.createVerificationCodeChallenge(
           scene: VerificationCodeScene.register,
-          countryCode: _selectedCountryCode,
-          phoneNumber: _phoneCtrl.text.trim(),
+          target: _currentVerificationCodeTarget,
         );
         _challengeId = challenge.challengeId;
         _challengeExpireAt = challenge.expireAt;
-        _codeTargetPhone = _phoneCtrl.text.trim();
-        _codeTargetCountryCode = _selectedCountryCode;
+        _codeTargetPhone = _currentAccountValue;
+        _codeTargetCountryCode = _isEmailRegister ? null : _selectedCountryCode;
         _captchaProvider = challenge.captchaProvider;
         _captchaInitPayload = challenge.captchaPayload;
         _captchaVerified = !challenge.captchaRequired;
@@ -351,7 +464,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       }
 
       final sendResult = await repository.sendCode(challengeId: _challengeId!);
-      _showSuccessSnack(l10n.authCodeSent);
+      _showSuccessSnack(_codeSentSuccessMessage());
       if (!mounted) return;
       _startCodeCountdown(sendResult);
     } on DioException catch (error) {
@@ -543,18 +656,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
             ],
           ),
           const Spacer(),
-          TextButton(
-            onPressed: _goToLogin,
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: Text(
-              context.l10n.registerGoLogin,
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF2D6A4F),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          const SizedBox(width: 40),
         ],
       ),
     );
@@ -580,40 +682,31 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              context.l10n.registerCreateAccountSubtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: const Color(0xFF3A3028).withValues(alpha: 0.58),
-                height: 1.6,
+            const SizedBox(height: 24),
+            _buildRegisterModeTabs(),
+            const SizedBox(height: 24),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: _buildRegisterFormTransition,
+                child: _isEmailRegister
+                    ? _buildEmailRegisterFields()
+                    : _buildPhoneRegisterFields(),
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
-            _InputLabel(text: context.l10n.authPhoneLabel),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _phoneCtrl,
-              hint: context.l10n.authPhoneHint,
-              prefixIconWidget: _buildCountryCodePrefix(),
-              prefixIconConstraints: const BoxConstraints(
-                minWidth: 0,
-                minHeight: 0,
-              ),
-              keyboardType: TextInputType.phone,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              onChanged: _handlePhoneChanged,
-              validator: _validatePhone,
-            ),
-            const SizedBox(height: 16),
-            _buildCodeField(),
             const SizedBox(height: 20),
             _buildTermsRow(),
             const SizedBox(height: 24),
             _buildRegisterButton(),
             const SizedBox(height: 20),
             _buildPrivacyTip(),
+            const SizedBox(height: 20),
+            _buildLoginRow(),
           ],
         ),
       ),
@@ -705,127 +798,132 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
+  Widget _buildRegisterFormTransition(
+    Widget child,
+    Animation<double> animation,
+  ) {
+    final curvedAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final slidesFromRight =
+        child.key == const ValueKey('register_email_fields');
+    return FadeTransition(
+      opacity: curvedAnimation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset(slidesFromRight ? 0.12 : -0.12, 0),
+          end: Offset.zero,
+        ).animate(curvedAnimation),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildRegisterModeTabs() {
+    return Row(
+      children: [
+        Expanded(
+          child: _RegisterModeTab(
+            tabKey: const ValueKey('register_phone_tab'),
+            label: _registerModeLabel(_RegisterMode.phone),
+            selected: !_isEmailRegister,
+            onTap: () => _switchRegisterMode(_RegisterMode.phone),
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: _RegisterModeTab(
+            tabKey: const ValueKey('register_email_tab'),
+            label: _registerModeLabel(_RegisterMode.email),
+            selected: _isEmailRegister,
+            onTap: () => _switchRegisterMode(_RegisterMode.email),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneRegisterFields() {
+    return Column(
+      key: const ValueKey('register_phone_fields'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _InputLabel(text: context.l10n.authPhoneLabel),
+        const SizedBox(height: 6),
+        _buildTextField(
+          controller: _phoneCtrl,
+          focusNode: _phoneFocusNode,
+          hint: context.l10n.authPhoneHint,
+          prefixIconWidget: _buildCountryCodePrefix(),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 0,
+            minHeight: 0,
+          ),
+          keyboardType: TextInputType.phone,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: _handlePhoneChanged,
+          validator: _validatePhone,
+        ),
+        const SizedBox(height: 16),
+        _buildCodeField(),
+      ],
+    );
+  }
+
+  Widget _buildEmailRegisterFields() {
+    return Column(
+      key: const ValueKey('register_email_fields'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _InputLabel(text: context.l10n.authEmailLabel),
+        const SizedBox(height: 6),
+        _buildTextField(
+          controller: _emailCtrl,
+          focusNode: _emailFocusNode,
+          hint: context.l10n.authEmailHint,
+          prefixIcon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: _handleEmailChanged,
+          validator: _validateEmail,
+        ),
+        const SizedBox(height: 16),
+        _buildCodeField(),
+      ],
+    );
+  }
+
   // ── Password Strength ──────────────────────────────────────────
+  Future<void> _openCountryCodePicker() async {
+    FocusScope.of(context).unfocus();
+    final selected = await showAuthCountryCodePicker(
+      context,
+      options: _countryCodes,
+      selectedCode: _selectedCountryCode,
+    );
+    if (!mounted || selected == null || selected.code == _selectedCountryCode) {
+      return;
+    }
+    setState(() {
+      if (_codeTargetCountryCode != null &&
+          _codeTargetCountryCode != selected.code) {
+        _resetCodeState();
+      }
+      _selectedCountryCode = selected.code;
+      _selectedCountryFlag = selected.flag;
+    });
+  }
+
   Widget _buildCountryCodePrefix() {
     return Padding(
       padding: const EdgeInsets.only(left: 12, right: 8),
-      child: MenuAnchor(
-        controller: _countryMenuController,
-        alignmentOffset: const Offset(-8, 8),
-        style: MenuStyle(
-          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-          elevation: const WidgetStatePropertyAll(0),
-          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-        ),
-        menuChildren: [
-          SizedBox(
-            width: 220,
-            child: TweenAnimationBuilder<double>(
-              key: const ValueKey('register_country_code_menu_transition'),
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, -6 * (1 - value)),
-                    child: child,
-                  ),
-                );
-              },
-              child: Container(
-                key: const ValueKey('register_country_code_menu_surface'),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 16,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 228),
-                  child: SingleChildScrollView(
-                    primary: false,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final item in _countryCodes)
-                          _RegisterCountryCodeMenuItem(
-                            countryName: item['name']!,
-                            countryCode: item['code']!,
-                            countryFlag: item['flag']!,
-                            isSelected: _selectedCountryCode == item['code'],
-                            onTap: () {
-                              setState(() {
-                                if (_codeTargetCountryCode != null &&
-                                    _codeTargetCountryCode != item['code']) {
-                                  _resetCodeState();
-                                }
-                                _selectedCountryCode = item['code']!;
-                                _selectedCountryFlag = item['flag']!;
-                              });
-                              _countryMenuController.close();
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-        builder: (context, controller, child) {
-          return GestureDetector(
-            key: const ValueKey('register_country_code_menu_trigger'),
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              FocusScope.of(context).unfocus();
-              if (controller.isOpen) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _selectedCountryFlag,
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _selectedCountryCode,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E1810),
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_drop_down,
-                  size: 18,
-                  color: Color(0xFFA09080),
-                ),
-                const SizedBox(width: 8),
-                Container(width: 1, height: 16, color: Colors.black12),
-              ],
-            ),
-          );
-        },
+      child: CountryCodePickerTrigger(
+        key: const ValueKey('register_country_code_menu_trigger'),
+        flag: _selectedCountryFlag,
+        code: _selectedCountryCode,
+        onTap: _openCountryCodePicker,
       ),
     );
   }
@@ -976,33 +1074,82 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
 
   // ── Privacy Tip ────────────────────────────────────────────────
   Widget _buildPrivacyTip() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF3E0),
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(
-          color: const Color(0xFFC9A84C).withValues(alpha: 0.25),
-          width: 1,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF3E0).withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFC9A84C).withValues(alpha: 0.22),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.035),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.eco_outlined,
+                size: 17,
+                color: Color(0xFFC9A84C),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.l10n.registerPrivacyTip,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF3A3028).withValues(alpha: 0.68),
+                    height: 1.6,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.eco_outlined, size: 17, color: Color(0xFFC9A84C)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              context.l10n.registerPrivacyTip,
-              style: TextStyle(
-                fontSize: 12,
-                color: const Color(0xFF3A3028).withValues(alpha: 0.6),
-                height: 1.6,
-              ),
+    );
+  }
+
+  Widget _buildLoginRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          _registerLoginPrompt(),
+          style: TextStyle(
+            fontSize: 13,
+            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+          ),
+        ),
+        TextButton(
+          key: const ValueKey('register_go_login_button'),
+          onPressed: _goToLogin,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            _registerLoginActionLabel(),
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF2D6A4F),
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1061,6 +1208,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
+    FocusNode? focusNode,
     IconData? prefixIcon,
     Widget? prefixIconWidget,
     BoxConstraints? prefixIconConstraints,
@@ -1074,6 +1222,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       obscureText: obscureText,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
@@ -2166,68 +2315,45 @@ class _InputLabel extends StatelessWidget {
   }
 }
 
-class _RegisterCountryCodeMenuItem extends StatelessWidget {
-  final String countryName;
-  final String countryCode;
-  final String countryFlag;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _RegisterCountryCodeMenuItem({
-    required this.countryName,
-    required this.countryCode,
-    required this.countryFlag,
-    required this.isSelected,
+class _RegisterModeTab extends StatelessWidget {
+  const _RegisterModeTab({
+    required this.tabKey,
+    required this.label,
+    required this.selected,
     required this.onTap,
   });
 
+  final Key tabKey;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
-    const highlight = Color(0xFFFAF3E0);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      child: Material(
-        color: isSelected ? highlight : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Text(countryFlag, style: const TextStyle(fontSize: 18)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    countryName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isSelected
-                          ? const Color(0xFF2D6A4F)
-                          : const Color(0xFF1E1810),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  countryCode,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? const Color(0xFF2D6A4F)
-                        : const Color(0xFFA09080),
-                  ),
-                ),
-              ],
+    return GestureDetector(
+      key: tabKey,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected
+                  ? const Color(0xFF2D6A4F)
+                  : const Color(0xFFD7DBDE),
+              width: selected ? 2.5 : 1.2,
             ),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? const Color(0xFF2D6A4F) : const Color(0xFF8A949B),
           ),
         ),
       ),

@@ -12,16 +12,14 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
-import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
-class _EmailLoginCaptureRepository implements AuthRepository {
+class _CapturingRegisterRepository implements AuthRepository {
   VerificationCodeScene? lastScene;
-  VerificationCodeTarget? lastTarget;
-  String? lastChallengeId;
-  String? lastVerificationCode;
-  String? lastInviteTicket;
+  String? lastCountryCode;
+  String? lastPhoneNumber;
 
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
@@ -44,9 +42,10 @@ class _EmailLoginCaptureRepository implements AuthRepository {
     required VerificationCodeTarget target,
   }) async {
     lastScene = scene;
-    lastTarget = target;
+    lastCountryCode = target.countryCode ?? '';
+    lastPhoneNumber = target.value;
     return VerificationCodeChallengeEntity(
-      challengeId: 'email-login-challenge-1',
+      challengeId: 'challenge-email-1',
       captchaRequired: false,
       captchaProvider: null,
       captchaPayload: null,
@@ -57,15 +56,12 @@ class _EmailLoginCaptureRepository implements AuthRepository {
   @override
   Future<VerificationCodeSendEntity> sendCode({
     required String challengeId,
-  }) async {
-    lastChallengeId = challengeId;
-    return VerificationCodeSendEntity(
-      channel: 'EMAIL',
-      maskedReceiver: 'doc***@mai.ai',
-      expireAt: DateTime.now().add(const Duration(minutes: 5)),
-      resendAt: DateTime.now().add(const Duration(seconds: 60)),
-    );
-  }
+  }) async => VerificationCodeSendEntity(
+    channel: 'EMAIL',
+    maskedReceiver: 'doc***@example.com',
+    expireAt: DateTime.now().add(const Duration(minutes: 5)),
+    resendAt: DateTime.now().add(const Duration(seconds: 60)),
+  );
 
   @override
   Future<bool> verifyVerificationCodeCaptcha({
@@ -80,17 +76,10 @@ class _EmailLoginCaptureRepository implements AuthRepository {
     required String verificationCode,
     String? inviteTicket,
   }) {
-    lastChallengeId = challengeId;
-    lastVerificationCode = verificationCode;
-    lastInviteTicket = inviteTicket;
     throw DioException(
-      requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
-      ),
+      requestOptions: RequestOptions(path: '/auth'),
       response: Response(
-        requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
-        ),
+        requestOptions: RequestOptions(path: '/auth'),
         statusCode: 400,
         data: {'message': 'capture'},
       ),
@@ -101,14 +90,13 @@ class _EmailLoginCaptureRepository implements AuthRepository {
   Future<void> logout({required String refreshToken}) async {}
 }
 
-Future<void> _pumpLoginPage(
+Future<void> _pumpRegisterPage(
   WidgetTester tester, {
   required Widget child,
   required AuthRepository repository,
 }) async {
   SharedPreferences.setMockInitialValues({});
   await tester.binding.setSurfaceSize(const Size(1280, 2400));
-
   await tester.pumpWidget(
     ProviderScope(
       overrides: [authRepositoryProvider.overrideWithValue(repository)],
@@ -128,14 +116,13 @@ Future<void> _pumpLoginPage(
   await tester.pump(const Duration(milliseconds: 900));
 }
 
-Future<void> _pumpLoginRouter(
+Future<void> _pumpRegisterRouter(
   WidgetTester tester, {
   required AuthRepository repository,
   required GoRouter router,
 }) async {
   SharedPreferences.setMockInitialValues({});
   await tester.binding.setSurfaceSize(const Size(1280, 2400));
-
   await tester.pumpWidget(
     ProviderScope(
       overrides: [authRepositoryProvider.overrideWithValue(repository)],
@@ -156,83 +143,152 @@ Future<void> _pumpLoginRouter(
 }
 
 void main() {
-  testWidgets('email mode sends code and submits verification login', (
+  testWidgets('register page shows tabs and bottom login entry', (
     tester,
   ) async {
-    final repository = _EmailLoginCaptureRepository();
-    await _pumpLoginPage(
+    final repository = _CapturingRegisterRepository();
+    await _pumpRegisterPage(
       tester,
       repository: repository,
-      child: const LoginPage(inviteTicket: 'invite-email-1'),
+      child: const RegisterPage(),
     );
 
-    await tester.tap(find.byKey(const ValueKey('login_email_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
-
-    await tester.enterText(find.byType(TextFormField).at(0), 'doctor@mai.ai');
-    await tester.tap(find.byKey(const ValueKey('send_code_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    await tester.enterText(find.byType(TextFormField).at(1), '123456');
-    await tester.pump();
-
-    final button = tester.widget<GestureDetector>(
-      find.byKey(const ValueKey('login_primary_button')),
+    expect(find.byKey(const ValueKey('register_phone_tab')), findsOneWidget);
+    expect(find.byKey(const ValueKey('register_email_tab')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('register_go_login_button')),
+      findsOneWidget,
     );
-    button.onTap!();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1200));
-
-    expect(repository.lastScene, VerificationCodeScene.login);
-    expect(repository.lastTarget, isNotNull);
-    expect(repository.lastTarget!.isEmail, isTrue);
-    expect(repository.lastTarget!.countryCode, isNull);
-    expect(repository.lastTarget!.value, 'doctor@mai.ai');
-    expect(repository.lastChallengeId, 'email-login-challenge-1');
-    expect(repository.lastVerificationCode, '123456');
-    expect(repository.lastInviteTicket, 'invite-email-1');
+    expect(find.text('立即登录'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('register action carries email mode in router query', (
+  testWidgets('typing @ in phone field auto-switches to email register', (
     tester,
   ) async {
-    final repository = _EmailLoginCaptureRepository();
-    final l10n = lookupAppLocalizations(const Locale('zh'));
+    final repository = _CapturingRegisterRepository();
+    await _pumpRegisterPage(
+      tester,
+      repository: repository,
+      child: const RegisterPage(),
+    );
+
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'doctor@example.com',
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.byKey(const ValueKey('register_email_fields')), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).first)
+          .controller
+          ?.text,
+      'doctor@example.com',
+    );
+    expect(
+      find.byKey(const ValueKey('register_country_code_menu_trigger')),
+      findsNothing,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('email register sends challenge without country code', (
+    tester,
+  ) async {
+    final repository = _CapturingRegisterRepository();
+    await _pumpRegisterPage(
+      tester,
+      repository: repository,
+      child: const RegisterPage(),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('register_email_tab')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'doctor@example.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(repository.lastScene, VerificationCodeScene.register);
+    expect(repository.lastCountryCode, '');
+    expect(repository.lastPhoneNumber, 'doctor@example.com');
+    expect(find.text('验证码已发送，如未收到请检查垃圾邮件箱。'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('register_send_code_countdown')),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('email register validates format in real time', (tester) async {
+    final repository = _CapturingRegisterRepository();
+    await _pumpRegisterPage(
+      tester,
+      repository: repository,
+      child: const RegisterPage(),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('register_email_tab')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.enterText(find.byType(TextFormField).first, 'doctor@');
+    await tester.pump();
+
+    expect(find.text('请输入正确的邮箱'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('bottom login action keeps current email mode', (tester) async {
+    final repository = _CapturingRegisterRepository();
     final router = GoRouter(
-      initialLocation: '/login?inviteTicket=invite-email-2',
+      initialLocation: '/register?inviteTicket=invite-register-1',
       routes: [
         GoRoute(
-          path: '/login',
-          builder: (context, state) => LoginPage(
+          path: '/register',
+          builder: (context, state) => RegisterPage(
             inviteTicket: state.uri.queryParameters['inviteTicket'],
+            initialMode: state.uri.queryParameters['mode'],
           ),
         ),
         GoRoute(
-          path: '/register',
+          path: '/login',
           builder: (context, state) => Scaffold(
             body: Text(
-              'register:${state.uri.queryParameters['mode']}:${state.uri.queryParameters['inviteTicket']}',
+              'login:${state.uri.queryParameters['mode']}:${state.uri.queryParameters['inviteTicket']}',
             ),
           ),
         ),
       ],
     );
 
-    await _pumpLoginRouter(tester, repository: repository, router: router);
+    await _pumpRegisterRouter(tester, repository: repository, router: router);
 
-    await tester.tap(find.byKey(const ValueKey('login_email_button')));
+    await tester.tap(find.byKey(const ValueKey('register_email_tab')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.widgetWithText(TextButton, l10n.authRegisterNow));
+    await tester.tap(find.byKey(const ValueKey('register_go_login_button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('register:email:invite-email-2'), findsOneWidget);
+    expect(find.text('login:email:invite-register-1'), findsOneWidget);
 
     router.dispose();
     await tester.pumpWidget(const SizedBox.shrink());

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
 import 'package:stitch_diag_demo/features/auth/data/models/auth_request.dart';
 import 'package:stitch_diag_demo/features/auth/data/sources/auth_remote_source.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 
 void main() {
@@ -132,8 +133,10 @@ void main() {
 
       final result = await remoteSource.createVerificationCodeChallenge(
         scene: VerificationCodeScene.register,
-        countryCode: '+86',
-        phoneNumber: '13800138000',
+        target: const VerificationCodeTarget.phone(
+          countryCode: '+86',
+          value: '13800138000',
+        ),
       );
 
       expect(
@@ -180,8 +183,10 @@ void main() {
 
       final result = await remoteSource.createVerificationCodeChallenge(
         scene: VerificationCodeScene.login,
-        countryCode: '+86',
-        phoneNumber: '13800138000',
+        target: const VerificationCodeTarget.phone(
+          countryCode: '+86',
+          value: '13800138000',
+        ),
       );
 
       expect(
@@ -197,6 +202,48 @@ void main() {
       expect(result.challengeId, 'login-challenge-1');
       expect(result.captchaRequired, isFalse);
       expect(result.expireAt, DateTime.parse('2026-04-10T08:10:00Z'));
+    });
+
+    test('omits country code for email challenge payload', () async {
+      dioClient.dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            capturedOptions = options;
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'code': 0,
+                  'message': 'ok',
+                  'data': {
+                    'challengeId': 'email-challenge-1',
+                    'captchaRequired': false,
+                    'captcha': null,
+                    'expireAt': '2026-04-10T08:20:00Z',
+                  },
+                },
+              ),
+            );
+          },
+        ),
+      );
+
+      final result = await remoteSource.createVerificationCodeChallenge(
+        scene: VerificationCodeScene.register,
+        target: const VerificationCodeTarget.email(value: 'doctor@example.com'),
+      );
+
+      expect(
+        capturedOptions.path,
+        '/api/v1/saas/mobile/auth/verification-code/challenge',
+      );
+      expect(capturedOptions.data, {
+        'scene': 'REGISTER',
+        'phoneNumber': 'doctor@example.com',
+        'loginValue': 'doctor@example.com',
+      });
+      expect(result.challengeId, 'email-challenge-1');
     });
   });
 }
