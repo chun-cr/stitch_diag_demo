@@ -355,6 +355,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   Future<bool> _ensureCaptchaVerifiedIfNeeded(AuthRepository repository) async {
     final challengeId = _challengeId;
     final provider = _captchaProvider;
+    final l10n = context.l10n;
     if (challengeId == null || challengeId.isEmpty) {
       return false;
     }
@@ -366,6 +367,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         .read(captchaResolverProvider)
         .resolve(
           context: context,
+          challengeId: challengeId,
           provider: provider,
           initPayload: _captchaInitPayload,
         );
@@ -383,7 +385,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         return false;
       }
       if (!verified) {
-        _showErrorSnack('人机验证未通过，请重试');
+        _showErrorSnack(l10n.authCaptchaFailed);
         return false;
       }
       setState(() => _captchaVerified = true);
@@ -394,10 +396,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       if (mounted && (code == 11119 || code == 11121)) {
         setState(() => _resetCodeState(clearCode: false));
       }
-      _showErrorSnack(_responseMessage(responseData) ?? '人机验证未通过，请重试');
+      _showErrorSnack(_responseMessage(responseData) ?? l10n.authCaptchaFailed);
       return false;
     } catch (_) {
-      _showErrorSnack('人机验证未通过，请重试');
+      _showErrorSnack(l10n.authCaptchaFailed);
       return false;
     }
   }
@@ -586,78 +588,113 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
 
   // ── Top Bar ────────────────────────────────────────────────────
   Widget _buildTopBar() {
+    final seasonalTag = context.l10n.seasonalTagLabel(SeasonalContext.now());
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _goToLogin,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-                  width: 1,
+      child: SizedBox(
+        height: 44,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: GestureDetector(
+                onTap: _goToLogin,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 16,
+                    color: Color(0xFF3A3028),
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+              ),
+            ),
+            // 品牌
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Center(child: _BrandMark()),
+                  ),
+                  const SizedBox(width: 8),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF1E1810),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                      children: [
+                        TextSpan(text: context.l10n.appBrandPrefix),
+                        TextSpan(
+                          text: 'AI',
+                          style: TextStyle(color: Color(0xFF2D6A4F)),
+                        ),
+                        TextSpan(text: context.l10n.appBrandSuffix),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                size: 16,
-                color: Color(0xFF3A3028),
-              ),
             ),
-          ),
-          const Spacer(),
-          // 品牌
-          Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
+            Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                key: const ValueKey('register_seasonal_tag'),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  color: const Color(0xFFFAF3E0),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(
+                    color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
+                    width: 1,
                   ),
-                  borderRadius: BorderRadius.circular(9),
                 ),
-                child: const Center(child: _BrandMark()),
-              ),
-              const SizedBox(width: 8),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF1E1810),
+                child: Text(
+                  seasonalTag,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFFC9A84C),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
-                  children: [
-                    TextSpan(text: context.l10n.appBrandPrefix),
-                    TextSpan(
-                      text: 'AI',
-                      style: TextStyle(color: Color(0xFF2D6A4F)),
-                    ),
-                    TextSpan(text: context.l10n.appBrandSuffix),
-                  ],
                 ),
               ),
-            ],
-          ),
-          const Spacer(),
-          const SizedBox(width: 40),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -896,34 +933,24 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   // ── Password Strength ──────────────────────────────────────────
-  Future<void> _openCountryCodePicker() async {
-    FocusScope.of(context).unfocus();
-    final selected = await showAuthCountryCodePicker(
-      context,
-      options: _countryCodes,
-      selectedCode: _selectedCountryCode,
-    );
-    if (!mounted || selected == null || selected.code == _selectedCountryCode) {
-      return;
-    }
-    setState(() {
-      if (_codeTargetCountryCode != null &&
-          _codeTargetCountryCode != selected.code) {
-        _resetCodeState();
-      }
-      _selectedCountryCode = selected.code;
-      _selectedCountryFlag = selected.flag;
-    });
-  }
-
   Widget _buildCountryCodePrefix() {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, right: 8),
-      child: CountryCodePickerTrigger(
+      padding: const EdgeInsets.only(left: 12),
+      child: CountryCodePopoverPicker(
         key: const ValueKey('register_country_code_menu_trigger'),
         flag: _selectedCountryFlag,
         code: _selectedCountryCode,
-        onTap: _openCountryCodePicker,
+        options: _countryCodes,
+        onSelected: (selected) {
+          setState(() {
+            if (_codeTargetCountryCode != null &&
+                _codeTargetCountryCode != selected.code) {
+              _resetCodeState();
+            }
+            _selectedCountryCode = selected.code;
+            _selectedCountryFlag = selected.flag;
+          });
+        },
       ),
     );
   }

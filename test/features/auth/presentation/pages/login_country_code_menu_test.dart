@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/widgets/country_code_picker.dart';
 import 'package:stitch_diag_demo/main.dart';
 
 Future<void> _pumpLoginPage(WidgetTester tester) async {
@@ -19,7 +19,50 @@ Future<void> _pumpLoginPage(WidgetTester tester) async {
 Future<void> _openCountrySelector(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('country_code_menu_trigger')));
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 450));
+  await tester.pump(const Duration(milliseconds: 260));
+}
+
+class _PopoverHost extends StatefulWidget {
+  const _PopoverHost({super.key});
+
+  @override
+  State<_PopoverHost> createState() => _PopoverHostState();
+}
+
+class _PopoverHostState extends State<_PopoverHost> {
+  String code = '+86';
+  String flag = '馃嚚馃嚦';
+  int rebuilds = 0;
+
+  void triggerRebuild() {
+    setState(() => rebuilds++);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 80),
+            CountryCodePopoverPicker(
+              flag: flag,
+              code: code,
+              options: authCountryCodeOptions,
+              onSelected: (selected) {
+                setState(() {
+                  code = selected.code;
+                  flag = selected.flag;
+                });
+              },
+            ),
+            Text('$rebuilds', key: const ValueKey('popover_host_rebuilds')),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 void main() {
@@ -40,20 +83,22 @@ void main() {
     },
   );
 
-  testWidgets('country selector opens as Cupertino-style picker page', (
-    tester,
-  ) async {
+  testWidgets('country selector opens as anchored popover', (tester) async {
     await _pumpLoginPage(tester);
 
     await _openCountrySelector(tester);
 
     expect(find.byType(BottomSheet), findsNothing);
     expect(
-      find.byKey(const ValueKey('country_code_picker_page')),
+      find.byKey(const ValueKey('country_code_popover_surface')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('country_code_picker_search')),
+      find.byKey(const ValueKey('country_code_popover_list')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('country_code_picker_item_+44')),
       findsOneWidget,
     );
 
@@ -62,27 +107,7 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('country selector shows selected check mark in picker page', (
-    tester,
-  ) async {
-    await _pumpLoginPage(tester);
-
-    await _openCountrySelector(tester);
-
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('country_code_picker_item_+86')),
-        matching: find.byIcon(CupertinoIcons.check_mark),
-      ),
-      findsOneWidget,
-    );
-
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    await tester.binding.setSurfaceSize(null);
-  });
-
-  testWidgets('selecting a country updates the prefix and closes the picker', (
+  testWidgets('selecting a country updates the prefix and closes the popover', (
     tester,
   ) async {
     await _pumpLoginPage(tester);
@@ -92,11 +117,11 @@ void main() {
       find.byKey(const ValueKey('country_code_picker_item_+44')),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump(const Duration(milliseconds: 220));
 
     expect(
-      find.byKey(const ValueKey('country_code_menu_trigger')),
-      findsOneWidget,
+      find.byKey(const ValueKey('country_code_popover_surface')),
+      findsNothing,
     );
     expect(
       find.descendant(
@@ -111,28 +136,52 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('country selector search filters the list', (tester) async {
+  testWidgets('tapping outside dismisses the popover', (tester) async {
     await _pumpLoginPage(tester);
 
     await _openCountrySelector(tester);
-    await tester.enterText(
-      find.byKey(const ValueKey('country_code_picker_search')),
-      'japan',
-    );
+    await tester.tapAt(const Offset(12, 12));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 220));
 
     expect(
-      find.byKey(const ValueKey('country_code_picker_item_+81')),
-      findsOneWidget,
+      find.byKey(const ValueKey('country_code_popover_surface')),
+      findsNothing,
     );
     expect(
-      find.byKey(const ValueKey('country_code_picker_item_+49')),
-      findsNothing,
+      find.descendant(
+        of: find.byKey(const ValueKey('country_code_menu_trigger')),
+        matching: find.text('+86'),
+      ),
+      findsOneWidget,
     );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('parent rebuild does not throw while popover is open', (
+    tester,
+  ) async {
+    final hostKey = GlobalKey<_PopoverHostState>();
+    await tester.pumpWidget(_PopoverHost(key: hostKey));
+
+    await tester.tap(find.text('+86'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 260));
+    expect(
+      find.byKey(const ValueKey('country_code_popover_surface')),
+      findsOneWidget,
+    );
+
+    hostKey.currentState!.triggerRebuild();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey('country_code_popover_surface')),
+      findsOneWidget,
+    );
   });
 }

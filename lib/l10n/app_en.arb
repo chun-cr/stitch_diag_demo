@@ -85,6 +85,25 @@
   "authSendCodeFailed": "Failed to send verification code. Please try again later.",
   "authCodeSent": "Verification code sent. Please check your messages.",
   "authSendCodeFirst": "Please request a verification code first.",
+  "commonContinue": "Continue",
+  "authCaptchaTitle": "Captcha verification",
+  "authCaptchaManualPrompt": "Complete the {provider} verification first, then paste the JSON result returned by the provider to continue.",
+  "@authCaptchaManualPrompt": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "authCaptchaInitPayloadLabel": "Initialization parameters",
+  "authCaptchaResultJsonLabel": "Verification result JSON",
+  "authCaptchaManualResultHint": "Example: ticket=ticket-001",
+  "authCaptchaInvalidJson": "Please enter a valid JSON object.",
+  "authCaptchaFailed": "Captcha verification failed. Please try again.",
+  "authCaptchaLoadingPage": "Loading captcha page...",
+  "authCaptchaReady": "Captcha is ready. Please complete the verification.",
+  "authCaptchaPageLoadFailed": "Failed to load the captcha page. Please close it and try again.",
+  "authCaptchaInitFailed": "Failed to initialize captcha. Please close it and try again.",
   "authCaptchaRequiredUnsupported": "This environment does not support captcha verification yet. Please try again later.",
   "authForgotPasswordTip": "Please reset your password using your registered phone number, or contact support.",
   "commonConfirm": "Got it",

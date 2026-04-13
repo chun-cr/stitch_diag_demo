@@ -3,7 +3,7 @@ import 'interceptors/log_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
 
 class DioClient {
-  static const String baseUrl = 'https://saas-api.dev51.permillet.com';
+  static const String baseUrl = 'http://localhost:8080';
   static const String appId = String.fromEnvironment(
     'X_APP_ID',
     defaultValue: 'stitch_diag_demo',
@@ -19,10 +19,7 @@ class DioClient {
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 10),
-        headers: {
-          'X-App-Id': appId,
-          'X-Platform': platform,
-        },
+        headers: {'X-App-Id': appId, 'X-Platform': platform},
       ),
     );
     dio.interceptors.add(AuthInterceptor());

@@ -199,6 +199,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSendCodeFirst => '먼저 인증코드를 받아 주세요.';
 
   @override
+  String get commonContinue => '계속';
+
+  @override
+  String get authCaptchaTitle => '캡차 인증';
+
+  @override
+  String authCaptchaManualPrompt(String provider) {
+    return '먼저 $provider 인증을 완료한 뒤 provider 가 반환한 JSON 결과를 붙여 넣어 계속해 주세요.';
+  }
+
+  @override
+  String get authCaptchaInitPayloadLabel => '초기화 파라미터';
+
+  @override
+  String get authCaptchaResultJsonLabel => '검증 결과 JSON';
+
+  @override
+  String get authCaptchaManualResultHint => '예: ticket=ticket-001';
+
+  @override
+  String get authCaptchaInvalidJson => '올바른 JSON 객체를 입력해 주세요.';
+
+  @override
+  String get authCaptchaFailed => '캡차 인증에 실패했어요. 다시 시도해 주세요.';
+
+  @override
+  String get authCaptchaLoadingPage => '캡차 페이지를 불러오는 중이에요...';
+
+  @override
+  String get authCaptchaReady => '캡차가 준비되었어요. 인증을 완료해 주세요.';
+
+  @override
+  String get authCaptchaPageLoadFailed => '캡차 페이지를 불러오지 못했어요. 닫은 뒤 다시 시도해 주세요.';
+
+  @override
+  String get authCaptchaInitFailed => '캡차 초기화에 실패했어요. 닫은 뒤 다시 시도해 주세요.';
+
+  @override
   String get authCaptchaRequiredUnsupported =>
       '현재 환경에서는 캡차 인증을 지원하지 않아요. 잠시 후 다시 시도해 주세요.';
 

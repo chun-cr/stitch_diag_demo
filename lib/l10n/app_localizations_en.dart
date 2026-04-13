@@ -201,6 +201,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authSendCodeFirst => 'Please request a verification code first.';
 
   @override
+  String get commonContinue => 'Continue';
+
+  @override
+  String get authCaptchaTitle => 'Captcha verification';
+
+  @override
+  String authCaptchaManualPrompt(String provider) {
+    return 'Complete the $provider verification first, then paste the JSON result returned by the provider to continue.';
+  }
+
+  @override
+  String get authCaptchaInitPayloadLabel => 'Initialization parameters';
+
+  @override
+  String get authCaptchaResultJsonLabel => 'Verification result JSON';
+
+  @override
+  String get authCaptchaManualResultHint => 'Example: ticket=ticket-001';
+
+  @override
+  String get authCaptchaInvalidJson => 'Please enter a valid JSON object.';
+
+  @override
+  String get authCaptchaFailed =>
+      'Captcha verification failed. Please try again.';
+
+  @override
+  String get authCaptchaLoadingPage => 'Loading captcha page...';
+
+  @override
+  String get authCaptchaReady =>
+      'Captcha is ready. Please complete the verification.';
+
+  @override
+  String get authCaptchaPageLoadFailed =>
+      'Failed to load the captcha page. Please close it and try again.';
+
+  @override
+  String get authCaptchaInitFailed =>
+      'Failed to initialize captcha. Please close it and try again.';
+
+  @override
   String get authCaptchaRequiredUnsupported =>
       'This environment does not support captcha verification yet. Please try again later.';
 

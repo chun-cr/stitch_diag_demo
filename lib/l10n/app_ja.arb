@@ -91,6 +91,25 @@
   "authSendCodeFailed": "認証コードの送信に失敗しました。しばらくしてからもう一度お試しください。",
   "authCodeSent": "認証コードを送信しました。ご確認ください。",
   "authSendCodeFirst": "先に認証コードを取得してください。",
+  "commonContinue": "続ける",
+  "authCaptchaTitle": "人機検証",
+  "authCaptchaManualPrompt": "先に {provider} の検証を完了し、provider から返された JSON 結果を貼り付けて続行してください。",
+  "@authCaptchaManualPrompt": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "authCaptchaInitPayloadLabel": "初期化パラメータ",
+  "authCaptchaResultJsonLabel": "検証結果 JSON",
+  "authCaptchaManualResultHint": "例：ticket=ticket-001",
+  "authCaptchaInvalidJson": "有効な JSON オブジェクトを入力してください。",
+  "authCaptchaFailed": "人機検証に失敗しました。もう一度お試しください。",
+  "authCaptchaLoadingPage": "検証ページを読み込み中です...",
+  "authCaptchaReady": "検証コンポーネントの準備ができました。人機検証を完了してください。",
+  "authCaptchaPageLoadFailed": "検証ページの読み込みに失敗しました。閉じてから再試行してください。",
+  "authCaptchaInitFailed": "人機検証の初期化に失敗しました。閉じてから再試行してください。",
   "authCaptchaRequiredUnsupported": "現在の環境では人機検証に対応していません。しばらくしてからもう一度お試しください。",
   "authForgotPasswordTip": "登録済みの電話番号でパスワードを再設定するか、サポートへお問い合わせください。",
   "commonConfirm": "了解しました",

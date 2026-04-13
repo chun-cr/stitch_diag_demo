@@ -25,6 +25,7 @@ class _FixedCaptchaResolver implements CaptchaResolver {
   @override
   Future<Map<String, String>?> resolve({
     required BuildContext context,
+    required String challengeId,
     required String provider,
     Map<String, dynamic>? initPayload,
   }) async {

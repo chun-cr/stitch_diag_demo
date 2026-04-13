@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -75,40 +77,86 @@ const List<CountryCodeOption> authCountryCodeOptions = [
   ),
 ];
 
-Future<CountryCodeOption?> showAuthCountryCodePicker(
-  BuildContext context, {
-  required List<CountryCodeOption> options,
-  required String selectedCode,
-}) {
-  return showCupertinoModalPopup<CountryCodeOption>(
-    context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.14),
-    builder: (_) => AuthCountryCodePickerSheet(
-      options: options,
-      selectedCode: selectedCode,
-    ),
-  );
-}
-
-class CountryCodePickerTrigger extends StatefulWidget {
-  const CountryCodePickerTrigger({
+class CountryCodePopoverPicker extends StatefulWidget {
+  const CountryCodePopoverPicker({
     super.key,
     required this.flag,
     required this.code,
-    required this.onTap,
+    required this.options,
+    required this.onSelected,
+    this.maxPopoverHeight = 280,
+    this.menuWidth = 216,
   });
 
   final String flag;
   final String code;
-  final VoidCallback onTap;
+  final List<CountryCodeOption> options;
+  final ValueChanged<CountryCodeOption> onSelected;
+  final double maxPopoverHeight;
+  final double menuWidth;
 
   @override
-  State<CountryCodePickerTrigger> createState() =>
-      _CountryCodePickerTriggerState();
+  State<CountryCodePopoverPicker> createState() =>
+      _CountryCodePopoverPickerState();
 }
 
-class _CountryCodePickerTriggerState extends State<CountryCodePickerTrigger> {
+class _CountryCodePopoverPickerState extends State<CountryCodePopoverPicker>
+    with SingleTickerProviderStateMixin {
+  final LayerLink _layerLink = LayerLink();
+  final GlobalKey _targetKey = GlobalKey();
+  OverlayEntry? _overlayEntry;
+  Timer? _scrollHapticTimer;
+  late final AnimationController _menuController;
+  late final Animation<double> _menuOpacity;
+  late final Animation<double> _menuScale;
   bool _pressed = false;
+  bool _open = false;
+  bool _overlayRebuildQueued = false;
+  double _lastHapticPixels = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 190),
+      reverseDuration: const Duration(milliseconds: 160),
+    );
+    _menuOpacity = CurvedAnimation(
+      parent: _menuController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _menuScale = Tween<double>(begin: 0.94, end: 1).animate(
+      CurvedAnimation(
+        parent: _menuController,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant CountryCodePopoverPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final shouldRefreshOverlay =
+        oldWidget.code != widget.code ||
+        oldWidget.flag != widget.flag ||
+        oldWidget.maxPopoverHeight != widget.maxPopoverHeight ||
+        oldWidget.menuWidth != widget.menuWidth ||
+        !identical(oldWidget.options, widget.options);
+    if (_open && shouldRefreshOverlay) {
+      _queueOverlayRebuild();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollHapticTimer?.cancel();
+    _removeOverlay(immediate: true);
+    _menuController.dispose();
+    super.dispose();
+  }
 
   void _setPressed(bool value) {
     if (_pressed == value) {
@@ -117,433 +165,297 @@ class _CountryCodePickerTriggerState extends State<CountryCodePickerTrigger> {
     setState(() => _pressed = value);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
-      onTap: () {
-        HapticFeedback.selectionClick();
-        widget.onTap();
-      },
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        scale: _pressed ? 0.982 : 1,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: _pressed ? 0.94 : 0.72),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: _pressed ? 0.72 : 0.48),
-              width: 0.8,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _pressed ? 0.05 : 0.03),
-                blurRadius: _pressed ? 10 : 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(widget.flag, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 6),
-              Text(
-                widget.code,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E1810),
-                ),
-              ),
-              const SizedBox(width: 6),
-              AnimatedRotation(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                turns: _pressed ? 0.5 : 0,
-                child: Icon(
-                  CupertinoIcons.chevron_down,
-                  size: 12,
-                  color: const Color(0xFFA09080).withValues(alpha: 0.92),
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class AuthCountryCodePickerSheet extends StatefulWidget {
-  const AuthCountryCodePickerSheet({
-    super.key,
-    required this.options,
-    required this.selectedCode,
-  });
-
-  final List<CountryCodeOption> options;
-  final String selectedCode;
-
-  @override
-  State<AuthCountryCodePickerSheet> createState() =>
-      _AuthCountryCodePickerSheetState();
-}
-
-class _AuthCountryCodePickerSheetState
-    extends State<AuthCountryCodePickerSheet> {
-  final TextEditingController _searchCtrl = TextEditingController();
-  double _lastHapticOffset = 0;
-  double _dragOffset = 0;
-  String _query = '';
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  bool _matches(CountryCodeOption option) {
-    if (_query.isEmpty) {
-      return true;
+  Future<void> _togglePopover() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    HapticFeedback.selectionClick();
+    if (_open) {
+      await _hidePopover();
+    } else {
+      await _showPopover();
     }
-    final query = _query.toLowerCase();
-    return option.searchTerms.any((term) => term.toLowerCase().contains(query));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final filtered = widget.options.where(_matches).toList(growable: false);
-    final preferred = filtered
-        .where((item) => item.preferred)
-        .toList(growable: false);
-    final grouped = _query.isEmpty
-        ? filtered.where((item) => !item.preferred).toList(growable: false)
-        : filtered;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final sheetHeight = (screenHeight * 0.78).clamp(420.0, 640.0).toDouble();
+  Future<void> _showPopover() async {
+    if (_open) {
+      return;
+    }
+    final overlay = Overlay.of(context, rootOverlay: true);
+    _open = true;
+    _overlayEntry = OverlayEntry(builder: _buildOverlay);
+    overlay.insert(_overlayEntry!);
+    if (mounted) {
+      setState(() {});
+    }
+    await _menuController.forward(from: 0);
+  }
 
-    return Material(
-      type: MaterialType.transparency,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.only(bottom: keyboardInset),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: SizedBox(
-            key: const ValueKey('country_code_picker_page'),
-            height: sheetHeight,
-            width: double.infinity,
-            child: Transform.translate(
-              offset: Offset(0, _dragOffset),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(30),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFFF9FBFD).withValues(alpha: 0.88),
-                          const Color(0xFFF1F5F8).withValues(alpha: 0.74),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.56),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.14),
-                          blurRadius: 30,
-                          offset: const Offset(0, -8),
-                        ),
-                      ],
-                    ),
-                    child: SafeArea(
-                      top: false,
-                      child: Column(
-                        children: [
-                          _buildHandle(context),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-                            child: Text(
-                              _titleForLocale(context),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111111),
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                            child: CupertinoSearchTextField(
-                              key: const ValueKey('country_code_picker_search'),
-                              controller: _searchCtrl,
-                              placeholder: _searchPlaceholderForLocale(context),
-                              onChanged: (value) {
-                                setState(() => _query = value.trim());
-                              },
-                            ),
-                          ),
-                          Expanded(
-                            child:
-                                NotificationListener<ScrollUpdateNotification>(
-                                  onNotification: _handleScrollNotification,
-                                  child: ListView(
-                                    padding: const EdgeInsets.only(bottom: 24),
-                                    children: [
-                                      if (_query.isEmpty &&
-                                          preferred.isNotEmpty) ...[
-                                        _SectionHeader(
-                                          title: _preferredTitleForLocale(
-                                            context,
-                                          ),
-                                        ),
-                                        _SectionCard(
-                                          children: [
-                                            for (
-                                              var i = 0;
-                                              i < preferred.length;
-                                              i++
-                                            ) ...[
-                                              _CountryCodeCell(
-                                                option: preferred[i],
-                                                selected:
-                                                    preferred[i].code ==
-                                                    widget.selectedCode,
-                                                onTap: () =>
-                                                    _select(preferred[i]),
-                                              ),
-                                              if (i != preferred.length - 1)
-                                                const _CellDivider(),
-                                            ],
-                                          ],
-                                        ),
-                                        const SizedBox(height: 18),
-                                      ],
-                                      if (grouped.isNotEmpty) ...[
-                                        _SectionHeader(
-                                          title: _allTitleForLocale(context),
-                                        ),
-                                        _SectionCard(
-                                          children: [
-                                            for (
-                                              var i = 0;
-                                              i < grouped.length;
-                                              i++
-                                            ) ...[
-                                              _CountryCodeCell(
-                                                option: grouped[i],
-                                                selected:
-                                                    grouped[i].code ==
-                                                    widget.selectedCode,
-                                                onTap: () =>
-                                                    _select(grouped[i]),
-                                              ),
-                                              if (i != grouped.length - 1)
-                                                const _CellDivider(),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                      if (filtered.isEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 80,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              _emptyStateForLocale(context),
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: const Color(
-                                                  0xFF3A3028,
-                                                ).withValues(alpha: 0.55),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                          ),
-                        ],
-                      ),
+  Future<void> _hidePopover({CountryCodeOption? selection}) async {
+    if (!_open) {
+      return;
+    }
+    _open = false;
+    if (mounted) {
+      setState(() {});
+    }
+    await _menuController.reverse();
+    _removeOverlay();
+    if (selection != null) {
+      widget.onSelected(selection);
+    }
+  }
+
+  void _removeOverlay({bool immediate = false}) {
+    if (immediate) {
+      _menuController.stop();
+      _menuController.value = 0;
+    }
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _overlayRebuildQueued = false;
+  }
+
+  void _queueOverlayRebuild() {
+    if (_overlayRebuildQueued) {
+      return;
+    }
+    _overlayRebuildQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _overlayRebuildQueued = false;
+      if (!mounted || !_open) {
+        return;
+      }
+      _overlayEntry?.markNeedsBuild();
+    });
+  }
+
+  Widget _buildOverlay(BuildContext overlayContext) {
+    final mediaQuery = MediaQuery.of(overlayContext);
+    final renderObject = _targetKey.currentContext?.findRenderObject();
+    final targetBox = renderObject is RenderBox ? renderObject : null;
+    final overlayBox = Overlay.of(overlayContext).context.findRenderObject();
+    final rootBox = overlayBox is RenderBox ? overlayBox : null;
+    final targetOffset = (targetBox != null && rootBox != null)
+        ? targetBox.localToGlobal(Offset.zero, ancestor: rootBox)
+        : Offset.zero;
+    final targetSize = targetBox?.size ?? Size.zero;
+    final safeBottom = mediaQuery.padding.bottom + 14;
+    final keyboardInset = mediaQuery.viewInsets.bottom;
+    final availableBelow =
+        mediaQuery.size.height -
+        keyboardInset -
+        targetOffset.dy -
+        targetSize.height -
+        16 -
+        safeBottom;
+    final popoverHeight = math
+        .max(120, math.min(widget.maxPopoverHeight, availableBelow))
+        .toDouble();
+    final popoverWidth = math
+        .min(widget.menuWidth, mediaQuery.size.width - 24)
+        .toDouble();
+
+    return Positioned.fill(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _hidePopover,
+              ),
+            ),
+            CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              targetAnchor: Alignment.bottomLeft,
+              followerAnchor: Alignment.topLeft,
+              offset: const Offset(0, 8),
+              child: FadeTransition(
+                opacity: _menuOpacity,
+                child: ScaleTransition(
+                  scale: _menuScale,
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: Offset(0, 6 * (1 - _menuOpacity.value)),
+                    child: _CountryCodePopoverSurface(
+                      key: const ValueKey('country_code_popover_surface'),
+                      width: popoverWidth,
+                      maxHeight: popoverHeight,
+                      selectedCode: widget.code,
+                      options: widget.options,
+                      onItemTap: (option) async {
+                        HapticFeedback.lightImpact();
+                        await _hidePopover(selection: option);
+                      },
+                      onScroll: _handleScroll,
                     ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHandle(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onVerticalDragUpdate: (details) {
-        if (details.delta.dy <= 0) {
-          return;
-        }
-        setState(
-          () => _dragOffset = (_dragOffset + details.delta.dy).clamp(0.0, 72.0),
-        );
-      },
-      onVerticalDragEnd: (details) {
-        final velocity = details.primaryVelocity ?? 0;
-        if (_dragOffset > 28 || velocity > 480) {
-          HapticFeedback.selectionClick();
-          Navigator.of(context).maybePop();
-          return;
-        }
-        setState(() => _dragOffset = 0);
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 10, 0, 8),
-        child: Center(
-          child: Container(
-            width: 42,
-            height: 5,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6C7480).withValues(alpha: 0.26),
-              borderRadius: BorderRadius.circular(999),
+  void _handleScroll(double pixels) {
+    if ((pixels - _lastHapticPixels).abs() < 42) {
+      return;
+    }
+    _lastHapticPixels = pixels;
+    _scrollHapticTimer?.cancel();
+    _scrollHapticTimer = Timer(const Duration(milliseconds: 16), () {
+      HapticFeedback.selectionClick();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        key: _targetKey,
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _setPressed(true),
+        onTapUp: (_) => _setPressed(false),
+        onTapCancel: () => _setPressed(false),
+        onTap: _togglePopover,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+          scale: _pressed ? 0.986 : 1,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOutCubic,
+            opacity: _pressed ? 0.82 : 1,
+            child: SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.code,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E1810),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  AnimatedRotation(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    turns: _open ? 0.5 : 0,
+                    child: Icon(
+                      CupertinoIcons.chevron_down,
+                      size: 11,
+                      color: const Color(0xFFA09080).withValues(alpha: 0.92),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 0.8,
+                    height: 18,
+                    color: const Color(0xFF1E1810).withValues(alpha: 0.08),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
-
-  bool _handleScrollNotification(ScrollUpdateNotification notification) {
-    final delta = notification.scrollDelta ?? 0;
-    if (delta.abs() < 10) {
-      return false;
-    }
-    final pixels = notification.metrics.pixels;
-    if ((pixels - _lastHapticOffset).abs() >= 44) {
-      _lastHapticOffset = pixels;
-      HapticFeedback.selectionClick();
-    }
-    return false;
-  }
-
-  void _select(CountryCodeOption option) {
-    HapticFeedback.lightImpact();
-    Navigator.of(context).pop(option);
-  }
-
-  String _titleForLocale(BuildContext context) {
-    return switch (Localizations.localeOf(context).languageCode) {
-      'en' => 'Country or Region',
-      'ja' => '国または地域',
-      'ko' => '국가 또는 지역',
-      _ => '选择国家或地区',
-    };
-  }
-
-  String _searchPlaceholderForLocale(BuildContext context) {
-    return switch (Localizations.localeOf(context).languageCode) {
-      'en' => 'Search by country or code',
-      'ja' => '国名または区号で検索',
-      'ko' => '국가명 또는 국가번호 검색',
-      _ => '搜索国家或区号',
-    };
-  }
-
-  String _preferredTitleForLocale(BuildContext context) {
-    return switch (Localizations.localeOf(context).languageCode) {
-      'en' => 'Recommended',
-      'ja' => '常用地域',
-      'ko' => '자주 사용하는 지역',
-      _ => '常用地区',
-    };
-  }
-
-  String _allTitleForLocale(BuildContext context) {
-    return switch (Localizations.localeOf(context).languageCode) {
-      'en' => 'All Regions',
-      'ja' => '全部の地域',
-      'ko' => '전체 지역',
-      _ => '全部地区',
-    };
-  }
-
-  String _emptyStateForLocale(BuildContext context) {
-    return switch (Localizations.localeOf(context).languageCode) {
-      'en' => 'No matching country or region',
-      'ja' => '一致する国または地域が見つかりません',
-      'ko' => '일치하는 국가 또는 지역이 없습니다',
-      _ => '没有匹配的国家或地区',
-    };
-  }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+class _CountryCodePopoverSurface extends StatelessWidget {
+  const _CountryCodePopoverSurface({
+    super.key,
+    required this.width,
+    required this.maxHeight,
+    required this.options,
+    required this.selectedCode,
+    required this.onItemTap,
+    required this.onScroll,
+  });
 
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFF6C7480).withValues(alpha: 0.86),
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.children});
-
-  final List<Widget> children;
+  final double width;
+  final double maxHeight;
+  final List<CountryCodeOption> options;
+  final String selectedCode;
+  final ValueChanged<CountryCodeOption> onItemTap;
+  final ValueChanged<double> onScroll;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.48),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.52),
-          width: 0.8,
+      width: width,
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.6),
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: NotificationListener<ScrollUpdateNotification>(
+              onNotification: (notification) {
+                onScroll(notification.metrics.pixels);
+                return false;
+              },
+              child: ListView.separated(
+                key: const ValueKey('country_code_popover_list'),
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                shrinkWrap: true,
+                primary: false,
+                itemCount: options.length,
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                separatorBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.only(left: 44),
+                  child: Divider(
+                    height: 0.5,
+                    thickness: 0.5,
+                    color: Colors.black.withValues(alpha: 0.05),
+                  ),
+                ),
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  final selected = option.code == selectedCode;
+                  return _CountryCodePopoverItem(
+                    option: option,
+                    selected: selected,
+                    onTap: () => onItemTap(option),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
-      child: Column(children: children),
     );
   }
 }
 
-class _CountryCodeCell extends StatelessWidget {
-  const _CountryCodeCell({
+class _CountryCodePopoverItem extends StatelessWidget {
+  const _CountryCodePopoverItem({
     required this.option,
     required this.selected,
     required this.onTap,
@@ -555,79 +467,50 @@ class _CountryCodeCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoButton(
+    return GestureDetector(
       key: ValueKey('country_code_picker_item_${option.code}'),
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      borderRadius: BorderRadius.circular(16),
-      onPressed: onTap,
-      child: DecoratedBox(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: selected
               ? const Color(0xFF2D6A4F).withValues(alpha: 0.08)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Text(option.flag, style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  option.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF111111),
-                  ),
-                ),
-              ),
-              Text(
-                option.code,
+        child: Row(
+          children: [
+            Text(option.flag, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                option.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected
-                      ? const Color(0xFF2D6A4F)
-                      : const Color(0xFF6C7480),
+                  color: const Color(0xFF1E1810),
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 18,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: selected
-                      ? const Icon(
-                          CupertinoIcons.check_mark,
-                          key: ValueKey('selected_country_code_check'),
-                          size: 18,
-                          color: Color(0xFF2D6A4F),
-                        )
-                      : const SizedBox.shrink(),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              option.code,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected
+                    ? const Color(0xFF2D6A4F)
+                    : const Color(0xFF6C7480),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _CellDivider extends StatelessWidget {
-  const _CellDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 48),
-      child: Divider(
-        height: 0.5,
-        thickness: 0.5,
-        color: Colors.black.withValues(alpha: 0.06),
       ),
     );
   }

@@ -201,6 +201,7 @@ void main() {
         find.byKey(const ValueKey('login_primary_button')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('login_locale_button')), findsOneWidget);
 
       await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
       await tester.tap(find.byKey(const ValueKey('send_code_button')));
@@ -242,6 +243,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
 
     expect(find.byType(LoginPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('login_locale_button')), findsOneWidget);
 
     await tester.tap(find.byType(TextFormField).first);
     await tester.pump();

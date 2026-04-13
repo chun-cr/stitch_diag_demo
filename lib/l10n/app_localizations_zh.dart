@@ -199,6 +199,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authSendCodeFirst => '请先获取验证码';
 
   @override
+  String get commonContinue => '继续';
+
+  @override
+  String get authCaptchaTitle => '人机验证';
+
+  @override
+  String authCaptchaManualPrompt(String provider) {
+    return '需要先完成 $provider 验证。请粘贴 provider 返回的 JSON 结果后继续。';
+  }
+
+  @override
+  String get authCaptchaInitPayloadLabel => '初始化参数';
+
+  @override
+  String get authCaptchaResultJsonLabel => '验证结果 JSON';
+
+  @override
+  String get authCaptchaManualResultHint => '例如：ticket=ticket-001';
+
+  @override
+  String get authCaptchaInvalidJson => '请输入合法的 JSON 对象';
+
+  @override
+  String get authCaptchaFailed => '人机验证未通过，请重试';
+
+  @override
+  String get authCaptchaLoadingPage => '正在加载验证码页面...';
+
+  @override
+  String get authCaptchaReady => '验证码组件已就绪，请完成人机验证';
+
+  @override
+  String get authCaptchaPageLoadFailed => '验证码页面加载失败，请关闭后重试';
+
+  @override
+  String get authCaptchaInitFailed => '验证码初始化失败，请关闭后重试';
+
+  @override
   String get authCaptchaRequiredUnsupported => '当前环境暂不支持人机验证，请稍后再试';
 
   @override

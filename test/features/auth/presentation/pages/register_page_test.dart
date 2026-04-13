@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
@@ -25,6 +26,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 900));
 
       expect(find.byType(RegisterPage), findsOneWidget);
+      final context = tester.element(find.byType(RegisterPage));
+      final l10n = AppLocalizations.of(context);
+      final expectedTag = l10n.seasonalTagLabel(SeasonalContext.now());
+      expect(
+        find.byKey(const ValueKey('register_seasonal_tag')),
+        findsOneWidget,
+      );
+      expect(find.text(expectedTag), findsOneWidget);
       expect(
         find.byKey(const ValueKey('register_country_code_menu_trigger')),
         findsOneWidget,

@@ -474,6 +474,78 @@ abstract class AppLocalizations {
   /// **'请先获取验证码'**
   String get authSendCodeFirst;
 
+  /// No description provided for @commonContinue.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续'**
+  String get commonContinue;
+
+  /// No description provided for @authCaptchaTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人机验证'**
+  String get authCaptchaTitle;
+
+  /// No description provided for @authCaptchaManualPrompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要先完成 {provider} 验证。请粘贴 provider 返回的 JSON 结果后继续。'**
+  String authCaptchaManualPrompt(String provider);
+
+  /// No description provided for @authCaptchaInitPayloadLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'初始化参数'**
+  String get authCaptchaInitPayloadLabel;
+
+  /// No description provided for @authCaptchaResultJsonLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证结果 JSON'**
+  String get authCaptchaResultJsonLabel;
+
+  /// No description provided for @authCaptchaManualResultHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'例如：ticket=ticket-001'**
+  String get authCaptchaManualResultHint;
+
+  /// No description provided for @authCaptchaInvalidJson.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入合法的 JSON 对象'**
+  String get authCaptchaInvalidJson;
+
+  /// No description provided for @authCaptchaFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'人机验证未通过，请重试'**
+  String get authCaptchaFailed;
+
+  /// No description provided for @authCaptchaLoadingPage.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加载验证码页面...'**
+  String get authCaptchaLoadingPage;
+
+  /// No description provided for @authCaptchaReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码组件已就绪，请完成人机验证'**
+  String get authCaptchaReady;
+
+  /// No description provided for @authCaptchaPageLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码页面加载失败，请关闭后重试'**
+  String get authCaptchaPageLoadFailed;
+
+  /// No description provided for @authCaptchaInitFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码初始化失败，请关闭后重试'**
+  String get authCaptchaInitFailed;
+
   /// No description provided for @authCaptchaRequiredUnsupported.
   ///
   /// In zh, this message translates to:

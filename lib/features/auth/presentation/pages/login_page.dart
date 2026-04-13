@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
-import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
@@ -17,6 +16,7 @@ import '../../../../core/router/app_router.dart';
 import '../providers/auth_repository_provider.dart';
 import '../providers/captcha_resolver_provider.dart';
 import '../utils/verification_code_feedback.dart';
+import '../widgets/auth_locale_button.dart';
 import '../widgets/country_code_picker.dart';
 import '../widgets/auth_top_toast.dart';
 import '../../data/models/auth_request.dart';
@@ -382,6 +382,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Future<bool> _ensureCaptchaVerifiedIfNeeded(AuthRepository repository) async {
     final challengeId = _challengeId;
     final provider = _captchaProvider;
+    final l10n = context.l10n;
     if (challengeId == null || challengeId.isEmpty) {
       return false;
     }
@@ -393,6 +394,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
         .read(captchaResolverProvider)
         .resolve(
           context: context,
+          challengeId: challengeId,
           provider: provider,
           initPayload: _captchaInitPayload,
         );
@@ -410,7 +412,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
         return false;
       }
       if (!verified) {
-        _showErrorSnack('人机验证未通过，请重试');
+        _showErrorSnack(l10n.authCaptchaFailed);
         return false;
       }
       setState(() => _captchaVerified = true);
@@ -421,10 +423,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
       if (mounted && (code == 11119 || code == 11121)) {
         setState(() => _resetCodeState(clearCode: false));
       }
-      _showErrorSnack(_responseMessage(responseData) ?? '人机验证未通过，请重试');
+      _showErrorSnack(_responseMessage(responseData) ?? l10n.authCaptchaFailed);
       return false;
     } catch (_) {
-      _showErrorSnack('人机验证未通过，请重试');
+      _showErrorSnack(l10n.authCaptchaFailed);
       return false;
     }
   }
@@ -779,77 +781,53 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   // ── Brand Row ──────────────────────────────────────────────────
   Widget _buildBrandRow() {
-    final seasonalTag = context.l10n.seasonalTagLabel(SeasonalContext.now());
-
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Center(child: _BrandMark()),
-            ),
-            const SizedBox(width: 10),
-            RichText(
-              maxLines: 1,
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFF1E1810),
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-                children: [
-                  TextSpan(text: context.l10n.appBrandPrefix),
-                  TextSpan(
-                    text: 'AI',
-                    style: TextStyle(color: Color(0xFF2D6A4F)),
+        Expanded(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  TextSpan(text: context.l10n.appBrandSuffix),
-                ],
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Center(child: _BrandMark()),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-        const Spacer(),
-        // 节气装饰标签
-        Transform.translate(
-          offset: const Offset(12, -4),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF3E0),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
-                width: 1,
+              const SizedBox(width: 10),
+              Flexible(
+                child: RichText(
+                  maxLines: 1,
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Color(0xFF1E1810),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    children: [
+                      TextSpan(text: context.l10n.appBrandPrefix),
+                      TextSpan(
+                        text: 'AI',
+                        style: TextStyle(color: Color(0xFF2D6A4F)),
+                      ),
+                      TextSpan(text: context.l10n.appBrandSuffix),
+                    ],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            child: Text(
-              seasonalTag,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                color: Color(0xFFC9A84C),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
+            ],
           ),
         ),
+        const SizedBox(width: 12),
+        const AuthLocaleButton(key: ValueKey('login_locale_button')),
       ],
     );
   }
@@ -1372,34 +1350,24 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
-  Future<void> _openCountryCodePicker() async {
-    FocusScope.of(context).unfocus();
-    final selected = await showAuthCountryCodePicker(
-      context,
-      options: _countryCodes,
-      selectedCode: _selectedCountryCode,
-    );
-    if (!mounted || selected == null || selected.code == _selectedCountryCode) {
-      return;
-    }
-    setState(() {
-      if (_codeTargetCountryCode != null &&
-          _codeTargetCountryCode != selected.code) {
-        _resetCodeState();
-      }
-      _selectedCountryCode = selected.code;
-      _selectedCountryFlag = selected.flag;
-    });
-  }
-
   Widget _buildCountryCodePrefix() {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, right: 8),
-      child: CountryCodePickerTrigger(
+      padding: const EdgeInsets.only(left: 12),
+      child: CountryCodePopoverPicker(
         key: const ValueKey('country_code_menu_trigger'),
         flag: _selectedCountryFlag,
         code: _selectedCountryCode,
-        onTap: _openCountryCodePicker,
+        options: _countryCodes,
+        onSelected: (selected) {
+          setState(() {
+            if (_codeTargetCountryCode != null &&
+                _codeTargetCountryCode != selected.code) {
+              _resetCodeState();
+            }
+            _selectedCountryCode = selected.code;
+            _selectedCountryFlag = selected.flag;
+          });
+        },
       ),
     );
   }

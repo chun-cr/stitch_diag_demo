@@ -9,7 +9,7 @@ import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 import 'package:stitch_diag_demo/main.dart';
 
 void main() {
-  testWidgets('login page shows the current seasonal tag from shared context', (
+  testWidgets('login page keeps locale switch and removes seasonal tag', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -23,7 +23,8 @@ void main() {
     final l10n = AppLocalizations.of(context);
     final expectedTag = l10n.seasonalTagLabel(SeasonalContext.now());
 
-    expect(find.text(expectedTag), findsOneWidget);
+    expect(find.byKey(const ValueKey('login_locale_button')), findsOneWidget);
+    expect(find.text(expectedTag), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

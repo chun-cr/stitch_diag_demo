@@ -79,6 +79,25 @@
   "authSendCodeFailed": "验证码发送失败，请稍后重试",
   "authCodeSent": "验证码已发送，请注意查收",
   "authSendCodeFirst": "请先获取验证码",
+  "commonContinue": "继续",
+  "authCaptchaTitle": "人机验证",
+  "authCaptchaManualPrompt": "需要先完成 {provider} 验证。请粘贴 provider 返回的 JSON 结果后继续。",
+  "@authCaptchaManualPrompt": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "authCaptchaInitPayloadLabel": "初始化参数",
+  "authCaptchaResultJsonLabel": "验证结果 JSON",
+  "authCaptchaManualResultHint": "例如：ticket=ticket-001",
+  "authCaptchaInvalidJson": "请输入合法的 JSON 对象",
+  "authCaptchaFailed": "人机验证未通过，请重试",
+  "authCaptchaLoadingPage": "正在加载验证码页面...",
+  "authCaptchaReady": "验证码组件已就绪，请完成人机验证",
+  "authCaptchaPageLoadFailed": "验证码页面加载失败，请关闭后重试",
+  "authCaptchaInitFailed": "验证码初始化失败，请关闭后重试",
   "authCaptchaRequiredUnsupported": "当前环境暂不支持人机验证，请稍后再试",
   "authForgotPasswordTip": "请通过注册手机号重置密码，或联系客服处理",
   "commonConfirm": "知道了",

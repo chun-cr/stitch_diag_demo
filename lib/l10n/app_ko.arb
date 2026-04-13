@@ -91,6 +91,25 @@
   "authSendCodeFailed": "인증코드 전송에 실패했어요. 잠시 후 다시 시도해 주세요.",
   "authCodeSent": "인증코드를 보냈어요. 메시지를 확인해 주세요.",
   "authSendCodeFirst": "먼저 인증코드를 받아 주세요.",
+  "commonContinue": "계속",
+  "authCaptchaTitle": "캡차 인증",
+  "authCaptchaManualPrompt": "먼저 {provider} 인증을 완료한 뒤 provider 가 반환한 JSON 결과를 붙여 넣어 계속해 주세요.",
+  "@authCaptchaManualPrompt": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "authCaptchaInitPayloadLabel": "초기화 파라미터",
+  "authCaptchaResultJsonLabel": "검증 결과 JSON",
+  "authCaptchaManualResultHint": "예: ticket=ticket-001",
+  "authCaptchaInvalidJson": "올바른 JSON 객체를 입력해 주세요.",
+  "authCaptchaFailed": "캡차 인증에 실패했어요. 다시 시도해 주세요.",
+  "authCaptchaLoadingPage": "캡차 페이지를 불러오는 중이에요...",
+  "authCaptchaReady": "캡차가 준비되었어요. 인증을 완료해 주세요.",
+  "authCaptchaPageLoadFailed": "캡차 페이지를 불러오지 못했어요. 닫은 뒤 다시 시도해 주세요.",
+  "authCaptchaInitFailed": "캡차 초기화에 실패했어요. 닫은 뒤 다시 시도해 주세요.",
   "authCaptchaRequiredUnsupported": "현재 환경에서는 캡차 인증을 지원하지 않아요. 잠시 후 다시 시도해 주세요.",
   "authForgotPasswordTip": "가입한 전화번호로 비밀번호를 재설정하거나 고객센터로 문의해 주세요.",
   "commonConfirm": "알겠어요",

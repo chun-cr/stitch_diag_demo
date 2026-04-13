@@ -51,13 +51,13 @@ void main() {
     expect(find.byKey(const ValueKey('email_input_area')), findsOneWidget);
     expect(find.byKey(const ValueKey('email_field')), findsOneWidget);
     expect(find.text(l10n.authEmailLabel), findsOneWidget);
-    expect(find.text(l10n.authPasswordLabel), findsOneWidget);
+    expect(find.text(l10n.authVerificationCodeLabel), findsOneWidget);
     expect(
       find.byKey(const ValueKey('return_phone_login_button')),
       findsNothing,
     );
     expect(find.text(l10n.authPhoneLogin), findsOneWidget);
-    expect(find.byKey(const ValueKey('send_code_button')), findsNothing);
+    expect(find.byKey(const ValueKey('send_code_button')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('login_email_button')));
     await tester.pump();

@@ -199,6 +199,44 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authSendCodeFirst => '先に認証コードを取得してください。';
 
   @override
+  String get commonContinue => '続ける';
+
+  @override
+  String get authCaptchaTitle => '人機検証';
+
+  @override
+  String authCaptchaManualPrompt(String provider) {
+    return '先に $provider の検証を完了し、provider から返された JSON 結果を貼り付けて続行してください。';
+  }
+
+  @override
+  String get authCaptchaInitPayloadLabel => '初期化パラメータ';
+
+  @override
+  String get authCaptchaResultJsonLabel => '検証結果 JSON';
+
+  @override
+  String get authCaptchaManualResultHint => '例：ticket=ticket-001';
+
+  @override
+  String get authCaptchaInvalidJson => '有効な JSON オブジェクトを入力してください。';
+
+  @override
+  String get authCaptchaFailed => '人機検証に失敗しました。もう一度お試しください。';
+
+  @override
+  String get authCaptchaLoadingPage => '検証ページを読み込み中です...';
+
+  @override
+  String get authCaptchaReady => '検証コンポーネントの準備ができました。人機検証を完了してください。';
+
+  @override
+  String get authCaptchaPageLoadFailed => '検証ページの読み込みに失敗しました。閉じてから再試行してください。';
+
+  @override
+  String get authCaptchaInitFailed => '人機検証の初期化に失敗しました。閉じてから再試行してください。';
+
+  @override
   String get authCaptchaRequiredUnsupported =>
       '現在の環境では人機検証に対応していません。しばらくしてからもう一度お試しください。';
 

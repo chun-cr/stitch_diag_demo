@@ -4,21 +4,22 @@ import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/l10n/locale_controller.dart';
+import 'package:stitch_diag_demo/core/l10n/locale_sheet.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/utils/logger.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
-const _kPageBg        = Color(0xFFF4F1EB); // 宣纸米色
-const _kPrimary       = Color(0xFF2D6A4F); // 墨绿
-const _kPrimaryMid    = Color(0xFF0D7A5A);
-const _kGold          = Color(0xFFC9A84C); // 金色
-const _kTextPrimary   = Color(0xFF1E1810);
+const _kPageBg = Color(0xFFF4F1EB); // 宣纸米色
+const _kPrimary = Color(0xFF2D6A4F); // 墨绿
+const _kPrimaryMid = Color(0xFF0D7A5A);
+const _kGold = Color(0xFFC9A84C); // 金色
+const _kTextPrimary = Color(0xFF1E1810);
 const _kTextSecondary = Color(0xFF3A3028);
-const _kTextHint      = Color(0xFFA09080);
-const _kDivider       = Color(0xFFF0EDE5);
-const _kCardBg        = Color(0xFFFFFFFF);
+const _kTextHint = Color(0xFFA09080);
+const _kDivider = Color(0xFFF0EDE5);
+const _kCardBg = Color(0xFFFFFFFF);
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -48,8 +49,11 @@ class ProfilePage extends ConsumerWidget {
             actions: [
               IconButton(
                 onPressed: () {},
-                icon: const Icon(Icons.notifications_none_rounded,
-                    color: _kPrimary, size: 20),
+                icon: const Icon(
+                  Icons.notifications_none_rounded,
+                  color: _kPrimary,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -143,11 +147,23 @@ class ProfilePage extends ConsumerWidget {
       child: IntrinsicHeight(
         child: Row(
           children: [
-            _buildStatCell('12', context.l10n.unitTimes, context.l10n.profileMetricConsultCount),
+            _buildStatCell(
+              '12',
+              context.l10n.unitTimes,
+              context.l10n.profileMetricConsultCount,
+            ),
             _buildStatDivider(),
-            _buildStatCell('86', context.l10n.unitPoints, context.l10n.profileMetricHealthScore),
+            _buildStatCell(
+              '86',
+              context.l10n.unitPoints,
+              context.l10n.profileMetricHealthScore,
+            ),
             _buildStatDivider(),
-            _buildStatCell('3', context.l10n.unitStage, context.l10n.profileMetricConstitutionStages),
+            _buildStatCell(
+              '3',
+              context.l10n.unitStage,
+              context.l10n.profileMetricConstitutionStages,
+            ),
           ],
         ),
       ),
@@ -196,8 +212,7 @@ class ProfilePage extends ConsumerWidget {
           bottom: -2,
           right: -4,
           child: Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: _kGold,
               borderRadius: BorderRadius.circular(8),
@@ -258,7 +273,9 @@ class ProfilePage extends ConsumerWidget {
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: _kPrimary),
+                  shape: BoxShape.circle,
+                  color: _kPrimary,
+                ),
               ),
               const SizedBox(width: 5),
               Flexible(
@@ -335,11 +352,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   Widget _buildStatDivider() {
-    return Container(
-      width: 1,
-      height: 36,
-      color: _kDivider,
-    );
+    return Container(width: 1, height: 36, color: _kDivider);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -445,10 +458,7 @@ class ProfilePage extends ConsumerWidget {
                     SizedBox(height: 6),
                     Text(
                       context.l10n.profileHealthScoreTrendNote,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _kTextHint,
-                      ),
+                      style: TextStyle(fontSize: 11, color: _kTextHint),
                     ),
                   ],
                 ),
@@ -462,9 +472,24 @@ class ProfilePage extends ConsumerWidget {
 
   Widget _buildPrescriptionCabin(BuildContext context) {
     final items = [
-      _CabinData(context.l10n.profileCabinAcupoints, context.l10n.profileCabinAcupointsValue, Icons.hub_outlined, _kPrimary),
-      _CabinData(context.l10n.profileCabinDiet, context.l10n.profileCabinDietValue, Icons.restaurant_menu_outlined, _kGold),
-      _CabinData(context.l10n.profileCabinFollowup, context.l10n.profileCabinFollowupValue, Icons.event_note_outlined, _kPrimaryMid),
+      _CabinData(
+        context.l10n.profileCabinAcupoints,
+        context.l10n.profileCabinAcupointsValue,
+        Icons.hub_outlined,
+        _kPrimary,
+      ),
+      _CabinData(
+        context.l10n.profileCabinDiet,
+        context.l10n.profileCabinDietValue,
+        Icons.restaurant_menu_outlined,
+        _kGold,
+      ),
+      _CabinData(
+        context.l10n.profileCabinFollowup,
+        context.l10n.profileCabinFollowupValue,
+        Icons.event_note_outlined,
+        _kPrimaryMid,
+      ),
     ];
 
     return Column(
@@ -521,8 +546,17 @@ class ProfilePage extends ConsumerWidget {
         label: context.l10n.profileMenuLanguage,
         sub: context.l10n.profileMenuLanguageSub,
         color: Color(0xFF4A7FA8),
-        trailingText: _localeLabel(context, selectedLocale),
-        onTap: () => _showLocaleSheet(context, ref, selectedLocale),
+        trailingText: appLocaleLabel(context, selectedLocale),
+        onTap: () => showAppLocaleSheet(
+          context,
+          ref,
+          selectedLocale: selectedLocale,
+          backgroundColor: _kCardBg,
+          primaryColor: _kPrimary,
+          dividerColor: _kDivider,
+          textPrimaryColor: _kTextPrimary,
+          textHintColor: _kTextHint,
+        ),
       ),
       _MenuData(
         icon: Icons.auto_awesome_outlined,
@@ -596,8 +630,11 @@ class ProfilePage extends ConsumerWidget {
           setPreviewAuthenticated(false);
           context.go(AppRoutes.login);
         },
-        icon: Icon(Icons.logout_rounded,
-            color: _kTextHint.withValues(alpha: 0.82), size: 16),
+        icon: Icon(
+          Icons.logout_rounded,
+          color: _kTextHint.withValues(alpha: 0.82),
+          size: 16,
+        ),
         label: Text(
           context.l10n.profileLogout,
           style: TextStyle(
@@ -615,136 +652,6 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-
-  String _localeLabel(BuildContext context, Locale? locale) {
-    if (locale == null) {
-      return context.l10n.localeFollowSystem;
-    }
-    switch (locale.languageCode) {
-      case 'zh':
-        return context.l10n.localeChineseSimplified;
-      case 'en':
-        return context.l10n.localeEnglish;
-      case 'ja':
-        return context.l10n.localeJapanese;
-      case 'ko':
-        return context.l10n.localeKorean;
-      default:
-        return context.l10n.localeFollowSystem;
-    }
-  }
-
-  Future<void> _showLocaleSheet(
-    BuildContext context,
-    WidgetRef ref,
-    Locale? selectedLocale,
-  ) async {
-    final controller = ref.read(localeControllerProvider.notifier);
-
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: _kCardBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        final options = <({Locale? locale, String label})>[
-          (locale: null, label: context.l10n.localeFollowSystem),
-          (locale: const Locale('zh'), label: context.l10n.localeChineseSimplified),
-          (locale: const Locale('en'), label: context.l10n.localeEnglish),
-          (locale: const Locale('ja'), label: context.l10n.localeJapanese),
-          (locale: const Locale('ko'), label: context.l10n.localeKorean),
-        ];
-
-        bool isSelected(Locale? candidate) {
-          if (candidate == null || selectedLocale == null) {
-            return candidate == selectedLocale;
-          }
-          return candidate.languageCode == selectedLocale.languageCode;
-        }
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: _kDivider,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.l10n.localeSheetTitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: _kTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ...options.map((option) {
-                  final selected = isSelected(option.locale);
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      await controller.setLocale(option.locale);
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? _kPrimary.withValues(alpha: 0.08)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: selected
-                              ? _kPrimary.withValues(alpha: 0.18)
-                              : _kDivider,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              option.label,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                                color: selected ? _kPrimary : _kTextPrimary,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            selected
-                                ? Icons.radio_button_checked_rounded
-                                : Icons.radio_button_off_rounded,
-                            size: 18,
-                            color: selected
-                                ? _kPrimary
-                                : _kTextHint.withValues(alpha: 0.8),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -868,10 +775,7 @@ class _StatLine extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11,
-              color: _kTextHint,
-            ),
+            style: const TextStyle(fontSize: 11, color: _kTextHint),
           ),
         ),
         const SizedBox(width: 8),
@@ -926,8 +830,7 @@ class _BmiBar extends StatelessWidget {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: _kPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(99),
@@ -1034,8 +937,11 @@ class _MenuRowState extends State<_MenuRow> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
           children: [
-            Icon(widget.item.icon,
-                size: 18, color: widget.item.color.withValues(alpha: 0.86)),
+            Icon(
+              widget.item.icon,
+              size: 18,
+              color: widget.item.color.withValues(alpha: 0.86),
+            ),
             const SizedBox(width: 12),
             // 文字
             Expanded(
@@ -1187,7 +1093,18 @@ class _CabinCard extends StatelessWidget {
 }
 
 class _HealthSparklinePainter extends CustomPainter {
-  static const _scores = [68.0, 70.0, 73.0, 71.0, 75.0, 77.0, 76.0, 82.0, 86.0, 84.0];
+  static const _scores = [
+    68.0,
+    70.0,
+    73.0,
+    71.0,
+    75.0,
+    77.0,
+    76.0,
+    82.0,
+    86.0,
+    84.0,
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1198,12 +1115,17 @@ class _HealthSparklinePainter extends CustomPainter {
     final grid = Paint()
       ..color = _kDivider
       ..strokeWidth = 1;
-    canvas.drawLine(Offset(0, size.height - 1), Offset(size.width, size.height - 1), grid);
+    canvas.drawLine(
+      Offset(0, size.height - 1),
+      Offset(size.width, size.height - 1),
+      grid,
+    );
 
     final path = Path();
     for (var i = 0; i < _scores.length; i++) {
       final dx = size.width * i / (_scores.length - 1);
-      final dy = size.height - ((_scores[i] - min) / span) * (size.height - 6) - 3;
+      final dy =
+          size.height - ((_scores[i] - min) / span) * (size.height - 6) - 3;
       if (i == 0) {
         path.moveTo(dx, dy);
       } else {
@@ -1224,12 +1146,9 @@ class _HealthSparklinePainter extends CustomPainter {
     );
 
     final lastDx = size.width;
-    final lastDy = size.height - ((_scores.last - min) / span) * (size.height - 6) - 3;
-    canvas.drawCircle(
-      Offset(lastDx, lastDy),
-      3.2,
-      Paint()..color = _kPrimary,
-    );
+    final lastDy =
+        size.height - ((_scores.last - min) / span) * (size.height - 6) - 3;
+    canvas.drawCircle(Offset(lastDx, lastDy), 3.2, Paint()..color = _kPrimary);
   }
 
   @override
