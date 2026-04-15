@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-15T03:32:03.475Z",
-  "turn_count": 3,
-  "last_progress_at": "2026-04-15T03:32:03.475Z",
-  "last_agent_output": "根因是共享网络层里的 `X-App-Id` 以前不是“运行时真实包标识”，而是一个构建期默认值 `stitch_diag_demo`。所以 [dio_client.dart#L13](D:\\work\\"
+  "last_turn_at": "2026-04-15T03:50:20.323Z",
+  "turn_count": 5,
+  "last_progress_at": "2026-04-15T03:50:20.323Z",
+  "last_agent_output": "对，后端如果对这个头做校验或白名单配置，就应该接受这一组：\n\n```http\nX-App-Id: com.huaji.myapp.dev\n```\n\n要区分两件事：\n- 请求头名是 `X-App-Id`"
 }
