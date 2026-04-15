@@ -73,6 +73,7 @@ class _SlowAuthRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
@@ -149,6 +150,7 @@ class _FailingAuthRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
@@ -243,6 +245,7 @@ class _WechatMiniProgramRepositoryStub extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,

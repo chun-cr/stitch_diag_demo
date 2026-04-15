@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+# 其他工具
+.omx/
+.opencode/
+.playwright-mcp/
+.sisyphus/

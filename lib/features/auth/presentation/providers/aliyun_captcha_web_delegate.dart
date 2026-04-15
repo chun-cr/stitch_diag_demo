@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:js_interop';
+import 'dart:math' as math;
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/material.dart';
@@ -20,20 +21,28 @@ Future<String?> showAliyunCaptchaWebDialog({
   required String pageLoadFailedText,
   required String initFailedText,
 }) {
-  return showDialog<String>(
+  // HtmlElementView-backed dialogs are noticeably janky on Flutter web when the
+  // route applies the default scale/fade transition to an ancestor. Keep the
+  // overlay static so the iframe can mount without an animated transform.
+  return showGeneralDialog<String>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _AliyunCaptchaWebDialog(
-      url: url,
-      challengeId: challengeId,
-      title: title,
-      cancelLabel: cancelLabel,
-      loadingText: loadingText,
-      readyText: readyText,
-      failedText: failedText,
-      pageLoadFailedText: pageLoadFailedText,
-      initFailedText: initFailedText,
-    ),
+    barrierColor: const Color(0x73000000),
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    transitionDuration: Duration.zero,
+    pageBuilder: (dialogContext, animation, secondaryAnimation) =>
+        _AliyunCaptchaWebDialog(
+          url: url,
+          challengeId: challengeId,
+          title: title,
+          cancelLabel: cancelLabel,
+          loadingText: loadingText,
+          readyText: readyText,
+          failedText: failedText,
+          pageLoadFailedText: pageLoadFailedText,
+          initFailedText: initFailedText,
+        ),
+    transitionBuilder: (context, animation, secondaryAnimation, child) => child,
   );
 }
 
@@ -61,20 +70,22 @@ class _AliyunCaptchaWebDialog extends StatefulWidget {
   final String initFailedText;
 
   @override
-  State<_AliyunCaptchaWebDialog> createState() => _AliyunCaptchaWebDialogState();
+  State<_AliyunCaptchaWebDialog> createState() =>
+      _AliyunCaptchaWebDialogState();
 }
 
 class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
   late final String _viewType;
   late final html.IFrameElement _iframeElement;
+  late final Widget _iframeView;
+  late final ValueNotifier<String> _statusText;
   StreamSubscription<html.MessageEvent>? _messageSubscription;
   StreamSubscription<html.Event>? _iframeErrorSubscription;
-  String _statusText = '';
 
   @override
   void initState() {
     super.initState();
-    _statusText = widget.loadingText;
+    _statusText = ValueNotifier(widget.loadingText);
     _viewType =
         'aliyun-captcha-web-${widget.challengeId}-${DateTime.now().microsecondsSinceEpoch}';
     _iframeElement = html.IFrameElement()
@@ -82,6 +93,9 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
       ..style.border = '0'
       ..style.width = '100%'
       ..style.height = '100%'
+      ..style.display = 'block'
+      ..style.backgroundColor = '#FFFFFF'
+      ..style.borderRadius = '16px'
       ..allow = 'clipboard-read; clipboard-write'
       ..allowFullscreen = true;
 
@@ -89,12 +103,13 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
       _viewType,
       (int viewId, {Object? params}) => _iframeElement,
     );
+    _iframeView = HtmlElementView(viewType: _viewType);
 
     _iframeErrorSubscription = _iframeElement.onError.listen((_) {
       if (!mounted) {
         return;
       }
-      setState(() => _statusText = widget.pageLoadFailedText);
+      _updateStatus(widget.pageLoadFailedText);
     });
 
     _messageSubscription = html.window.onMessage.listen(_handleMessage);
@@ -104,8 +119,16 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
   void dispose() {
     _messageSubscription?.cancel();
     _iframeErrorSubscription?.cancel();
+    _statusText.dispose();
     _iframeElement.remove();
     super.dispose();
+  }
+
+  void _updateStatus(String nextStatus) {
+    if (_statusText.value == nextStatus) {
+      return;
+    }
+    _statusText.value = nextStatus;
   }
 
   void _handleMessage(html.MessageEvent event) {
@@ -117,7 +140,8 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
     if (payload == null) {
       return;
     }
-    if (payload.challengeId != null && payload.challengeId != widget.challengeId) {
+    if (payload.challengeId != null &&
+        payload.challengeId != widget.challengeId) {
       return;
     }
 
@@ -126,7 +150,7 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
         if (!mounted) {
           return;
         }
-        setState(() => _statusText = widget.readyText);
+        _updateStatus(widget.readyText);
         return;
       case 'success':
         final captchaVerifyParam = payload.captchaVerifyParam;
@@ -134,7 +158,7 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
           return;
         }
         if (captchaVerifyParam == null || captchaVerifyParam.isEmpty) {
-          setState(() => _statusText = widget.initFailedText);
+          _updateStatus(widget.initFailedText);
           return;
         }
         Navigator.of(context).pop(captchaVerifyParam);
@@ -143,72 +167,114 @@ class _AliyunCaptchaWebDialogState extends State<_AliyunCaptchaWebDialog> {
         if (!mounted) {
           return;
         }
-        setState(() => _statusText = widget.failedText);
+        _updateStatus(widget.failedText);
         return;
       case 'error':
       default:
         if (!mounted) {
           return;
         }
-        setState(() => _statusText = payload.message ?? widget.initFailedText);
+        _updateStatus(payload.message ?? widget.initFailedText);
         return;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 700),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF6F4EE),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _statusText,
-                  style: const TextStyle(fontSize: 13, height: 1.5),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
+    return Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        minimum: const EdgeInsets.all(24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final dialogWidth = math.min(constraints.maxWidth, 520.0);
+            final dialogHeight = math.min(constraints.maxHeight, 700.0);
+
+            return Center(
+              child: SizedBox(
+                width: dialogWidth,
+                height: dialogHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
                     color: Colors.white,
-                    child: HtmlElementView(viewType: _viewType),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1F000000),
+                        blurRadius: 24,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            widget.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ValueListenableBuilder<String>(
+                          valueListenable: _statusText,
+                          builder: (context, statusText, child) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF6F4EE),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                statusText,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  height: 1.5,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: RepaintBoundary(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0x14000000),
+                                ),
+                              ),
+                              child: _iframeView,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text(widget.cancelLabel),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(widget.cancelLabel),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -255,9 +321,7 @@ class _AliyunCaptchaWebBridgePayload {
       try {
         final decoded = jsonDecode(raw);
         if (decoded is Map) {
-          return decoded.map(
-            (key, value) => MapEntry(key.toString(), value),
-          );
+          return decoded.map((key, value) => MapEntry(key.toString(), value));
         }
       } catch (_) {
         return null;

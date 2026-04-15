@@ -16,6 +16,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repos
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 class _FailingRegisterAuthRepository extends AuthRepositoryAdapter {
+  VerificationCodeScene? lastAuthenticateScene;
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
     throw UnimplementedError();
@@ -73,10 +74,12 @@ class _FailingRegisterAuthRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
   }) {
+    lastAuthenticateScene = scene;
     throw DioException(
       requestOptions: RequestOptions(
         path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
@@ -97,6 +100,7 @@ class _FailingRegisterAuthRepository extends AuthRepositoryAdapter {
 
 class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
   VerificationCodeScene? lastScene;
+  VerificationCodeScene? lastAuthenticateScene;
   String? lastCountryCode;
   String? lastPhoneNumber;
   String? lastChallengeId;
@@ -163,10 +167,12 @@ class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
   }) {
+    lastAuthenticateScene = scene;
     lastChallengeId = challengeId;
     lastVerificationCode = verificationCode;
     throw DioException(
@@ -328,6 +334,7 @@ void main() {
     expect(repository.lastCountryCode, '+44');
     expect(repository.lastPhoneNumber, '13800138000');
     expect(repository.lastChallengeId, 'challenge-1');
+    expect(repository.lastAuthenticateScene, VerificationCodeScene.register);
     expect(repository.lastVerificationCode, '123456');
 
     await tester.pumpWidget(const SizedBox.shrink());

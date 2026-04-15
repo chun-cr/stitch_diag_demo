@@ -18,6 +18,7 @@ import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 class _EmailLoginCaptureRepository extends AuthRepositoryAdapter {
   VerificationCodeScene? lastScene;
+  VerificationCodeScene? lastAuthenticateScene;
   VerificationCodeTarget? lastTarget;
   String? lastChallengeId;
   String? lastVerificationCode;
@@ -76,20 +77,22 @@ class _EmailLoginCaptureRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
   }) {
+    lastAuthenticateScene = scene;
     lastChallengeId = challengeId;
     lastVerificationCode = verificationCode;
     lastInviteTicket = inviteTicket;
     throw DioException(
       requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+        path: '/api/v1/saas/mobile/auth/login/verification-code',
       ),
       response: Response(
         requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+          path: '/api/v1/saas/mobile/auth/login/verification-code',
         ),
         statusCode: 400,
         data: {'message': 'capture'},
@@ -191,6 +194,7 @@ void main() {
     expect(repository.lastTarget!.countryCode, isNull);
     expect(repository.lastTarget!.value, 'doctor@mai.ai');
     expect(repository.lastChallengeId, 'email-login-challenge-1');
+    expect(repository.lastAuthenticateScene, VerificationCodeScene.login);
     expect(repository.lastVerificationCode, '123456');
     expect(repository.lastInviteTicket, 'invite-email-1');
 

@@ -144,11 +144,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
   }) async {
     final model = await _remoteSource.authenticateVerificationCode(
+      scene: scene,
       challengeId: challengeId,
       verificationCode: verificationCode,
       inviteTicket: inviteTicket,

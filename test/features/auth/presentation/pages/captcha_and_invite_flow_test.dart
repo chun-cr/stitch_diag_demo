@@ -91,6 +91,7 @@ class _CaptchaRequiredRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
@@ -103,6 +104,7 @@ class _CaptchaRequiredRepository extends AuthRepositoryAdapter {
 }
 
 class _InviteTicketCapturingRepository extends AuthRepositoryAdapter {
+  VerificationCodeScene? lastAuthenticateScene;
   String? lastInviteTicket;
   String? lastPasswordLoginInviteTicket;
 
@@ -166,10 +168,12 @@ class _InviteTicketCapturingRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
   }) async {
+    lastAuthenticateScene = scene;
     lastInviteTicket = inviteTicket;
     throw DioException(
       requestOptions: RequestOptions(
@@ -274,6 +278,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 1200));
 
+      expect(repository.lastAuthenticateScene, VerificationCodeScene.login);
       expect(repository.lastInviteTicket, 'invite-login-1');
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -336,6 +341,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
+      expect(repository.lastAuthenticateScene, VerificationCodeScene.register);
       expect(repository.lastInviteTicket, 'invite-register-1');
 
       await tester.pumpWidget(const SizedBox.shrink());

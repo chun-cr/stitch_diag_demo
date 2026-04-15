@@ -72,6 +72,7 @@ class _CapturingRegisterRepository extends AuthRepositoryAdapter {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,

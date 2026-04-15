@@ -160,12 +160,19 @@ class AuthRemoteSource {
   }
 
   Future<AuthSessionModel> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
   }) async {
+    final path = switch (scene) {
+      VerificationCodeScene.login =>
+        '/api/v1/saas/mobile/auth/login/verification-code',
+      VerificationCodeScene.register =>
+        '/api/v1/saas/mobile/auth/register/verification-code',
+    };
     final response = await _dioClient.dio.post(
-      '/api/v1/saas/mobile/auth/verification-code/authenticate',
+      path,
       data: {
         'challengeId': challengeId,
         'verificationCode': verificationCode,

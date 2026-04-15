@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-15T04:35:36.739Z",
-  "turn_count": 6,
-  "last_progress_at": "2026-04-15T04:35:36.739Z",
-  "last_agent_output": "当前 Web 运行时的 `X-App-Id` 不是从浏览器或站点域名动态取的，而是从 Flutter 的编译期环境变量拿的。\n\n来源在这里：\n- [app_identity.dart#L8](D:\\w"
+  "last_turn_at": "2026-04-15T07:59:54.342Z",
+  "turn_count": 12,
+  "last_progress_at": "2026-04-15T07:59:54.342Z",
+  "last_agent_output": "验证码提交接口已经按场景拆开了。现在 repository 层要求显式传 `VerificationCodeScene`，remote source 会把登录发到 `/api/v1/saas/mobi"
 }

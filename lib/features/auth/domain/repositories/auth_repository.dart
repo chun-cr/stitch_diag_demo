@@ -28,6 +28,7 @@ abstract class AuthRepository {
     required Map<String, String> captchaPayload,
   });
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,
@@ -83,6 +84,7 @@ class AuthRepositoryAdapter implements AuthRepository {
 
   @override
   Future<AuthSessionEntity> authenticateVerificationCode({
+    required VerificationCodeScene scene,
     required String challengeId,
     required String verificationCode,
     String? inviteTicket,

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -13,11 +12,11 @@ import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/security/login_password_store.dart';
-import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
-import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
+import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart'
+    show VerificationCodeScene;
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
-import 'package:stitch_diag_demo/features/auth/presentation/providers/captcha_resolver_provider.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/utils/auth_verification_code_flow.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/utils/verification_code_feedback.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/country_code_picker.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/auth_top_toast.dart';
@@ -35,28 +34,17 @@ class RegisterPage extends ConsumerStatefulWidget {
 enum _RegisterMode { phone, email }
 
 class _RegisterPageState extends ConsumerState<RegisterPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, VerificationCodeFlowMixin<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
+  final _verificationCodeFlow = VerificationCodeFlowState();
   final _phoneFocusNode = FocusNode();
   final _emailFocusNode = FocusNode();
   bool _agreeTerms = false;
   bool _isLoading = false;
-  bool _codeSending = false;
-  bool _codeCountingDown = false;
-  int _codeCountdown = 60;
-  Timer? _countdownTimer;
   final _errorToastController = AuthTopToastController();
-  String? _codeTargetPhone;
-  String? _codeTargetCountryCode;
-  String? _challengeId;
-  DateTime? _challengeExpireAt;
-  String? _maskedReceiver;
-  String? _captchaProvider;
-  Map<String, dynamic>? _captchaInitPayload;
-  bool _captchaVerified = false;
   _RegisterMode _registerMode = _RegisterMode.phone;
   String _selectedCountryCode = '+86';
   String _selectedCountryFlag = '🇨🇳';
@@ -94,7 +82,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     _codeCtrl.dispose();
     _phoneFocusNode.dispose();
     _emailFocusNode.dispose();
-    _countdownTimer?.cancel();
+    _verificationCodeFlow.dispose();
     _errorToastController.dispose();
     super.dispose();
   }
@@ -127,26 +115,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     return null;
   }
 
-  void _resetCodeState({bool clearCode = true, bool clearChallenge = true}) {
-    _countdownTimer?.cancel();
-    _codeSending = false;
-    _codeCountingDown = false;
-    _codeCountdown = 60;
-    _codeTargetPhone = null;
-    _codeTargetCountryCode = null;
-    _maskedReceiver = null;
-    if (clearChallenge) {
-      _challengeId = null;
-      _challengeExpireAt = null;
-      _captchaProvider = null;
-      _captchaInitPayload = null;
-      _captchaVerified = false;
-    }
-    if (clearCode) {
-      _codeCtrl.clear();
-    }
-  }
-
   String? get _inviteTicket {
     final inviteTicket = widget.inviteTicket?.trim();
     if (inviteTicket == null || inviteTicket.isEmpty) {
@@ -159,12 +127,55 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   String get _currentEntryMode => _isEmailRegister ? 'email' : 'phone';
   String get _currentAccountValue =>
       _isEmailRegister ? _emailCtrl.text.trim() : _phoneCtrl.text.trim();
+  String? get _currentAccountCountryCode =>
+      _isEmailRegister ? null : _selectedCountryCode;
   VerificationCodeTarget get _currentVerificationCodeTarget => _isEmailRegister
       ? VerificationCodeTarget.email(value: _emailCtrl.text.trim())
       : VerificationCodeTarget.phone(
           value: _phoneCtrl.text.trim(),
           countryCode: _selectedCountryCode,
         );
+  bool get _codeSending => _verificationCodeFlow.codeSending;
+  bool get _codeCountingDown => _verificationCodeFlow.codeCountingDown;
+  int get _codeCountdown => _verificationCodeFlow.codeCountdown;
+  String? get _codeTargetCountryCode =>
+      _verificationCodeFlow.codeTargetCountryCode;
+  String? get _challengeId => _verificationCodeFlow.challengeId;
+  String? get _maskedReceiver => _verificationCodeFlow.maskedReceiver;
+
+  @override
+  VerificationCodeFlowState get verificationCodeFlow => _verificationCodeFlow;
+
+  @override
+  TextEditingController get verificationCodeController => _codeCtrl;
+
+  @override
+  String get currentVerificationAccountValue => _currentAccountValue;
+
+  @override
+  String? get currentVerificationCountryCode => _currentAccountCountryCode;
+
+  @override
+  VerificationCodeTarget get currentVerificationCodeTarget =>
+      _currentVerificationCodeTarget;
+
+  @override
+  VerificationCodeScene get verificationCodeScene =>
+      VerificationCodeScene.register;
+
+  @override
+  String get verificationCodeSuccessMessageText =>
+      verificationCodeSentSuccessMessage(
+        context,
+        isEmail: _isEmailRegister,
+        fallbackMessage: context.l10n.authCodeSent,
+      );
+
+  @override
+  void showVerificationError(String message) => _showErrorSnack(message);
+
+  @override
+  void showVerificationSuccess(String message) => _showSuccessSnack(message);
 
   String get _loginLocation {
     final inviteTicket = _inviteTicket;
@@ -182,56 +193,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     ).toString();
   }
 
-  int _secondsUntil(DateTime? target) {
-    if (target == null) {
-      return 60;
-    }
-    final diff = target.difference(DateTime.now()).inSeconds;
-    return diff <= 0 ? 0 : diff;
-  }
-
-  bool get _shouldRefreshChallenge {
-    final challengeId = _challengeId;
-    final expireAt = _challengeExpireAt;
-    if (challengeId == null || challengeId.isEmpty || expireAt == null) {
-      return true;
-    }
-    return !expireAt.isAfter(DateTime.now());
-  }
-
-  void _startCodeCountdown(VerificationCodeSendEntity sendResult) {
-    final seconds = _secondsUntil(sendResult.resendAt);
-    setState(() {
-      _codeSending = false;
-      _codeCountingDown = seconds > 0;
-      _codeCountdown = seconds > 0 ? seconds : 60;
-      _codeTargetPhone = _currentAccountValue;
-      _codeTargetCountryCode = _isEmailRegister ? null : _selectedCountryCode;
-      _maskedReceiver = sendResult.maskedReceiver;
-    });
-
-    if (seconds <= 0) {
-      return;
-    }
-
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() => _codeCountdown--);
-      if (_codeCountdown <= 0) {
-        timer.cancel();
-        setState(() {
-          _codeCountingDown = false;
-          _codeCountdown = 60;
-          _codeTargetPhone = null;
-          _codeTargetCountryCode = null;
-        });
-      }
-    });
-  }
-
   void _handlePhoneChanged(String value) {
     final trimmed = value.trim();
     if (_registerMode == _RegisterMode.phone && trimmed.contains('@')) {
@@ -245,23 +206,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       });
       return;
     }
-    final targetPhone = _codeTargetPhone;
-    if (targetPhone == null) {
-      return;
-    }
-    if (trimmed != targetPhone) {
-      setState(() => _resetCodeState());
-    }
+    resetVerificationStateIfTargetChanged(value);
   }
 
   void _handleEmailChanged(String value) {
-    final targetPhone = _codeTargetPhone;
-    if (targetPhone == null) {
-      return;
-    }
-    if (value.trim() != targetPhone) {
-      setState(() => _resetCodeState());
-    }
+    resetVerificationStateIfTargetChanged(value);
   }
 
   void _switchRegisterMode(_RegisterMode mode, {String? incomingValue}) {
@@ -270,7 +219,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     }
     setState(() {
       _registerMode = mode;
-      _resetCodeState();
+      resetVerificationCodeState();
       _formKey.currentState?.reset();
       if (incomingValue != null) {
         _emailCtrl.value = TextEditingValue(
@@ -315,95 +264,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     };
   }
 
-  Object? _responseCode(dynamic responseData) {
-    if (responseData is! Map<String, dynamic>) {
-      return null;
-    }
-    return responseData['code'];
-  }
-
-  String? _responseMessage(dynamic responseData) {
-    if (responseData is! Map<String, dynamic>) {
-      return null;
-    }
-    final message = responseData['message'];
-    if (message is String && message.trim().isNotEmpty) {
-      return message.trim();
-    }
-    return null;
-  }
-
-  VerificationCodeSendEntity? _sendEntityFromEnvelope(dynamic responseData) {
-    if (responseData is! Map<String, dynamic>) {
-      return null;
-    }
-    final data = responseData['data'];
-    if (data is! Map<String, dynamic>) {
-      return null;
-    }
-    final resendAtRaw = data['resendAt'] as String?;
-    final expireAtRaw = data['expireAt'] as String?;
-    return VerificationCodeSendEntity(
-      channel: (data['channel'] as String?) ?? 'PHONE',
-      maskedReceiver:
-          (data['maskedReceiver'] as String?) ?? (_maskedReceiver ?? ''),
-      expireAt: expireAtRaw == null ? null : DateTime.tryParse(expireAtRaw),
-      resendAt: resendAtRaw == null ? null : DateTime.tryParse(resendAtRaw),
-    );
-  }
-
-  Future<bool> _ensureCaptchaVerifiedIfNeeded(AuthRepository repository) async {
-    final challengeId = _challengeId;
-    final provider = _captchaProvider;
-    final l10n = context.l10n;
-    if (challengeId == null || challengeId.isEmpty) {
-      return false;
-    }
-    if (provider == null || provider.isEmpty || _captchaVerified) {
-      return true;
-    }
-
-    final payload = await ref
-        .read(captchaResolverProvider)
-        .resolve(
-          context: context,
-          challengeId: challengeId,
-          provider: provider,
-          initPayload: _captchaInitPayload,
-        );
-    if (!mounted || payload == null) {
-      return false;
-    }
-
-    try {
-      final verified = await repository.verifyVerificationCodeCaptcha(
-        challengeId: challengeId,
-        captchaProvider: provider,
-        captchaPayload: payload,
-      );
-      if (!mounted) {
-        return false;
-      }
-      if (!verified) {
-        _showErrorSnack(l10n.authCaptchaFailed);
-        return false;
-      }
-      setState(() => _captchaVerified = true);
-      return true;
-    } on DioException catch (error) {
-      final responseData = error.response?.data;
-      final code = _responseCode(responseData);
-      if (mounted && (code == 11119 || code == 11121)) {
-        setState(() => _resetCodeState(clearCode: false));
-      }
-      _showErrorSnack(_responseMessage(responseData) ?? l10n.authCaptchaFailed);
-      return false;
-    } catch (_) {
-      _showErrorSnack(l10n.authCaptchaFailed);
-      return false;
-    }
-  }
-
   void _showErrorSnack(String message) {
     if (!mounted) return;
     _errorToastController.show(context, message);
@@ -419,16 +279,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  String _codeSentSuccessMessage() {
-    return verificationCodeSentSuccessMessage(
-      context,
-      isEmail: _isEmailRegister,
-      fallbackMessage: context.l10n.authCodeSent,
-    );
-  }
-
   Future<void> _onSendCode() async {
-    final l10n = context.l10n;
     final accountError = _isEmailRegister
         ? _validateEmail(_emailCtrl.text)
         : _validatePhone(_phoneCtrl.text);
@@ -436,69 +287,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       _showErrorSnack(accountError);
       return;
     }
-    if (_codeSending || _codeCountingDown) {
-      return;
-    }
-
-    setState(() => _codeSending = true);
-    try {
-      final repository = ref.read(authRepositoryProvider);
-      if (_shouldRefreshChallenge) {
-        final challenge = await repository.createVerificationCodeChallenge(
-          scene: VerificationCodeScene.register,
-          target: _currentVerificationCodeTarget,
-        );
-        _challengeId = challenge.challengeId;
-        _challengeExpireAt = challenge.expireAt;
-        _codeTargetPhone = _currentAccountValue;
-        _codeTargetCountryCode = _isEmailRegister ? null : _selectedCountryCode;
-        _captchaProvider = challenge.captchaProvider;
-        _captchaInitPayload = challenge.captchaPayload;
-        _captchaVerified = !challenge.captchaRequired;
-      }
-
-      final captchaVerified = await _ensureCaptchaVerifiedIfNeeded(repository);
-      if (!captchaVerified) {
-        if (mounted) {
-          setState(() => _codeSending = false);
-        }
-        return;
-      }
-
-      final sendResult = await repository.sendCode(challengeId: _challengeId!);
-      _showSuccessSnack(_codeSentSuccessMessage());
-      if (!mounted) return;
-      _startCodeCountdown(sendResult);
-    } on DioException catch (error) {
-      final responseData = error.response?.data;
-      final serverMessage = _responseMessage(responseData);
-      if (mounted) {
-        setState(() => _codeSending = false);
-      }
-      final code = _responseCode(responseData);
-      if (code == 11119 || code == 11121) {
-        if (mounted) {
-          setState(() => _resetCodeState());
-        }
-      }
-      if (code == 11122 || code == 11123) {
-        if (mounted) {
-          setState(() => _captchaVerified = false);
-        }
-      }
-      if (code == 11120) {
-        final sendResult = _sendEntityFromEnvelope(responseData);
-        if (sendResult != null && mounted) {
-          _startCodeCountdown(sendResult);
-        }
-      }
-      _showErrorSnack(serverMessage ?? l10n.authSendCodeFailed);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _codeSending = false);
-      }
-      _showErrorSnack(l10n.authSendCodeFailed);
-    }
+    await sendVerificationCode();
   }
 
   Future<void> _onRegister() async {
@@ -515,6 +304,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     try {
       final repository = ref.read(authRepositoryProvider);
       final session = await repository.authenticateVerificationCode(
+        scene: VerificationCodeScene.register,
         challengeId: _challengeId!,
         verificationCode: _codeCtrl.text.trim(),
         inviteTicket: _inviteTicket,
@@ -527,13 +317,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       if (!mounted) return;
       setState(() => _isLoading = false);
       final responseData = error.response?.data;
-      final serverMessage = _responseMessage(responseData);
-      final code = _responseCode(responseData);
+      final serverMessage = authResponseMessage(responseData);
+      final code = authResponseCode(responseData);
       if (code == 11119 || code == 11121) {
-        _resetCodeState();
+        resetVerificationCodeState();
       }
       if (code == 11122 || code == 11123) {
-        _captchaVerified = false;
+        _verificationCodeFlow.captchaVerified = false;
       }
       _showErrorSnack(serverMessage ?? context.l10n.registerCreateFailed);
     } catch (_) {
@@ -945,7 +735,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           setState(() {
             if (_codeTargetCountryCode != null &&
                 _codeTargetCountryCode != selected.code) {
-              _resetCodeState();
+              resetVerificationCodeState();
             }
             _selectedCountryCode = selected.code;
             _selectedCountryFlag = selected.flag;
