@@ -13,6 +13,7 @@ import 'core/l10n/l10n.dart';
 import 'core/l10n/locale_controller.dart';
 import 'core/di/injector.dart';
 import 'core/network/auth_session_store.dart';
+import 'core/platform/app_identity.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
@@ -32,14 +33,11 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  await AppIdentity.initialize();
   initInjector();
   setPreviewAuthenticated(await getIt<AuthSessionStore>().hasSession());
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerWidget {
@@ -85,7 +83,10 @@ class MyApp extends ConsumerWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFFF5F9FF),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 14,
+            horizontal: 16,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0x264A8FE8), width: 1.5),

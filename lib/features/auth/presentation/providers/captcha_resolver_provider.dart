@@ -6,6 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'aliyun_captcha_web_delegate_stub.dart'
+    if (dart.library.html) 'aliyun_captcha_web_delegate.dart'
+    as aliyun_captcha_web;
+
 const _aliyunCaptchaProvider = 'ALIYUN';
 
 abstract class CaptchaResolver {
@@ -53,6 +57,25 @@ class SmartCaptchaResolver implements CaptchaResolver {
     if (config == null) {
       await _showUnsupportedDialog(context);
       return null;
+    }
+
+    if (kIsWeb) {
+      final captchaVerifyParam = await aliyun_captcha_web.showAliyunCaptchaWebDialog(
+        context: context,
+        url: config.buildUri(),
+        challengeId: challengeId,
+        title: context.l10n.authCaptchaTitle,
+        cancelLabel: MaterialLocalizations.of(context).cancelButtonLabel,
+        loadingText: context.l10n.authCaptchaLoadingPage,
+        readyText: context.l10n.authCaptchaReady,
+        failedText: context.l10n.authCaptchaFailed,
+        pageLoadFailedText: context.l10n.authCaptchaPageLoadFailed,
+        initFailedText: context.l10n.authCaptchaInitFailed,
+      );
+      if (captchaVerifyParam == null || captchaVerifyParam.isEmpty) {
+        return null;
+      }
+      return {'captchaVerifyParam': captchaVerifyParam};
     }
 
     if (!_supportsEmbeddedAliyunCaptcha) {

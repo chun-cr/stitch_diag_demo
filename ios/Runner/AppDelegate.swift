@@ -101,6 +101,18 @@ import UIKit
         result(FlutterMethodNotImplemented)
       }
     }
+
+    let appInfoChannel = FlutterMethodChannel(
+      name: "app/info",
+      binaryMessenger: scanRegistrar.messenger()
+    )
+    appInfoChannel.setMethodCallHandler { call, result in
+      if call.method == "getAppId" {
+        result(Bundle.main.bundleIdentifier)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

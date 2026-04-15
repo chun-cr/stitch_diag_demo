@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../platform/app_identity.dart';
+import 'interceptors/app_identity_interceptor.dart';
 import 'interceptors/log_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
 
@@ -8,10 +10,7 @@ class DioClient {
       'https://saas-api.dev51.permillet.com';
   static const String _defaultLocalProxyBaseUrl = 'http://localhost:8080';
   static const String _baseUrlOverride = String.fromEnvironment('API_BASE_URL');
-  static const String appId = String.fromEnvironment(
-    'X_APP_ID',
-    defaultValue: 'stitch_diag_demo',
-  );
+  static const String appId = AppIdentity.fallbackAppId;
   static const String wechatMiniProgramAppId = String.fromEnvironment(
     'WECHAT_MINI_PROGRAM_APP_ID',
     defaultValue: appId,
@@ -60,9 +59,10 @@ class DioClient {
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 10),
-        headers: {'X-App-Id': appId, 'X-Platform': platform},
+        headers: {'X-App-Id': AppIdentity.currentAppId, 'X-Platform': platform},
       ),
     );
+    dio.interceptors.add(AppIdentityInterceptor());
     dio.interceptors.add(AuthInterceptor());
     dio.interceptors.add(AppLogInterceptor());
   }
