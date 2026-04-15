@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
@@ -54,6 +55,15 @@ class SmartCaptchaResolver implements CaptchaResolver {
       return null;
     }
 
+    if (!_supportsEmbeddedAliyunCaptcha) {
+      return manualFallback.resolve(
+        context: context,
+        challengeId: challengeId,
+        provider: provider,
+        initPayload: initPayload,
+      );
+    }
+
     final captchaVerifyParam = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => AliyunCaptchaPage(config: config)),
     );
@@ -81,6 +91,21 @@ class SmartCaptchaResolver implements CaptchaResolver {
         );
       },
     );
+  }
+
+  bool get _supportsEmbeddedAliyunCaptcha {
+    if (kIsWeb) {
+      return false;
+    }
+
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => true,
+      TargetPlatform.iOS => true,
+      TargetPlatform.macOS => true,
+      TargetPlatform.fuchsia => false,
+      TargetPlatform.linux => false,
+      TargetPlatform.windows => false,
+    };
   }
 }
 

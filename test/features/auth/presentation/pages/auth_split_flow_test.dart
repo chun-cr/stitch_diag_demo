@@ -14,7 +14,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/main.dart';
 
-class _SuccessfulRegisterAuthRepository implements AuthRepository {
+class _SuccessfulRegisterAuthRepository extends AuthRepositoryAdapter {
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
     throw UnimplementedError();

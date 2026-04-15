@@ -6,6 +6,7 @@ import '../models/auth_session_model.dart';
 import '../models/password_register_result_model.dart';
 import '../models/verification_code_challenge_model.dart';
 import '../models/verification_code_send_model.dart';
+import '../models/wechat_mini_program_auth_result_model.dart';
 
 class AuthRemoteSource {
   final DioClient _dioClient;
@@ -82,6 +83,23 @@ class AuthRemoteSource {
       data: _passwordRegisterPayload(request),
     );
     return AuthSessionModel.fromJson(_dataMap(response.data));
+  }
+
+  Future<WechatMiniProgramAuthResultModel> loginWithWechatMiniProgram({
+    required String wechatCode,
+    String? inviteTicket,
+  }) async {
+    final normalizedInviteTicket = _trimmedOrNull(inviteTicket);
+    final payload = <String, dynamic>{
+      'appId': DioClient.wechatMiniProgramAppId,
+      'wechatCode': wechatCode.trim(),
+      'inviteTicket': normalizedInviteTicket,
+    }..removeWhere((key, value) => value == null);
+    final response = await _dioClient.dio.post(
+      '/api/v1/saas/mobile/auth/login/wechat-mini-program',
+      data: payload,
+    );
+    return WechatMiniProgramAuthResultModel.fromJson(_dataMap(response.data));
   }
 
   Future<PasswordRegisterResultModel> registerPassword(

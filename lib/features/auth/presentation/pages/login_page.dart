@@ -15,6 +15,7 @@ import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_reposito
 import '../../../../core/router/app_router.dart';
 import '../providers/auth_repository_provider.dart';
 import '../providers/captcha_resolver_provider.dart';
+import '../providers/wechat_code_acquirer_provider.dart';
 import '../utils/verification_code_feedback.dart';
 import '../widgets/auth_locale_button.dart';
 import '../widgets/country_code_picker.dart';
@@ -58,6 +59,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
   bool _codeCountingDown = false;
   int _codeCountdown = 60;
   Timer? _countdownTimer;
+  bool _wechatLoginLoading = false;
   final _errorToastController = AuthTopToastController();
   String? _codeTargetPhone;
   String? _codeTargetCountryCode;
@@ -446,12 +448,101 @@ class _LoginPageState extends ConsumerState<LoginPage>
     );
   }
 
+  String _wechatUnsupportedMessage() {
+    final locale = Localizations.localeOf(context).languageCode;
+    return locale == 'zh'
+        ? '微信授权环境未接入，请先实现 acquireWechatCode()。'
+        : 'WeChat Mini Program authorization is not wired yet.';
+  }
+
+  String _wechatCodeMissingMessage() {
+    final locale = Localizations.localeOf(context).languageCode;
+    return locale == 'zh'
+        ? '未获取到微信授权码，请重试。'
+        : 'WeChat authorization code was not acquired.';
+  }
+
+  String _wechatStatusMessage(String authStatus) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final normalizedStatus = authStatus.trim();
+    if (normalizedStatus.isEmpty) {
+      return locale == 'zh'
+          ? '微信授权已完成，但当前未返回登录令牌。'
+          : 'WeChat authorization completed without a login token.';
+    }
+    return locale == 'zh'
+        ? '微信授权返回状态：$normalizedStatus，后续绑定流程待接入。'
+        : 'WeChat authorization returned status "$normalizedStatus". Follow-up binding is not wired yet.';
+  }
+
+  Future<void> _completeLoginWithSession(AuthSessionEntity session) async {
+    await getIt<AuthSessionStore>().saveSession(session);
+
+    if (!mounted) return;
+
+    await _exitCtrl.forward();
+    if (!mounted) return;
+
+    setPreviewAuthenticated(true);
+    context.go(AppRoutes.home);
+  }
+
   String _codeSentSuccessMessage() {
     return verificationCodeSentSuccessMessage(
       context,
       isEmail: _isEmailLogin,
       fallbackMessage: context.l10n.authCodeSent,
     );
+  }
+
+  Future<void> _onWechatMiniProgramLogin() async {
+    if (_wechatLoginLoading || _isBusy) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() => _wechatLoginLoading = true);
+
+    try {
+      final wechatCode = await ref
+          .read(wechatCodeAcquirerProvider)
+          .acquireWechatCode();
+      final normalizedWechatCode = wechatCode?.trim() ?? '';
+      if (normalizedWechatCode.isEmpty) {
+        if (mounted) {
+          _showErrorSnack(_wechatCodeMissingMessage());
+        }
+        return;
+      }
+
+      final result = await ref
+          .read(authRepositoryProvider)
+          .loginWithWechatMiniProgram(
+            wechatCode: normalizedWechatCode,
+            inviteTicket: _inviteTicket,
+          );
+
+      if (result.hasSession && result.session != null) {
+        await _completeLoginWithSession(result.session!);
+        return;
+      }
+
+      if (!mounted) return;
+      _showErrorSnack(_wechatStatusMessage(result.authStatus));
+    } on UnimplementedError {
+      if (!mounted) return;
+      _showErrorSnack(_wechatUnsupportedMessage());
+    } on DioException catch (error) {
+      if (!mounted) return;
+      final serverMessage = _responseMessage(error.response?.data);
+      _showErrorSnack(serverMessage ?? context.l10n.authLoginFailed);
+    } catch (_) {
+      if (!mounted) return;
+      _showErrorSnack(context.l10n.authLoginFailed);
+    } finally {
+      if (mounted) {
+        setState(() => _wechatLoginLoading = false);
+      }
+    }
   }
 
   Future<void> _onSendCode() async {
@@ -564,15 +655,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       ]);
       final session = results.first as AuthSessionEntity;
 
-      await getIt<AuthSessionStore>().saveSession(session);
-
-      if (!mounted) return;
-
-      await _exitCtrl.forward();
-      if (!mounted) return;
-
-      setPreviewAuthenticated(true);
-      context.go(AppRoutes.home);
+      await _completeLoginWithSession(session);
     } on DioException catch (error) {
       if (!mounted) return;
       setState(() => _buttonPhase = _LoginButtonPhase.idle);
@@ -1535,7 +1618,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
             iconColor: const Color(0xFF07C160),
             label: wechatLabel,
             labelColor: const Color(0xFF1E1810),
-            onTap: () {},
+            loading: _wechatLoginLoading,
+            onTap: _onWechatMiniProgramLogin,
           ),
         ),
         const SizedBox(width: 12),
@@ -1913,6 +1997,7 @@ class _SocialButton extends StatelessWidget {
   final Color iconColor;
   final Color? labelColor;
   final String label;
+  final bool loading;
   final VoidCallback onTap;
   const _SocialButton({
     this.buttonKey,
@@ -1920,6 +2005,7 @@ class _SocialButton extends StatelessWidget {
     required this.iconColor,
     this.labelColor,
     required this.label,
+    this.loading = false,
     required this.onTap,
   });
 
@@ -1927,7 +2013,7 @@ class _SocialButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       key: buttonKey,
-      onTap: onTap,
+      onTap: loading ? null : onTap,
       child: Container(
         height: 48,
         decoration: BoxDecoration(
@@ -1944,7 +2030,17 @@ class _SocialButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: iconColor),
+            if (loading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: iconColor,
+                ),
+              )
+            else
+              Icon(icon, size: 20, color: iconColor),
             const SizedBox(width: 8),
             Flexible(
               child: Text(

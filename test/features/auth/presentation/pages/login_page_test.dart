@@ -11,13 +11,15 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/password_register
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_challenge_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/wechat_mini_program_auth_result_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/providers/wechat_code_acquirer_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 import 'package:stitch_diag_demo/main.dart';
 
-class _SlowAuthRepository implements AuthRepository {
+class _SlowAuthRepository extends AuthRepositoryAdapter {
   @override
   Future<AuthSessionEntity> login(AuthRequest request) async {
     await Future<void>.delayed(const Duration(seconds: 2));
@@ -89,7 +91,7 @@ class _SlowAuthRepository implements AuthRepository {
   Future<void> logout({required String refreshToken}) async {}
 }
 
-class _FailingAuthRepository implements AuthRepository {
+class _FailingAuthRepository extends AuthRepositoryAdapter {
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
     throw DioException(
@@ -163,6 +165,89 @@ class _FailingAuthRepository implements AuthRepository {
         statusCode: 401,
       ),
     );
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
+}
+
+class _WechatCodeAcquirerStub implements WechatCodeAcquirer {
+  final String? code;
+
+  const _WechatCodeAcquirerStub(this.code);
+
+  @override
+  Future<String?> acquireWechatCode() async => code;
+}
+
+class _WechatMiniProgramRepositoryStub extends AuthRepositoryAdapter {
+  String? capturedWechatCode;
+  String? capturedInviteTicket;
+
+  @override
+  Future<WechatMiniProgramAuthResultEntity> loginWithWechatMiniProgram({
+    required String wechatCode,
+    String? inviteTicket,
+  }) async {
+    capturedWechatCode = wechatCode;
+    capturedInviteTicket = inviteTicket;
+    return const WechatMiniProgramAuthResultEntity(
+      authStatus: 'AUTHORIZED',
+      session: AuthSessionEntity(
+        accessToken: 'wechat-token',
+        refreshToken: 'wechat-refresh',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        scope: 'mobile',
+      ),
+      globalUserId: 'global-user-1',
+    );
+  }
+
+  @override
+  Future<AuthSessionEntity> login(AuthRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AuthSessionEntity> register(AuthRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PasswordRegisterResultEntity> registerPassword(AuthRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
+    required VerificationCodeScene scene,
+    required VerificationCodeTarget target,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<VerificationCodeSendEntity> sendCode({required String challengeId}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> verifyVerificationCodeCaptcha({
+    required String challengeId,
+    required String captchaProvider,
+    required Map<String, String> captchaPayload,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AuthSessionEntity> authenticateVerificationCode({
+    required String challengeId,
+    required String verificationCode,
+    String? inviteTicket,
+  }) {
+    throw UnimplementedError();
   }
 
   @override
@@ -302,6 +387,43 @@ void main() {
 
     expect(find.textContaining('账号或密码错误'), findsOneWidget);
     expect(find.byKey(const ValueKey('login_idle')), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('wechat mini program button acquires code and persists session', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    setPreviewAuthenticated(false);
+    final repository = _WechatMiniProgramRepositoryStub();
+
+    await tester.binding.setSurfaceSize(const Size(1280, 2400));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repository),
+          wechatCodeAcquirerProvider.overrideWithValue(
+            const _WechatCodeAcquirerStub('wx-code-123'),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 900));
+
+    await tester.tap(find.byKey(const ValueKey('login_wechat_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(repository.capturedWechatCode, 'wx-code-123');
+    expect(isPreviewAuthenticated, isTrue);
+
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('auth_access_token'), 'wechat-token');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

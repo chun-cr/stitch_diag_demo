@@ -15,7 +15,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dar
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
-class _SuccessfulSendCodeRepository implements AuthRepository {
+class _SuccessfulSendCodeRepository extends AuthRepositoryAdapter {
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
     throw UnimplementedError();
@@ -76,7 +76,7 @@ class _SuccessfulSendCodeRepository implements AuthRepository {
   Future<void> logout({required String refreshToken}) async {}
 }
 
-class _FailingSendCodeRepository implements AuthRepository {
+class _FailingSendCodeRepository extends AuthRepositoryAdapter {
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
     throw UnimplementedError();

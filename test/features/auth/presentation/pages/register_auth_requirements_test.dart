@@ -15,7 +15,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
-class _FailingRegisterAuthRepository implements AuthRepository {
+class _FailingRegisterAuthRepository extends AuthRepositoryAdapter {
   @override
   Future<AuthSessionEntity> login(AuthRequest request) {
     throw UnimplementedError();
@@ -95,7 +95,7 @@ class _FailingRegisterAuthRepository implements AuthRepository {
   Future<void> logout({required String refreshToken}) async {}
 }
 
-class _CapturingRegisterAuthRepository implements AuthRepository {
+class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
   VerificationCodeScene? lastScene;
   String? lastCountryCode;
   String? lastPhoneNumber;

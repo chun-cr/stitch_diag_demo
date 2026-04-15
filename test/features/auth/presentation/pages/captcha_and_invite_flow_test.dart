@@ -33,7 +33,7 @@ class _FixedCaptchaResolver implements CaptchaResolver {
   }
 }
 
-class _CaptchaRequiredRepository implements AuthRepository {
+class _CaptchaRequiredRepository extends AuthRepositoryAdapter {
   bool verifyCalled = false;
   String? lastCaptchaProvider;
   Map<String, String>? lastCaptchaPayload;
@@ -102,7 +102,7 @@ class _CaptchaRequiredRepository implements AuthRepository {
   Future<void> logout({required String refreshToken}) async {}
 }
 
-class _InviteTicketCapturingRepository implements AuthRepository {
+class _InviteTicketCapturingRepository extends AuthRepositoryAdapter {
   String? lastInviteTicket;
   String? lastPasswordLoginInviteTicket;
 

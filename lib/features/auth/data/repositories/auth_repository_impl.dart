@@ -3,6 +3,7 @@ import '../../domain/entities/password_register_result_entity.dart';
 import '../../domain/entities/verification_code_challenge_entity.dart';
 import '../../domain/entities/verification_code_send_entity.dart';
 import '../../domain/entities/verification_code_target.dart';
+import '../../domain/entities/wechat_mini_program_auth_result_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/auth_request.dart';
 import '../models/password_register_result_model.dart';
@@ -34,6 +35,31 @@ class AuthRepositoryImpl implements AuthRepository {
       tokenType: model.tokenType,
       expiresIn: model.expiresIn,
       scope: model.scope,
+    );
+  }
+
+  @override
+  Future<WechatMiniProgramAuthResultEntity> loginWithWechatMiniProgram({
+    required String wechatCode,
+    String? inviteTicket,
+  }) async {
+    final model = await _remoteSource.loginWithWechatMiniProgram(
+      wechatCode: wechatCode,
+      inviteTicket: inviteTicket,
+    );
+    return WechatMiniProgramAuthResultEntity(
+      authStatus: model.authStatus,
+      session: model.token == null
+          ? null
+          : AuthSessionEntity(
+              accessToken: model.token!.accessToken,
+              refreshToken: model.token!.refreshToken,
+              tokenType: model.token!.tokenType,
+              expiresIn: model.token!.expiresIn,
+              scope: model.token!.scope,
+            ),
+      globalUserId: model.globalUserId,
+      phoneNumber: model.phoneNumber,
     );
   }
 

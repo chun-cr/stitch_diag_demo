@@ -16,7 +16,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
-class _CapturingRegisterRepository implements AuthRepository {
+class _CapturingRegisterRepository extends AuthRepositoryAdapter {
   VerificationCodeScene? lastScene;
   String? lastCountryCode;
   String? lastPhoneNumber;

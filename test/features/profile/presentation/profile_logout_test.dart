@@ -14,7 +14,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repos
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/main.dart';
 
-class _LogoutCapturingRepository implements AuthRepository {
+class _LogoutCapturingRepository extends AuthRepositoryAdapter {
   String? lastRefreshToken;
 
   @override

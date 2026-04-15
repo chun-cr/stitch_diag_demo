@@ -16,7 +16,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dar
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
-class _EmailLoginCaptureRepository implements AuthRepository {
+class _EmailLoginCaptureRepository extends AuthRepositoryAdapter {
   VerificationCodeScene? lastScene;
   VerificationCodeTarget? lastTarget;
   String? lastChallengeId;
