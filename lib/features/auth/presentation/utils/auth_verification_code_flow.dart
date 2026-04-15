@@ -15,10 +15,12 @@ class VerificationCodeFlowState {
   bool codeCountingDown = false;
   int codeCountdown = 60;
   Timer? countdownTimer;
+  bool verificationCodeSent = false;
   String? codeTargetValue;
   String? codeTargetCountryCode;
   String? challengeId;
   DateTime? challengeExpireAt;
+  DateTime? verificationCodeExpireAt;
   String? maskedReceiver;
   String? captchaProvider;
   Map<String, dynamic>? captchaInitPayload;
@@ -91,8 +93,10 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
     verificationCodeFlow.codeSending = false;
     verificationCodeFlow.codeCountingDown = false;
     verificationCodeFlow.codeCountdown = 60;
+    verificationCodeFlow.verificationCodeSent = false;
     verificationCodeFlow.codeTargetValue = null;
     verificationCodeFlow.codeTargetCountryCode = null;
+    verificationCodeFlow.verificationCodeExpireAt = null;
     verificationCodeFlow.maskedReceiver = null;
     if (clearChallenge) {
       verificationCodeFlow.challengeId = null;
@@ -113,6 +117,38 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
       return true;
     }
     return !expireAt.isAfter(DateTime.now());
+  }
+
+  bool get isVerificationCodeExpired {
+    if (!verificationCodeFlow.verificationCodeSent) {
+      return false;
+    }
+    final expireAt =
+        verificationCodeFlow.verificationCodeExpireAt ??
+        verificationCodeFlow.challengeExpireAt;
+    if (expireAt == null) {
+      return false;
+    }
+    return !expireAt.isAfter(DateTime.now());
+  }
+
+  bool get hasActiveVerificationCodeSubmission {
+    final challengeId = verificationCodeFlow.challengeId;
+    final targetValue = verificationCodeFlow.codeTargetValue;
+    if (challengeId == null || challengeId.isEmpty) {
+      return false;
+    }
+    if (!verificationCodeFlow.verificationCodeSent || targetValue == null) {
+      return false;
+    }
+    if (currentVerificationAccountValue != targetValue) {
+      return false;
+    }
+    if (currentVerificationCountryCode !=
+        verificationCodeFlow.codeTargetCountryCode) {
+      return false;
+    }
+    return !isVerificationCodeExpired;
   }
 
   void resetVerificationStateIfTargetChanged(String value) {
@@ -285,9 +321,12 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
       verificationCodeFlow.codeSending = false;
       verificationCodeFlow.codeCountingDown = seconds > 0;
       verificationCodeFlow.codeCountdown = seconds > 0 ? seconds : 60;
+      verificationCodeFlow.verificationCodeSent = true;
       verificationCodeFlow.codeTargetValue = currentVerificationAccountValue;
       verificationCodeFlow.codeTargetCountryCode =
           currentVerificationCountryCode;
+      verificationCodeFlow.verificationCodeExpireAt =
+          sendResult.expireAt ?? verificationCodeFlow.challengeExpireAt;
       verificationCodeFlow.maskedReceiver = sendResult.maskedReceiver;
     });
 
@@ -312,8 +351,6 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
             verificationCodeFlow.countdownTimer = null;
             verificationCodeFlow.codeCountingDown = false;
             verificationCodeFlow.codeCountdown = 60;
-            verificationCodeFlow.codeTargetValue = null;
-            verificationCodeFlow.codeTargetCountryCode = null;
           });
         }
       },

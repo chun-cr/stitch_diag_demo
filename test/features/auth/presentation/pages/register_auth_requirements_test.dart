@@ -99,6 +99,14 @@ class _FailingRegisterAuthRepository extends AuthRepositoryAdapter {
 }
 
 class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
+  _CapturingRegisterAuthRepository({
+    Duration resendAfter = const Duration(seconds: 60),
+    Duration codeExpiresAfter = const Duration(minutes: 5),
+  }) : _resendAfter = resendAfter,
+       _codeExpiresAfter = codeExpiresAfter;
+
+  final Duration _resendAfter;
+  final Duration _codeExpiresAfter;
   VerificationCodeScene? lastScene;
   VerificationCodeScene? lastAuthenticateScene;
   String? lastCountryCode;
@@ -139,8 +147,8 @@ class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
       captchaPayload: null,
       channel: 'PHONE',
       maskedReceiver: '+441****8000',
-      expireAt: DateTime.now().add(const Duration(minutes: 10)),
-      resendAt: DateTime.now().add(const Duration(seconds: 60)),
+      expireAt: DateTime.now().add(_codeExpiresAfter),
+      resendAt: DateTime.now().add(_resendAfter),
     );
   }
 
@@ -153,8 +161,8 @@ class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
     return VerificationCodeSendEntity(
       channel: 'PHONE',
       maskedReceiver: '+441****8000',
-      expireAt: DateTime.now().add(const Duration(minutes: 5)),
-      resendAt: DateTime.now().add(const Duration(seconds: 60)),
+      expireAt: DateTime.now().add(_codeExpiresAfter),
+      resendAt: DateTime.now().add(_resendAfter),
     );
   }
 
@@ -301,6 +309,36 @@ void main() {
     },
   );
 
+  testWidgets(
+    'register page moves focus to code field and keeps countdown after focus changes',
+    (tester) async {
+      final repository = _CapturingRegisterAuthRepository();
+      await _pumpRegisterPage(tester, repository: repository);
+
+      await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
+      await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final codeField = tester.widget<EditableText>(
+        find.byType(EditableText).at(1),
+      );
+      expect(codeField.focusNode.hasFocus, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('register_terms_row')));
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('register_send_code_countdown')),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
+
   testWidgets('register page submits the selected country code', (
     tester,
   ) async {
@@ -336,6 +374,69 @@ void main() {
     expect(repository.lastChallengeId, 'challenge-1');
     expect(repository.lastAuthenticateScene, VerificationCodeScene.register);
     expect(repository.lastVerificationCode, '123456');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+    'register page still submits after resend countdown ends while code is valid',
+    (tester) async {
+      final repository = _CapturingRegisterAuthRepository(
+        resendAfter: const Duration(seconds: 1),
+        codeExpiresAfter: const Duration(minutes: 5),
+      );
+      await _pumpRegisterPage(tester, repository: repository);
+
+      await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
+      await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(seconds: 2));
+
+      await tester.enterText(find.byType(TextFormField).at(1), '123456');
+      await tester.tap(find.byKey(const ValueKey('register_terms_row')));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('register_create_account_button')),
+      );
+      await tester.pump();
+
+      expect(repository.lastAuthenticateScene, VerificationCodeScene.register);
+      expect(repository.lastVerificationCode, '123456');
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
+
+  testWidgets('register page blocks submit after verification code expires', (
+    tester,
+  ) async {
+    final repository = _CapturingRegisterAuthRepository(
+      resendAfter: const Duration(seconds: 60),
+      codeExpiresAfter: const Duration(seconds: -1),
+    );
+    await _pumpRegisterPage(tester, repository: repository);
+
+    await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
+    await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
+    await tester.tap(find.byKey(const ValueKey('register_terms_row')));
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('register_create_account_button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository.lastAuthenticateScene, isNull);
+    expect(find.byType(RegisterPage), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

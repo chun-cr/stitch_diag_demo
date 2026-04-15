@@ -409,8 +409,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Future<void> _onLogin() async {
-    if (!_usesPasswordCredential &&
-        (_challengeId == null || _challengeId!.isEmpty)) {
+    if (!_usesPasswordCredential && !hasActiveVerificationCodeSubmission) {
+      if (isVerificationCodeExpired) {
+        setState(() {
+          resetVerificationCodeState(clearCode: false);
+        });
+      }
       _showErrorSnack(context.l10n.authSendCodeFirst);
       return;
     }

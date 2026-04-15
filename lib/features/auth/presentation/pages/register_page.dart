@@ -42,6 +42,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   final _verificationCodeFlow = VerificationCodeFlowState();
   final _phoneFocusNode = FocusNode();
   final _emailFocusNode = FocusNode();
+  final _codeFocusNode = FocusNode();
   bool _agreeTerms = false;
   bool _isLoading = false;
   final _errorToastController = AuthTopToastController();
@@ -82,6 +83,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     _codeCtrl.dispose();
     _phoneFocusNode.dispose();
     _emailFocusNode.dispose();
+    _codeFocusNode.dispose();
     _verificationCodeFlow.dispose();
     _errorToastController.dispose();
     super.dispose();
@@ -288,10 +290,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       return;
     }
     await sendVerificationCode();
+    if (!mounted || !_verificationCodeFlow.verificationCodeSent) {
+      return;
+    }
+    FocusScope.of(context).requestFocus(_codeFocusNode);
   }
 
   Future<void> _onRegister() async {
-    if (_challengeId == null || _challengeId!.isEmpty) {
+    if (!hasActiveVerificationCodeSubmission) {
+      if (isVerificationCodeExpired) {
+        setState(() {
+          resetVerificationCodeState(clearCode: false);
+        });
+      }
       _showErrorSnack(context.l10n.authSendCodeFirst);
       return;
     }
@@ -755,6 +766,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         const SizedBox(height: 6),
         _buildTextField(
           controller: _codeCtrl,
+          focusNode: _codeFocusNode,
           hint: l10n.authVerificationCodeHint,
           prefixIcon: Icons.verified_user_outlined,
           keyboardType: TextInputType.number,

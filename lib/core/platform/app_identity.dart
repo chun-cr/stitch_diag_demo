@@ -7,7 +7,7 @@ class AppIdentity {
   static const MethodChannel _channel = MethodChannel('app/info');
   static const String fallbackAppId = String.fromEnvironment(
     'X_APP_ID',
-    defaultValue: 'com.permillet',
+    defaultValue: 'com.permillet.myapp.dev',
   );
 
   static String _currentAppId = fallbackAppId;
