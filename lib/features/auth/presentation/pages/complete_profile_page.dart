@@ -920,29 +920,196 @@ class _CompleteProfileBgPainter extends CustomPainter {
 
 // 鈹€鈹€鈹€ Small Bagua Ring 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 class _SmallBaguaRingPainter extends CustomPainter {
+  const _SmallBaguaRingPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final r = size.width / 2 - 2;
-    final paint = Paint()
-      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.1)
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 3;
+    final ringPaint = Paint()
+      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.14)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 1.15;
+    final innerRingPaint = Paint()
+      ..color = const Color(0xFFC7A45E).withValues(alpha: 0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9;
 
-    canvas.drawCircle(Offset(cx, cy), r, paint);
+    canvas.drawCircle(center, radius, ringPaint);
+    canvas.drawCircle(center, radius - 6, innerRingPaint);
     for (int i = 0; i < 8; i++) {
       final a = i * math.pi / 4;
       canvas.drawLine(
-        Offset(cx + math.cos(a) * (r - 8), cy + math.sin(a) * (r - 8)),
-        Offset(cx + math.cos(a) * r, cy + math.sin(a) * r),
-        paint,
+        Offset(
+          center.dx + math.cos(a) * (radius - 8),
+          center.dy + math.sin(a) * (radius - 8),
+        ),
+        Offset(
+          center.dx + math.cos(a) * radius,
+          center.dy + math.sin(a) * radius,
+        ),
+        ringPaint,
+      );
+    }
+    for (int i = 0; i < 24; i++) {
+      final angle = i * math.pi / 12;
+      canvas.drawCircle(
+        Offset(
+          center.dx + math.cos(angle) * (radius - 1.5),
+          center.dy + math.sin(angle) * (radius - 1.5),
+        ),
+        i.isEven ? 1.15 : 0.8,
+        Paint()
+          ..color =
+              (i % 3 == 0 ? const Color(0xFFC7A45E) : const Color(0xFF6E9B80))
+                  .withValues(alpha: i.isEven ? 0.18 : 0.12),
       );
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+class _HarmonySealPainter extends CustomPainter {
+  const _HarmonySealPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final outerRadius = math.min(size.width, size.height) / 2 - 3;
+    final outerRect = Rect.fromCircle(center: center, radius: outerRadius);
+    final emblemRadius = outerRadius - 5;
+    final emblemRect = Rect.fromCircle(center: center, radius: emblemRadius);
+
+    canvas.drawCircle(
+      center,
+      outerRadius,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.18, -0.22),
+          colors: [
+            Colors.white.withValues(alpha: 0.88),
+            const Color(0xFFD4E6D5).withValues(alpha: 0.78),
+            const Color(0xFFA8C6AF).withValues(alpha: 0.38),
+          ],
+          stops: const [0, 0.62, 1],
+        ).createShader(outerRect),
+    );
+
+    canvas.drawCircle(
+      center,
+      outerRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..shader = SweepGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0.82),
+            const Color(0xFF7DA589).withValues(alpha: 0.45),
+            const Color(0xFFD7B87E).withValues(alpha: 0.5),
+            Colors.white.withValues(alpha: 0.82),
+          ],
+        ).createShader(outerRect),
+    );
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: outerRadius - 2),
+      -math.pi * 0.9,
+      math.pi * 0.42,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.white.withValues(alpha: 0.38),
+    );
+
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(-math.pi / 8);
+    canvas.translate(-center.dx, -center.dy);
+
+    const lightColor = Color(0xFFEFF7EB);
+    const darkColor = Color(0xFF355748);
+    canvas.drawCircle(center, emblemRadius, Paint()..color = lightColor);
+    canvas.drawArc(
+      emblemRect,
+      math.pi,
+      math.pi,
+      true,
+      Paint()..color = darkColor,
+    );
+    canvas.drawCircle(
+      Offset(center.dx, center.dy - emblemRadius / 2),
+      emblemRadius / 2,
+      Paint()..color = darkColor,
+    );
+    canvas.drawCircle(
+      Offset(center.dx, center.dy + emblemRadius / 2),
+      emblemRadius / 2,
+      Paint()..color = lightColor,
+    );
+    canvas.drawCircle(
+      Offset(center.dx, center.dy - emblemRadius / 2),
+      emblemRadius / 7,
+      Paint()..color = lightColor,
+    );
+    canvas.drawCircle(
+      Offset(center.dx, center.dy + emblemRadius / 2),
+      emblemRadius / 7,
+      Paint()..color = darkColor,
+    );
+    canvas.restore();
+
+    final heartbeatPaint = Paint()
+      ..color = const Color(0xFFC4A05C)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final heartbeatPath = Path()
+      ..moveTo(center.dx - outerRadius * 0.96, center.dy + outerRadius * 0.1)
+      ..lineTo(center.dx - outerRadius * 0.58, center.dy + outerRadius * 0.1)
+      ..lineTo(center.dx - outerRadius * 0.36, center.dy - outerRadius * 0.04)
+      ..lineTo(center.dx - outerRadius * 0.14, center.dy + outerRadius * 0.24)
+      ..lineTo(center.dx + outerRadius * 0.05, center.dy - outerRadius * 0.34)
+      ..lineTo(center.dx + outerRadius * 0.18, center.dy + outerRadius * 0.02)
+      ..lineTo(center.dx + outerRadius * 0.42, center.dy + outerRadius * 0.02)
+      ..lineTo(center.dx + outerRadius * 0.72, center.dy + outerRadius * 0.02);
+    canvas.drawPath(heartbeatPath, heartbeatPaint);
+
+    final leafPath = Path()
+      ..moveTo(center.dx + outerRadius * 0.48, center.dy - outerRadius * 0.12)
+      ..quadraticBezierTo(
+        center.dx + outerRadius * 0.74,
+        center.dy - outerRadius * 0.38,
+        center.dx + outerRadius * 0.74,
+        center.dy - outerRadius * 0.02,
+      )
+      ..quadraticBezierTo(
+        center.dx + outerRadius * 0.56,
+        center.dy + outerRadius * 0.02,
+        center.dx + outerRadius * 0.48,
+        center.dy - outerRadius * 0.12,
+      );
+    canvas.drawPath(
+      leafPath,
+      Paint()
+        ..color = const Color(0xFFD4B378).withValues(alpha: 0.88)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawLine(
+      Offset(center.dx + outerRadius * 0.54, center.dy - outerRadius * 0.1),
+      Offset(center.dx + outerRadius * 0.67, center.dy - outerRadius * 0.22),
+      Paint()
+        ..color = const Color(0xFFF6E8C9).withValues(alpha: 0.75)
+        ..strokeWidth = 1.1
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BaguaRingPainter extends CustomPainter {
@@ -1051,27 +1218,43 @@ class _RegisterModeTab extends StatelessWidget {
     return GestureDetector(
       key: tabKey,
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.only(bottom: 10),
+        height: 38,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: selected
-                  ? const Color(0xFF2D6A4F)
-                  : const Color(0xFFD7DBDE),
-              width: selected ? 2.5 : 1.2,
-            ),
-          ),
+          gradient: selected
+              ? const LinearGradient(
+                  colors: [
+                    Color(0xFF89C1A0),
+                    Color(0xFF9CCDB0),
+                    Color(0xFFB1D9BE),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          color: selected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: const Color(0x5D8FC0A3),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? const Color(0xFF2D6A4F) : const Color(0xFF8A949B),
+            color: selected ? const Color(0xFF2A4336) : const Color(0xFF6A645A),
           ),
         ),
       ),

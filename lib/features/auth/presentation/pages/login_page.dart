@@ -75,7 +75,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
   @override
   final List<CountryCodeOption> _countryCodes = authCountryCodeOptions;
 
-  @override
   late AnimationController _breatheController;
   late AnimationController _fadeController;
   @override
@@ -341,7 +340,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF4F1EB),
+      backgroundColor: const Color(0xFFF8F2E8),
       body: AnimatedBuilder(
         animation: _exitCtrl,
         builder: (context, _) {
@@ -351,7 +350,67 @@ class _LoginPageState extends ConsumerState<LoginPage>
             onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             child: Stack(
               children: [
-                Positioned.fill(child: _buildBackground()),
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: Color(0xFFF8F2E8)),
+                  ),
+                ),
+                Positioned(
+                  left: -28,
+                  top: -88,
+                  right: -28,
+                  child: Container(
+                    height: 246,
+                    decoration: BoxDecoration(
+                      gradient: const RadialGradient(
+                        center: Alignment(0, -0.88),
+                        radius: 1.24,
+                        colors: [
+                          Color(0xFFE4F4E6),
+                          Color(0xFFB8DCC3),
+                          Color(0xFF8EB69D),
+                        ],
+                        stops: [0, 0.56, 1],
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.elliptical(420, 116),
+                        bottomRight: Radius.elliptical(420, 116),
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1F6A8D76),
+                          blurRadius: 30,
+                          offset: Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 124,
+                  left: -32,
+                  right: -32,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: 92,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x00FFFFFF),
+                            Color(0xCCFFFDF9),
+                            Color(0xFFF8F2E8),
+                          ],
+                          stops: [0, 0.56, 1],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(child: _buildBackground()),
+                ),
                 SafeArea(
                   child: AnimatedPadding(
                     duration: const Duration(milliseconds: 280),
@@ -369,9 +428,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                 keyboardDismissBehavior:
                                     ScrollViewKeyboardDismissBehavior.onDrag,
                                 padding: const EdgeInsets.fromLTRB(
-                                  28,
+                                  18,
                                   0,
-                                  28,
+                                  18,
                                   0,
                                 ),
                                 child: AnimatedPadding(
@@ -380,114 +439,132 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   padding: EdgeInsets.only(
                                     bottom: formBottomPadding,
                                   ),
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      minHeight: constraints.maxHeight,
-                                    ),
-                                    child: IntrinsicHeight(
-                                      child: Form(
-                                        key: _formKey,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            const SizedBox(height: 24),
-                                            _buildBrandRow(),
-                                            AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 280,
-                                              ),
-                                              curve: Curves.easeOutCubic,
-                                              height: keyboardVisible ? 26 : 36,
-                                            ),
-                                            AnimatedSlide(
-                                              duration: const Duration(
-                                                milliseconds: 280,
-                                              ),
-                                              curve: Curves.easeOutCubic,
-                                              offset: Offset(
-                                                0,
-                                                keyboardVisible ? -0.06 : 0,
-                                              ),
-                                              child: AnimatedScale(
-                                                duration: const Duration(
-                                                  milliseconds: 280,
+                                  child: Align(
+                                    alignment: Alignment.topCenter,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 390,
+                                      ),
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minHeight: constraints.maxHeight,
+                                        ),
+                                        child: IntrinsicHeight(
+                                          child: Form(
+                                            key: _formKey,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
+                                                const SizedBox(height: 12),
+                                                _buildBrandRow(),
+                                                AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 280,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  height: keyboardVisible
+                                                      ? 16
+                                                      : 28,
                                                 ),
-                                                curve: Curves.easeOutCubic,
-                                                scale: keyboardVisible
-                                                    ? 0.86
-                                                    : 1,
-                                                alignment: Alignment.topCenter,
-                                                child: _buildHeroVisual(),
-                                              ),
-                                            ),
-                                            AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 280,
-                                              ),
-                                              curve: Curves.easeOutCubic,
-                                              height: keyboardVisible ? 8 : 12,
-                                            ),
-                                            _buildHeroText(),
-                                            AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 280,
-                                              ),
-                                              curve: Curves.easeOutCubic,
-                                              height: keyboardVisible ? 20 : 28,
-                                            ),
-                                            _buildInputArea(),
-                                            const SizedBox(height: 22),
-                                            AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 220,
-                                              ),
-                                              curve: Curves.easeOutCubic,
-                                              margin: EdgeInsets.only(
-                                                bottom: keyboardVisible ? 8 : 0,
-                                              ),
-                                              child: _buildPrimaryButton(),
-                                            ),
-                                            const Spacer(),
-                                            AnimatedSwitcher(
-                                              duration: const Duration(
-                                                milliseconds: 220,
-                                              ),
-                                              switchInCurve:
-                                                  Curves.easeOutCubic,
-                                              switchOutCurve:
-                                                  Curves.easeInCubic,
-                                              transitionBuilder:
-                                                  (child, animation) {
-                                                    return FadeTransition(
-                                                      opacity: animation,
-                                                      child: SizeTransition(
-                                                        sizeFactor: animation,
-                                                        axisAlignment: -1,
-                                                        child: child,
-                                                      ),
-                                                    );
-                                                  },
-                                              child: keyboardVisible
-                                                  ? const SizedBox(
-                                                      key: ValueKey(
-                                                        'login_keyboard_compact',
-                                                      ),
-                                                      height: 12,
-                                                    )
-                                                  : Column(
-                                                      key: const ValueKey(
-                                                        'login_keyboard_full',
-                                                      ),
-                                                      children: [
-                                                        _buildBottomAuxiliarySections(),
-                                                        const SizedBox(
-                                                          height: 36,
-                                                        ),
-                                                      ],
+                                                AnimatedSlide(
+                                                  duration: const Duration(
+                                                    milliseconds: 280,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  offset: Offset(
+                                                    0,
+                                                    keyboardVisible ? -0.06 : 0,
+                                                  ),
+                                                  child: AnimatedScale(
+                                                    duration: const Duration(
+                                                      milliseconds: 280,
                                                     ),
+                                                    curve: Curves.easeOutCubic,
+                                                    scale: keyboardVisible
+                                                        ? 0.84
+                                                        : 1,
+                                                    alignment:
+                                                        Alignment.topCenter,
+                                                    child: _buildHeroVisual(),
+                                                  ),
+                                                ),
+                                                AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 280,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  height: keyboardVisible
+                                                      ? 6
+                                                      : 10,
+                                                ),
+                                                _buildHeroText(),
+                                                AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 280,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  height: keyboardVisible
+                                                      ? 18
+                                                      : 22,
+                                                ),
+                                                _buildInputArea(),
+                                                const SizedBox(height: 18),
+                                                AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 220,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  margin: EdgeInsets.only(
+                                                    bottom: keyboardVisible
+                                                        ? 8
+                                                        : 0,
+                                                  ),
+                                                  child: _buildPrimaryButton(),
+                                                ),
+                                                const Spacer(),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                    milliseconds: 220,
+                                                  ),
+                                                  switchInCurve:
+                                                      Curves.easeOutCubic,
+                                                  switchOutCurve:
+                                                      Curves.easeInCubic,
+                                                  transitionBuilder:
+                                                      (child, animation) {
+                                                        return FadeTransition(
+                                                          opacity: animation,
+                                                          child: SizeTransition(
+                                                            sizeFactor:
+                                                                animation,
+                                                            axisAlignment: -1,
+                                                            child: child,
+                                                          ),
+                                                        );
+                                                      },
+                                                  child: keyboardVisible
+                                                      ? const SizedBox(
+                                                          key: ValueKey(
+                                                            'login_keyboard_compact',
+                                                          ),
+                                                          height: 12,
+                                                        )
+                                                      : Column(
+                                                          key: const ValueKey(
+                                                            'login_keyboard_full',
+                                                          ),
+                                                          children: [
+                                                            _buildBottomAuxiliarySections(),
+                                                            const SizedBox(
+                                                              height: 36,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -515,71 +592,76 @@ class _LoginBgPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(
-      Offset(size.width + 40, -40),
-      200,
-      Paint()
-        ..shader =
-            RadialGradient(
-              colors: [
-                const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-                Colors.transparent,
-              ],
-              stops: const [0, 0.7],
-            ).createShader(
-              Rect.fromCircle(
-                center: Offset(size.width + 40, -40),
-                radius: 200,
-              ),
-            ),
+    final washPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withValues(alpha: 0.1),
+          const Color(0xFFF0E8D8).withValues(alpha: 0.1),
+          Colors.transparent,
+        ],
+        stops: const [0, 0.34, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, washPaint);
+
+    _drawRippleCluster(
+      canvas,
+      center: Offset(size.width - 22, size.height * 0.28),
+      radii: const <double>[16, 24, 32, 40],
+      color: const Color(0xFFB6AA96),
+      startAngle: math.pi * 0.4,
+      sweepAngle: math.pi * 1.15,
+    );
+    _drawRippleCluster(
+      canvas,
+      center: Offset(10, size.height - 84),
+      radii: const <double>[22, 32, 42, 54, 68],
+      color: const Color(0xFFB6AA96),
+      startAngle: -math.pi * 0.12,
+      sweepAngle: math.pi * 1.2,
     );
 
-    canvas.drawCircle(
-      Offset(-50, size.height + 40),
-      180,
-      Paint()
-        ..shader =
-            RadialGradient(
-              colors: [
-                const Color(0xFFC9A84C).withValues(alpha: 0.07),
-                Colors.transparent,
-              ],
-              stops: const [0, 0.7],
-            ).createShader(
-              Rect.fromCircle(
-                center: Offset(-50, size.height + 40),
-                radius: 180,
-              ),
-            ),
-    );
-
-    final gridPaint = Paint()
-      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.022)
-      ..strokeWidth = 0.5;
-    for (double x = 0; x < size.width; x += 28) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y < size.height; y += 28) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    canvas.save();
-    canvas.translate(size.width - 24, size.height - 80);
-    canvas.rotate(math.pi / 8);
-    final ringPaint = Paint()
-      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.055)
+    final softCirclePaint = Paint()
+      ..color = const Color(0xFF8AA891).withValues(alpha: 0.035)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
-    canvas.drawCircle(Offset.zero, 50, ringPaint);
-    for (int i = 0; i < 8; i++) {
-      final angle = i * math.pi / 4;
-      canvas.drawLine(
-        Offset(math.cos(angle) * 42, math.sin(angle) * 42),
-        Offset(math.cos(angle) * 50, math.sin(angle) * 50),
-        ringPaint,
+    canvas.drawCircle(
+      Offset(size.width * 0.76, size.height * 0.5),
+      68,
+      softCirclePaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.24, size.height * 0.72),
+      86,
+      Paint()
+        ..color = const Color(0xFFD8C8AF).withValues(alpha: 0.03)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  void _drawRippleCluster(
+    Canvas canvas, {
+    required Offset center,
+    required List<double> radii,
+    required Color color,
+    required double startAngle,
+    required double sweepAngle,
+  }) {
+    final arcPaint = Paint()
+      ..color = color.withValues(alpha: 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (final radius in radii) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        arcPaint,
       );
     }
-    canvas.restore();
   }
 
   @override
@@ -587,26 +669,34 @@ class _LoginBgPainter extends CustomPainter {
 }
 
 class _BaguaRingPainter extends CustomPainter {
+  const _BaguaRingPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final radius = size.width / 2 - 2;
-    final paint = Paint()
-      ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.12)
+    final radius = size.width / 2 - 4;
+    final ringPaint = Paint()
+      ..color = const Color(0xFF587464).withValues(alpha: 0.14)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.9;
+    final innerRingPaint = Paint()
+      ..color = const Color(0xFF587464).withValues(alpha: 0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
 
-    canvas.drawCircle(Offset(cx, cy), radius, paint);
-    for (int i = 0; i < 8; i++) {
-      final angle = i * math.pi / 4;
+    canvas.drawCircle(Offset(cx, cy), radius, ringPaint);
+    canvas.drawCircle(Offset(cx, cy), radius - 12, innerRingPaint);
+    for (int i = 0; i < 16; i++) {
+      final angle = i * math.pi / 8;
+      final tickStart = i.isEven ? radius - 9 : radius - 6;
       canvas.drawLine(
         Offset(
-          cx + math.cos(angle) * (radius - 10),
-          cy + math.sin(angle) * (radius - 10),
+          cx + math.cos(angle) * tickStart,
+          cy + math.sin(angle) * tickStart,
         ),
         Offset(cx + math.cos(angle) * radius, cy + math.sin(angle) * radius),
-        paint,
+        ringPaint,
       );
     }
 
@@ -614,9 +704,9 @@ class _BaguaRingPainter extends CustomPainter {
       final angle = i * math.pi / 12;
       canvas.drawCircle(
         Offset(cx + math.cos(angle) * radius, cy + math.sin(angle) * radius),
-        1,
+        1.1,
         Paint()
-          ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.2)
+          ..color = const Color(0xFF587464).withValues(alpha: 0.18)
           ..style = PaintingStyle.fill,
       );
     }
@@ -635,16 +725,16 @@ class _CornerBrackets extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Positioned(top: 10, left: 10, child: _Bracket(color: color, tl: true)),
-        Positioned(top: 10, right: 10, child: _Bracket(color: color, tr: true)),
+        Positioned(top: 12, left: 12, child: _Bracket(color: color, tl: true)),
+        Positioned(top: 12, right: 12, child: _Bracket(color: color, tr: true)),
         Positioned(
-          bottom: 10,
-          left: 10,
+          bottom: 12,
+          left: 12,
           child: _Bracket(color: color, bl: true),
         ),
         Positioned(
-          bottom: 10,
-          right: 10,
+          bottom: 12,
+          right: 12,
           child: _Bracket(color: color, br: true),
         ),
       ],
@@ -670,21 +760,21 @@ class _Bracket extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 14,
-      height: 14,
+      width: 13,
+      height: 13,
       decoration: BoxDecoration(
         border: Border(
           top: (tl || tr)
-              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              ? BorderSide(color: color.withValues(alpha: 0.56), width: 1.6)
               : BorderSide.none,
           left: (tl || bl)
-              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              ? BorderSide(color: color.withValues(alpha: 0.56), width: 1.6)
               : BorderSide.none,
           right: (tr || br)
-              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              ? BorderSide(color: color.withValues(alpha: 0.56), width: 1.6)
               : BorderSide.none,
           bottom: (bl || br)
-              ? BorderSide(color: color.withValues(alpha: 0.6), width: 1.8)
+              ? BorderSide(color: color.withValues(alpha: 0.56), width: 1.6)
               : BorderSide.none,
         ),
       ),
@@ -734,10 +824,10 @@ class _InputLabel extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 11.5,
+        fontSize: 12,
         fontWeight: FontWeight.w600,
-        color: const Color(0xFF3A3028).withValues(alpha: 0.65),
-        letterSpacing: 0.5,
+        color: const Color(0xFF1F1A16).withValues(alpha: 0.88),
+        letterSpacing: 0.2,
       ),
     );
   }
@@ -768,15 +858,16 @@ class _SocialButton extends StatelessWidget {
       key: buttonKey,
       onTap: loading ? null : onTap,
       child: Container(
-        height: 48,
+        height: 46,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
+          color: const Color(0xFFFFFBF5),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFFECE2D5), width: 1),
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.025),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Color(0x14928B7A),
+              blurRadius: 14,
+              offset: Offset(0, 5),
             ),
           ],
         ),
@@ -785,25 +876,25 @@ class _SocialButton extends StatelessWidget {
           children: [
             if (loading)
               SizedBox(
-                width: 18,
-                height: 18,
+                width: 16,
+                height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   color: iconColor,
                 ),
               )
             else
-              Icon(icon, size: 20, color: iconColor),
-            const SizedBox(width: 8),
+              Icon(icon, size: 18, color: iconColor),
+            const SizedBox(width: 7),
             Flexible(
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w500,
-                  color: labelColor ?? const Color(0xFF1E1810),
+                  color: labelColor ?? const Color(0xFF3A3028),
                 ),
               ),
             ),

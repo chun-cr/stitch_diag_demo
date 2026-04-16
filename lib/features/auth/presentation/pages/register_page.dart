@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'dart:ui';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -353,18 +352,78 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F1EB),
+      backgroundColor: const Color(0xFFF8F2E8),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Stack(
           children: [
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: Color(0xFFF8F2E8)),
+              ),
+            ),
+            Positioned(
+              left: -24,
+              top: -84,
+              right: -24,
+              child: Container(
+                height: 258,
+                decoration: BoxDecoration(
+                  gradient: const RadialGradient(
+                    center: Alignment(0, -0.9),
+                    radius: 1.22,
+                    colors: [
+                      Color(0xFFDCF1E0),
+                      Color(0xFFB8DCC3),
+                      Color(0xFF89B59A),
+                    ],
+                    stops: [0, 0.58, 1],
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.elliptical(420, 118),
+                    bottomRight: Radius.elliptical(420, 118),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1F6A8D76),
+                      blurRadius: 32,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 126,
+              left: -32,
+              right: -32,
+              child: IgnorePointer(
+                child: Container(
+                  height: 96,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x00FFFFFF),
+                        Color(0xCCFFFDF9),
+                        Color(0xFFF8F2E8),
+                      ],
+                      stops: [0, 0.56, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _rotateController,
-                builder: (context, child) => CustomPaint(
-                  painter: _RegBgPainter(
-                    rotation: _rotateController.value * 2 * math.pi,
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _rotateController,
+                  builder: (context, child) => CustomPaint(
+                    painter: _RegBgPainter(
+                      rotation: _rotateController.value * 2 * math.pi,
+                    ),
                   ),
                 ),
               ),
@@ -378,7 +437,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                 child: Column(
                   children: [
                     _buildTopBar(),
-                    Expanded(child: _buildAccountCreationPage()),
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 390),
+                          child: _buildAccountCreationPage(),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -394,9 +460,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     final seasonalTag = context.l10n.seasonalTagLabel(SeasonalContext.now());
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: SizedBox(
-        height: 44,
+        height: 40,
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -405,27 +471,27 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
               child: GestureDetector(
                 onTap: _goToLogin,
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.white.withValues(alpha: 0.58),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.15),
+                      color: const Color(0xFF78A48B).withValues(alpha: 0.16),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: const Color(0x1A3D5C48),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.arrow_back_ios_new,
-                    size: 16,
-                    color: Color(0xFF3A3028),
+                    size: 14,
+                    color: Color(0xFF486957),
                   ),
                 ),
               ),
@@ -436,32 +502,39 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 30,
-                    height: 30,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                        colors: [Color(0xFF46745F), Color(0xFF7BAA90)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x22618674),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: const Center(child: _BrandMark()),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
-                        color: Color(0xFF1E1810),
+                        color: Color(0xFF233528),
                         fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.2,
                       ),
                       children: [
                         TextSpan(text: context.l10n.appBrandPrefix),
-                        TextSpan(
+                        const TextSpan(
                           text: 'AI',
-                          style: TextStyle(color: Color(0xFF2D6A4F)),
+                          style: TextStyle(color: Color(0xFF4F8C70)),
                         ),
                         TextSpan(text: context.l10n.appBrandSuffix),
                       ],
@@ -474,12 +547,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
               alignment: Alignment.centerRight,
               child: Container(
                 key: const ValueKey('register_seasonal_tag'),
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF3E0),
+                  color: Colors.white.withValues(alpha: 0.38),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
-                    color: const Color(0xFFC9A84C).withValues(alpha: 0.35),
+                    color: const Color(0xFFB8954F).withValues(alpha: 0.28),
                     width: 1,
                   ),
                 ),
@@ -488,10 +564,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFFC9A84C),
+                    fontSize: 9.5,
+                    color: Color(0xFFB18A49),
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ),
@@ -506,46 +582,25 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(child: _buildSecurityVisual()),
-            const SizedBox(height: 28),
+            const SizedBox(height: 18),
             Text(
               context.l10n.registerCreateAccountTitle,
               style: const TextStyle(
-                fontSize: 24,
+                fontSize: 31,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1E1810),
-                letterSpacing: 0.8,
+                color: Color(0xFF28221B),
+                letterSpacing: 0.2,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            _buildRegisterModeTabs(),
-            const SizedBox(height: 24),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.topCenter,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: _buildRegisterFormTransition,
-                child: _isEmailRegister
-                    ? _buildEmailRegisterFields()
-                    : _buildPhoneRegisterFields(),
-              ),
-            ),
             const SizedBox(height: 20),
-            _buildTermsRow(),
-            const SizedBox(height: 24),
-            _buildRegisterButton(),
-            const SizedBox(height: 20),
-            _buildPrivacyTip(),
-            const SizedBox(height: 20),
+            _buildFormCard(),
+            const SizedBox(height: 16),
             _buildLoginRow(),
           ],
         ),
@@ -554,84 +609,157 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   // 鈹€鈹€ Security Visual 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  Widget _buildFormCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFF0E6D7), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x1A6F7C6D),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildRegisterModeTabs(),
+          const SizedBox(height: 18),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: _buildRegisterFormTransition,
+              child: _isEmailRegister
+                  ? _buildEmailRegisterFields()
+                  : _buildPhoneRegisterFields(),
+            ),
+          ),
+          const SizedBox(height: 18),
+          _buildTermsRow(),
+          const SizedBox(height: 20),
+          _buildRegisterButton(),
+          const SizedBox(height: 16),
+          _buildPrivacyTip(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSecurityVisual() {
     return SizedBox(
-      width: 110,
-      height: 110,
+      width: 152,
+      height: 152,
       child: Stack(
         alignment: Alignment.center,
         children: [
+          Container(
+            width: 144,
+            height: 144,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                center: const Alignment(-0.08, -0.2),
+                colors: [
+                  Colors.white.withValues(alpha: 0.58),
+                  const Color(0xFFE1F0E2).withValues(alpha: 0.26),
+                  Colors.white.withValues(alpha: 0.02),
+                ],
+                stops: const [0, 0.5, 1],
+              ),
+            ),
+          ),
+          Container(
+            width: 128,
+            height: 128,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x4D93BEA7),
+                  blurRadius: 28,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
           AnimatedBuilder(
             animation: _rotateController,
             builder: (context, child) => Transform.rotate(
-              angle: _rotateController.value * 2 * math.pi,
+              angle: _rotateController.value * math.pi,
               child: CustomPaint(
-                size: const Size(110, 110),
-                painter: _SmallBaguaRingPainter(),
+                size: const Size(132, 132),
+                painter: const _SmallBaguaRingPainter(),
               ),
             ),
           ),
           Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF2D6A4F).withValues(alpha: 0.18),
-                width: 1.2,
-              ),
-            ),
-          ),
-          // 鍐呭渾
-          Container(
-            width: 66,
-            height: 66,
+            width: 112,
+            height: 112,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFE8F5EE), Color(0xFFD4EEE3)],
+                colors: [Color(0xFFF9FEFA), Color(0xFFD4E7D6)],
               ),
-              border: Border.all(
-                color: const Color(0xFF2D6A4F).withValues(alpha: 0.22),
-                width: 1.5,
-              ),
+              border: Border.all(color: const Color(0xAAFFFFFF), width: 1.2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+                  color: Color(0x2B5C826E),
+                  blurRadius: 22,
+                  offset: Offset(0, 10),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.security_outlined,
-              size: 30,
-              color: Color(0xFF2D6A4F),
+          ),
+          // 鍐呭渾
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                center: const Alignment(-0.15, -0.25),
+                radius: 0.92,
+                colors: [
+                  Colors.white.withValues(alpha: 0.62),
+                  const Color(0xFFC7DDCA).withValues(alpha: 0.42),
+                ],
+              ),
+              border: Border.all(color: const Color(0x22566D58), width: 1.2),
             ),
           ),
           // 鍥涜鍒诲害
           Positioned(
-            top: 6,
-            left: 6,
+            top: 17,
+            left: 17,
             child: _Bracket(color: const Color(0xFF2D6A4F), tl: true),
           ),
           Positioned(
-            top: 6,
-            right: 6,
+            top: 17,
+            right: 17,
             child: _Bracket(color: const Color(0xFF2D6A4F), tr: true),
           ),
           Positioned(
-            bottom: 6,
-            left: 6,
+            bottom: 17,
+            left: 17,
             child: _Bracket(color: const Color(0xFFC9A84C), bl: true),
           ),
           Positioned(
-            bottom: 6,
-            right: 6,
+            bottom: 17,
+            right: 17,
             child: _Bracket(color: const Color(0xFFC9A84C), br: true),
           ),
+          const CustomPaint(size: Size(94, 94), painter: _HarmonySealPainter()),
         ],
       ),
     );
@@ -661,26 +789,34 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   Widget _buildRegisterModeTabs() {
-    return Row(
-      children: [
-        Expanded(
-          child: _RegisterModeTab(
-            tabKey: const ValueKey('register_phone_tab'),
-            label: _registerModeLabel(_RegisterMode.phone),
-            selected: !_isEmailRegister,
-            onTap: () => _switchRegisterMode(_RegisterMode.phone),
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2ECE1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE6DED1), width: 1),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _RegisterModeTab(
+              tabKey: const ValueKey('register_phone_tab'),
+              label: _registerModeLabel(_RegisterMode.phone),
+              selected: !_isEmailRegister,
+              onTap: () => _switchRegisterMode(_RegisterMode.phone),
+            ),
           ),
-        ),
-        const SizedBox(width: 24),
-        Expanded(
-          child: _RegisterModeTab(
-            tabKey: const ValueKey('register_email_tab'),
-            label: _registerModeLabel(_RegisterMode.email),
-            selected: _isEmailRegister,
-            onTap: () => _switchRegisterMode(_RegisterMode.email),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _RegisterModeTab(
+              tabKey: const ValueKey('register_email_tab'),
+              label: _registerModeLabel(_RegisterMode.email),
+              selected: _isEmailRegister,
+              onTap: () => _switchRegisterMode(_RegisterMode.email),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -737,22 +873,33 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   // 鈹€鈹€ Password Strength 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildCountryCodePrefix() {
     return Padding(
-      padding: const EdgeInsets.only(left: 12),
-      child: CountryCodePopoverPicker(
-        key: const ValueKey('register_country_code_menu_trigger'),
-        flag: _selectedCountryFlag,
-        code: _selectedCountryCode,
-        options: _countryCodes,
-        onSelected: (selected) {
-          setState(() {
-            if (_codeTargetCountryCode != null &&
-                _codeTargetCountryCode != selected.code) {
-              resetVerificationCodeState();
-            }
-            _selectedCountryCode = selected.code;
-            _selectedCountryFlag = selected.flag;
-          });
-        },
+      padding: const EdgeInsets.only(left: 14),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CountryCodePopoverPicker(
+            key: const ValueKey('register_country_code_menu_trigger'),
+            flag: _selectedCountryFlag,
+            code: _selectedCountryCode,
+            options: _countryCodes,
+            onSelected: (selected) {
+              setState(() {
+                if (_codeTargetCountryCode != null &&
+                    _codeTargetCountryCode != selected.code) {
+                  resetVerificationCodeState();
+                }
+                _selectedCountryCode = selected.code;
+                _selectedCountryFlag = selected.flag;
+              });
+            },
+          ),
+          Container(
+            width: 1,
+            height: 24,
+            margin: const EdgeInsets.only(left: 8, right: 10),
+            color: const Color(0xFFE3DACB),
+          ),
+        ],
       ),
     );
   }
@@ -769,7 +916,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           controller: _codeCtrl,
           focusNode: _codeFocusNode,
           hint: l10n.authVerificationCodeHint,
-          prefixIcon: Icons.verified_user_outlined,
+          prefixIcon: Icons.shield_outlined,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -795,17 +942,23 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                       key: const ValueKey('register_send_code_countdown'),
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFA09080),
+                        color: Color(0xFFB28749),
+                        fontWeight: FontWeight.w600,
                       ),
                     )
                   : TextButton(
                       key: const ValueKey('register_send_code_button'),
                       onPressed: _onSendCode,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       child: Text(
                         l10n.authSendCode,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF2D6A4F),
+                          color: Color(0xFFB28749),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -826,7 +979,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
             key: const ValueKey('register_masked_receiver_hint'),
             style: TextStyle(
               fontSize: 12,
-              color: const Color(0xFF3A3028).withValues(alpha: 0.58),
+              color: const Color(0xFF5A5349).withValues(alpha: 0.72),
             ),
           ),
         ],
@@ -844,13 +997,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 20,
-            height: 20,
+            width: 18,
+            height: 18,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
+              color: Colors.white.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(6),
               gradient: _agreeTerms
                   ? const LinearGradient(
-                      colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                      colors: [Color(0xFF7AA98E), Color(0xFF98C4AA)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
@@ -858,38 +1012,38 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
               border: Border.all(
                 color: _agreeTerms
                     ? Colors.transparent
-                    : const Color(0xFF2D6A4F).withValues(alpha: 0.25),
-                width: 1.5,
+                    : const Color(0xFFE0D6C8),
+                width: 1.2,
               ),
             ),
             child: _agreeTerms
-                ? const Icon(Icons.check, size: 13, color: Colors.white)
+                ? const Icon(Icons.check, size: 12, color: Colors.white)
                 : null,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           Expanded(
             child: RichText(
               text: TextSpan(
                 style: TextStyle(
-                  fontSize: 12.5,
-                  color: const Color(0xFF3A3028).withValues(alpha: 0.6),
-                  height: 1.5,
+                  fontSize: 12,
+                  color: const Color(0xFF534B41).withValues(alpha: 0.82),
+                  height: 1.55,
                 ),
                 children: [
                   TextSpan(text: context.l10n.registerReadAndAgree),
                   TextSpan(
                     text: context.l10n.registerUserAgreement,
-                    style: TextStyle(
-                      color: Color(0xFF2D6A4F),
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      color: Color(0xFF3D7B61),
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   TextSpan(text: context.l10n.registerAnd),
                   TextSpan(
                     text: context.l10n.registerPrivacyPolicy,
-                    style: TextStyle(
-                      color: Color(0xFF2D6A4F),
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      color: Color(0xFF3D7B61),
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   TextSpan(text: context.l10n.registerHealthDataClause),
@@ -904,63 +1058,60 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
 
   // 鈹€鈹€ Privacy Tip 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildPrivacyTip() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFAF3E0).withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFC9A84C).withValues(alpha: 0.22),
-              width: 1,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE8D4AA), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x14917E55),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFF8EDD2),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.035),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            child: const Icon(
+              Icons.info_outline_rounded,
+              size: 16,
+              color: Color(0xFFC49B55),
+            ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.eco_outlined,
-                size: 17,
-                color: Color(0xFFC9A84C),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              context.l10n.registerPrivacyTip,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF6C6254),
+                height: 1.55,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  context.l10n.registerPrivacyTip,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: const Color(0xFF3A3028).withValues(alpha: 0.68),
-                    height: 1.6,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildLoginRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           _registerLoginPrompt(),
-          style: TextStyle(
-            fontSize: 13,
-            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
-          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6A635A)),
         ),
         TextButton(
           key: const ValueKey('register_go_login_button'),
@@ -974,8 +1125,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
             _registerLoginActionLabel(),
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF2D6A4F),
-              fontWeight: FontWeight.w600,
+              color: Color(0xFF3D7B61),
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -989,19 +1140,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       key: const ValueKey('register_create_account_button'),
       onTap: _isLoading ? null : _onRegister,
       child: Container(
-        height: 54,
+        height: 56,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF1D5E40), Color(0xFF2D8A5E), Color(0xFF3DAB78)],
+            colors: [Color(0xFFA9D0B6), Color(0xFF8CB99F), Color(0xFF7DA98F)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(999),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.35),
+              color: const Color(0x336E9B81),
               blurRadius: 20,
-              offset: const Offset(0, 6),
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -1020,11 +1171,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                   children: [
                     Text(
                       context.l10n.registerCreateAccountAction,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
-                        letterSpacing: 1,
+                        letterSpacing: 0.6,
                       ),
                     ),
                   ],
@@ -1058,53 +1209,62 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       inputFormatters: inputFormatters,
       autovalidateMode: autovalidateMode,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+      cursorColor: const Color(0xFF5D826D),
+      textAlignVertical: TextAlignVertical.center,
+      style: const TextStyle(
+        fontSize: 14.5,
+        color: Color(0xFF2F281F),
+        fontWeight: FontWeight.w500,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFA09080)),
+        hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFB6A58E)),
         filled: true,
-        fillColor: const Color(0xFFF9F7F2),
+        fillColor: const Color(0xFFFFFCF7),
         prefixIcon:
             prefixIconWidget ??
             (prefixIcon == null
                 ? null
-                : Icon(prefixIcon, size: 18, color: const Color(0xFFA09080))),
-        prefixIconConstraints: prefixIconConstraints,
+                : Icon(prefixIcon, size: 18, color: const Color(0xFFC0AF98))),
+        prefixIconConstraints:
+            prefixIconConstraints ??
+            const BoxConstraints(minWidth: 48, minHeight: 56),
         suffixIcon: suffixIcon != null
             ? Padding(
-                padding: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.only(right: 8),
                 child: suffixIcon,
               )
             : null,
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
+        suffixIconConstraints: suffixIcon != null
+            ? const BoxConstraints(minWidth: 84, minHeight: 56)
+            : null,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
+        errorStyle: const TextStyle(fontSize: 11.5, height: 1.25),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: const Color(0xFFECE3D6), width: 1.2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: const Color(0xFFECE3D6), width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFF8CAD98), width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
             color: Colors.red.withValues(alpha: 0.5),
-            width: 1.5,
+            width: 1.2,
           ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.red, width: 1.2),
         ),
       ),
       validator: validator,

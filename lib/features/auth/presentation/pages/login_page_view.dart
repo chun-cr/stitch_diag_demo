@@ -7,7 +7,6 @@ mixin _LoginPageView
         _LoginPageLogic {
   Animation<double> get _breatheAnim;
   Animation<double> get _btnScaleAnim;
-  AnimationController get _breatheController;
   AnimationController get _btnScaleCtrl;
   bool get _isBusy;
   bool get _obscurePass;
@@ -31,41 +30,49 @@ mixin _LoginPageView
 
   Widget _buildBrandRow() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                    colors: [Color(0xFF46745F), Color(0xFF7BAA90)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x22618674),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Center(child: _BrandMark()),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Flexible(
                 child: RichText(
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
                     style: const TextStyle(
-                      fontSize: 18,
-                      color: Color(0xFF1E1810),
+                      fontSize: 16,
+                      color: Color(0xFF233528),
                       fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.2,
                     ),
                     children: [
                       TextSpan(text: context.l10n.appBrandPrefix),
                       const TextSpan(
                         text: 'AI',
-                        style: TextStyle(color: Color(0xFF2D6A4F)),
+                        style: TextStyle(color: Color(0xFF4F8C70)),
                       ),
                       TextSpan(text: context.l10n.appBrandSuffix),
                     ],
@@ -75,8 +82,15 @@ mixin _LoginPageView
             ],
           ),
         ),
-        const SizedBox(width: 12),
-        const AuthLocaleButton(key: ValueKey('login_locale_button')),
+        const SizedBox(width: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: const AuthLocaleButton(key: ValueKey('login_locale_button')),
+        ),
       ],
     );
   }
@@ -89,11 +103,41 @@ mixin _LoginPageView
           return Transform.scale(scale: _breatheAnim.value, child: child);
         },
         child: SizedBox(
-          width: 148,
-          height: 148,
+          width: 154,
+          height: 154,
           child: Stack(
             alignment: Alignment.center,
             children: [
+              Container(
+                width: 144,
+                height: 144,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.08, -0.16),
+                    colors: [
+                      Colors.white.withValues(alpha: 0.58),
+                      const Color(0xFFE7F4E7).withValues(alpha: 0.28),
+                      Colors.white.withValues(alpha: 0.02),
+                    ],
+                    stops: const [0, 0.5, 1],
+                  ),
+                ),
+              ),
+              Container(
+                width: 126,
+                height: 126,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x4794BDA5),
+                      blurRadius: 28,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
               AnimatedBuilder(
                 animation: _breatheAnim,
                 builder: (_, child) => Opacity(
@@ -104,78 +148,76 @@ mixin _LoginPageView
                   child: child,
                 ),
                 child: CustomPaint(
-                  size: const Size(148, 148),
-                  painter: _BaguaRingPainter(),
+                  size: const Size(136, 136),
+                  painter: const _BaguaRingPainter(),
                 ),
               ),
+              const _CornerBrackets(color: Color(0xFF6D8275)),
               Container(
-                width: 112,
-                height: 112,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.18),
-                    width: 1.2,
-                  ),
-                ),
-              ),
-              Container(
-                width: 72,
-                height: 72,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFE8F5EE), Color(0xFFD4EEE3)],
+                    colors: [Color(0xFFFDFEFB), Color(0xFFD5E8D7)],
                   ),
                   border: Border.all(
-                    color: const Color(0xFF2D6A4F).withValues(alpha: 0.22),
-                    width: 1.5,
+                    color: const Color(0xAAFFFFFF),
+                    width: 1.2,
                   ),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      color: Color(0x365E836F),
+                      blurRadius: 22,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.face_retouching_natural_outlined,
-                  size: 32,
-                  color: Color(0xFF2D6A4F),
-                ),
               ),
-              AnimatedBuilder(
-                animation: _breatheController,
-                builder: (context, child) {
-                  final t = _breatheController.value;
-                  final topOff = 28.0 + t * 90.0;
-                  return Positioned(
-                    top: topOff,
-                    left: 28,
-                    right: 28,
-                    child: Opacity(
-                      opacity: (math.sin(t * math.pi)).clamp(0.0, 1.0),
+              Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.2, -0.24),
+                    radius: 0.92,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.88),
+                      const Color(0xFFC8DDCA).withValues(alpha: 0.58),
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(
+                      Icons.sentiment_satisfied_alt_rounded,
+                      size: 34,
+                      color: Color(0xFF4D6E5E),
+                    ),
+                    Positioned(
+                      top: 18,
+                      right: 16,
                       child: Container(
-                        height: 1.2,
+                        width: 16,
+                        height: 16,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              const Color(0xFF2D6A4F).withValues(alpha: 0.6),
-                              Colors.transparent,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(1),
+                          color: Colors.white.withValues(alpha: 0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          size: 10,
+                          color: Color(0xFFC9A55C),
                         ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-              const _CornerBrackets(color: Color(0xFF2D6A4F)),
             ],
           ),
         ),
@@ -186,23 +228,29 @@ mixin _LoginPageView
   Widget _buildHeroText() {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _ornamentLine(),
-            const SizedBox(width: 12),
-            Text(
-              context.l10n.authInspectionMotto,
-              style: const TextStyle(
-                fontSize: 11,
-                letterSpacing: 3,
-                color: Color(0xFF2D6A4F),
-                fontWeight: FontWeight.w500,
-              ),
+        SizedBox(
+          width: double.infinity,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ornamentLine(),
+                const SizedBox(width: 10),
+                Text(
+                  context.l10n.authInspectionMotto,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    letterSpacing: 2.8,
+                    color: Color(0xFF5B5A53),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _ornamentLine(),
+              ],
             ),
-            const SizedBox(width: 12),
-            _ornamentLine(),
-          ],
+          ),
         ),
       ],
     );
@@ -282,7 +330,7 @@ mixin _LoginPageView
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildPhoneField(),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 260),
           switchInCurve: Curves.easeOutCubic,
@@ -292,7 +340,7 @@ mixin _LoginPageView
               ? _buildPasswordField()
               : _buildCodeField(),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           switchInCurve: Curves.easeOutCubic,
@@ -310,7 +358,7 @@ mixin _LoginPageView
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildEmailField(),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         _buildCodeField(),
       ],
     );
@@ -328,7 +376,13 @@ mixin _LoginPageView
           keyboardType: TextInputType.phone,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           onChanged: _handlePhoneChanged,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          cursorColor: const Color(0xFF5D826D),
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            fontSize: 14.5,
+            color: Color(0xFF2F281F),
+            fontWeight: FontWeight.w500,
+          ),
           decoration: _inputDecoration(
             hint: context.l10n.authPhoneHint,
             prefixIcon: _buildCountryCodePrefix(),
@@ -355,13 +409,19 @@ mixin _LoginPageView
           keyboardType: TextInputType.emailAddress,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           onChanged: _handleEmailChanged,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          cursorColor: const Color(0xFF5D826D),
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            fontSize: 14.5,
+            color: Color(0xFF2F281F),
+            fontWeight: FontWeight.w500,
+          ),
           decoration: _inputDecoration(
             hint: context.l10n.authEmailHint,
             prefixIcon: const Icon(
               Icons.email_outlined,
               size: 18,
-              color: Color(0xFFA09080),
+              color: Color(0xFFC0AF98),
             ),
           ),
           validator: _validateEmail,
@@ -383,13 +443,23 @@ mixin _LoginPageView
           controller: _codeCtrl,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          cursorColor: const Color(0xFF5D826D),
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            fontSize: 14.5,
+            color: Color(0xFF2F281F),
+            fontWeight: FontWeight.w500,
+          ),
           decoration: _inputDecoration(
             hint: l10n.authVerificationCodeHint,
             prefixIcon: const Icon(
-              Icons.verified_user_outlined,
+              Icons.shield_outlined,
               size: 18,
-              color: Color(0xFFA09080),
+              color: Color(0xFFC0AF98),
+            ),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 94,
+              minHeight: 56,
             ),
             suffixIcon: Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -413,18 +483,24 @@ mixin _LoginPageView
                         key: const ValueKey('send_code_countdown'),
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFA09080),
+                          color: Color(0xFFB28749),
+                          fontWeight: FontWeight.w600,
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       )
                     : TextButton(
                         key: const ValueKey('send_code_button'),
                         onPressed: _onSendCode,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         child: Text(
                           l10n.authSendCode,
                           style: const TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF2D6A4F),
+                            color: Color(0xFFB28749),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -447,7 +523,7 @@ mixin _LoginPageView
             key: const ValueKey('login_masked_receiver_hint'),
             style: TextStyle(
               fontSize: 12,
-              color: const Color(0xFF3A3028).withValues(alpha: 0.58),
+              color: const Color(0xFF5A5349).withValues(alpha: 0.72),
             ),
           ),
         ],
@@ -466,13 +542,19 @@ mixin _LoginPageView
           controller: _passCtrl,
           obscureText: _obscurePass,
           autovalidateMode: AutovalidateMode.onUserInteraction,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E1810)),
+          cursorColor: const Color(0xFF5D826D),
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            fontSize: 14.5,
+            color: Color(0xFF2F281F),
+            fontWeight: FontWeight.w500,
+          ),
           decoration: _inputDecoration(
             hint: context.l10n.authPasswordHint,
             prefixIcon: const Icon(
               Icons.lock_outline,
               size: 18,
-              color: Color(0xFFA09080),
+              color: Color(0xFFC0AF98),
             ),
             suffixIcon: GestureDetector(
               onTap: () => setState(() => _obscurePass = !_obscurePass),
@@ -481,7 +563,7 @@ mixin _LoginPageView
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 size: 18,
-                color: const Color(0xFFA09080),
+                color: const Color(0xFFC0AF98),
               ),
             ),
           ),
@@ -507,7 +589,6 @@ mixin _LoginPageView
       key: ValueKey(
         _isPasswordLogin ? 'password_fields_footer' : 'code_fields_footer',
       ),
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         TextButton(
           key: ValueKey(
@@ -526,12 +607,13 @@ mixin _LoginPageView
                 ? context.l10n.authCodeLogin
                 : context.l10n.authPasswordLogin,
             style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFFA09080),
-              fontWeight: FontWeight.w500,
+              fontSize: 12.5,
+              color: Color(0xFF6C8C77),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
+        const Spacer(),
         if (_isPasswordLogin) _buildForgotPasswordButton(),
       ],
     );
@@ -586,8 +668,8 @@ mixin _LoginPageView
       child: Text(
         context.l10n.authForgotPassword,
         style: TextStyle(
-          fontSize: 12.5,
-          color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+          fontSize: 12,
+          color: const Color(0xFF8A7B68),
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -596,22 +678,33 @@ mixin _LoginPageView
 
   Widget _buildCountryCodePrefix() {
     return Padding(
-      padding: const EdgeInsets.only(left: 12),
-      child: CountryCodePopoverPicker(
-        key: const ValueKey('country_code_menu_trigger'),
-        flag: _selectedCountryFlag,
-        code: _selectedCountryCode,
-        options: _countryCodes,
-        onSelected: (selected) {
-          setState(() {
-            if (_codeTargetCountryCode != null &&
-                _codeTargetCountryCode != selected.code) {
-              resetVerificationCodeState();
-            }
-            _selectedCountryCode = selected.code;
-            _selectedCountryFlag = selected.flag;
-          });
-        },
+      padding: const EdgeInsets.only(left: 14),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CountryCodePopoverPicker(
+            key: const ValueKey('country_code_menu_trigger'),
+            flag: _selectedCountryFlag,
+            code: _selectedCountryCode,
+            options: _countryCodes,
+            onSelected: (selected) {
+              setState(() {
+                if (_codeTargetCountryCode != null &&
+                    _codeTargetCountryCode != selected.code) {
+                  resetVerificationCodeState();
+                }
+                _selectedCountryCode = selected.code;
+                _selectedCountryFlag = selected.flag;
+              });
+            },
+          ),
+          Container(
+            width: 1,
+            height: 24,
+            margin: const EdgeInsets.only(left: 8, right: 10),
+            color: const Color(0xFFE3DACB),
+          ),
+        ],
       ),
     );
   }
@@ -651,32 +744,52 @@ mixin _LoginPageView
             Transform.scale(scale: _btnScaleAnim.value, child: child),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
-          height: 54,
+          height: 56,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: _buttonPhase == _LoginButtonPhase.idle
-                  ? const [Color(0xFF6FA585), Color(0xFF8DBB9D)]
-                  : const [Color(0xFF5A8D70), Color(0xFF7CA68B)],
+                  ? const [
+                      Color(0xFF79AC85),
+                      Color(0xFF7FAE8A),
+                      Color(0xFF74A380),
+                    ]
+                  : const [
+                      Color(0xFF689676),
+                      Color(0xFF729D7D),
+                      Color(0xFF658F73),
+                    ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6FA585).withValues(
-                  alpha: _buttonPhase == _LoginButtonPhase.idle ? 0.2 : 0.08,
+                color: const Color(0xFF76A784).withValues(
+                  alpha: _buttonPhase == _LoginButtonPhase.idle ? 0.34 : 0.14,
                 ),
-                blurRadius: _buttonPhase == _LoginButtonPhase.idle ? 16 : 10,
+                blurRadius: _buttonPhase == _LoginButtonPhase.idle ? 20 : 12,
                 offset: Offset(
                   0,
-                  _buttonPhase == _LoginButtonPhase.idle ? 6 : 3,
+                  _buttonPhase == _LoginButtonPhase.idle ? 8 : 4,
                 ),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Center(child: _buildButtonContent(context)),
+            borderRadius: BorderRadius.circular(999),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.16),
+                    Colors.white.withValues(alpha: 0.02),
+                  ],
+                ),
+              ),
+              child: Center(child: _buildButtonContent(context)),
+            ),
           ),
         ),
       ),
@@ -696,15 +809,7 @@ mixin _LoginPageView
 
     switch (_buttonPhase) {
       case _LoginButtonPhase.idle:
-        return Row(
-          key: const ValueKey('login_idle'),
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.login_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            label,
-          ],
-        );
+        return Center(key: const ValueKey('login_idle'), child: label);
       case _LoginButtonPhase.submitting:
         return Row(
           key: const ValueKey('login_submitting'),
@@ -739,11 +844,11 @@ mixin _LoginPageView
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           _buildOrDivider(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _buildSocialRow(),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           _buildSignUpRow(),
         ],
       ),
@@ -751,21 +856,15 @@ mixin _LoginPageView
   }
 
   Widget _buildOrDivider() {
-    return Row(
-      children: [
-        Expanded(child: _buildSectionDivider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            context.l10n.authOtherMethods,
-            style: TextStyle(
-              fontSize: 12,
-              color: const Color(0xFF3A3028).withValues(alpha: 0.45),
-            ),
-          ),
+    return Center(
+      child: Text(
+        context.l10n.authOtherMethods,
+        style: TextStyle(
+          fontSize: 12.5,
+          color: const Color(0xFF4B433B).withValues(alpha: 0.72),
+          fontWeight: FontWeight.w500,
         ),
-        Expanded(child: _buildSectionDivider()),
-      ],
+      ),
     );
   }
 
@@ -808,14 +907,15 @@ mixin _LoginPageView
   }
 
   Widget _buildSignUpRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           context.l10n.authNoAccount,
           style: TextStyle(
             fontSize: 13,
-            color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+            color: const Color(0xFF4F453C).withValues(alpha: 0.76),
           ),
         ),
         TextButton(
@@ -829,8 +929,8 @@ mixin _LoginPageView
             context.l10n.authRegisterNow,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF2D6A4F),
-              fontWeight: FontWeight.w600,
+              color: Color(0xFF8A6B3B),
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -844,45 +944,49 @@ mixin _LoginPageView
     Widget? prefix,
     BoxConstraints? prefixIconConstraints,
     Widget? suffixIcon,
+    BoxConstraints? suffixIconConstraints,
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFA09080)),
+      hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFB6A58E)),
       filled: true,
-      fillColor: const Color(0xFFF9F7F2),
+      fillColor: const Color(0xFFFFFCF7),
       prefixIcon: prefixIcon,
-      prefixIconConstraints: prefixIconConstraints,
+      prefixIconConstraints:
+          prefixIconConstraints ??
+          const BoxConstraints(minWidth: 48, minHeight: 56),
       prefix: prefix,
       suffixIcon: suffixIcon != null
-          ? Padding(padding: const EdgeInsets.only(right: 4), child: suffixIcon)
+          ? Padding(padding: const EdgeInsets.only(right: 8), child: suffixIcon)
           : null,
-      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+      suffixIconConstraints: suffixIcon != null
+          ? suffixIconConstraints ??
+                const BoxConstraints(minWidth: 52, minHeight: 56)
+          : null,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      errorStyle: const TextStyle(fontSize: 11.5, height: 1.25),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(13),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Color(0xFFECE3D6), width: 1.2),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(13),
-        borderSide: BorderSide.none,
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(13),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Color(0xFFECE3D6), width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 1),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Color(0xFF8CAD98), width: 1.4),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(
           color: Colors.red.withValues(alpha: 0.5),
-          width: 1.5,
+          width: 1.2,
         ),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Colors.red, width: 1.2),
       ),
     );
   }
@@ -894,7 +998,7 @@ mixin _LoginPageView
         Container(
           width: 20,
           height: 1,
-          color: const Color(0xFF2D6A4F).withValues(alpha: 0.3),
+          color: const Color(0xFF8D8377).withValues(alpha: 0.42),
         ),
         const SizedBox(width: 4),
         Container(
@@ -902,25 +1006,10 @@ mixin _LoginPageView
           height: 4,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.4),
+            color: const Color(0xFF8D8377).withValues(alpha: 0.5),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSectionDivider() {
-    return Container(
-      height: 1,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.transparent,
-            const Color(0xFF2D6A4F).withValues(alpha: 0.15),
-            Colors.transparent,
-          ],
-        ),
-      ),
     );
   }
 }

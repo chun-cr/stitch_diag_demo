@@ -50,3 +50,5 @@ app.*.map.json
 .opencode/
 .playwright-mcp/
 .sisyphus/
+.stitch_fetch/
+.stitch_sdk_tmp/
