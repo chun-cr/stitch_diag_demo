@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/logger.dart';
+import '../models/scan_upload_result.dart';
 
 class ScanUploadException implements Exception {
   const ScanUploadException({
@@ -97,18 +98,22 @@ class ScanUploadException implements Exception {
 class ScanRemoteSource {
   ScanRemoteSource(this._dioClient);
 
+  static const reportSource = 'KY_MA';
+
   final DioClient _dioClient;
 
-  Future<void> uploadFace({
+  Future<ScanFaceUploadResult> uploadFace({
     required String faceFilePath,
     String? faceFrameFilePath,
+    String source = reportSource,
     ProgressCallback? onSendProgress,
   }) async {
     const path = '/api/v1/saas/mobile/ai/diagnosis/upload/face';
-    await _postMultipart(
+    final payload = await _postMultipart(
       stage: 'face',
       path: path,
       data: FormData.fromMap({
+        'source': source,
         'faceFile': await MultipartFile.fromFile(
           faceFilePath,
           filename: _fileName(faceFilePath),
@@ -120,17 +125,26 @@ class ScanRemoteSource {
       }),
       onSendProgress: onSendProgress,
     );
+    return ScanFaceUploadResult.fromJson(payload);
   }
 
-  Future<void> uploadTongue({
+  Future<ScanTongueUploadResult> uploadTongue({
     required String imageFilePath,
+    required ScanFaceUploadResult faceUpload,
+    int imageType = 1,
+    String source = reportSource,
     ProgressCallback? onSendProgress,
   }) async {
     const path = '/api/v1/saas/mobile/ai/diagnosis/upload';
-    await _postMultipart(
+    final payload = await _postMultipart(
       stage: 'tongue',
       path: path,
       data: FormData.fromMap({
+        'source': source,
+        'imageType': imageType,
+        'genReportFlag': '1',
+        'finishedFlag': '0',
+        'faceData': faceUpload.toTongueFaceDataJson(),
         'imageFile': await MultipartFile.fromFile(
           imageFilePath,
           filename: _fileName(imageFilePath),
@@ -138,18 +152,21 @@ class ScanRemoteSource {
       }),
       onSendProgress: onSendProgress,
     );
+    return ScanTongueUploadResult.fromJson(payload);
   }
 
-  Future<void> uploadPalm({
+  Future<ScanPalmUploadResult> uploadPalm({
     required String handFilePath,
     String? handFrameFilePath,
+    required String reportId,
     ProgressCallback? onSendProgress,
   }) async {
     const path = '/api/v1/saas/mobile/ai/diagnosis/upload/hand';
-    await _postMultipart(
+    final payload = await _postMultipart(
       stage: 'palm',
       path: path,
       data: FormData.fromMap({
+        'reportId': reportId,
         'handFile': await MultipartFile.fromFile(
           handFilePath,
           filename: _fileName(handFilePath),
@@ -161,9 +178,10 @@ class ScanRemoteSource {
       }),
       onSendProgress: onSendProgress,
     );
+    return ScanPalmUploadResult.fromJson(payload);
   }
 
-  Future<void> _postMultipart({
+  Future<Map<String, dynamic>> _postMultipart({
     required String stage,
     required String path,
     required FormData data,
@@ -175,7 +193,7 @@ class ScanRemoteSource {
         data: data,
         onSendProgress: onSendProgress,
       );
-      _ensureSuccessEnvelope(stage: stage, path: path, data: response.data);
+      return _extractSuccessPayload(stage: stage, path: path, data: response.data);
     } on DioException catch (error) {
       final exception = ScanUploadException.fromDioException(
         stage: stage,
@@ -187,12 +205,13 @@ class ScanRemoteSource {
     }
   }
 
-  void _ensureSuccessEnvelope({
+  Map<String, dynamic> _extractSuccessPayload({
     required String stage,
     required String path,
     required dynamic data,
   }) {
-    if (data is! Map<String, dynamic>) {
+    final envelope = _asMap(data);
+    if (envelope == null) {
       throw ScanUploadException(
         stage: stage,
         path: path,
@@ -201,23 +220,44 @@ class ScanRemoteSource {
       );
     }
 
-    final businessCode = (data['code'] as num?)?.toInt();
+    final businessCode = (envelope['code'] as num?)?.toInt();
     if (businessCode != null && businessCode != 0) {
       throw ScanUploadException(
         stage: stage,
         path: path,
-        message: data['message'] as String? ?? 'Upload request failed.',
+        message: envelope['message'] as String? ?? 'Upload request failed.',
         businessCode: businessCode,
-        messageKey: data['messageKey'] as String?,
-        requestId: data['requestId'] as String?,
-        responseBody: data,
+        messageKey: envelope['messageKey'] as String?,
+        requestId: envelope['requestId'] as String?,
+        responseBody: envelope,
       );
     }
+
+    final payload = _asMap(envelope['data']);
+    if (payload == null) {
+      throw ScanUploadException(
+        stage: stage,
+        path: path,
+        message: 'Invalid response payload.',
+        responseBody: envelope,
+      );
+    }
+    return payload;
   }
 
   String _fileName(String path) {
     final normalized = path.replaceAll('\\', '/');
     final segments = normalized.split('/');
     return segments.isEmpty ? normalized : segments.last;
+  }
+
+  Map<String, dynamic>? _asMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
   }
 }

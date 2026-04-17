@@ -3,23 +3,16 @@ import MediaPipeTasksVision
 
 enum TongueDetectionEvaluator {
     private static let mouthIndices = [13, 14, 17, 37, 267, 269, 270, 291]
-    private static let tongueThreshold = 0.35
-    private static let upperLipInner = 13
-    private static let lowerLipInner = 14
 
     struct Result {
-        let tongueDetected: Bool
-        let tongueOutScore: Double
-        let landmarks: [[String: Double]]
+        let faceLandmarks: [[String: Double]]
         let mouthLandmarks: [[String: Double]]
         let mouthCenter: [String: Double]?
         let imageWidth: Double
         let imageHeight: Double
 
         static let empty = Result(
-            tongueDetected: false,
-            tongueOutScore: 0,
-            landmarks: [],
+            faceLandmarks: [],
             mouthLandmarks: [],
             mouthCenter: nil,
             imageWidth: 0,
@@ -28,9 +21,8 @@ enum TongueDetectionEvaluator {
 
         var payload: [String: Any] {
             [
-                "tongueDetected": tongueDetected,
-                "tongueOutScore": tongueOutScore,
-                "landmarks": landmarks,
+                "faceLandmarks": faceLandmarks,
+                "landmarks": faceLandmarks,
                 "mouthLandmarks": mouthLandmarks,
                 "mouthCenter": mouthCenter as Any,
                 "imageWidth": imageWidth,
@@ -41,14 +33,12 @@ enum TongueDetectionEvaluator {
 
     static func evaluate(
         landmarks: [NormalizedLandmark]?,
-        blendshapes: [String: Double],
         imageSize: CGSize
     ) -> Result {
         guard let landmarks, !landmarks.isEmpty else {
             return .empty
         }
 
-        let tongueOutScore = blendshapes["tongueOut"] ?? 0
         let allLandmarks = landmarks.map {
             [
                 "x": Double($0.x),
@@ -56,18 +46,6 @@ enum TongueDetectionEvaluator {
                 "z": Double($0.z),
             ]
         }
-
-        let mouthOpenRatio: Double = {
-            guard landmarks.indices.contains(upperLipInner), landmarks.indices.contains(lowerLipInner) else {
-                return 0
-            }
-
-            let upperLip = landmarks[upperLipInner]
-            let lowerLip = landmarks[lowerLipInner]
-            return abs(Double(lowerLip.y) - Double(upperLip.y))
-        }()
-
-        let detected = tongueOutScore >= tongueThreshold || mouthOpenRatio >= 0.06
 
         let mouthLandmarks = mouthIndices.compactMap { index -> [String: Double]? in
             guard landmarks.indices.contains(index) else {
@@ -84,9 +62,7 @@ enum TongueDetectionEvaluator {
 
         guard !mouthLandmarks.isEmpty else {
             return Result(
-                tongueDetected: detected,
-                tongueOutScore: tongueOutScore,
-                landmarks: allLandmarks,
+                faceLandmarks: allLandmarks,
                 mouthLandmarks: [],
                 mouthCenter: nil,
                 imageWidth: Double(imageSize.width),
@@ -101,9 +77,7 @@ enum TongueDetectionEvaluator {
         ]
 
         return Result(
-            tongueDetected: detected,
-            tongueOutScore: tongueOutScore,
-            landmarks: allLandmarks,
+            faceLandmarks: allLandmarks,
             mouthLandmarks: mouthLandmarks,
             mouthCenter: center,
             imageWidth: Double(imageSize.width),

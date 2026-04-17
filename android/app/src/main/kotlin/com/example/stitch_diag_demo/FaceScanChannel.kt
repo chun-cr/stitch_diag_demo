@@ -132,9 +132,8 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                 cameraManager.stopCamera()
                 sendTongueEvent(
                     mapOf(
-                        "tongueDetected" to false,
-                        "tongueOutScore" to 0.0,
                         "mouthLandmarks" to emptyList<Map<String, Double>>(),
+                        "faceLandmarks" to emptyList<Map<String, Double>>(),
                         "landmarks" to emptyList<Map<String, Double>>(),
                         "imageWidth" to 0,
                         "imageHeight" to 0,
@@ -142,18 +141,6 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                     )
                 )
                 result.success(null)
-            }
-            "tongue/capture" -> {
-                val file = java.io.File(context.cacheDir, "tongue_${System.currentTimeMillis()}.jpg")
-                cameraManager.takePhoto(file, { path ->
-                    (context as? MainActivity)?.runOnUiThread {
-                        result.success(path)
-                    }
-                }, { error ->
-                    (context as? MainActivity)?.runOnUiThread {
-                        result.error("CAPTURE_FAILED", error, null)
-                    }
-                })
             }
             "scan/capture" -> {
                 val stage = call.argument<String>("stage")
@@ -211,10 +198,9 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
 
     private fun sendTongueEvent(data: Map<String, Any?>) {
         val tonguePayload = mapOf(
-            "tongueDetected" to (data["tongueDetected"] as? Boolean ?: false),
-            "tongueOutScore" to ((data["tongueOutScore"] as? Number)?.toDouble() ?: 0.0),
             "mouthLandmarks" to (data["mouthLandmarks"] as? List<*> ?: emptyList<Any>()),
-            "landmarks" to (data["landmarks"] as? List<*> ?: emptyList<Any>()),
+            "faceLandmarks" to (data["faceLandmarks"] as? List<*> ?: data["landmarks"] as? List<*> ?: emptyList<Any>()),
+            "landmarks" to (data["faceLandmarks"] as? List<*> ?: data["landmarks"] as? List<*> ?: emptyList<Any>()),
             "imageWidth" to ((data["imageWidth"] as? Number)?.toDouble() ?: 0.0),
             "imageHeight" to ((data["imageHeight"] as? Number)?.toDouble() ?: 0.0),
             "mouthCenter" to data["mouthCenter"],

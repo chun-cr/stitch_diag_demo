@@ -12,6 +12,7 @@ import '../widgets/camera_preview_widget.dart';
 import '../widgets/face_landmark_overlay.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/router/app_router.dart';
+import '../../data/models/scan_session.dart';
 import '../../data/sources/scan_remote_source.dart';
 import '../services/face_scan_status_bridge.dart';
 import '../services/scan_capture_bridge.dart';
@@ -58,6 +59,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     with SingleTickerProviderStateMixin {
   final FaceScanStatusBridge _statusBridge = FaceScanStatusBridge();
   late final ScanRemoteSource _scanRemoteSource;
+  late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
   static const Alignment _faceGuideAlignment = Alignment(0, -0.25);
@@ -153,6 +155,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     super.initState();
     initInjector();
     _scanRemoteSource = ScanRemoteSource(getIt<DioClient>());
+    _scanSession = getIt<ScanSession>()..reset();
     _scanLineCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -282,7 +285,7 @@ class _FaceScanPageState extends State<FaceScanPage>
 
       setState(() => _scanProgress = 0.68);
 
-      await _scanRemoteSource.uploadFace(
+      final faceUpload = await _scanRemoteSource.uploadFace(
         faceFilePath: capture.croppedPath,
         faceFrameFilePath: capture.framePath,
         onSendProgress: (sent, total) {
@@ -300,6 +303,22 @@ class _FaceScanPageState extends State<FaceScanPage>
         return;
       }
 
+      if (!faceUpload.hasSingleFace) {
+        final message = faceUpload.faceNum > 1
+            ? '检测到多张人脸，请重新扫描。'
+            : '未检测到清晰人脸，请重新扫描。';
+        _pauseAutoScanUntilReset = true;
+        _cancelScanHold(resetProgress: true);
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
+
+      _scanSession.saveFaceUpload(faceUpload);
       setState(() => _scanProgress = 1);
       await _navigateToTongueScan();
     } on Object catch (error, stackTrace) {

@@ -56,6 +56,13 @@ void setPreviewAuthenticated(bool value) {
 }
 
 // ─── 路由配置 ─────────────────────────────────────────────────────
+ReportPage _buildReportPage(GoRouterState state) {
+  final reportId =
+      state.uri.queryParameters['reportId'] ??
+      (state.extra is String ? state.extra as String : null);
+  return ReportPage(reportId: reportId);
+}
+
 final appRouter = GoRouter(
   initialLocation: AppRoutes.login,
   debugLogDiagnostics: true,
@@ -148,18 +155,18 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.reportAnalysis,
-      builder: (context, state) => const ReportPage(),
+      builder: (context, state) => _buildReportPage(state),
     ),
     GoRoute(
       path: AppRoutes.report,
-      builder: (context, state) => const ReportPage(),
+      builder: (context, state) => _buildReportPage(state),
     ),
     GoRoute(
       path: AppRoutes.reportProductDetail,
       builder: (context, state) {
         final product = state.extra;
         if (product is! ReportProductData) {
-          return const ReportPage();
+          return _buildReportPage(state);
         }
         return ReportProductDetailPage(product: product);
       },
@@ -169,7 +176,7 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final args = state.extra;
         if (args is! ReportCheckoutArgs) {
-          return const ReportPage();
+          return _buildReportPage(state);
         }
         return ReportCheckoutPage(args: args);
       },

@@ -76,17 +76,6 @@ import UIKit
         CameraManager.shared.toggleCamera()
         result(nil)
 
-      case "tongue/capture":
-        guard let view = FaceLandmarkerViewFactory.shared.currentView else {
-          result(FlutterError(code: "NO_VIEW", message: "No active camera view", details: nil))
-          return
-        }
-        view.capturePhoto { path in
-          result(path)
-        } onError: { err in
-          result(FlutterError(code: "CAPTURE_FAILED", message: err, details: nil))
-        }
-
       case "scan/capture":
         guard let args = call.arguments as? [String: Any] else {
           result(FlutterError(code: "INVALID_ARGS", message: "Missing capture args", details: nil))
@@ -124,27 +113,6 @@ import UIKit
         result(FlutterMethodNotImplemented)
       }
     }
-
-    let captureChannel = FlutterMethodChannel(
-      name: "tongue/capture",
-      binaryMessenger: scanRegistrar.messenger()
-    )
-    captureChannel.setMethodCallHandler { call, result in
-      if call.method == "tongue/capture" {
-        guard let view = FaceLandmarkerViewFactory.shared.currentView else {
-          result(FlutterError(code: "NO_VIEW", message: "No active camera view", details: nil))
-          return
-        }
-        view.capturePhoto { path in
-          result(path)
-        } onError: { err in
-          result(FlutterError(code: "CAPTURE_FAILED", message: err, details: nil))
-        }
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    }
-
     let appInfoChannel = FlutterMethodChannel(
       name: "app/info",
       binaryMessenger: scanRegistrar.messenger()

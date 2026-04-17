@@ -19,7 +19,10 @@ import 'package:stitch_diag_demo/features/report/presentation/models/report_prod
 const _kReportMaskEnabled = false;
 
 class ReportPage extends StatefulWidget {
-  const ReportPage({super.key});
+  const ReportPage({super.key, this.reportId});
+
+  final String? reportId;
+
   @override
   State<ReportPage> createState() => _ReportPageState();
 }

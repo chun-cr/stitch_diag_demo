@@ -22,6 +22,7 @@ import '../../../../core/l10n/l10n.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/logger.dart';
+import '../../data/models/scan_session.dart';
 import '../../data/sources/scan_remote_source.dart';
 import '../services/palm_scan_status_bridge.dart';
 import '../services/scan_capture_bridge.dart';
@@ -106,6 +107,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     with SingleTickerProviderStateMixin {
   final PalmScanStatusBridge _statusBridge = PalmScanStatusBridge();
   late final ScanRemoteSource _scanRemoteSource;
+  late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
@@ -168,6 +170,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     super.initState();
     initInjector();
     _scanRemoteSource = ScanRemoteSource(getIt<DioClient>());
+    _scanSession = getIt<ScanSession>();
     _scanCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -273,7 +276,14 @@ class _PalmScanPageState extends State<PalmScanPage>
     _scanCtrl.stop();
     // 手掌是最后一步，这里可以考虑发停止
     unawaited(_statusBridge.stopMonitoring());
-    context.go(AppRoutes.reportAnalysis);
+    final reportId = _scanSession.reportId;
+    final location = reportId == null || reportId.isEmpty
+        ? AppRoutes.reportAnalysis
+        : Uri(
+            path: AppRoutes.reportAnalysis,
+            queryParameters: <String, String>{'reportId': reportId},
+          ).toString();
+    context.go(location);
   }
 
   void _startHoldTracking() {
@@ -328,9 +338,15 @@ class _PalmScanPageState extends State<PalmScanPage>
 
       setState(() => _scanProgress = 0.68);
 
+      final reportId = _scanSession.reportId;
+      if (reportId == null || reportId.isEmpty) {
+        throw StateError('缺少 reportId，请重新开始扫描。');
+      }
+
       await _scanRemoteSource.uploadPalm(
         handFilePath: capture.croppedPath,
         handFrameFilePath: capture.framePath,
+        reportId: reportId,
         onSendProgress: (sent, total) {
           if (!mounted) {
             return;
@@ -346,6 +362,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         return;
       }
 
+      _scanSession.saveReportId(reportId);
       setState(() {
         _isMonitoring = false;
         _scanState = PalmScanState.completed;

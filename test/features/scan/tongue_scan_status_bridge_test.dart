@@ -3,37 +3,14 @@ import 'package:stitch_diag_demo/features/scan/presentation/services/tongue_scan
 
 void main() {
   group('TongueScanStatus', () {
-    test('becomes ready when detector reports tongue present even with low score', () {
-      const status = TongueScanStatus(
-        tongueDetected: true,
-        tongueOutScore: 0.0,
-        mouthLandmarkCount: 8,
-      );
-
-      expect(status.mouthPresent, isTrue);
-      expect(status.readyToScan, isTrue);
-    });
-
-    test('becomes ready when tongue out score reaches bridge threshold', () {
-      const status = TongueScanStatus(
-        tongueDetected: false,
-        tongueOutScore: 0.35,
-        mouthLandmarkCount: 8,
-      );
-
-      expect(status.readyToScan, isTrue);
-    });
-
-    test('parses event payload and keeps detector-positive readiness', () {
+    test('parses explicit face landmarks payload', () {
       final status = TongueScanStatus.fromEvent({
-        'tongueDetected': true,
-        'tongueOutScore': 0.19,
+        'faceLandmarks': const [
+          {'x': 0.25, 'y': 0.36},
+        ],
         'mouthLandmarks': const [
           {'x': 0.2, 'y': 0.3},
           {'x': 0.3, 'y': 0.35},
-        ],
-        'landmarks': const [
-          {'x': 0.25, 'y': 0.36},
         ],
         'mouthCenter': const {'x': 0.25, 'y': 0.325},
         'imageWidth': 640,
@@ -41,9 +18,38 @@ void main() {
       });
 
       expect(status.mouthPresent, isTrue);
-      expect(status.readyToScan, isTrue);
+      expect(status.protrusionConfirmed, isFalse);
       expect(status.mouthCenter, const Offset(0.25, 0.325));
-      expect(status.tongueLandmarks, const [Offset(0.25, 0.36)]);
+      expect(status.faceLandmarks, const [Offset(0.25, 0.36)]);
+    });
+
+    test('keeps legacy landmarks as fallback alias during migration', () {
+      final status = TongueScanStatus.fromEvent({
+        'landmarks': const [
+          {'x': 0.11, 'y': 0.22},
+          {'x': 0.33, 'y': 0.44},
+        ],
+        'mouthLandmarks': const [
+          {'x': 0.20, 'y': 0.30},
+          {'x': 0.40, 'y': 0.30},
+        ],
+      });
+
+      expect(status.faceLandmarks, const [
+        Offset(0.11, 0.22),
+        Offset(0.33, 0.44),
+      ]);
+    });
+
+    test('stores Flutter protrusion flags explicitly', () {
+      const status = TongueScanStatus(
+        mouthLandmarkCount: 8,
+        protrusionCandidate: true,
+        protrusionConfirmed: true,
+      );
+
+      expect(status.protrusionCandidate, isTrue);
+      expect(status.protrusionConfirmed, isTrue);
     });
   });
 }

@@ -2,41 +2,60 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-class TongueScanStatus {
-  static const double _tongueOutReadyThreshold = 0.35;
+import 'tongue_scan_confirmation_policy.dart';
 
-  final bool tongueDetected;
-  final double tongueOutScore;
+class TongueScanStatus {
   final int mouthLandmarkCount;
-  final List<Offset> tongueLandmarks;
+  final List<Offset> faceLandmarks;
   final List<Offset> mouthLandmarks;
   final double imageWidth;
   final double imageHeight;
+
   /// 嘴部中心归一化坐标（0~1），无数据时为 null
   final Offset? mouthCenter;
+  final bool protrusionCandidate;
+  final bool protrusionConfirmed;
 
   const TongueScanStatus({
-    required this.tongueDetected,
-    required this.tongueOutScore,
     required this.mouthLandmarkCount,
-    this.tongueLandmarks = const [],
+    this.faceLandmarks = const [],
     this.mouthLandmarks = const [],
     this.imageWidth = 0,
     this.imageHeight = 0,
     this.mouthCenter,
+    this.protrusionCandidate = false,
+    this.protrusionConfirmed = false,
   });
 
   bool get mouthPresent => mouthLandmarkCount > 0;
-  bool get readyToScan =>
-      mouthPresent && (tongueDetected || tongueOutScore >= _tongueOutReadyThreshold);
+
+  TongueScanStatus copyWith({
+    int? mouthLandmarkCount,
+    List<Offset>? faceLandmarks,
+    List<Offset>? mouthLandmarks,
+    double? imageWidth,
+    double? imageHeight,
+    Offset? mouthCenter,
+    bool? protrusionCandidate,
+    bool? protrusionConfirmed,
+  }) {
+    return TongueScanStatus(
+      mouthLandmarkCount: mouthLandmarkCount ?? this.mouthLandmarkCount,
+      faceLandmarks: faceLandmarks ?? this.faceLandmarks,
+      mouthLandmarks: mouthLandmarks ?? this.mouthLandmarks,
+      imageWidth: imageWidth ?? this.imageWidth,
+      imageHeight: imageHeight ?? this.imageHeight,
+      mouthCenter: mouthCenter ?? this.mouthCenter,
+      protrusionCandidate: protrusionCandidate ?? this.protrusionCandidate,
+      protrusionConfirmed: protrusionConfirmed ?? this.protrusionConfirmed,
+    );
+  }
 
   factory TongueScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {
       return const TongueScanStatus(
-        tongueDetected: false,
-        tongueOutScore: 0,
         mouthLandmarkCount: 0,
-        tongueLandmarks: [],
+        faceLandmarks: [],
         mouthLandmarks: [],
         imageWidth: 0,
         imageHeight: 0,
@@ -44,11 +63,11 @@ class TongueScanStatus {
     }
 
     final data = Map<dynamic, dynamic>.from(event);
-    // 坐标点提取集
     final mouthPoints = _extractPoints(data['mouthLandmarks']);
-    final tonguePoints = _extractPoints(data['landmarks']);
+    final facePoints = _extractPoints(
+      data['faceLandmarks'] ?? data['landmarks'],
+    );
 
-    // 计算嘴部中心点
     final explicitMouthCenter = _extractPoint(data['mouthCenter']);
     Offset? mouthCenter = explicitMouthCenter;
     if (mouthCenter == null && mouthPoints.isNotEmpty) {
@@ -57,14 +76,15 @@ class TongueScanStatus {
         sumX += pt.dx;
         sumY += pt.dy;
       }
-      mouthCenter = Offset(sumX / mouthPoints.length, sumY / mouthPoints.length);
+      mouthCenter = Offset(
+        sumX / mouthPoints.length,
+        sumY / mouthPoints.length,
+      );
     }
 
     return TongueScanStatus(
-      tongueDetected: data['tongueDetected'] as bool? ?? false,
-      tongueOutScore: (data['tongueOutScore'] as num?)?.toDouble() ?? 0,
       mouthLandmarkCount: mouthPoints.length,
-      tongueLandmarks: tonguePoints,
+      faceLandmarks: facePoints,
       mouthLandmarks: mouthPoints,
       imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
       imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
@@ -92,7 +112,9 @@ class TongueScanStatus {
 }
 
 class TongueScanStatusBridge {
-  static const EventChannel _tongueEvents = EventChannel('tongue/detectionStream');
+  static const EventChannel _tongueEvents = EventChannel(
+    'tongue/detectionStream',
+  );
   static const MethodChannel _scanChannel = MethodChannel('face/channel');
 
   Stream<TongueScanStatus> statusStream() {
@@ -100,9 +122,24 @@ class TongueScanStatusBridge {
       return const Stream<TongueScanStatus>.empty();
     }
 
-    return _tongueEvents
-        .receiveBroadcastStream()
-        .map(TongueScanStatus.fromEvent);
+    final confirmationWindow = TongueConfirmationWindow();
+
+    return _tongueEvents.receiveBroadcastStream().map((event) {
+      final rawStatus = TongueScanStatus.fromEvent(event);
+      final protrusionCandidate = TongueProtrusionProxy.isFrameEligible(
+        faceLandmarks: rawStatus.faceLandmarks,
+        mouthLandmarks: rawStatus.mouthLandmarks,
+        mouthCenter: rawStatus.mouthCenter,
+      );
+      final protrusionConfirmed = confirmationWindow.registerFrame(
+        eligible: protrusionCandidate,
+        hardReset: !rawStatus.mouthPresent || rawStatus.mouthCenter == null,
+      );
+      return rawStatus.copyWith(
+        protrusionCandidate: protrusionCandidate,
+        protrusionConfirmed: protrusionConfirmed,
+      );
+    });
   }
 
   Future<void> startMonitoring() {

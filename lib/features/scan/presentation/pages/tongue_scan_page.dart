@@ -22,6 +22,7 @@ import '../../../../core/l10n/l10n.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/logger.dart';
+import '../../data/models/scan_session.dart';
 import '../../data/sources/scan_remote_source.dart';
 import '../services/scan_capture_bridge.dart';
 import '../services/tongue_scan_status_bridge.dart';
@@ -32,6 +33,14 @@ import '../widgets/scan_step_indicator.dart';
 
 // ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
 enum ScanState { idle, scanning, uploading, completed }
+
+bool isTongueHoldEligible({
+  required bool protrusionConfirmed,
+  required bool isFramed,
+  required bool pauseAutoScanUntilReset,
+}) {
+  return protrusionConfirmed && isFramed && !pauseAutoScanUntilReset;
+}
 
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
 const _kAccent = Color(0xFF0D7A5A); // 主强调色
@@ -48,6 +57,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     with TickerProviderStateMixin {
   final TongueScanStatusBridge _statusBridge = TongueScanStatusBridge();
   late final ScanRemoteSource _scanRemoteSource;
+  late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
@@ -64,7 +74,7 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   bool _hasPermission = false;
   bool _mouthPresent = false;
-  bool _tongueDetected = false;
+  bool _holdEligible = false;
   bool _pauseAutoScanUntilReset = false;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
@@ -93,6 +103,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     super.initState();
     initInjector();
     _scanRemoteSource = ScanRemoteSource(getIt<DioClient>());
+    _scanSession = getIt<ScanSession>();
     _scanCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -126,7 +137,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       _hasPermission = true;
       _scanState = ScanState.scanning;
       _mouthPresent = false;
-      _tongueDetected = false;
+      _holdEligible = false;
       _pauseAutoScanUntilReset = false;
       _scanProgress = 0;
     });
@@ -147,7 +158,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     setState(() {
       _scanState = ScanState.scanning;
       _mouthPresent = false;
-      _tongueDetected = false;
+      _holdEligible = false;
       _pauseAutoScanUntilReset = false;
     });
     _statusSubscription?.cancel();
@@ -159,10 +170,7 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   bool _isTongueFramedForUpload(TongueScanStatus status) {
     final guideRect = _tongueGuideRectNormalized;
-    final points = status.tongueLandmarks.isNotEmpty
-        ? status.tongueLandmarks
-        : status.mouthLandmarks;
-    final bounds = normalizedBoundingRect(points);
+    final bounds = normalizedBoundingRect(status.mouthLandmarks);
     final center = status.mouthCenter ?? bounds?.center;
 
     return bounds != null &&
@@ -178,16 +186,20 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   void _handleStatusUpdate(TongueScanStatus status) {
     if (!mounted || _scanState == ScanState.uploading) return;
-    final readyToCapture =
-        status.readyToScan && _isTongueFramedForUpload(status);
+    final isFramed = _isTongueFramedForUpload(status);
+    final readyToCapture = status.protrusionConfirmed && isFramed;
     if (_pauseAutoScanUntilReset && !readyToCapture) {
       _pauseAutoScanUntilReset = false;
     }
-    final canHold = readyToCapture && !_pauseAutoScanUntilReset;
+    final canHold = isTongueHoldEligible(
+      protrusionConfirmed: status.protrusionConfirmed,
+      isFramed: isFramed,
+      pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
+    );
 
     setState(() {
       _mouthPresent = status.mouthPresent;
-      _tongueDetected = canHold;
+      _holdEligible = canHold;
       _mouthDirection = (status.mouthPresent && !canHold)
           ? _computeMouthDirection(status.mouthCenter)
           : '';
@@ -259,8 +271,14 @@ class _TongueScanPageState extends State<TongueScanPage>
 
       setState(() => _scanProgress = 0.68);
 
-      await _scanRemoteSource.uploadTongue(
+      final faceUpload = _scanSession.faceUpload;
+      if (faceUpload == null) {
+        throw StateError('缺少面诊结果，请重新开始扫描。');
+      }
+
+      final tongueUpload = await _scanRemoteSource.uploadTongue(
         imageFilePath: capture.croppedPath,
+        faceUpload: faceUpload,
         onSendProgress: (sent, total) {
           if (!mounted) {
             return;
@@ -276,6 +294,23 @@ class _TongueScanPageState extends State<TongueScanPage>
         return;
       }
 
+      if (tongueUpload.missingTongue) {
+        _pauseAutoScanUntilReset = true;
+        _cancelHoldTracking(resetProgress: true);
+        setState(() {
+          _scanState = ScanState.scanning;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('未检测到清晰舌象，请重新扫描。')));
+        return;
+      }
+
+      if (tongueUpload.reportId.isEmpty) {
+        throw StateError('舌诊接口未返回 reportId。');
+      }
+
+      _scanSession.saveTongueUpload(tongueUpload);
       setState(() {
         _scanState = ScanState.completed;
         _scanProgress = 1;
@@ -332,7 +367,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     if (!_hasPermission) return l10n.scanCameraPermissionRequired;
     if (_scanState == ScanState.idle) return l10n.scanTongueTapToStart;
     if (_scanState == ScanState.uploading) return l10n.scanScanning;
-    if (_tongueDetected) return l10n.scanTongueDetectedHold;
+    if (_holdEligible) return l10n.scanTongueDetectedHold;
     if (_mouthPresent) return l10n.scanTongueMouthDetected;
     return l10n.scanTongueAlignHint;
   }
@@ -600,7 +635,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     const frameH = 164.0;
     final isActive = _scanState == ScanState.scanning;
     final isCompleted = _scanState == ScanState.completed;
-    final isAligned = _tongueDetected;
+    final isAligned = _holdEligible;
 
     final outerColor = const Color(0xFF7EC8A0);
     final innerColor = (isCompleted || isAligned)
@@ -682,7 +717,7 @@ class _TongueScanPageState extends State<TongueScanPage>
           ),
 
           // 进度条（底部）
-          if (_scanState == ScanState.scanning && _tongueDetected)
+          if (_scanState == ScanState.scanning && _holdEligible)
             Positioned(
               bottom: -66,
               left: frameW * 0.2,
@@ -696,13 +731,12 @@ class _TongueScanPageState extends State<TongueScanPage>
             left: -40,
             right: -40,
             child: Center(
-              child: _mouthDirection.isNotEmpty && !_tongueDetected
+              child: _mouthDirection.isNotEmpty && !_holdEligible
                   ? _TongueDirectionPill(direction: _mouthDirection)
                   : _StatusPill(
                       label: _statusLabel,
                       detected:
-                          _tongueDetected ||
-                          (_scanState == ScanState.completed),
+                          _holdEligible || (_scanState == ScanState.completed),
                     ),
             ),
           ),

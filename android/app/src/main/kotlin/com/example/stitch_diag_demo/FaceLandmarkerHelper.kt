@@ -56,7 +56,7 @@ class FaceLandmarkerHelper(private val context: Context) {
                     emptyMap<String, Double>()
                 }
 
-                val tongueData = TongueDetectionUtils.evaluateTongue(firstFaceLandmarks, blendshapes)
+                val tongueData = TongueDetectionUtils.evaluateTongue(firstFaceLandmarks)
 
                 resultCallback?.invoke(
                     mapOf(
@@ -65,8 +65,6 @@ class FaceLandmarkerHelper(private val context: Context) {
                         "blendshapes" to blendshapes,
                         "imageWidth" to currentImageWidth,
                         "imageHeight" to currentImageHeight,
-                        "tongueDetected" to tongueData.tongueDetected,
-                        "tongueOutScore" to tongueData.tongueOutScore,
                         "mouthLandmarks" to tongueData.mouthLandmarks,
                         "mouthCenter" to tongueData.mouthCenter,
                     )
