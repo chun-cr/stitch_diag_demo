@@ -14,7 +14,7 @@ import 'package:stitch_diag_demo/features/profile/presentation/pages/account_sec
 import 'package:stitch_diag_demo/features/profile/presentation/pages/points_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/set_login_password_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/shipping_address_page.dart';
-import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_product_detail_page.dart';

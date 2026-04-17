@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stitch_diag_demo/features/report/application/report_unlock_service.dart';
-import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_page.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 void main() {
@@ -14,40 +14,46 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    test('marks store unavailable on unsupported platforms without crashing', () async {
-      try {
-        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    test(
+      'marks store unavailable on unsupported platforms without crashing',
+      () async {
+        try {
+          debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-        final service = ReportUnlockService();
-        addTearDown(service.dispose);
+          final service = ReportUnlockService();
+          addTearDown(service.dispose);
 
-        await service.initialize();
+          await service.initialize();
 
-        expect(service.state.value.status, ReportUnlockStatus.unavailable);
-        expect(service.state.value.isStoreAvailable, isFalse);
-        expect(service.state.value.message, 'store-unavailable');
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
+          expect(service.state.value.status, ReportUnlockStatus.unavailable);
+          expect(service.state.value.isStoreAvailable, isFalse);
+          expect(service.state.value.message, 'store-unavailable');
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
 
-    test('purchase reports store unavailable on unsupported platforms', () async {
-      try {
-        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    test(
+      'purchase reports store unavailable on unsupported platforms',
+      () async {
+        try {
+          debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-        final service = ReportUnlockService();
-        addTearDown(service.dispose);
+          final service = ReportUnlockService();
+          addTearDown(service.dispose);
 
-        await service.initialize();
-        await service.purchase();
+          await service.initialize();
+          await service.purchase();
 
-        expect(service.state.value.status, ReportUnlockStatus.error);
-        expect(service.state.value.isStoreAvailable, isFalse);
-        expect(service.state.value.message, 'store-unavailable');
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
+          expect(service.state.value.status, ReportUnlockStatus.error);
+          expect(service.state.value.isStoreAvailable, isFalse);
+          expect(service.state.value.message, 'store-unavailable');
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
 
     testWidgets('report page initializes safely on unsupported platforms', (
       tester,
