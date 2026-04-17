@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/profile/domain/entities/profile_me_entity.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_repository_provider.dart';
 import 'package:stitch_diag_demo/main.dart';
 
 void main() {
@@ -12,7 +14,21 @@ void main() {
     setPreviewAuthenticated(true);
     await tester.binding.setSurfaceSize(const Size(1280, 2400));
 
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          profileMeProvider.overrideWith(
+            (ref) async => const ProfileMeEntity(
+              nickname: 'Alice',
+              realName: 'Alice Chen',
+              countryCode: '+1',
+              phone: '4155550123',
+            ),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.person_outline));

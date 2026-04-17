@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stitch_diag_demo/core/di/injector.dart';
+import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/features/auth/data/models/auth_request.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
@@ -258,6 +260,14 @@ class _WechatMiniProgramRepositoryStub extends AuthRepositoryAdapter {
 }
 
 void main() {
+  setUp(() {
+    AuthSessionStore.debugUseMemoryBackend = true;
+  });
+
+  tearDown(() {
+    AuthSessionStore.debugUseMemoryBackend = false;
+  });
+
   testWidgets(
     'login button enters subdued submitting state without playful phases',
     (tester) async {
@@ -425,8 +435,11 @@ void main() {
     expect(repository.capturedWechatCode, 'wx-code-123');
     expect(isPreviewAuthenticated, isTrue);
 
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getString('auth_access_token'), 'wechat-token');
+    expect(
+      await getIt<AuthSessionStore>().authorizationHeader(),
+      'Bearer wechat-token',
+    );
+    expect(await getIt<AuthSessionStore>().refreshToken(), 'wechat-refresh');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

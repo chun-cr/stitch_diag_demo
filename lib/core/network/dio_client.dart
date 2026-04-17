@@ -29,16 +29,34 @@ class DioClient {
   }
 
   static String get baseUrl {
-    if (_baseUrlOverride.isNotEmpty) {
-      return _baseUrlOverride;
+    return resolveBaseUrl(
+      baseUrlOverride: _baseUrlOverride,
+      isWeb: kIsWeb,
+      currentUri: kIsWeb ? Uri.base : null,
+    );
+  }
+
+  @visibleForTesting
+  static String resolveBaseUrl({
+    String baseUrlOverride = '',
+    required bool isWeb,
+    Uri? currentUri,
+  }) {
+    if (baseUrlOverride.isNotEmpty) {
+      if (isWeb) {
+        _assertSecureWebBaseUrl(baseUrlOverride, currentUri ?? Uri.base);
+      }
+      return baseUrlOverride;
     }
-    if (kIsWeb) {
-      return _webBaseUrl(Uri.base);
+    if (isWeb) {
+      return _webBaseUrl(currentUri ?? Uri.base);
     }
     return _defaultNativeBaseUrl;
   }
 
   static String _webBaseUrl(Uri currentUri) {
+    _ensureSecureWebUri(currentUri);
+
     final host = currentUri.host.toLowerCase();
     final isLoopbackHost =
         host == 'localhost' || host == '127.0.0.1' || host == '::1';
@@ -50,6 +68,27 @@ class DioClient {
     }
 
     return currentUri.origin;
+  }
+
+  static void _assertSecureWebBaseUrl(String baseUrl, Uri currentUri) {
+    final parsedUri = Uri.parse(baseUrl);
+    final effectiveUri = parsedUri.hasScheme
+        ? parsedUri
+        : currentUri.resolveUri(parsedUri);
+    _ensureSecureWebUri(effectiveUri);
+  }
+
+  static void _ensureSecureWebUri(Uri uri) {
+    final host = uri.host.toLowerCase();
+    final isLoopbackHost =
+        host == 'localhost' || host == '127.0.0.1' || host == '::1';
+    final isSecureOrigin = uri.scheme == 'https';
+
+    if (!isLoopbackHost && !isSecureOrigin) {
+      throw StateError(
+        'Refusing to send auth traffic from a non-HTTPS web origin.',
+      );
+    }
   }
 
   late final Dio dio;

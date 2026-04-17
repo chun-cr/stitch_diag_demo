@@ -16,21 +16,22 @@ import 'package:stitch_diag_demo/features/report/presentation/models/report_prod
 //  Tab 1 · 总览    Tab 2 · 体质    Tab 3 · 调理    Tab 4 · 建议
 // ══════════════════════════════════════════════════════════════════
 
+const _kReportMaskEnabled = false;
+
 class ReportPage extends StatefulWidget {
   const ReportPage({super.key});
   @override
   State<ReportPage> createState() => _ReportPageState();
 }
 
-class _ReportPageState extends State<ReportPage>
-    with TickerProviderStateMixin {
+class _ReportPageState extends State<ReportPage> with TickerProviderStateMixin {
   late TabController _tabController;
   late AnimationController _heroScoreCtrl;
   late Animation<double> _heroScoreAnim;
-  late final ReportUnlockService _reportUnlockService;
+  ReportUnlockService? _reportUnlockService;
 
   int _currentTab = 0;
-  bool _isUnlocked = false;
+  bool _isUnlocked = !_kReportMaskEnabled;
 
   // Tab 对应的主题色（用于指示器 & 小标签）
   static const _tabColors = [
@@ -62,20 +63,25 @@ class _ReportPageState extends State<ReportPage>
       if (mounted) _heroScoreCtrl.forward();
     });
 
-    _reportUnlockService = ReportUnlockService();
-    _reportUnlockService.state.addListener(_handleUnlockStateChanged);
-    _initializeUnlockState();
+    if (_kReportMaskEnabled) {
+      _reportUnlockService = ReportUnlockService();
+      _reportUnlockService!.state.addListener(_handleUnlockStateChanged);
+      _initializeUnlockState();
+    }
   }
 
   Future<void> _initializeUnlockState() async {
-    await _reportUnlockService.initialize();
+    await _reportUnlockService?.initialize();
   }
 
   void _handleUnlockStateChanged() {
     if (!mounted) {
       return;
     }
-    final next = _reportUnlockService.state.value;
+    final next = _reportUnlockService?.state.value;
+    if (next == null) {
+      return;
+    }
     setState(() {
       _isUnlocked = next.isUnlocked;
     });
@@ -83,25 +89,32 @@ class _ReportPageState extends State<ReportPage>
 
   @override
   void dispose() {
-    _reportUnlockService.state.removeListener(_handleUnlockStateChanged);
-    unawaited(_reportUnlockService.dispose());
+    final reportUnlockService = _reportUnlockService;
+    if (reportUnlockService != null) {
+      reportUnlockService.state.removeListener(_handleUnlockStateChanged);
+      unawaited(reportUnlockService.dispose());
+    }
     _tabController.dispose();
     _heroScoreCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _handlePurchase() async {
-    await _reportUnlockService.purchase();
+    await _reportUnlockService?.purchase();
   }
 
   Future<void> _handleRestore() async {
-    await _reportUnlockService.restore();
+    await _reportUnlockService?.restore();
   }
 
   Future<void> _handleUnlock() async {
+    final reportUnlockService = _reportUnlockService;
+    if (!_kReportMaskEnabled || reportUnlockService == null) {
+      return;
+    }
     await _showReportUnlockSheet(
       context,
-      unlockStateListenable: _reportUnlockService.state,
+      unlockStateListenable: reportUnlockService.state,
       onPurchase: _handlePurchase,
       onRestore: _handleRestore,
     );
@@ -129,18 +142,9 @@ class _ReportPageState extends State<ReportPage>
               onUnlock: _handleUnlock,
               onNavigateToTab: _navigateToTab,
             ),
-            _Tab2Constitution(
-              isUnlocked: _isUnlocked,
-              onUnlock: _handleUnlock,
-            ),
-            _Tab3Therapy(
-              isUnlocked: _isUnlocked,
-              onUnlock: _handleUnlock,
-            ),
-            _Tab4Advice(
-              isUnlocked: _isUnlocked,
-              onUnlock: _handleUnlock,
-            ),
+            _Tab2Constitution(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
+            _Tab3Therapy(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
+            _Tab4Advice(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
           ],
         ),
       ),
@@ -168,8 +172,8 @@ class _ReportPageState extends State<ReportPage>
       scrolledUnderElevation: 0,
       leading: Builder(
         builder: (context) {
-          final settings =
-              context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+          final settings = context
+              .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
           final minExtent = settings?.minExtent;
           final maxExtent = settings?.maxExtent;
           final currentExtent = settings?.currentExtent;
@@ -179,8 +183,10 @@ class _ReportPageState extends State<ReportPage>
                   maxExtent != null &&
                   currentExtent != null &&
                   maxExtent > minExtent
-              ? ((currentExtent - minExtent) / (maxExtent - minExtent))
-                    .clamp(0.0, 1.0)
+              ? ((currentExtent - minExtent) / (maxExtent - minExtent)).clamp(
+                  0.0,
+                  1.0,
+                )
               : 1.0;
 
           final backButtonOpacity = ((progress - 0.45) / 0.2).clamp(0.0, 1.0);
@@ -267,9 +273,7 @@ class _ReportPageState extends State<ReportPage>
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
-        border: Border(
-          bottom: BorderSide(color: Color(0x1A2D6A4F), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0x1A2D6A4F), width: 1)),
       ),
       child: TabBar(
         controller: _tabController,
@@ -294,7 +298,7 @@ class _ReportPageState extends State<ReportPage>
         dividerColor: Colors.transparent,
         tabs: List.generate(
           tabs.length,
-               (i) => Tab(
+          (i) => Tab(
             height: 46,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -342,125 +346,130 @@ class _ReportHeroSpace extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
-    return LayoutBuilder(builder: (context, constraints) {
-      const expandedH = 270.0;
-      final collapsedH =
-          kToolbarHeight + MediaQuery.of(context).padding.top;
-      final progress =
-      ((constraints.maxHeight - collapsedH) /
-          (expandedH - collapsedH))
-          .clamp(0.0, 1.0);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const expandedH = 270.0;
+        final collapsedH = kToolbarHeight + MediaQuery.of(context).padding.top;
+        final progress =
+            ((constraints.maxHeight - collapsedH) / (expandedH - collapsedH))
+                .clamp(0.0, 1.0);
 
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          // ① 兜底宣纸色
-          CustomPaint(
-            painter: _HeroBgFillPainter(),
-          ),
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // ① 兜底宣纸色
+            CustomPaint(painter: _HeroBgFillPainter()),
 
-          // ② 淡草本绿 Hero（提前淡出避免裁剪残影）
-          Opacity(
-            opacity: ((progress - 0.35) / 0.65).clamp(0.0, 1.0),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFFFCFDFB),
-                      Color(0xFFEAF5EE),
-                      Color(0xFFD6EBDC),
+            // ② 淡草本绿 Hero（提前淡出避免裁剪残影）
+            Opacity(
+              opacity: ((progress - 0.35) / 0.65).clamp(0.0, 1.0),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFFFCFDFB),
+                        Color(0xFFEAF5EE),
+                        Color(0xFFD6EBDC),
+                      ],
+                      stops: [0.0, 0.42, 1.0],
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // 装饰背景
+                      Positioned.fill(
+                        child: CustomPaint(painter: _HeroDecorPainter()),
+                      ),
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(22, 62, 22, 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(child: _buildHeroInfo(context)),
+                              const SizedBox(width: 16),
+                              _buildScoreBadge(context),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
-                    stops: [0.0, 0.42, 1.0],
                   ),
                 ),
-                child: Stack(
+              ),
+            ),
+
+            // ③ 收起标题（对应淡入）
+            Positioned(
+              left: 20,
+              bottom: 56,
+              child: AnimatedOpacity(
+                opacity: ((0.35 - progress) / 0.35).clamp(0.0, 1.0),
+                duration: const Duration(milliseconds: 80),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 装饰背景
-                    Positioned.fill(
-                      child: CustomPaint(painter: _HeroDecorPainter()),
-                    ),
-                    SafeArea(
-                      child: Padding(
-                        padding:
-                        const EdgeInsets.fromLTRB(22, 62, 22, 0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(child: _buildHeroInfo(context)),
-                            const SizedBox(width: 16),
-                            _buildScoreBadge(context),
-                          ],
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 13,
+                            height: 13,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                width: 1.2,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.reportHeaderCollapsedTitle,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E1810), // 加深，原来太淡
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-
-          // ③ 收起标题（对应淡入）
-          Positioned(
-            left: 20,
-            bottom: 56,
-            child: AnimatedOpacity(
-              opacity: ((0.35 - progress) / 0.35).clamp(0.0, 1.0),
-              duration: const Duration(milliseconds: 80),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1D5E40), Color(0xFF3DAB78)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Stack(alignment: Alignment.center, children: [
-                      Container(
-                        width: 13, height: 13,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              width: 1.2),
-                        ),
-                      ),
-                      Container(
-                        width: 5, height: 5,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                      ),
-                    ]),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.reportHeaderCollapsedTitle,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E1810),   // 加深，原来太淡
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    });
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildHeroInfo(BuildContext context) {
@@ -515,7 +524,10 @@ class _ReportHeroSpace extends StatelessWidget {
               children: [
                 Flexible(
                   flex: 0,
-                  child: _HeroPill(label: l10n.constitutionBalanced, active: true),
+                  child: _HeroPill(
+                    label: l10n.constitutionBalanced,
+                    active: true,
+                  ),
                 ),
                 SizedBox(width: isCompact ? 6 : 10),
                 Flexible(
@@ -713,9 +725,27 @@ class _Tab1Overview extends StatelessWidget {
   Widget _buildThreeDiagScores(BuildContext context) {
     final l10n = context.l10n;
     final diagData = [
-      (l10n.metricFaceDiagnosis, 0.86, const Color(0xFF2D6A4F), Icons.face_retouching_natural_outlined, l10n.reportOverviewFaceDiagnosisDesc),
-      (l10n.metricTongueDiagnosis, 0.72, const Color(0xFF0D7A5A), Icons.sentiment_satisfied_alt_outlined, l10n.reportOverviewTongueDiagnosisDesc),
-      (l10n.metricPalmDiagnosis, 0.80, const Color(0xFF6B5B95), Icons.back_hand_outlined, l10n.reportOverviewPalmDiagnosisDesc),
+      (
+        l10n.metricFaceDiagnosis,
+        0.86,
+        const Color(0xFF2D6A4F),
+        Icons.face_retouching_natural_outlined,
+        l10n.reportOverviewFaceDiagnosisDesc,
+      ),
+      (
+        l10n.metricTongueDiagnosis,
+        0.72,
+        const Color(0xFF0D7A5A),
+        Icons.sentiment_satisfied_alt_outlined,
+        l10n.reportOverviewTongueDiagnosisDesc,
+      ),
+      (
+        l10n.metricPalmDiagnosis,
+        0.80,
+        const Color(0xFF6B5B95),
+        Icons.back_hand_outlined,
+        l10n.reportOverviewPalmDiagnosisDesc,
+      ),
     ];
 
     return Column(
@@ -733,7 +763,8 @@ class _Tab1Overview extends StatelessWidget {
                   return Expanded(
                     child: Padding(
                       padding: EdgeInsets.only(
-                          right: d == diagData.last ? 0 : 10),
+                        right: d == diagData.last ? 0 : 10,
+                      ),
                       child: _DiagScoreCell(
                         label: d.$1,
                         score: d.$2,
@@ -792,17 +823,21 @@ class _Tab1Overview extends StatelessWidget {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.sentiment_satisfied_alt_outlined,
-                                    size: 32,
-                                    color: const Color(0xFF0D7A5A)
-                                        .withValues(alpha: 0.5)),
+                                Icon(
+                                  Icons.sentiment_satisfied_alt_outlined,
+                                  size: 32,
+                                  color: const Color(
+                                    0xFF0D7A5A,
+                                  ).withValues(alpha: 0.5),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   l10n.reportOverviewTongueImagePlaceholder,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: const Color(0xFF0D7A5A)
-                                        .withValues(alpha: 0.6),
+                                    color: const Color(
+                                      0xFF0D7A5A,
+                                    ).withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
@@ -833,23 +868,23 @@ class _Tab1Overview extends StatelessWidget {
               Expanded(
                 flex: 5,
                 child: _SectionCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                       Text(
-                         l10n.reportOverviewWuxingTitle,
-                         style: TextStyle(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.reportOverviewWuxingTitle,
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1E1810),
                           letterSpacing: 0.4,
                         ),
                       ),
-                       const SizedBox(height: 12),
-                       const Expanded(child: _WuxingBars()),
-                     ],
-                   ),
-                 ),
+                      const SizedBox(height: 12),
+                      const Expanded(child: _WuxingBars()),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -937,10 +972,34 @@ class _Tab1Overview extends StatelessWidget {
   Widget _buildModuleEntries(BuildContext context) {
     final l10n = context.l10n;
     final entries = [
-      (Icons.biotech_outlined, l10n.reportOverviewModuleConstitutionTitle, l10n.reportOverviewModuleConstitutionSubtitle, const Color(0xFF6B5B95), 1),
-      (Icons.spa_outlined, l10n.reportOverviewModuleAcupointTitle, l10n.reportOverviewModuleAcupointSubtitle, const Color(0xFF2D6A4F), 2),
-      (Icons.restaurant_outlined, l10n.reportOverviewModuleDietTitle, l10n.reportOverviewModuleDietSubtitle, const Color(0xFF0D7A5A), 3),
-      (Icons.wb_sunny_outlined, l10n.reportOverviewModuleSeasonalTitle, l10n.reportOverviewModuleSeasonalSubtitle, const Color(0xFFC9A84C), 2),
+      (
+        Icons.biotech_outlined,
+        l10n.reportOverviewModuleConstitutionTitle,
+        l10n.reportOverviewModuleConstitutionSubtitle,
+        const Color(0xFF6B5B95),
+        1,
+      ),
+      (
+        Icons.spa_outlined,
+        l10n.reportOverviewModuleAcupointTitle,
+        l10n.reportOverviewModuleAcupointSubtitle,
+        const Color(0xFF2D6A4F),
+        2,
+      ),
+      (
+        Icons.restaurant_outlined,
+        l10n.reportOverviewModuleDietTitle,
+        l10n.reportOverviewModuleDietSubtitle,
+        const Color(0xFF0D7A5A),
+        3,
+      ),
+      (
+        Icons.wb_sunny_outlined,
+        l10n.reportOverviewModuleSeasonalTitle,
+        l10n.reportOverviewModuleSeasonalSubtitle,
+        const Color(0xFFC9A84C),
+        2,
+      ),
     ];
 
     return Column(
@@ -951,12 +1010,13 @@ class _Tab1Overview extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                  width: 3,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC9A84C),
-                    borderRadius: BorderRadius.circular(2),
-                  )),
+                width: 3,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC9A84C),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(width: 8),
               Text(
                 l10n.reportOverviewModuleNavTitle,
@@ -978,15 +1038,15 @@ class _Tab1Overview extends StatelessWidget {
           crossAxisSpacing: 10,
           childAspectRatio: 2.5,
           children: entries.map((e) {
-             return GestureDetector(
-                onTap: () {
-                  if (!isUnlocked) {
-                    unawaited(onUnlock());
-                    return;
-                  }
-                  onNavigateToTab(e.$5);
-               },
-               child: Container(
+            return GestureDetector(
+              onTap: () {
+                if (!isUnlocked) {
+                  unawaited(onUnlock());
+                  return;
+                }
+                onNavigateToTab(e.$5);
+              },
+              child: Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(14),
@@ -1003,7 +1063,9 @@ class _Tab1Overview extends StatelessWidget {
                   ],
                 ),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     Container(
@@ -1021,32 +1083,35 @@ class _Tab1Overview extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                           Text(
-                             e.$2,
-                             maxLines: 1,
-                             overflow: TextOverflow.ellipsis,
-                             style: const TextStyle(
+                          Text(
+                            e.$2,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1E1810),
                             ),
                           ),
-                           Text(
-                             e.$3,
-                             maxLines: 2,
-                             overflow: TextOverflow.ellipsis,
-                             style: TextStyle(
+                          Text(
+                            e.$3,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
                               fontSize: 10,
-                              color: const Color(0xFF3A3028)
-                                  .withValues(alpha: 0.5),
+                              color: const Color(
+                                0xFF3A3028,
+                              ).withValues(alpha: 0.5),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right,
-                        size: 16,
-                        color: e.$4.withValues(alpha: 0.4)),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 16,
+                      color: e.$4.withValues(alpha: 0.4),
+                    ),
                   ],
                 ),
               ),
@@ -1073,9 +1138,11 @@ class _Tab1Overview extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline,
-              size: 15,
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.5)),
+          Icon(
+            Icons.info_outline,
+            size: 15,
+            color: const Color(0xFF2D6A4F).withValues(alpha: 0.5),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -1101,10 +1168,7 @@ class _Tab2Constitution extends StatelessWidget {
   final bool isUnlocked;
   final Future<void> Function() onUnlock;
 
-  const _Tab2Constitution({
-    required this.isUnlocked,
-    required this.onUnlock,
-  });
+  const _Tab2Constitution({required this.isUnlocked, required this.onUnlock});
 
   @override
   Widget build(BuildContext context) {
@@ -1199,7 +1263,9 @@ class _Tab2Constitution extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFA09080).withValues(alpha: 0.9),
+                              color: const Color(
+                                0xFFA09080,
+                              ).withValues(alpha: 0.9),
                               letterSpacing: 0.4,
                             ),
                           ),
@@ -1218,7 +1284,9 @@ class _Tab2Constitution extends StatelessWidget {
                             l10n.reportConstitutionCoreConclusionBody,
                             style: TextStyle(
                               fontSize: 12,
-                              color: const Color(0xFF3A3028).withValues(alpha: 0.65),
+                              color: const Color(
+                                0xFF3A3028,
+                              ).withValues(alpha: 0.65),
                               height: 1.65,
                             ),
                           ),
@@ -1237,15 +1305,17 @@ class _Tab2Constitution extends StatelessWidget {
                 ),
                 child: Column(
                   children: _constitutionScores(context)
-                      .map((c) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _ConstitutionScoreRow(
-                              label: c.$1,
-                              score: c.$2,
-                              color: c.$3,
-                              isMain: c.$4,
-                            ),
-                          ))
+                      .map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _ConstitutionScoreRow(
+                            label: c.$1,
+                            score: c.$2,
+                            color: c.$3,
+                            isMain: c.$4,
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -1256,151 +1326,241 @@ class _Tab2Constitution extends StatelessWidget {
     );
   }
 
-  List<(String, double, Color, bool)> _constitutionScores(BuildContext context) => [
+  List<(String, double, Color, bool)> _constitutionScores(
+    BuildContext context,
+  ) => [
     (context.l10n.constitutionBalanced, 0.72, const Color(0xFF2D6A4F), true),
-    (context.l10n.constitutionQiDeficiency, 0.58, const Color(0xFF6B5B95), true),
-    (context.l10n.reportConstitutionYangDeficiency, 0.25, const Color(0xFF4A7FA8), false),
-    (context.l10n.reportConstitutionYinDeficiency, 0.20, const Color(0xFF0D7A5A), false),
+    (
+      context.l10n.constitutionQiDeficiency,
+      0.58,
+      const Color(0xFF6B5B95),
+      true,
+    ),
+    (
+      context.l10n.reportConstitutionYangDeficiency,
+      0.25,
+      const Color(0xFF4A7FA8),
+      false,
+    ),
+    (
+      context.l10n.reportConstitutionYinDeficiency,
+      0.20,
+      const Color(0xFF0D7A5A),
+      false,
+    ),
     (context.l10n.constitutionDampness, 0.30, const Color(0xFFC9A84C), false),
-    (context.l10n.reportConstitutionDampHeat, 0.18, const Color(0xFFD4794A), false),
-    (context.l10n.reportConstitutionBloodStasis, 0.15, const Color(0xFFB05A5A), false),
-    (context.l10n.reportConstitutionQiStagnation, 0.22, const Color(0xFF7A6BA0), false),
-    (context.l10n.reportConstitutionSpecial, 0.10, const Color(0xFF909080), false),
+    (
+      context.l10n.reportConstitutionDampHeat,
+      0.18,
+      const Color(0xFFD4794A),
+      false,
+    ),
+    (
+      context.l10n.reportConstitutionBloodStasis,
+      0.15,
+      const Color(0xFFB05A5A),
+      false,
+    ),
+    (
+      context.l10n.reportConstitutionQiStagnation,
+      0.22,
+      const Color(0xFF7A6BA0),
+      false,
+    ),
+    (
+      context.l10n.reportConstitutionSpecial,
+      0.10,
+      const Color(0xFF909080),
+      false,
+    ),
   ];
 
   // ── 分析成因 ─────────────────────────────────────────────────────
   Widget _buildCausalAnalysisContent(BuildContext context) {
     final l10n = context.l10n;
     final causes = [
-      (Icons.bedtime_outlined, l10n.reportCauseRoutine, l10n.reportCauseRoutineBody),
-      (Icons.restaurant_outlined, l10n.reportCauseDiet, l10n.reportCauseDietBody),
-      (Icons.self_improvement_outlined, l10n.reportCauseEmotion, l10n.reportCauseEmotionBody),
-      (Icons.directions_run_outlined, l10n.reportCauseExercise, l10n.reportCauseExerciseBody),
+      (
+        Icons.bedtime_outlined,
+        l10n.reportCauseRoutine,
+        l10n.reportCauseRoutineBody,
+      ),
+      (
+        Icons.restaurant_outlined,
+        l10n.reportCauseDiet,
+        l10n.reportCauseDietBody,
+      ),
+      (
+        Icons.self_improvement_outlined,
+        l10n.reportCauseEmotion,
+        l10n.reportCauseEmotionBody,
+      ),
+      (
+        Icons.directions_run_outlined,
+        l10n.reportCauseExercise,
+        l10n.reportCauseExerciseBody,
+      ),
     ];
 
     return _SectionCard(
-          child: Column(
-            children: List.generate(causes.length, (index) {
-              final c = causes[index];
-              return Column(
+      child: Column(
+        children: List.generate(causes.length, (index) {
+          final c = causes[index];
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6B5B95).withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(c.$1,
-                            size: 17, color: const Color(0xFF6B5B95)),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(c.$2,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E1810),
-                                )),
-                            const SizedBox(height: 2),
-                            Text(c.$3,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: const Color(0xFF3A3028)
-                                      .withValues(alpha: 0.6),
-                                  height: 1.55,
-                                )),
-                          ],
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6B5B95).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(c.$1, size: 17, color: const Color(0xFF6B5B95)),
                   ),
-                  if (index < causes.length - 1) ...[
-                    const SizedBox(height: 12),
-                    const _IndentedDivider(indent: 46),
-                    const SizedBox(height: 12),
-                  ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.$2,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E1810),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          c.$3,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(
+                              0xFF3A3028,
+                            ).withValues(alpha: 0.6),
+                            height: 1.55,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              );
-            }),
-          ),
-        );
+              ),
+              if (index < causes.length - 1) ...[
+                const SizedBox(height: 12),
+                const _IndentedDivider(indent: 46),
+                const SizedBox(height: 12),
+              ],
+            ],
+          );
+        }),
+      ),
+    );
   }
 
   // ── 易诱发疾病 ───────────────────────────────────────────────────
   Widget _buildDiseaseTendencyContent(BuildContext context) {
     final l10n = context.l10n;
     final diseases = [
-      (l10n.reportDiseaseSpleenWeak, l10n.reportDiseaseSpleenWeakBody, const Color(0xFFD4794A), Icons.warning_amber_outlined),
-      (l10n.reportDiseaseQiBloodDeficiency, l10n.reportDiseaseQiBloodDeficiencyBody, const Color(0xFF6B5B95), Icons.warning_amber_outlined),
-      (l10n.reportDiseaseLowImmunity, l10n.reportDiseaseLowImmunityBody, const Color(0xFF4A7FA8), Icons.shield_outlined),
-      (l10n.reportDiseaseEmotional, l10n.reportDiseaseEmotionalBody, const Color(0xFF7A6BA0), Icons.psychology_outlined),
+      (
+        l10n.reportDiseaseSpleenWeak,
+        l10n.reportDiseaseSpleenWeakBody,
+        const Color(0xFFD4794A),
+        Icons.warning_amber_outlined,
+      ),
+      (
+        l10n.reportDiseaseQiBloodDeficiency,
+        l10n.reportDiseaseQiBloodDeficiencyBody,
+        const Color(0xFF6B5B95),
+        Icons.warning_amber_outlined,
+      ),
+      (
+        l10n.reportDiseaseLowImmunity,
+        l10n.reportDiseaseLowImmunityBody,
+        const Color(0xFF4A7FA8),
+        Icons.shield_outlined,
+      ),
+      (
+        l10n.reportDiseaseEmotional,
+        l10n.reportDiseaseEmotionalBody,
+        const Color(0xFF7A6BA0),
+        Icons.psychology_outlined,
+      ),
     ];
 
     return _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...diseases.map((d) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: d.$3.withValues(alpha: 0.035),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 2,
-                        height: 30,
-                        margin: const EdgeInsets.only(top: 2),
-                        decoration: BoxDecoration(
-                          color: d.$3.withValues(alpha: 0.72),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(d.$4, size: 14, color: d.$3.withValues(alpha: 0.82)),
-                                const SizedBox(width: 6),
-                                Text(d.$1,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: d.$3,
-                                    )),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(d.$2,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: const Color(0xFF3A3028)
-                                      .withValues(alpha: 0.55),
-                                )),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...diseases.map(
+            (d) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
-              )),
-            ],
+                decoration: BoxDecoration(
+                  color: d.$3.withValues(alpha: 0.035),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 2,
+                      height: 30,
+                      margin: const EdgeInsets.only(top: 2),
+                      decoration: BoxDecoration(
+                        color: d.$3.withValues(alpha: 0.72),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                d.$4,
+                                size: 14,
+                                color: d.$3.withValues(alpha: 0.82),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                d.$1,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: d.$3,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            d.$2,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: const Color(
+                                0xFF3A3028,
+                              ).withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+        ],
+      ),
     );
   }
 
@@ -1416,64 +1576,65 @@ class _Tab2Constitution extends StatelessWidget {
     ];
 
     return _SectionCard(
-          child: Column(
-            children: List.generate(habits.length, (index) {
-              final h = habits[index];
-              return Column(
+      child: Column(
+        children: List.generate(habits.length, (index) {
+          final h = habits[index];
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(top: 6),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF8B6914),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF1E1810),
-                            ),
-                            children: [
-                              TextSpan(
-                                text: '${h.$1}　',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF6E5830),
-                                ),
-                              ),
-                              TextSpan(
-                                text: h.$2,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF3A3028)
-                                      .withValues(alpha: 0.58),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(top: 6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF8B6914),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  if (index < habits.length - 1) ...[
-                    const SizedBox(height: 12),
-                    const _IndentedDivider(indent: 18),
-                    const SizedBox(height: 12),
-                  ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1E1810),
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '${h.$1}　',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF6E5830),
+                            ),
+                          ),
+                          TextSpan(
+                            text: h.$2,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w400,
+                              color: const Color(
+                                0xFF3A3028,
+                              ).withValues(alpha: 0.58),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
-              );
-            }),
-          ),
-        );
+              ),
+              if (index < habits.length - 1) ...[
+                const SizedBox(height: 12),
+                const _IndentedDivider(indent: 18),
+                const SizedBox(height: 12),
+              ],
+            ],
+          );
+        }),
+      ),
+    );
   }
 }
 
@@ -1485,10 +1646,7 @@ class _Tab3Therapy extends StatelessWidget {
   final bool isUnlocked;
   final Future<void> Function() onUnlock;
 
-  const _Tab3Therapy({
-    required this.isUnlocked,
-    required this.onUnlock,
-  });
+  const _Tab3Therapy({required this.isUnlocked, required this.onUnlock});
 
   @override
   Widget build(BuildContext context) {
@@ -1573,119 +1731,143 @@ class _Tab3Therapy extends StatelessWidget {
     ];
 
     return _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.reportTherapyAcupointsIntro,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF3A3028).withValues(alpha: 0.55),
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 14),
-              ...points.map(
-                    (p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _AcuPointCard(point: p),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAF3E0),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
-                      width: 1),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline,
-                        size: 14, color: Color(0xFFC9A84C)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.reportTherapyAcupointsWarning,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: const Color(0xFF8B6914).withValues(alpha: 0.8),
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.reportTherapyAcupointsIntro,
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+              height: 1.55,
+            ),
           ),
-        );
+          const SizedBox(height: 14),
+          ...points.map(
+            (p) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _AcuPointCard(point: p),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF3E0),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Color(0xFFC9A84C),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.reportTherapyAcupointsWarning,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: const Color(0xFF8B6914).withValues(alpha: 0.8),
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 精神养生 ─────────────────────────────────────────────────────
   Widget _buildMentalWellnessContent(BuildContext context) {
     final l10n = context.l10n;
     final tips = [
-      (l10n.reportMentalTipCalm, Icons.self_improvement_outlined, l10n.reportMentalTipCalmBody),
-      (l10n.reportMentalTipNature, Icons.nature_outlined, l10n.reportMentalTipNatureBody),
-      (l10n.reportMentalTipEmotion, Icons.mood_outlined, l10n.reportMentalTipEmotionBody),
-      (l10n.reportMentalTipMeditation, Icons.spa_outlined, l10n.reportMentalTipMeditationBody),
+      (
+        l10n.reportMentalTipCalm,
+        Icons.self_improvement_outlined,
+        l10n.reportMentalTipCalmBody,
+      ),
+      (
+        l10n.reportMentalTipNature,
+        Icons.nature_outlined,
+        l10n.reportMentalTipNatureBody,
+      ),
+      (
+        l10n.reportMentalTipEmotion,
+        Icons.mood_outlined,
+        l10n.reportMentalTipEmotionBody,
+      ),
+      (
+        l10n.reportMentalTipMeditation,
+        Icons.spa_outlined,
+        l10n.reportMentalTipMeditationBody,
+      ),
     ];
 
     return _SectionCard(
-          child: Column(
-            children: List.generate(tips.length, (index) {
-              final t = tips[index];
-              return Column(
+      child: Column(
+        children: List.generate(tips.length, (index) {
+          final t = tips[index];
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 1),
-                        child: Icon(
-                          t.$2,
-                          size: 18,
-                          color: const Color(0xFF2D6A4F).withValues(alpha: 0.82),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(t.$1,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E1810),
-                                  letterSpacing: 0.5,
-                                )),
-                            const SizedBox(height: 3),
-                            Text(t.$3,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: const Color(0xFF3A3028)
-                                      .withValues(alpha: 0.6),
-                                  height: 1.6,
-                                )),
-                          ],
-                        ),
-                      ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Icon(
+                      t.$2,
+                      size: 18,
+                      color: const Color(0xFF2D6A4F).withValues(alpha: 0.82),
+                    ),
                   ),
-                  if (index < tips.length - 1) ...[
-                    const SizedBox(height: 12),
-                    const _IndentedDivider(indent: 30),
-                    const SizedBox(height: 12),
-                  ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t.$1,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E1810),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          t.$3,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(
+                              0xFF3A3028,
+                            ).withValues(alpha: 0.6),
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              );
-            }),
-          ),
-        );
+              ),
+              if (index < tips.length - 1) ...[
+                const SizedBox(height: 12),
+                const _IndentedDivider(indent: 30),
+                const SizedBox(height: 12),
+              ],
+            ],
+          );
+        }),
+      ),
+    );
   }
 
   // ── 四季保养 ─────────────────────────────────────────────────────
@@ -1723,13 +1905,13 @@ class _Tab3Therapy extends StatelessWidget {
     ];
 
     return _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...seasons.map(
-                    (s) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...seasons.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
                 decoration: BoxDecoration(
                   color: s.lightColor.withValues(alpha: 0.36),
                   borderRadius: BorderRadius.circular(14),
@@ -1760,8 +1942,9 @@ class _Tab3Therapy extends StatelessWidget {
                               s.advice,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: const Color(0xFF1E1810)
-                                    .withValues(alpha: 0.8),
+                                color: const Color(
+                                  0xFF1E1810,
+                                ).withValues(alpha: 0.8),
                                 height: 1.6,
                               ),
                             ),
@@ -1796,12 +1979,12 @@ class _Tab3Therapy extends StatelessWidget {
                     ],
                   ),
                 ),
-                  ),
-                ),
               ),
-            ],
+            ),
           ),
-        );
+        ],
+      ),
+    );
   }
 }
 
@@ -1813,10 +1996,7 @@ class _Tab4Advice extends StatelessWidget {
   final bool isUnlocked;
   final Future<void> Function() onUnlock;
 
-  const _Tab4Advice({
-    required this.isUnlocked,
-    required this.onUnlock,
-  });
+  const _Tab4Advice({required this.isUnlocked, required this.onUnlock});
 
   @override
   Widget build(BuildContext context) {
@@ -1851,168 +2031,218 @@ class _Tab4Advice extends StatelessWidget {
   Widget _buildTongueAnalysisContent(BuildContext context) {
     final l10n = context.l10n;
     final features = [
-      (l10n.reportAdviceTongueFeatureColor, l10n.reportAdviceTongueFeatureColorValue, l10n.reportAdviceTongueFeatureColorDesc, const Color(0xFF2D6A4F)),
-      (l10n.reportAdviceTongueFeatureShape, l10n.reportAdviceTongueFeatureShapeValue, l10n.reportAdviceTongueFeatureShapeDesc, const Color(0xFF6B5B95)),
-      (l10n.reportAdviceTongueFeatureCoatingColor, l10n.reportAdviceTongueFeatureCoatingColorValue, l10n.reportAdviceTongueFeatureCoatingColorDesc, const Color(0xFF4A7FA8)),
-      (l10n.reportAdviceTongueFeatureTexture, l10n.reportAdviceTongueFeatureTextureValue, l10n.reportAdviceTongueFeatureTextureDesc, const Color(0xFFC9A84C)),
-      (l10n.reportAdviceTongueFeatureTeethMarks, l10n.reportAdviceTongueFeatureTeethMarksValue, l10n.reportAdviceTongueFeatureTeethMarksDesc, const Color(0xFFD4794A)),
+      (
+        l10n.reportAdviceTongueFeatureColor,
+        l10n.reportAdviceTongueFeatureColorValue,
+        l10n.reportAdviceTongueFeatureColorDesc,
+        const Color(0xFF2D6A4F),
+      ),
+      (
+        l10n.reportAdviceTongueFeatureShape,
+        l10n.reportAdviceTongueFeatureShapeValue,
+        l10n.reportAdviceTongueFeatureShapeDesc,
+        const Color(0xFF6B5B95),
+      ),
+      (
+        l10n.reportAdviceTongueFeatureCoatingColor,
+        l10n.reportAdviceTongueFeatureCoatingColorValue,
+        l10n.reportAdviceTongueFeatureCoatingColorDesc,
+        const Color(0xFF4A7FA8),
+      ),
+      (
+        l10n.reportAdviceTongueFeatureTexture,
+        l10n.reportAdviceTongueFeatureTextureValue,
+        l10n.reportAdviceTongueFeatureTextureDesc,
+        const Color(0xFFC9A84C),
+      ),
+      (
+        l10n.reportAdviceTongueFeatureTeethMarks,
+        l10n.reportAdviceTongueFeatureTeethMarksValue,
+        l10n.reportAdviceTongueFeatureTeethMarksDesc,
+        const Color(0xFFD4794A),
+      ),
     ];
 
     return _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D7A5A).withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: const Color(0xFF0D7A5A).withValues(alpha: 0.12),
-                      width: 1),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Container(
-                        margin: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE4F7F1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.sentiment_satisfied_alt_outlined,
-                            size: 40,
-                            color: const Color(0xFF0D7A5A)
-                                .withValues(alpha: 0.4),
-                          ),
-                        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D7A5A).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF0D7A5A).withValues(alpha: 0.12),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    margin: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE4F7F1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.sentiment_satisfied_alt_outlined,
+                        size: 40,
+                        color: const Color(0xFF0D7A5A).withValues(alpha: 0.4),
                       ),
                     ),
-                    Expanded(
-                      flex: 5,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 12, 14, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                  ),
+                ),
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 12, 14, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          l10n.reportAdviceTongueScoreLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFA09080),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Text(
-                              l10n.reportAdviceTongueScoreLabel,
+                            const Text(
+                              '72',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFFA09080),
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0D7A5A),
+                                height: 1,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                const Text(
-                                  '72',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0D7A5A),
-                                    height: 1,
-                                  ),
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '/ 100',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: const Color(0xFF3A3028)
-                                        .withValues(alpha: 0.4),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
+                            const SizedBox(width: 3),
                             Text(
-                              l10n.reportAdviceTongueScoreSummary,
+                              '/ 100',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: const Color(0xFF3A3028)
-                                    .withValues(alpha: 0.6),
+                                fontSize: 12,
+                                color: const Color(
+                                  0xFF3A3028,
+                                ).withValues(alpha: 0.4),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...features.map(
-                    (f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 7),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 34,
-                        child: Text(
-                          f.$1,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: f.$4,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '|',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: f.$4.withValues(alpha: 0.45),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        f.$2,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E1810),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '— ${f.$3}',
+                        const SizedBox(height: 6),
+                        Text(
+                          l10n.reportAdviceTongueScoreSummary,
                           style: TextStyle(
                             fontSize: 11,
-                            color: const Color(0xFF3A3028)
-                                .withValues(alpha: 0.5),
+                            color: const Color(
+                              0xFF3A3028,
+                            ).withValues(alpha: 0.6),
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
+          const SizedBox(height: 12),
+          ...features.map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 34,
+                    child: Text(
+                      f.$1,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: f.$4,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '|',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: f.$4.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    f.$2,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E1810),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '— ${f.$3}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: const Color(0xFF3A3028).withValues(alpha: 0.5),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 饮食建议 ─────────────────────────────────────────────────────
   Widget _buildDietAdviceContent(BuildContext context) {
     final l10n = context.l10n;
     final recommended = [
-      (l10n.reportAdviceFoodShanyao, l10n.reportAdviceFoodShanyaoDesc, const Color(0xFF2D6A4F)),
-      (l10n.reportAdviceFoodYiyiren, l10n.reportAdviceFoodYiyirenDesc, const Color(0xFF0D7A5A)),
-      (l10n.reportAdviceFoodHongzao, l10n.reportAdviceFoodHongzaoDesc, const Color(0xFFD4794A)),
-      (l10n.reportAdviceFoodBiandou, l10n.reportAdviceFoodBiandouDesc, const Color(0xFF4A7FA8)),
-      (l10n.reportAdviceFoodDangshen, l10n.reportAdviceFoodDangshenDesc, const Color(0xFFC9A84C)),
-      (l10n.reportAdviceFoodFuling, l10n.reportAdviceFoodFulingDesc, const Color(0xFF6B5B95)),
+      (
+        l10n.reportAdviceFoodShanyao,
+        l10n.reportAdviceFoodShanyaoDesc,
+        const Color(0xFF2D6A4F),
+      ),
+      (
+        l10n.reportAdviceFoodYiyiren,
+        l10n.reportAdviceFoodYiyirenDesc,
+        const Color(0xFF0D7A5A),
+      ),
+      (
+        l10n.reportAdviceFoodHongzao,
+        l10n.reportAdviceFoodHongzaoDesc,
+        const Color(0xFFD4794A),
+      ),
+      (
+        l10n.reportAdviceFoodBiandou,
+        l10n.reportAdviceFoodBiandouDesc,
+        const Color(0xFF4A7FA8),
+      ),
+      (
+        l10n.reportAdviceFoodDangshen,
+        l10n.reportAdviceFoodDangshenDesc,
+        const Color(0xFFC9A84C),
+      ),
+      (
+        l10n.reportAdviceFoodFuling,
+        l10n.reportAdviceFoodFulingDesc,
+        const Color(0xFF6B5B95),
+      ),
     ];
 
     final avoid = [
@@ -2024,149 +2254,158 @@ class _Tab4Advice extends StatelessWidget {
     ];
 
     return _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 6),
+          Text(
+            l10n.reportAdviceDietIntro,
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
             children: [
-              const SizedBox(height: 6),
-              Text(
-                l10n.reportAdviceDietIntro,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF3A3028).withValues(alpha: 0.55),
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Container(
-                    width: 3,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D6A4F),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                   Text(
-                     l10n.reportAdviceDietRecommendedTitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E1810),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: recommended.map((r) => _FoodChip(
-                  name: r.$1,
-                  desc: r.$2,
-                  color: r.$3,
-                )).toList(),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Container(
-                    width: 3,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB05A5A),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                   Text(
-                     l10n.reportAdviceDietAvoidTitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E1810),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: avoid.map((a) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B6914).withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        '·',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF8B6914),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        a,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8B6914),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                )).toList(),
-              ),
-              const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 3,
+                height: 14,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF3E0),
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(
-                    color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
-                    width: 1,
-                  ),
+                  color: const Color(0xFF2D6A4F),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.restaurant, size: 13, color: Color(0xFFC9A84C)),
-                        const SizedBox(width: 6),
-                         Text(
-                           l10n.reportAdviceDietRecipeTitle,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF8B6914),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                       l10n.reportAdviceDietRecipeBody,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: const Color(0xFF8B6914).withValues(alpha: 0.8),
-                        height: 1.65,
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(width: 7),
+              Text(
+                l10n.reportAdviceDietRecommendedTitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1810),
                 ),
               ),
             ],
           ),
-        );
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: recommended
+                .map((r) => _FoodChip(name: r.$1, desc: r.$2, color: r.$3))
+                .toList(),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB05A5A),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                l10n.reportAdviceDietAvoidTitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1810),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: avoid
+                .map(
+                  (a) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B6914).withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          '·',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF8B6914),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          a,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF8B6914),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF3E0),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: const Color(0xFFC9A84C).withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.restaurant,
+                      size: 13,
+                      color: Color(0xFFC9A84C),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.reportAdviceDietRecipeTitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF8B6914),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  l10n.reportAdviceDietRecipeBody,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF8B6914).withValues(alpha: 0.8),
+                    height: 1.65,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 产品推荐 ─────────────────────────────────────────────────────
@@ -2190,15 +2429,14 @@ class _Tab4Advice extends StatelessWidget {
           ),
         ),
         ...products.map(
-              (p) => Padding(
+          (p) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: _ProductCard(product: p),
           ),
         ),
         // 免责声明
         Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF2D6A4F).withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(10),
@@ -2408,10 +2646,9 @@ class _SoftGradientProgressBar extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: trackColor ??
-            (emphasize
-                ? const Color(0xFFF6F7F2)
-                : const Color(0xFFF8F7F3)),
+        color:
+            trackColor ??
+            (emphasize ? const Color(0xFFF6F7F2) : const Color(0xFFF8F7F3)),
         borderRadius: BorderRadius.all(radius),
       ),
       child: ClipRRect(
@@ -2425,11 +2662,13 @@ class _SoftGradientProgressBar extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: fillColors ?? const [
-                    Color(0xFFD9EBDD),
-                    Color(0xFFAED2B8),
-                    Color(0xFF79B18C),
-                  ],
+                  colors:
+                      fillColors ??
+                      const [
+                        Color(0xFFD9EBDD),
+                        Color(0xFFAED2B8),
+                        Color(0xFF79B18C),
+                      ],
                   stops: [0.0, 0.55, 1.0],
                 ),
                 boxShadow: [
@@ -2588,13 +2827,11 @@ class _WuxingBars extends StatelessWidget {
 }
 
 Future<void> _showReportUnlockSheet(
-  BuildContext context,
-  {
+  BuildContext context, {
   required ValueListenable<ReportUnlockState> unlockStateListenable,
   required Future<void> Function() onPurchase,
   required Future<void> Function() onRestore,
-}
-) async {
+}) async {
   final l10n = context.l10n;
 
   await showModalBottomSheet<void>(
@@ -2620,10 +2857,7 @@ Future<void> _showReportUnlockSheet(
             _ => l10n.reportUnlockSheetConfirm,
           };
 
-          final statusMessage = _resolveUnlockStatusMessage(
-            l10n,
-            unlockState,
-          );
+          final statusMessage = _resolveUnlockStatusMessage(l10n, unlockState);
 
           return SafeArea(
             top: false,
@@ -2670,12 +2904,16 @@ Future<void> _showReportUnlockSheet(
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
+                              color: const Color(
+                                0xFF2D6A4F,
+                              ).withValues(alpha: 0.08),
                               blurRadius: 30,
                               offset: const Offset(0, 14),
                             ),
                             BoxShadow(
-                              color: const Color(0xFFDDECE3).withValues(alpha: 0.85),
+                              color: const Color(
+                                0xFFDDECE3,
+                              ).withValues(alpha: 0.85),
                               blurRadius: 4,
                               offset: const Offset(0, 1),
                             ),
@@ -2693,8 +2931,12 @@ Future<void> _showReportUnlockSheet(
                                   shape: BoxShape.circle,
                                   gradient: RadialGradient(
                                     colors: [
-                                      const Color(0xFFDAF0E1).withValues(alpha: 0.95),
-                                      const Color(0xFFDAF0E1).withValues(alpha: 0.0),
+                                      const Color(
+                                        0xFFDAF0E1,
+                                      ).withValues(alpha: 0.95),
+                                      const Color(
+                                        0xFFDAF0E1,
+                                      ).withValues(alpha: 0.0),
                                     ],
                                   ),
                                 ),
@@ -2710,21 +2952,32 @@ Future<void> _showReportUnlockSheet(
                                   shape: BoxShape.circle,
                                   gradient: RadialGradient(
                                     colors: [
-                                      const Color(0xFFF3E8CF).withValues(alpha: 0.72),
-                                      const Color(0xFFF3E8CF).withValues(alpha: 0.0),
+                                      const Color(
+                                        0xFFF3E8CF,
+                                      ).withValues(alpha: 0.72),
+                                      const Color(
+                                        0xFFF3E8CF,
+                                      ).withValues(alpha: 0.0),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+                              padding: const EdgeInsets.fromLTRB(
+                                22,
+                                22,
+                                22,
+                                22,
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const _UnlockGlyph(size: 72),
                                   const SizedBox(height: 14),
-                                  _UnlockTag(label: l10n.reportUnlockInvitationTag),
+                                  _UnlockTag(
+                                    label: l10n.reportUnlockInvitationTag,
+                                  ),
                                   const SizedBox(height: 14),
                                   Text(
                                     l10n.reportUnlockSheetTitle,
@@ -2743,8 +2996,9 @@ Future<void> _showReportUnlockSheet(
                                     style: TextStyle(
                                       fontSize: 13,
                                       height: 1.7,
-                                      color: const Color(0xFF3A3028)
-                                          .withValues(alpha: 0.74),
+                                      color: const Color(
+                                        0xFF3A3028,
+                                      ).withValues(alpha: 0.74),
                                     ),
                                   ),
                                   const SizedBox(height: 18),
@@ -2759,11 +3013,14 @@ Future<void> _showReportUnlockSheet(
                                       12,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.48),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.48,
+                                      ),
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: const Color(0xFF2D6A4F)
-                                            .withValues(alpha: 0.08),
+                                        color: const Color(
+                                          0xFF2D6A4F,
+                                        ).withValues(alpha: 0.08),
                                       ),
                                     ),
                                     child: Column(
@@ -2785,8 +3042,9 @@ Future<void> _showReportUnlockSheet(
                                           style: TextStyle(
                                             fontSize: 11,
                                             height: 1.55,
-                                            color: const Color(0xFF7A6B5A)
-                                                .withValues(alpha: 0.85),
+                                            color: const Color(
+                                              0xFF7A6B5A,
+                                            ).withValues(alpha: 0.85),
                                           ),
                                         ),
                                         if (statusMessage != null) ...[
@@ -2796,7 +3054,8 @@ Future<void> _showReportUnlockSheet(
                                             style: TextStyle(
                                               fontSize: 11,
                                               height: 1.5,
-                                              color: unlockState.status ==
+                                              color:
+                                                  unlockState.status ==
                                                       ReportUnlockStatus.error
                                                   ? const Color(0xFF9B4B4B)
                                                   : const Color(0xFF5E6C61),
@@ -2830,8 +3089,10 @@ Future<void> _showReportUnlockSheet(
                                         fontWeight: FontWeight.w600,
                                         color: const Color(0xFF2D6A4F)
                                             .withValues(
-                                          alpha: unlockState.isBusy ? 0.45 : 0.9,
-                                        ),
+                                              alpha: unlockState.isBusy
+                                                  ? 0.45
+                                                  : 0.9,
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -2866,11 +3127,11 @@ String? _resolveUnlockStatusMessage(
     'purchase-stream-error' => l10n.reportUnlockStatusPurchaseFailed,
     'purchase-failed' => l10n.reportUnlockStatusPurchaseFailed,
     null => switch (unlockState.status) {
-        ReportUnlockStatus.purchasing => l10n.reportUnlockStatusPurchasing,
-        ReportUnlockStatus.restoring => l10n.reportUnlockStatusRestoring,
-        ReportUnlockStatus.unavailable => l10n.reportUnlockStatusStoreUnavailable,
-        _ => null,
-      },
+      ReportUnlockStatus.purchasing => l10n.reportUnlockStatusPurchasing,
+      ReportUnlockStatus.restoring => l10n.reportUnlockStatusRestoring,
+      ReportUnlockStatus.unavailable => l10n.reportUnlockStatusStoreUnavailable,
+      _ => null,
+    },
     _ => l10n.reportUnlockStatusPurchaseFailed,
   };
 }
@@ -2899,10 +3160,7 @@ class _Lockable extends StatelessWidget {
           ignoring: true,
           child: ImageFiltered(
             imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-            child: Opacity(
-              opacity: 0.72,
-              child: child,
-            ),
+            child: Opacity(opacity: 0.72, child: child),
           ),
         ),
         Positioned.fill(
@@ -2923,11 +3181,8 @@ class _Lockable extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _LockOverlay(
-                title: lockTitle,
-                    onUnlock: onUnlock,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _LockOverlay(title: lockTitle, onUnlock: onUnlock),
                 ),
               ),
             ),
@@ -2942,10 +3197,7 @@ class _LockOverlay extends StatelessWidget {
   final String title;
   final Future<void> Function() onUnlock;
 
-  const _LockOverlay({
-    required this.title,
-    required this.onUnlock,
-  });
+  const _LockOverlay({required this.title, required this.onUnlock});
 
   @override
   Widget build(BuildContext context) {
@@ -2979,9 +3231,7 @@ class _LockOverlay extends StatelessWidget {
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF2D6A4F).withValues(alpha: 0.1),
@@ -3155,7 +3405,9 @@ class _UnlockBenefitsCard extends StatelessWidget {
       child: Column(
         children: List.generate(benefits.length, (index) {
           return Padding(
-            padding: EdgeInsets.only(bottom: index == benefits.length - 1 ? 0 : (compact ? 10 : 12)),
+            padding: EdgeInsets.only(
+              bottom: index == benefits.length - 1 ? 0 : (compact ? 10 : 12),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -3231,16 +3483,10 @@ class _UnlockButton extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF8FC9AE),
-                Color(0xFF3E8E6C),
-                Color(0xFF1F6447),
-              ],
+              colors: [Color(0xFF8FC9AE), Color(0xFF3E8E6C), Color(0xFF1F6447)],
             ),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.34),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.34)),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF2D6A4F).withValues(alpha: 0.26),
@@ -3274,7 +3520,10 @@ class _UnlockButton extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -3360,8 +3609,7 @@ class _ConstitutionScoreRow extends StatefulWidget {
   });
 
   @override
-  State<_ConstitutionScoreRow> createState() =>
-      _ConstitutionScoreRowState();
+  State<_ConstitutionScoreRow> createState() => _ConstitutionScoreRowState();
 }
 
 class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
@@ -3373,12 +3621,14 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 900));
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
     _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
     Future.delayed(
-        const Duration(milliseconds: 300),
-            () => mounted ? _ctrl.forward() : null);
+      const Duration(milliseconds: 300),
+      () => mounted ? _ctrl.forward() : null,
+    );
   }
 
   @override
@@ -3411,14 +3661,12 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
             widget.label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: widget.isMain
-                  ? FontWeight.w700
-                  : FontWeight.w400,
+              fontWeight: widget.isMain ? FontWeight.w700 : FontWeight.w400,
               color: widget.isMain
                   ? const Color(0xFF1E1810)
                   : (isSecondaryLow
-                      ? const Color(0xFFA09080).withValues(alpha: 0.72)
-                      : const Color(0xFFA09080)),
+                        ? const Color(0xFFA09080).withValues(alpha: 0.72)
+                        : const Color(0xFFA09080)),
             ),
           ),
         ),
@@ -3430,9 +3678,7 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
               value: widget.score * _anim.value,
               height: widget.isMain ? 4 : 3,
               emphasize: widget.isMain,
-              trackColor: isSecondaryLow
-                  ? Colors.transparent
-                  : null,
+              trackColor: isSecondaryLow ? Colors.transparent : null,
               fillColors: widget.isMain
                   ? const [
                       Color(0xFFD7EFD9),
@@ -3453,13 +3699,12 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
               textAlign: TextAlign.right,
               style: TextStyle(
                 fontSize: 12,
-              fontWeight:
-                    widget.isMain ? FontWeight.w700 : FontWeight.w400,
+                fontWeight: widget.isMain ? FontWeight.w700 : FontWeight.w400,
                 color: widget.isMain
                     ? const Color(0xFF2D6A4F)
                     : (isSecondaryLow
-                        ? const Color(0xFFA09080).withValues(alpha: 0.7)
-                        : const Color(0xFF6E8E7A)),
+                          ? const Color(0xFFA09080).withValues(alpha: 0.7)
+                          : const Color(0xFF6E8E7A)),
               ),
             ),
           ),
@@ -3524,9 +3769,11 @@ class _AcuPointCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 12,
-                            color: const Color(0xFFA09080)),
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 12,
+                          color: const Color(0xFFA09080),
+                        ),
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
@@ -3544,8 +3791,7 @@ class _AcuPointCard extends StatelessWidget {
                       point.effect,
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF3A3028)
-                            .withValues(alpha: 0.7),
+                        color: const Color(0xFF3A3028).withValues(alpha: 0.7),
                         height: 1.5,
                       ),
                     ),
@@ -3566,10 +3812,11 @@ class _FoodChip extends StatelessWidget {
   final String desc;
   final Color color;
 
-  const _FoodChip(
-      {required this.name,
-        required this.desc,
-        required this.color});
+  const _FoodChip({
+    required this.name,
+    required this.desc,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -3793,7 +4040,9 @@ class _ScoreRingPainter extends CustomPainter {
     // 轨道：深绿半透
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      0, 2 * math.pi, false,
+      0,
+      2 * math.pi,
+      false,
       Paint()
         ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.12)
         ..style = PaintingStyle.stroke
@@ -3817,8 +4066,7 @@ class _ScoreRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ScoreRingPainter old) =>
-      old.progress != progress;
+  bool shouldRepaint(_ScoreRingPainter old) => old.progress != progress;
 }
 
 // 新增：
@@ -3845,10 +4093,7 @@ class _HeroBgFillPainter extends CustomPainter {
       )
       ..close();
 
-    canvas.drawPath(
-      path,
-      Paint()..color = const Color(0xFFF4F1EB),
-    );
+    canvas.drawPath(path, Paint()..color = const Color(0xFFF4F1EB));
   }
 
   @override
@@ -3895,17 +4140,18 @@ class _ConstitutionRadarPainter extends CustomPainter {
       Offset(cx, cy),
       r * 0.72,
       Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF8FC7A5).withValues(alpha: 0.16),
-            const Color(0xFFC9A84C).withValues(alpha: 0.05),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.58, 1.0],
-        ).createShader(
-          Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.9),
-        ),
-      );
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFF8FC7A5).withValues(alpha: 0.16),
+                const Color(0xFFC9A84C).withValues(alpha: 0.05),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.58, 1.0],
+            ).createShader(
+              Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.9),
+            ),
+    );
 
     // 背景网格
     for (int ring = 1; ring <= 4; ring++) {
@@ -3968,8 +4214,7 @@ class _ConstitutionRadarPainter extends CustomPainter {
       final angle = i * 2 * math.pi / sides - math.pi / 2;
       canvas.drawLine(
         Offset(cx, cy),
-        Offset(cx + math.cos(angle) * r,
-            cy + math.sin(angle) * r),
+        Offset(cx + math.cos(angle) * r, cy + math.sin(angle) * r),
         Paint()
           ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.1)
           ..strokeWidth = 0.8,

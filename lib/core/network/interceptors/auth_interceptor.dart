@@ -2,58 +2,101 @@ import 'package:dio/dio.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
+import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/utils/logger.dart';
 import 'package:stitch_diag_demo/features/auth/data/models/auth_session_model.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
 
+class _RefreshAttemptResult {
+  const _RefreshAttemptResult._({
+    required this.refreshed,
+    required this.terminalFailure,
+  });
+
+  const _RefreshAttemptResult.success()
+    : this._(refreshed: true, terminalFailure: false);
+
+  const _RefreshAttemptResult.failure()
+    : this._(refreshed: false, terminalFailure: false);
+
+  const _RefreshAttemptResult.terminalFailure()
+    : this._(refreshed: false, terminalFailure: true);
+
+  final bool refreshed;
+  final bool terminalFailure;
+}
+
 class AuthInterceptor extends Interceptor {
   static const _retryAfterRefreshKey = 'retry_after_token_refresh';
   static const _skipTokenRefreshKey = 'skip_token_refresh';
+  static const _allowUnsafeRetryAfterRefreshKey =
+      'allow_unsafe_retry_after_token_refresh';
+  static const _proactiveRefreshThreshold = Duration(minutes: 1);
+  static const _retryableMethods = <String>{'GET', 'HEAD', 'OPTIONS'};
+
+  Future<_RefreshAttemptResult>? _refreshFuture;
 
   bool _isAuthPath(RequestOptions options) {
     return options.path.contains('/api/v1/saas/mobile/auth/');
   }
 
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    if (!getIt.isRegistered<AuthSessionStore>()) {
-      handler.next(options);
-      return;
+  bool _canRetryAfterRefresh(RequestOptions options) {
+    if (options.extra[_allowUnsafeRetryAfterRefreshKey] == true) {
+      return true;
     }
-
-    if (!_isAuthPath(options)) {
-      final authorization =
-          await getIt<AuthSessionStore>().authorizationHeader();
-      if (authorization != null) {
-        options.headers['Authorization'] = authorization;
-      }
-    }
-
-    handler.next(options);
+    return _retryableMethods.contains(options.method.toUpperCase());
   }
 
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final requestOptions = err.requestOptions;
-    final statusCode = err.response?.statusCode;
-    final skipRefresh = requestOptions.extra[_skipTokenRefreshKey] == true;
-    final alreadyRetried = requestOptions.extra[_retryAfterRefreshKey] == true;
+  Future<_RefreshAttemptResult> _refreshSession() {
+    final existingRefresh = _refreshFuture;
+    if (existingRefresh != null) {
+      return existingRefresh;
+    }
 
-    if (statusCode != 401 ||
-        skipRefresh ||
-        alreadyRetried ||
-        _isAuthPath(requestOptions) ||
-        !getIt.isRegistered<AuthSessionStore>() ||
+    final refreshOperation = _performRefresh().whenComplete(() {
+      _refreshFuture = null;
+    });
+    _refreshFuture = refreshOperation;
+    return refreshOperation;
+  }
+
+  bool _isTerminalRefreshFailure(DioException error) {
+    final statusCode = error.response?.statusCode;
+    return statusCode == 400 || statusCode == 401 || statusCode == 403;
+  }
+
+  Future<void> _invalidateSession() async {
+    if (getIt.isRegistered<AuthSessionStore>()) {
+      await getIt<AuthSessionStore>().clear();
+    }
+    setPreviewAuthenticated(false);
+  }
+
+  DioException _sessionExpiredException(RequestOptions options) {
+    return DioException(
+      requestOptions: options,
+      response: Response<dynamic>(
+        requestOptions: options,
+        statusCode: 401,
+        data: const {
+          'code': 401,
+          'message': 'Session expired. Please log in again.',
+        },
+      ),
+      type: DioExceptionType.badResponse,
+    );
+  }
+
+  Future<_RefreshAttemptResult> _performRefresh() async {
+    if (!getIt.isRegistered<AuthSessionStore>() ||
         !getIt.isRegistered<DioClient>()) {
-      handler.next(err);
-      return;
+      return const _RefreshAttemptResult.failure();
     }
 
     final sessionStore = getIt<AuthSessionStore>();
     final refreshToken = await sessionStore.refreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
-      handler.next(err);
-      return;
+      return const _RefreshAttemptResult.terminalFailure();
     }
 
     try {
@@ -83,25 +126,115 @@ class AuthInterceptor extends Interceptor {
           scope: refreshedSession.scope,
         ),
       );
+      return const _RefreshAttemptResult.success();
+    } on DioException catch (error) {
+      AppLogger.log('Token refresh failed: $error');
+      if (_isTerminalRefreshFailure(error)) {
+        return const _RefreshAttemptResult.terminalFailure();
+      }
+      return const _RefreshAttemptResult.failure();
+    } on Object catch (error) {
+      AppLogger.log('Token refresh failed: $error');
+      return const _RefreshAttemptResult.failure();
+    }
+  }
 
-      final authorization = await sessionStore.authorizationHeader();
-      if (authorization == null) {
-        throw const FormatException('Missing refreshed authorization header');
+  @override
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    if (!getIt.isRegistered<AuthSessionStore>()) {
+      handler.next(options);
+      return;
+    }
+
+    if (!_isAuthPath(options)) {
+      final sessionStore = getIt<AuthSessionStore>();
+      final shouldRefresh =
+          options.extra[_skipTokenRefreshKey] != true &&
+          await sessionStore.shouldRefreshAccessToken(
+            threshold: _proactiveRefreshThreshold,
+          );
+
+      if (shouldRefresh) {
+        final refreshResult = await _refreshSession();
+        if (!refreshResult.refreshed) {
+          if (refreshResult.terminalFailure) {
+            await _invalidateSession();
+            handler.reject(_sessionExpiredException(options));
+            return;
+          }
+          AppLogger.log(
+            'Proactive token refresh failed before ${options.path}; using existing access token if available.',
+          );
+        }
       }
 
-      final retryOptions = requestOptions.copyWith(
-        headers: Map<String, dynamic>.from(requestOptions.headers)
-          ..['Authorization'] = authorization,
-      );
-      retryOptions.extra[_retryAfterRefreshKey] = true;
+      final authorization = await sessionStore.authorizationHeader();
+      if (authorization != null) {
+        options.headers['Authorization'] = authorization;
+      }
+    }
 
+    handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final requestOptions = err.requestOptions;
+    final statusCode = err.response?.statusCode;
+    final skipRefresh = requestOptions.extra[_skipTokenRefreshKey] == true;
+    final alreadyRetried = requestOptions.extra[_retryAfterRefreshKey] == true;
+
+    if (statusCode != 401 ||
+        skipRefresh ||
+        alreadyRetried ||
+        _isAuthPath(requestOptions) ||
+        !_canRetryAfterRefresh(requestOptions) ||
+        !getIt.isRegistered<AuthSessionStore>() ||
+        !getIt.isRegistered<DioClient>()) {
+      handler.next(err);
+      return;
+    }
+
+    final sessionStore = getIt<AuthSessionStore>();
+
+    final refreshResult = await _refreshSession();
+    if (!refreshResult.refreshed) {
+      if (refreshResult.terminalFailure) {
+        await _invalidateSession();
+      }
+      handler.next(err);
+      return;
+    }
+
+    final authorization = await sessionStore.authorizationHeader();
+    if (authorization == null) {
+      await _invalidateSession();
+      handler.next(err);
+      return;
+    }
+
+    final retryOptions = requestOptions.copyWith(
+      headers: Map<String, dynamic>.from(requestOptions.headers)
+        ..['Authorization'] = authorization,
+    );
+    retryOptions.extra[_retryAfterRefreshKey] = true;
+
+    final dio = getIt<DioClient>().dio;
+    try {
       final retryResponse = await dio.fetch<dynamic>(retryOptions);
       handler.resolve(retryResponse);
+    } on DioException catch (retryError) {
+      if (retryError.response?.statusCode == 401) {
+        await _invalidateSession();
+      }
+      handler.next(retryError);
     } on Object catch (error) {
       AppLogger.log(
-        'Token refresh failed for ${requestOptions.path}: $error',
+        'Retried request failed after token refresh for ${requestOptions.path}: $error',
       );
-      await sessionStore.clear();
       handler.next(err);
     }
   }

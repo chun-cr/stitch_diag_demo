@@ -11,7 +11,9 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/settings_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/account_security_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/points_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/set_login_password_page.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/pages/shipping_address_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
@@ -34,6 +36,8 @@ class AppRoutes {
   static const reportCheckout = '/report/checkout';
   static const history = '/history';
   static const profile = '/profile';
+  static const profileAddresses = '/profile/addresses';
+  static const profilePoints = '/profile/points';
   static const settings = '/profile/settings';
   static const accountSecurity = '/profile/settings/account-security';
   static const setLoginPassword =
@@ -177,6 +181,14 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.profile,
       builder: (context, state) => const ProfilePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.profileAddresses,
+      builder: (context, state) => const ShippingAddressPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.profilePoints,
+      builder: (context, state) => const PointsPage(),
     ),
     GoRoute(
       path: AppRoutes.settings,

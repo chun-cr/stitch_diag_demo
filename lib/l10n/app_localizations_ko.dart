@@ -196,6 +196,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authCodeSent => '인증코드를 보냈어요. 메시지를 확인해 주세요.';
 
   @override
+  String authCodeSentToReceiver(String receiver) {
+    return '인증코드를 $receiver(으)로 보냈어요';
+  }
+
+  @override
   String get authSendCodeFirst => '먼저 인증코드를 받아 주세요.';
 
   @override
@@ -354,6 +359,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get commonSave => '저장';
+
+  @override
+  String get commonRetry => '重试';
 
   @override
   String get commonLoading => '불러오는 중';
@@ -598,6 +606,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileMenuAccountSub => '개인 정보, 가족 정보, 건강 기록을 관리합니다';
 
   @override
+  String get profileMenuShippingAddress => '배송지 주소';
+
+  @override
+  String get profileMenuShippingAddressSub => '배송지 주소를 추가, 수정, 관리합니다';
+
+  @override
+  String get profileMenuPoints => '포인트 센터';
+
+  @override
+  String get profileMenuPointsSub => '출석으로 포인트를 받고 내역을 확인합니다';
+
+  @override
   String get profileMenuSettings => '설정';
 
   @override
@@ -626,6 +646,228 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileMenuAboutSub => '서비스 안내 및 현재 버전 v1.0.0';
+
+  @override
+  String get profileAddressTitle => '배송지 주소';
+
+  @override
+  String get profileAddressAdd => '주소 추가';
+
+  @override
+  String get profileAddressEmptyTitle => '배송지 주소가 아직 없습니다';
+
+  @override
+  String get profileAddressEmptyBody =>
+      '자주 쓰는 주소를 추가하면 주문 시 배송 정보를 더 빠르게 입력할 수 있습니다.';
+
+  @override
+  String get profileAddressReceiver => '받는 사람';
+
+  @override
+  String get profileAddressPhone => '휴대폰 번호';
+
+  @override
+  String get profileAddressProvinceName => '省份名称';
+
+  @override
+  String get profileAddressProvinceCode => '省份编码';
+
+  @override
+  String get profileAddressCityName => '城市名称';
+
+  @override
+  String get profileAddressCityCode => '城市编码';
+
+  @override
+  String get profileAddressDistrictName => '区县名称';
+
+  @override
+  String get profileAddressDistrictCode => '区县编码';
+
+  @override
+  String get profileAddressStreetName => '街道名称';
+
+  @override
+  String get profileAddressStreetCode => '街道编码';
+
+  @override
+  String get profileAddressRegion => '지역';
+
+  @override
+  String get profileAddressDetail => '상세 주소';
+
+  @override
+  String get profileAddressTag => '주소 태그';
+
+  @override
+  String get profileAddressSetDefault => '기본으로 설정';
+
+  @override
+  String get profileAddressDefault => '기본';
+
+  @override
+  String get profileAddressEdit => '수정';
+
+  @override
+  String get profileAddressDelete => '삭제';
+
+  @override
+  String get profileAddressDeleteTitle => '배송지 주소 삭제';
+
+  @override
+  String get profileAddressDeleteBody => '삭제하면 복구할 수 없습니다. 계속하시겠습니까?';
+
+  @override
+  String get profileAddressDeleteAction => '삭제';
+
+  @override
+  String get profileAddressFormAddTitle => '배송지 주소 추가';
+
+  @override
+  String get profileAddressFormEditTitle => '배송지 주소 수정';
+
+  @override
+  String get profileAddressValidationReceiver => '받는 사람 이름을 입력해 주세요';
+
+  @override
+  String get profileAddressValidationPhone => '올바른 휴대폰 번호를 입력해 주세요';
+
+  @override
+  String get profileAddressValidationProvinceName => '请输入省份名称';
+
+  @override
+  String get profileAddressValidationProvinceCode => '请输入省份编码';
+
+  @override
+  String get profileAddressValidationCityName => '请输入城市名称';
+
+  @override
+  String get profileAddressValidationCityCode => '请输入城市编码';
+
+  @override
+  String get profileAddressValidationDistrictName => '请输入区县名称';
+
+  @override
+  String get profileAddressValidationDistrictCode => '请输入区县编码';
+
+  @override
+  String get profileAddressValidationRegion => '지역을 입력해 주세요';
+
+  @override
+  String get profileAddressValidationDetail => '상세 주소를 입력해 주세요';
+
+  @override
+  String get profileAddressValidationCodeFormat => '编码仅支持字母、数字、下划线和短横线';
+
+  @override
+  String get profileAddressValidationStreetPair => '街道名称与街道编码需要同时填写或同时留空';
+
+  @override
+  String get profileAddressDefaultToggle => '기본 배송지 주소로 사용';
+
+  @override
+  String get profileAddressSaveFailed => '保存收货地址失败，请稍后重试';
+
+  @override
+  String get profileAddressLoadFailed => '加载收货地址失败，请稍后重试';
+
+  @override
+  String get profileAddressDeleteFailed => '删除收货地址失败，请稍后重试';
+
+  @override
+  String get profileAddressDefaultFailed => '设置默认收货地址失败，请稍后重试';
+
+  @override
+  String get profilePointsTitle => '포인트 센터';
+
+  @override
+  String get profilePointsBalance => '현재 포인트';
+
+  @override
+  String get profilePointsTodayGain => '今日获得';
+
+  @override
+  String get profilePointsWeekGain => '本周获得';
+
+  @override
+  String get profilePointsHisTotal => '累计获得';
+
+  @override
+  String get profilePointsMonthlyEarned => '이번 달 적립';
+
+  @override
+  String get profilePointsMonthlySpent => '이번 달 사용';
+
+  @override
+  String get profilePointsCheckIn => '매일 출석 +5';
+
+  @override
+  String get profilePointsCheckInDone => '오늘 출석 완료';
+
+  @override
+  String get profilePointsCheckInHint =>
+      '매일 출석하면 이후 혜택 교환에 사용할 수 있는 포인트를 받을 수 있습니다.';
+
+  @override
+  String get profilePointsCheckInFailed => '签到失败，请稍后重试';
+
+  @override
+  String profilePointsCheckInSuccess(int points) {
+    return '출석 완료. $points포인트를 받았습니다.';
+  }
+
+  @override
+  String get profilePointsHistory => '포인트 내역';
+
+  @override
+  String get profilePointsTasks => '积分任务';
+
+  @override
+  String get profilePointsRegisterTask => '新手任务';
+
+  @override
+  String get profilePointsTaskEmpty => '暂无可领取积分任务';
+
+  @override
+  String get profilePointsEmpty => '포인트 내역이 아직 없습니다';
+
+  @override
+  String get profilePointsLoadFailed => '加载积分信息失败，请稍后重试';
+
+  @override
+  String get profilePointsLoadMore => '加载更多';
+
+  @override
+  String get profilePointsLoadMoreFailed => '加载更多积分记录失败，请稍后重试';
+
+  @override
+  String profilePointsTaskActionUnsupported(String action) {
+    return '任务入口“$action”暂不可用';
+  }
+
+  @override
+  String get profilePointsEntryDailyCheckIn => '매일 출석';
+
+  @override
+  String get profilePointsEntryDailyCheckInSub => '오늘 출석 보상이 적립되었습니다';
+
+  @override
+  String get profilePointsEntryWelcome => '신규 회원 웰컴 포인트';
+
+  @override
+  String get profilePointsEntryWelcomeSub => '신규 회원 활성화 완료 후 지급';
+
+  @override
+  String get profilePointsEntryAssessment => '체질 평가 보너스';
+
+  @override
+  String get profilePointsEntryAssessmentSub => '개인 맞춤 체질 평가 완료 후 지급';
+
+  @override
+  String get profilePointsEntryCoupon => '상담 쿠폰 교환';
+
+  @override
+  String get profilePointsEntryCouponSub => '포인트를 사용해 할인 혜택으로 교환했습니다';
 
   @override
   String get profileLogout => '로그아웃';

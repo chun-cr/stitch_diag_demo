@@ -9,6 +9,11 @@ import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/utils/logger.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
+import 'package:stitch_diag_demo/features/profile/domain/entities/profile_me_entity.dart';
+import 'package:stitch_diag_demo/features/profile/domain/entities/profile_shipping_address_entity.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_address_provider.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_points_provider.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_repository_provider.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
 const _kPageBg = Color(0xFFF4F1EB); // 宣纸米色
@@ -26,6 +31,10 @@ class ProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileMeProvider);
+    final profile = profileAsync.asData?.value;
+    final isProfileLoading = profileAsync.isLoading && !profileAsync.hasValue;
+
     return Scaffold(
       backgroundColor: _kPageBg,
       body: CustomScrollView(
@@ -66,7 +75,7 @@ class ProfilePage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 悬浮资料头
-                  _buildHeroCard(context),
+                  _buildHeroCard(context, profile, isLoading: isProfileLoading),
                   const SizedBox(height: 20),
 
                   // 健康总览指标
@@ -99,7 +108,11 @@ class ProfilePage extends ConsumerWidget {
   // ══════════════════════════════════════════════════════════════
   //  悬浮资料头
   // ══════════════════════════════════════════════════════════════
-  Widget _buildHeroCard(BuildContext context) {
+  Widget _buildHeroCard(
+    BuildContext context,
+    ProfileMeEntity? profile, {
+    required bool isLoading,
+  }) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       decoration: BoxDecoration(
@@ -120,9 +133,11 @@ class ProfilePage extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildAvatar(context),
+              _buildAvatar(context, profile),
               const SizedBox(width: 16),
-              Expanded(child: _buildUserInfo(context)),
+              Expanded(
+                child: _buildUserInfo(context, profile, isLoading: isLoading),
+              ),
               _buildEditButton(),
             ],
           ),
@@ -170,7 +185,35 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildAvatar(BuildContext context) {
+  Widget _buildAvatar(BuildContext context, ProfileMeEntity? profile) {
+    final avatarUrl = _trimmedOrNull(profile?.avatarUrl);
+    final displayName = _displayName(context, profile, isLoading: false);
+    final initial = _avatarInitial(displayName);
+
+    Widget fallbackAvatar() {
+      return DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF3D8A68), Color(0xFF2D6A4F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: initial.isEmpty
+              ? const Icon(Icons.person_rounded, color: Colors.white, size: 26)
+              : Text(
+                  initial,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+        ),
+      );
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -196,14 +239,17 @@ class ProfilePage extends ConsumerWidget {
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              context.l10n.profileDisplayName.substring(0, 1),
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+          child: ClipOval(
+            child: SizedBox.expand(
+              child: avatarUrl == null
+                  ? fallbackAvatar()
+                  : Image.network(
+                      avatarUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return fallbackAvatar();
+                      },
+                    ),
             ),
           ),
         ),
@@ -233,12 +279,23 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildUserInfo(BuildContext context) {
+  Widget _buildUserInfo(
+    BuildContext context,
+    ProfileMeEntity? profile, {
+    required bool isLoading,
+  }) {
+    final displayName = _displayName(context, profile, isLoading: isLoading);
+    final secondaryLine = _secondaryLine(
+      context,
+      profile,
+      isLoading: isLoading,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          context.l10n.profileDisplayName,
+          displayName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -249,16 +306,17 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          context.l10n.profileStatusStable,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 12,
-            color: _kTextSecondary.withValues(alpha: 0.58),
+        if (secondaryLine.isNotEmpty)
+          Text(
+            _sanitizeSecondaryLine(secondaryLine),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: _kTextSecondary.withValues(alpha: 0.58),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+        SizedBox(height: secondaryLine.isEmpty ? 0 : 8),
         // 体质 pill
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -296,6 +354,90 @@ class ProfilePage extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  String _displayName(
+    BuildContext context,
+    ProfileMeEntity? profile, {
+    required bool isLoading,
+  }) {
+    final nickname = _trimmedOrNull(profile?.nickname);
+    final realName = _trimmedOrNull(profile?.realName);
+    final userNo = _trimmedOrNull(profile?.userNo);
+    final displayName = nickname ?? realName ?? userNo;
+    if (displayName != null) {
+      return displayName;
+    }
+    return isLoading ? context.l10n.commonLoading : '';
+  }
+
+  String _secondaryLine(
+    BuildContext context,
+    ProfileMeEntity? profile, {
+    required bool isLoading,
+  }) {
+    if (profile == null) {
+      return isLoading ? context.l10n.commonLoading : '';
+    }
+
+    final displayName = _trimmedOrNull(
+      _displayName(context, profile, isLoading: false),
+    );
+    final parts = <String>[];
+    final realName = _trimmedOrNull(profile.realName);
+    final maskedPhone = _maskedPhone(profile);
+    final userNo = _trimmedOrNull(profile.userNo);
+
+    if (realName != null && realName != displayName) {
+      parts.add(realName);
+    }
+    if (maskedPhone != null) {
+      parts.add(maskedPhone);
+    } else if (userNo != null && userNo != displayName) {
+      parts.add(userNo);
+    }
+
+    if (parts.isEmpty) {
+      return isLoading ? context.l10n.commonLoading : '';
+    }
+    return parts.join(' · ');
+  }
+
+  String? _maskedPhone(ProfileMeEntity profile) {
+    final phone = _trimmedOrNull(profile.phone);
+    if (phone == null) {
+      return null;
+    }
+
+    final countryCode = _trimmedOrNull(profile.countryCode);
+    final maskedNumber = phone.length >= 7
+        ? '${phone.substring(0, 3)}****${phone.substring(phone.length - 4)}'
+        : phone;
+    return [countryCode, maskedNumber].whereType<String>().join(' ');
+  }
+
+  String _avatarInitial(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final runes = trimmed.runes;
+    if (runes.isEmpty) {
+      return '';
+    }
+    return String.fromCharCode(runes.first);
+  }
+
+  String? _trimmedOrNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
+  }
+
+  String _sanitizeSecondaryLine(String value) {
+    return value.replaceAll('\u8def', '/');
   }
 
   Widget _buildEditButton() {
@@ -515,12 +657,37 @@ class ProfilePage extends ConsumerWidget {
   // ══════════════════════════════════════════════════════════════
   Widget _buildMenuGroup(BuildContext context, WidgetRef ref) {
     final selectedLocale = ref.watch(localeControllerProvider).asData?.value;
+    final cachedAddresses =
+        ref.watch(profileAddressesProvider).asData?.value ?? const [];
+    final defaultAddress =
+        ref.watch(profileDefaultShippingAddressProvider).asData?.value ??
+        _resolveDefaultAddress(cachedAddresses);
+    final pointsSimple = ref.watch(profilePointsBalanceProvider).asData?.value;
     final items = [
       _MenuData(
         icon: Icons.people_outline,
         label: context.l10n.profileMenuAccount,
         sub: context.l10n.profileMenuAccountSub,
         color: Color(0xFF2D6A4F),
+      ),
+      _MenuData(
+        icon: Icons.location_on_outlined,
+        label: context.l10n.profileMenuShippingAddress,
+        sub: defaultAddress == null
+            ? context.l10n.profileMenuShippingAddressSub
+            : '${defaultAddress.receiverName} · ${defaultAddress.regionLabel}',
+        color: Color(0xFF0D7A5A),
+        onTap: () => context.push(AppRoutes.profileAddresses),
+      ),
+      _MenuData(
+        icon: Icons.workspace_premium_outlined,
+        label: context.l10n.profileMenuPoints,
+        sub: context.l10n.profileMenuPointsSub,
+        color: Color(0xFFC9A84C),
+        trailingText: pointsSimple == null
+            ? null
+            : '${pointsSimple.availableAmount}${context.l10n.unitPoints}',
+        onTap: () => context.push(AppRoutes.profilePoints),
       ),
       _MenuData(
         icon: Icons.settings_outlined,
@@ -603,6 +770,17 @@ class ProfilePage extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  ProfileShippingAddressEntity? _resolveDefaultAddress(
+    List<ProfileShippingAddressEntity> addresses,
+  ) {
+    for (final address in addresses) {
+      if (address.isDefault) {
+        return address;
+      }
+    }
+    return addresses.isEmpty ? null : addresses.first;
   }
 
   // ══════════════════════════════════════════════════════════════

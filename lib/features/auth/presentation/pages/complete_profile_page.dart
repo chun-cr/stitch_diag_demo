@@ -103,7 +103,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
       child: SizedBox(
         height: 44,
         child: Stack(
@@ -113,10 +113,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
               child: Text(
                 '${context.l10n.appBrandPrefix}AI${context.l10n.appBrandSuffix}',
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: _kCompleteProfilePrimary,
-                  letterSpacing: 0.4,
+                  color: Color(0xFF1F2B23),
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
@@ -125,23 +125,25 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                 GestureDetector(
                   onTap: _goBack,
                   child: Container(
-                    width: 40,
-                    height: 40,
+                    width: 30,
+                    height: 30,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.78),
+                      color: const Color(0xFFE3EEDC).withValues(alpha: 0.95),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
+                          color: const Color(
+                            0xFF6F9D7E,
+                          ).withValues(alpha: 0.18),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      size: 18,
-                      color: _kCompleteProfilePrimary,
+                      size: 15,
+                      color: Color(0xFF486451),
                     ),
                   ),
                 ),
@@ -149,14 +151,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                 TextButton(
                   onPressed: () => _completeOrSkip(skip: true),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF6C7A84),
+                    foregroundColor: const Color(0xFF222A24),
                     minimumSize: const Size(44, 40),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: Text(
                     context.l10n.completeProfileSkip,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -170,174 +172,178 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   }
 
   Widget _buildAvatarStage() {
-    return Container(
-      height: 250,
+    return SizedBox(
+      height: 182,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFF4F1EB), Color(0xFFE8F5EE)],
-          stops: [0.0, 1.0],
-        ),
-      ),
-      child: Align(
+      child: Stack(
         alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: 176,
-          height: 176,
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              AnimatedBuilder(
-                animation: _rotateController,
-                builder: (context, child) => Transform.rotate(
-                  angle: _rotateController.value * 2 * math.pi,
-                  child: child,
-                ),
-                child: CustomPaint(
-                  size: const Size(168, 168),
-                  painter: const _BaguaRingPainter(),
-                ),
-              ),
-              AnimatedBuilder(
-                animation: _pulseAnim,
-                builder: (context, child) {
-                  final pulse = _pulseAnim.value;
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Transform.scale(
-                        key: const ValueKey('complete_profile_avatar_ring'),
-                        scale: pulse,
-                        child: Container(
-                          width: 148,
-                          height: 148,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _kCompleteProfilePrimary.withValues(
-                              alpha: 0.04,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Transform.scale(
-                        scale: 2.0 - pulse,
-                        child: Container(
-                          width: 130,
-                          height: 130,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _kCompleteProfilePrimary.withValues(
-                              alpha: 0.07,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 116,
-                        height: 116,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _kCompleteProfilePrimary.withValues(
-                            alpha: 0.05,
-                          ),
-                          border: Border.all(
-                            color: _kCompleteProfilePrimary.withValues(
-                              alpha: 0.12,
-                            ),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              Container(
-                key: const ValueKey('complete_profile_avatar'),
-                width: 118,
-                height: 118,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8A9BA8), Color(0xFF6B7F8C)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 26,
-                      offset: const Offset(0, 12),
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFF8A9BA8).withValues(alpha: 0.22),
-                      blurRadius: 28,
-                      offset: const Offset(0, 4),
-                    ),
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: 8,
+            child: Container(
+              width: 176,
+              height: 116,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFDCEBDD).withValues(alpha: 0.90),
+                    const Color(0xFFDCEBDD).withValues(alpha: 0.46),
+                    Colors.transparent,
                   ],
-                ),
-                child: const Icon(
-                  Icons.person_outline_rounded,
-                  size: 54,
-                  color: Color(0xFFF0F3F5),
+                  stops: const [0.0, 0.62, 1.0],
                 ),
               ),
-              const SizedBox(
-                width: 134,
-                height: 134,
-                child: _CornerBrackets(color: _kCompleteProfilePrimary),
-              ),
-              Positioned(
-                right: 12,
-                bottom: 16,
-                child: GestureDetector(
-                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.elasticOut,
-                    builder: (context, value, child) {
-                      return Transform.scale(scale: value, child: child);
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [
-                            _kCompleteProfilePrimary,
-                            _kCompleteProfilePrimaryLight,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        border: Border.all(color: Colors.white, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _kCompleteProfilePrimary.withValues(
-                              alpha: 0.34,
+            ),
+          ),
+          Positioned(
+            top: 18,
+            child: SizedBox(
+              width: 162,
+              height: 162,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  AnimatedBuilder(
+                    animation: _rotateController,
+                    builder: (context, child) => Transform.rotate(
+                      angle: _rotateController.value * 2 * math.pi,
+                      child: child,
+                    ),
+                    child: CustomPaint(
+                      size: const Size(124, 124),
+                      painter: const _SmallBaguaRingPainter(),
+                    ),
+                  ),
+                  AnimatedBuilder(
+                    animation: _pulseAnim,
+                    builder: (context, child) {
+                      final pulse = _pulseAnim.value;
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Transform.scale(
+                            key: const ValueKey('complete_profile_avatar_ring'),
+                            scale: pulse,
+                            child: Container(
+                              width: 116,
+                              height: 116,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: _kCompleteProfilePrimary.withValues(
+                                    alpha: 0.14,
+                                  ),
+                                ),
+                                color: _kCompleteProfilePrimary.withValues(
+                                  alpha: 0.03,
+                                ),
+                              ),
                             ),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
+                          ),
+                          Transform.scale(
+                            scale: 2.0 - pulse,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFC4AD7D,
+                                  ).withValues(alpha: 0.18),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 84,
+                            height: 84,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.56),
+                            ),
                           ),
                         ],
-                      ),
-                      child: const Icon(
-                        Icons.photo_camera_rounded,
-                        size: 18,
-                        color: Colors.white,
+                      );
+                    },
+                  ),
+                  Container(
+                    key: const ValueKey('complete_profile_avatar'),
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFF7BA08A,
+                          ).withValues(alpha: 0.18),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const CustomPaint(painter: _HarmonySealPainter()),
+                  ),
+                  const SizedBox(
+                    width: 118,
+                    height: 118,
+                    child: _CornerBrackets(color: Color(0xFF8A9A89)),
+                  ),
+                  Positioned(
+                    right: 24,
+                    bottom: 24,
+                    child: GestureDetector(
+                      onTap: () =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.elasticOut,
+                        builder: (context, value, child) {
+                          return Transform.scale(scale: value, child: child);
+                        },
+                        child: Container(
+                          width: 33,
+                          height: 33,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF89B394), Color(0xFF6F9D7E)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _kCompleteProfilePrimary.withValues(
+                                  alpha: 0.24,
+                                ),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.photo_camera_outlined,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -350,39 +356,45 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9F7F2).withValues(alpha: 0.90),
-          borderRadius: BorderRadius.circular(16),
-          border: Border(
-            left: BorderSide(
-              color: _nicknameFocused
-                  ? _kCompleteProfilePrimary
-                  : Colors.transparent,
-              width: 3,
-            ),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFF8F3E6), Color(0xFFF3EEE0)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          boxShadow: _nicknameFocused
-              ? [
-                  BoxShadow(
-                    color: _kCompleteProfilePrimary.withValues(alpha: 0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : const [],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _nicknameFocused
+                ? _kCompleteProfilePrimary.withValues(alpha: 0.24)
+                : Colors.white.withValues(alpha: 0.55),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(
+                0xFF7D9B80,
+              ).withValues(alpha: _nicknameFocused ? 0.14 : 0.08),
+              blurRadius: _nicknameFocused ? 18 : 14,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.28),
+              blurRadius: 6,
+              offset: const Offset(0, -1),
+            ),
+          ],
         ),
         child: TextFormField(
           controller: _nicknameCtrl,
           style: const TextStyle(fontSize: 15, color: Color(0xFF1E1810)),
           decoration: InputDecoration(
             hintText: context.l10n.authNameHint,
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFA09080)),
+            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF9B9584)),
             filled: false,
             prefixIcon: Icon(
               Icons.person_outline_rounded,
               size: 18,
               color: _nicknameFocused
-                  ? _kCompleteProfilePrimary
-                  : const Color(0xFFA09080),
+                  ? const Color(0xFF6D9378)
+                  : const Color(0xFFC0B8A3),
             ),
             prefixIconConstraints: const BoxConstraints(minWidth: 48),
             border: OutlineInputBorder(
@@ -486,111 +498,60 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.82),
-                  const Color(0xFFF7FBF8).withValues(alpha: 0.74),
-                ],
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(32),
-                topRight: Radius.circular(32),
-              ),
-              border: Border.all(
-                color: _kCompleteProfilePrimary.withValues(alpha: 0.12),
-                width: 0.6,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _kCompleteProfilePrimary.withValues(alpha: 0.06),
-                  blurRadius: 28,
-                  offset: const Offset(0, -6),
-                ),
-              ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F1E8).withValues(alpha: 0.97),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.68),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8B7B61).withValues(alpha: 0.14),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
             ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.34),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 20),
+          child: Form(
+            key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: _kCompleteProfilePrimary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
+                Text(
+                  context.l10n.completeProfileTitle,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF171712),
                   ),
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      context.l10n.completeProfileTitle,
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF1E1810),
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      context.l10n.completeProfileSubtitle,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: const Color(
-                                          0xFF3A3028,
-                                        ).withValues(alpha: 0.58),
-                                        height: 1.6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 22),
-                          _InputLabel(text: context.l10n.authNameLabel),
-                          const SizedBox(height: 10),
-                          _buildNicknameField(context),
-                          const SizedBox(height: 34),
-                          _InputLabel(
-                            text: context.l10n.registerGenderOptional,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildGenderField(context),
-                          const SizedBox(height: 36),
-                        ],
-                      ),
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  context.l10n.completeProfileSubtitle,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: const Color(0xFF464034).withValues(alpha: 0.78),
+                    height: 1.55,
                   ),
                 ),
+                const SizedBox(height: 22),
+                _InputLabel(text: context.l10n.authNameLabel),
+                const SizedBox(height: 8),
+                _buildNicknameField(context),
+                const SizedBox(height: 18),
+                _InputLabel(text: context.l10n.registerGenderOptional),
+                const SizedBox(height: 10),
+                _buildGenderField(context),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -604,17 +565,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
 
     return Container(
       key: const ValueKey('complete_profile_bottom_bar'),
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            const Color(0xFFF4F1EB).withValues(alpha: 0),
-            const Color(0xFFF4F1EB).withValues(alpha: 0.90),
-          ],
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360),
@@ -658,23 +609,26 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                 key: const ValueKey('complete_profile_primary_button'),
                 onTap: () => _completeOrSkip(skip: false),
                 child: Container(
-                  height: 54,
+                  height: 50,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [
-                        _kCompleteProfilePrimary,
-                        _kCompleteProfilePrimaryLight,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF9BC79D), Color(0xFF74A97D)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
                     borderRadius: BorderRadius.circular(999),
                     boxShadow: [
                       BoxShadow(
-                        color: _kCompleteProfilePrimary.withValues(alpha: 0.24),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+                        color: const Color(0xFF5D8A67).withValues(alpha: 0.28),
+                        blurRadius: 26,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 11),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        blurRadius: 4,
+                        offset: const Offset(0, -1),
                       ),
                     ],
                   ),
@@ -701,16 +655,28 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F1EB),
+      backgroundColor: const Color(0xFFF6F1E7),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Stack(
           children: [
-            const Positioned.fill(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _CompleteProfileBgPainter(rotation: 0),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFF5F0E5), Color(0xFFF8F4ED)],
+                  ),
+                ),
+                child: AnimatedBuilder(
+                  animation: _rotateController,
+                  builder: (context, child) => CustomPaint(
+                    painter: _CompleteProfileBgPainter(
+                      rotation: _rotateController.value * math.pi * 2,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -730,24 +696,28 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                     ),
                     Expanded(
                       child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 360),
-                          child: Stack(
-                            children: [
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                child: _buildAvatarStage(),
-                              ),
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                top: 178,
-                                child: _buildContentCard(context),
-                              ),
-                            ],
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 360),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: _buildAvatarStage(),
+                                ),
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 118,
+                                  bottom: 0,
+                                  child: _buildContentCard(context),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -850,67 +820,116 @@ class _CompleteProfileBgPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(
-      Offset(size.width + 30, -30),
-      190,
-      Paint()
-        ..shader =
-            RadialGradient(
-              colors: [
-                const Color(0xFFC9A84C).withValues(alpha: 0.07),
-                Colors.transparent,
-              ],
-              stops: const [0, 0.7],
-            ).createShader(
-              Rect.fromCircle(
-                center: Offset(size.width + 30, -30),
-                radius: 190,
-              ),
-            ),
-    );
-    canvas.drawCircle(
-      Offset(-40, size.height + 30),
-      200,
-      Paint()
-        ..shader =
-            RadialGradient(
-              colors: [
-                _kCompleteProfilePrimary.withValues(alpha: 0.09),
-                Colors.transparent,
-              ],
-              stops: const [0, 0.7],
-            ).createShader(
-              Rect.fromCircle(
-                center: Offset(-40, size.height + 30),
-                radius: 200,
-              ),
-            ),
-    );
-    final gridPaint = Paint()
-      ..color = _kCompleteProfilePrimary.withValues(alpha: 0.022)
-      ..strokeWidth = 0.5;
-    for (double x = 0; x < size.width; x += 28) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y < size.height; y += 28) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-    canvas.save();
-    canvas.translate(24, 180);
-    canvas.rotate(rotation);
-    final ringPaint = Paint()
-      ..color = _kCompleteProfilePrimary.withValues(alpha: 0.05)
+    final ripplePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    canvas.drawCircle(Offset.zero, 44, ringPaint);
-    for (int i = 0; i < 8; i++) {
-      final angle = i * math.pi / 4;
+      ..strokeCap = StrokeCap.round;
+
+    void drawRipple(
+      Offset center,
+      double baseRadius,
+      Color color,
+      List<double> factors,
+    ) {
+      for (final factor in factors) {
+        ripplePaint
+          ..color = color.withValues(alpha: 0.08 / factor.clamp(1, 3))
+          ..strokeWidth = factor == factors.first ? 1.2 : 0.9;
+        canvas.drawCircle(center, baseRadius * factor, ripplePaint);
+      }
+    }
+
+    canvas.drawCircle(
+      Offset(size.width * 0.9, -12),
+      112,
+      Paint()
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFFA3C39A).withValues(alpha: 0.56),
+                const Color(0xFFA3C39A).withValues(alpha: 0.18),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.55, 1],
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(size.width * 0.9, -12),
+                radius: 112,
+              ),
+            ),
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.52, 56),
+      130,
+      Paint()
+        ..shader =
+            RadialGradient(
+              colors: [
+                const Color(0xFFE8F1E4).withValues(alpha: 0.9),
+                const Color(0xFFE8F1E4).withValues(alpha: 0.28),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.55, 1],
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(size.width * 0.52, 56),
+                radius: 130,
+              ),
+            ),
+    );
+
+    final grainPaint = Paint()
+      ..color = const Color(0xFFAA9E85).withValues(alpha: 0.035)
+      ..strokeWidth = 0.7;
+    for (double y = 0; y < size.height; y += 14) {
+      final shift = math.sin(y / 28 + rotation) * 4;
       canvas.drawLine(
-        Offset(math.cos(angle) * 37, math.sin(angle) * 37),
-        Offset(math.cos(angle) * 44, math.sin(angle) * 44),
-        ringPaint,
+        Offset(-8, y),
+        Offset(size.width + shift, y + math.cos(y / 36 + rotation) * 1.6),
+        grainPaint,
       );
     }
+
+    drawRipple(
+      Offset(size.width * 0.08, size.height * 0.22),
+      26,
+      const Color(0xFF8FA38B),
+      const [1, 1.9, 2.8],
+    );
+    drawRipple(
+      Offset(size.width * 0.93, size.height * 0.22),
+      18,
+      const Color(0xFF9AB89C),
+      const [1, 1.75, 2.5, 3.2],
+    );
+    drawRipple(
+      Offset(size.width * 0.86, size.height * 0.72),
+      24,
+      const Color(0xFF9EAF9B),
+      const [1, 1.8, 2.6, 3.3],
+    );
+    drawRipple(
+      Offset(size.width * 0.07, size.height * 0.78),
+      20,
+      const Color(0xFFB1A587),
+      const [1, 1.9, 2.7],
+    );
+
+    canvas.save();
+    canvas.translate(size.width * 0.5, 118);
+    canvas.rotate(rotation * 0.14);
+    final sealPaint = Paint()
+      ..color = _kCompleteProfilePrimary.withValues(alpha: 0.09)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(Offset.zero, 48, sealPaint);
+    canvas.drawCircle(
+      Offset.zero,
+      35,
+      Paint()
+        ..color = const Color(0xFFC4AD7D).withValues(alpha: 0.08)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
     canvas.restore();
   }
 
@@ -1191,10 +1210,9 @@ class _InputLabel extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 11.5,
+        fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: const Color(0xFF3A3028).withValues(alpha: 0.65),
-        letterSpacing: 0.5,
+        color: const Color(0xFF1E1A12).withValues(alpha: 0.92),
       ),
     );
   }
@@ -1223,38 +1241,91 @@ class _RegisterModeTab extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         height: 38,
-        alignment: Alignment.center,
         decoration: BoxDecoration(
-          gradient: selected
-              ? const LinearGradient(
-                  colors: [
-                    Color(0xFF89C1A0),
-                    Color(0xFF9CCDB0),
-                    Color(0xFFB1D9BE),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                )
-              : null,
-          color: selected ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: const Color(0x5D8FC0A3),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
+                    color: const Color(0x4A7FAF92),
+                    blurRadius: 20,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, -1),
                   ),
                 ]
               : null,
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? const Color(0xFF2A4336) : const Color(0xFF6A645A),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                opacity: selected ? 1 : 0,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xC89FD0AF),
+                          Color(0xB28CC3A1),
+                          Color(0xA6B7DAC3),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0, 0.52, 1],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x667EAE91),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                          offset: Offset.zero,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                opacity: selected ? 1 : 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.22),
+                        Colors.white.withValues(alpha: 0.04),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Center(
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: selected
+                        ? const Color(0xFF2A4336)
+                        : const Color(0xFF6A645A),
+                  ),
+                  child: Text(label, textAlign: TextAlign.center),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1310,70 +1381,59 @@ class _GenderCard extends StatelessWidget {
       child: AnimatedContainer(
         key: cardKey,
         duration: const Duration(milliseconds: 200),
-        height: 88,
-        transform: Matrix4.translationValues(0, selected ? -4 : 0, 0),
+        height: 92,
+        transform: Matrix4.translationValues(0, selected ? -2 : 0, 0),
         decoration: BoxDecoration(
-          gradient: selected
-              ? const LinearGradient(
-                  colors: [
-                    _kCompleteProfilePrimary,
-                    _kCompleteProfilePrimaryLight,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: selected ? null : Colors.white,
+          gradient: const LinearGradient(
+            colors: [Color(0xFFF7F1E6), Color(0xFFF3ECDD)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected ? Colors.transparent : const Color(0xFFD5D9DE),
-            width: 1.2,
+            color: selected
+                ? const Color(0xFF76A883).withValues(alpha: 0.90)
+                : Colors.white.withValues(alpha: 0.68),
+            width: selected ? 1.8 : 1,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: _kCompleteProfilePrimary.withValues(alpha: 0.24),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          boxShadow: [
+            if (selected)
+              BoxShadow(
+                color: _kCompleteProfilePrimary.withValues(alpha: 0.22),
+                blurRadius: 18,
+                spreadRadius: 1,
+                offset: const Offset(0, 8),
+              )
+            else
+              BoxShadow(
+                color: const Color(0xFF8C7E6A).withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.25),
+              blurRadius: 4,
+              offset: const Offset(0, -1),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (selected)
-              Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.only(bottom: 6),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.8),
-                ),
-              )
-            else
-              const SizedBox(height: 12),
             Icon(
               icon,
-              size: 22,
-              color: selected ? Colors.white : const Color(0xFF8A9BA8),
+              size: 28,
+              color: selected
+                  ? const Color(0xFF5A8466)
+                  : const Color(0xFF75886F),
             ),
             const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? Colors.white
-                    : const Color(0xFF3A3028).withValues(alpha: 0.75),
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                color: const Color(0xFF181410),
               ),
             ),
           ],

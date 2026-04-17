@@ -198,6 +198,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Verification code sent. Please check your messages.';
 
   @override
+  String authCodeSentToReceiver(String receiver) {
+    return 'Code sent to $receiver';
+  }
+
+  @override
   String get authSendCodeFirst => 'Please request a verification code first.';
 
   @override
@@ -365,6 +370,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonSave => 'Save';
+
+  @override
+  String get commonRetry => 'Retry';
 
   @override
   String get commonLoading => 'Loading';
@@ -618,6 +626,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Personal details, family information, and health records';
 
   @override
+  String get profileMenuShippingAddress => 'Shipping Addresses';
+
+  @override
+  String get profileMenuShippingAddressSub =>
+      'Add, edit, and manage delivery addresses';
+
+  @override
+  String get profileMenuPoints => 'Points Center';
+
+  @override
+  String get profileMenuPointsSub =>
+      'Check in for points and view your history';
+
+  @override
   String get profileMenuSettings => 'Settings';
 
   @override
@@ -650,6 +672,242 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileMenuAboutSub =>
       'Learn about the service and current version v1.0.0';
+
+  @override
+  String get profileAddressTitle => 'Shipping Addresses';
+
+  @override
+  String get profileAddressAdd => 'Add Address';
+
+  @override
+  String get profileAddressEmptyTitle => 'No shipping address yet';
+
+  @override
+  String get profileAddressEmptyBody =>
+      'Add a frequently used address to fill in delivery details faster at checkout.';
+
+  @override
+  String get profileAddressReceiver => 'Recipient';
+
+  @override
+  String get profileAddressPhone => 'Phone Number';
+
+  @override
+  String get profileAddressProvinceName => 'Province Name';
+
+  @override
+  String get profileAddressProvinceCode => 'Province Code';
+
+  @override
+  String get profileAddressCityName => 'City Name';
+
+  @override
+  String get profileAddressCityCode => 'City Code';
+
+  @override
+  String get profileAddressDistrictName => 'District Name';
+
+  @override
+  String get profileAddressDistrictCode => 'District Code';
+
+  @override
+  String get profileAddressStreetName => 'Street Name';
+
+  @override
+  String get profileAddressStreetCode => 'Street Code';
+
+  @override
+  String get profileAddressRegion => 'Region';
+
+  @override
+  String get profileAddressDetail => 'Street Address';
+
+  @override
+  String get profileAddressTag => 'Address Tag';
+
+  @override
+  String get profileAddressSetDefault => 'Set as Default';
+
+  @override
+  String get profileAddressDefault => 'Default';
+
+  @override
+  String get profileAddressEdit => 'Edit';
+
+  @override
+  String get profileAddressDelete => 'Delete';
+
+  @override
+  String get profileAddressDeleteTitle => 'Delete address';
+
+  @override
+  String get profileAddressDeleteBody =>
+      'This address cannot be restored after deletion. Continue?';
+
+  @override
+  String get profileAddressDeleteAction => 'Delete';
+
+  @override
+  String get profileAddressFormAddTitle => 'Add Shipping Address';
+
+  @override
+  String get profileAddressFormEditTitle => 'Edit Shipping Address';
+
+  @override
+  String get profileAddressValidationReceiver => 'Enter the recipient name';
+
+  @override
+  String get profileAddressValidationPhone => 'Enter a valid phone number';
+
+  @override
+  String get profileAddressValidationProvinceName => 'Enter the province name';
+
+  @override
+  String get profileAddressValidationProvinceCode => 'Enter the province code';
+
+  @override
+  String get profileAddressValidationCityName => 'Enter the city name';
+
+  @override
+  String get profileAddressValidationCityCode => 'Enter the city code';
+
+  @override
+  String get profileAddressValidationDistrictName => 'Enter the district name';
+
+  @override
+  String get profileAddressValidationDistrictCode => 'Enter the district code';
+
+  @override
+  String get profileAddressValidationRegion => 'Enter the region';
+
+  @override
+  String get profileAddressValidationDetail => 'Enter the street address';
+
+  @override
+  String get profileAddressValidationCodeFormat =>
+      'Codes can contain only letters, numbers, underscores, and hyphens';
+
+  @override
+  String get profileAddressValidationStreetPair =>
+      'Street name and street code must either both be filled or both be empty';
+
+  @override
+  String get profileAddressDefaultToggle => 'Use as default shipping address';
+
+  @override
+  String get profileAddressSaveFailed =>
+      'Failed to save the address. Please try again.';
+
+  @override
+  String get profileAddressLoadFailed =>
+      'Failed to load address information. Please try again.';
+
+  @override
+  String get profileAddressDeleteFailed =>
+      'Failed to delete the address. Please try again.';
+
+  @override
+  String get profileAddressDefaultFailed =>
+      'Failed to update the default address. Please try again.';
+
+  @override
+  String get profilePointsTitle => 'Points Center';
+
+  @override
+  String get profilePointsBalance => 'Available Points';
+
+  @override
+  String get profilePointsTodayGain => 'Today';
+
+  @override
+  String get profilePointsWeekGain => 'This Week';
+
+  @override
+  String get profilePointsHisTotal => 'All-Time';
+
+  @override
+  String get profilePointsMonthlyEarned => 'Earned This Month';
+
+  @override
+  String get profilePointsMonthlySpent => 'Spent This Month';
+
+  @override
+  String get profilePointsCheckIn => 'Daily Check-in +5';
+
+  @override
+  String get profilePointsCheckInDone => 'Checked in Today';
+
+  @override
+  String get profilePointsCheckInHint =>
+      'Check in every day to collect reward points for future perks.';
+
+  @override
+  String get profilePointsCheckInFailed =>
+      'Failed to check in. Please try again.';
+
+  @override
+  String profilePointsCheckInSuccess(int points) {
+    return 'Check-in complete. You received $points points.';
+  }
+
+  @override
+  String get profilePointsHistory => 'Points History';
+
+  @override
+  String get profilePointsTasks => 'Points Tasks';
+
+  @override
+  String get profilePointsRegisterTask => 'Starter Task';
+
+  @override
+  String get profilePointsTaskEmpty => 'No points tasks available right now.';
+
+  @override
+  String get profilePointsEmpty => 'No points history yet';
+
+  @override
+  String get profilePointsLoadFailed =>
+      'Failed to load points information. Please try again.';
+
+  @override
+  String get profilePointsLoadMore => 'Load More';
+
+  @override
+  String get profilePointsLoadMoreFailed =>
+      'Failed to load more points records. Please try again.';
+
+  @override
+  String profilePointsTaskActionUnsupported(String action) {
+    return 'The task action \"$action\" is not available yet.';
+  }
+
+  @override
+  String get profilePointsEntryDailyCheckIn => 'Daily Check-in';
+
+  @override
+  String get profilePointsEntryDailyCheckInSub =>
+      'Today\'s sign-in reward has been credited';
+
+  @override
+  String get profilePointsEntryWelcome => 'Welcome Reward';
+
+  @override
+  String get profilePointsEntryWelcomeSub =>
+      'Granted after completing your new member activation';
+
+  @override
+  String get profilePointsEntryAssessment => 'Assessment Bonus';
+
+  @override
+  String get profilePointsEntryAssessmentSub =>
+      'Granted after finishing a personalized constitution assessment';
+
+  @override
+  String get profilePointsEntryCoupon => 'Consultation Coupon Redemption';
+
+  @override
+  String get profilePointsEntryCouponSub =>
+      'Points were redeemed for a discount benefit';
 
   @override
   String get profileLogout => 'Log out';

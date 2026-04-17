@@ -3,6 +3,16 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  private func readDouble(_ value: Any?) -> Double? {
+    if let doubleValue = value as? Double {
+      return doubleValue
+    }
+    if let numberValue = value as? NSNumber {
+      return numberValue.doubleValue
+    }
+    return nil
+  }
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -77,6 +87,39 @@ import UIKit
           result(FlutterError(code: "CAPTURE_FAILED", message: err, details: nil))
         }
 
+      case "scan/capture":
+        guard let args = call.arguments as? [String: Any] else {
+          result(FlutterError(code: "INVALID_ARGS", message: "Missing capture args", details: nil))
+          return
+        }
+        guard let stage = args["stage"] as? String, !stage.isEmpty else {
+          result(FlutterError(code: "INVALID_STAGE", message: "Missing capture stage", details: args))
+          return
+        }
+        guard
+          let guideRect = args["guideRect"] as? [String: Any],
+          let left = self.readDouble(guideRect["left"]),
+          let top = self.readDouble(guideRect["top"]),
+          let width = self.readDouble(guideRect["width"]),
+          let height = self.readDouble(guideRect["height"])
+        else {
+          result(FlutterError(code: "INVALID_GUIDE_RECT", message: "Missing or invalid guideRect", details: args))
+          return
+        }
+        guard let view = FaceLandmarkerViewFactory.shared.currentView else {
+          result(FlutterError(code: "NO_VIEW", message: "No active camera view", details: nil))
+          return
+        }
+
+        view.captureVisibleRegion(
+          stage: stage,
+          normalizedRect: CGRect(x: left, y: top, width: width, height: height)
+        ) { payload in
+          result(payload)
+        } onError: { err in
+          result(FlutterError(code: "CAPTURE_FAILED", message: err, details: args))
+        }
+
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -111,6 +154,33 @@ import UIKit
         result(Bundle.main.bundleIdentifier)
       } else {
         result(FlutterMethodNotImplemented)
+      }
+    }
+
+    let authSessionChannel = FlutterMethodChannel(
+      name: "auth/session",
+      binaryMessenger: scanRegistrar.messenger()
+    )
+    authSessionChannel.setMethodCallHandler { call, result in
+      do {
+        switch call.method {
+        case "readAll":
+          result(try AuthSessionSecureStore.shared.readAll())
+        case "writeAll":
+          guard let args = call.arguments as? [String: Any] else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing auth session payload", details: nil))
+            return
+          }
+          try AuthSessionSecureStore.shared.writeAll(args)
+          result(nil)
+        case "clear":
+          try AuthSessionSecureStore.shared.clear()
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      } catch {
+        result(FlutterError(code: "SECURE_STORAGE_ERROR", message: error.localizedDescription, details: nil))
       }
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

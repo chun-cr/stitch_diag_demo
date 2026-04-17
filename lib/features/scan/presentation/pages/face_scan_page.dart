@@ -4,12 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/network/dio_client.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/face_landmark_overlay.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../core/router/app_router.dart';
+import '../../data/sources/scan_remote_source.dart';
 import '../services/face_scan_status_bridge.dart';
+import '../services/scan_capture_bridge.dart';
+import '../utils/scan_capture_geometry.dart';
+import '../utils/scan_debug_error_dialog.dart';
 
 // ── 颜色系（与 scan_guide_page 绿色体系一致）
 const _kGreen = Color(0xFF2D6A4F);
@@ -50,13 +57,20 @@ class FaceScanPage extends StatefulWidget {
 class _FaceScanPageState extends State<FaceScanPage>
     with SingleTickerProviderStateMixin {
   final FaceScanStatusBridge _statusBridge = FaceScanStatusBridge();
+  late final ScanRemoteSource _scanRemoteSource;
+  final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
+  static const Alignment _faceGuideAlignment = Alignment(0, -0.25);
+  static const double _faceGuideWidth = 210;
+  static const double _faceGuideHeight = 262;
 
   bool _hasPermission = false;
   bool _isBackCamera = false;
   bool _cameraReady = false; // PlatformView 延迟创建标志
   bool _hasFaceDetected = false;
   bool _isScanning = false;
+  bool _isSubmitting = false;
+  bool _pauseAutoScanUntilReset = false;
   double _scanProgress = 0;
   bool _isTransitioning = false;
 
@@ -66,28 +80,63 @@ class _FaceScanPageState extends State<FaceScanPage>
   late Animation<double> _scanLineAnim;
   List<Offset> _normalizedLandmarks = const [];
   Size _sourceImageSize = Size.zero;
+  Size _cameraViewportSize = Size.zero;
   String _faceDirection = ''; // 位置引导文字（空 = 居中或无脸）
 
-  bool get _isFaceReadyToHold => isFaceHoldEligible(
+  Rect get _faceGuideRectNormalized => buildNormalizedGuideRect(
+    _cameraViewportSize,
+    alignment: _faceGuideAlignment,
+    guideWidth: _faceGuideWidth,
+    guideHeight: _faceGuideHeight,
+  );
+
+  ScanCaptureGuide get _faceCaptureGuide {
+    final rect = _faceGuideRectNormalized;
+    return ScanCaptureGuide(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    );
+  }
+
+  bool get _isFaceFramedForUpload {
+    final bounds = normalizedBoundingRect(_normalizedLandmarks);
+    if (bounds == null) {
+      return false;
+    }
+    final area = normalizedRectArea(bounds);
+    return area >= 0.05 &&
+        area <= 0.32 &&
+        isNormalizedBoundsInsideGuide(
+          bounds: bounds,
+          guideRect: _faceGuideRectNormalized,
+          guideInsetFactor: 0.08,
+        );
+  }
+
+  bool get _isFaceReadyToHold =>
+      isFaceHoldEligible(
         hasPermission: _hasPermission,
         hasFaceDetected: _hasFaceDetected,
         faceDirection: _faceDirection,
-      );
+      ) &&
+      _isFaceFramedForUpload;
 
   bool get _shouldAutoStartScan => shouldAutoStartFaceScan(
-        hasPermission: _hasPermission,
-        hasFaceDetected: _hasFaceDetected,
-        faceDirection: _faceDirection,
-        isScanning: _isScanning,
-        isTransitioning: _isTransitioning,
-      );
+    hasPermission: _hasPermission,
+    hasFaceDetected: _hasFaceDetected,
+    faceDirection: _faceDirection,
+    isScanning: _isScanning || _isSubmitting,
+    isTransitioning: _isTransitioning,
+  );
 
   String get _bottomStatusLabel {
     final l10n = context.l10n;
     if (!_hasPermission) {
       return l10n.scanCameraPermissionRequired;
     }
-    if (_isScanning) {
+    if (_isScanning || _isSubmitting) {
       return l10n.scanScanning;
     }
     if (_isFaceReadyToHold) {
@@ -96,11 +145,14 @@ class _FaceScanPageState extends State<FaceScanPage>
     return l10n.scanFaceAlignInFrame;
   }
 
-  bool get _bottomStatusHighlighted => !_isScanning && _isFaceReadyToHold;
+  bool get _bottomStatusHighlighted =>
+      !_isScanning && !_isSubmitting && _isFaceReadyToHold;
 
   @override
   void initState() {
     super.initState();
+    initInjector();
+    _scanRemoteSource = ScanRemoteSource(getIt<DioClient>());
     _scanLineCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -141,15 +193,24 @@ class _FaceScanPageState extends State<FaceScanPage>
         final hasFace = _extractHasFace(payload);
         final landmarks = _extractNormalizedLandmarks(payload['landmarks']);
         final imageSize = _extractImageSize(payload);
+        if (_pauseAutoScanUntilReset && !hasFace) {
+          _pauseAutoScanUntilReset = false;
+        }
         setState(() {
           _hasFaceDetected = hasFace;
           _normalizedLandmarks = landmarks;
           _sourceImageSize = imageSize;
           _faceDirection = hasFace ? _computeFaceDirection(landmarks) : '';
         });
+        if (_pauseAutoScanUntilReset && !_isFaceReadyToHold) {
+          _pauseAutoScanUntilReset = false;
+        }
+        if (_isSubmitting) {
+          return;
+        }
         if (_isScanning && !_isFaceReadyToHold) {
           _cancelScanHold(resetProgress: true);
-        } else if (_shouldAutoStartScan) {
+        } else if (!_pauseAutoScanUntilReset && _shouldAutoStartScan) {
           _startScan();
         }
       });
@@ -180,12 +241,11 @@ class _FaceScanPageState extends State<FaceScanPage>
       final progress =
           stopwatch.elapsedMilliseconds / _requiredHoldDuration.inMilliseconds;
       if (progress >= 1) {
-        setState(() => _scanProgress = 1);
         t.cancel();
-        unawaited(_navigateToTongueScan());
+        unawaited(_captureAndUploadFace());
         return;
       }
-      setState(() => _scanProgress = progress.clamp(0.0, 1.0));
+      setState(() => _scanProgress = mapHoldProgressToVisualProgress(progress));
     });
   }
 
@@ -201,10 +261,66 @@ class _FaceScanPageState extends State<FaceScanPage>
     });
   }
 
+  Future<void> _captureAndUploadFace() async {
+    if (_isSubmitting || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _scanProgress = 0.65;
+    });
+
+    try {
+      final capture = await _captureBridge.capture(
+        target: ScanCaptureTarget.face,
+        guide: _faceCaptureGuide,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _scanProgress = 0.68);
+
+      await _scanRemoteSource.uploadFace(
+        faceFilePath: capture.croppedPath,
+        faceFrameFilePath: capture.framePath,
+        onSendProgress: (sent, total) {
+          if (!mounted) {
+            return;
+          }
+          final progress = total > 0 ? sent / total : (sent > 0 ? 0.5 : 0.0);
+          setState(
+            () => _scanProgress = mapUploadProgressToVisualProgress(progress),
+          );
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _scanProgress = 1);
+      await _navigateToTongueScan();
+    } on Object catch (error, stackTrace) {
+      AppLogger.log('Face scan submission failed: $error\n$stackTrace');
+      if (!mounted) {
+        return;
+      }
+      _pauseAutoScanUntilReset = true;
+      _cancelScanHold(resetProgress: true);
+      setState(() {
+        _isSubmitting = false;
+      });
+      await showScanDebugErrorDialog(context, title: '人脸上传失败', error: error);
+    }
+  }
+
   Future<void> _navigateToTongueScan() async {
     if (_isTransitioning || !mounted) return;
     _isTransitioning = true;
     _cancelScanHold(resetProgress: true);
+    setState(() => _isSubmitting = false);
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
     if (!mounted) return;
@@ -215,6 +331,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   void dispose() {
     _timer?.cancel();
     _faceStatusSub?.cancel();
+    unawaited(_statusBridge.stopMonitoring());
     _scanLineCtrl.dispose();
     super.dispose();
   }
@@ -297,7 +414,7 @@ class _FaceScanPageState extends State<FaceScanPage>
                     color: Color(0xFF3A3028),
                   ),
                   tooltip: l10n.scanToggleCamera,
-                  onPressed: _hasPermission
+                  onPressed: _hasPermission && !_isSubmitting
                       ? () {
                           setState(() => _isBackCamera = !_isBackCamera);
                           unawaited(_statusBridge.toggleCamera());
@@ -397,9 +514,9 @@ class _FaceScanPageState extends State<FaceScanPage>
                         ],
                       ),
                       const SizedBox(height: 4),
-                        Text(
-                          l10n.scanFaceSubtitle,
-                          style: TextStyle(
+                      Text(
+                        l10n.scanFaceSubtitle,
+                        style: TextStyle(
                           fontSize: 12,
                           color: const Color(
                             0xFF3A3028,
@@ -451,59 +568,65 @@ class _FaceScanPageState extends State<FaceScanPage>
   // ─── 中间拍摄区 ──────────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return Stack(
-      children: [
-        // 相机预览：延迟到 _cameraReady 后才创建 PlatformView
-        Positioned.fill(
-          child: ClipRect(
-            child: _cameraReady
-                ? const CameraPreviewWidget(
-                    key: ValueKey('shared_camera_preview'),
-                  )
-                : Container(
-                    color: const Color(0xFF1A1A1A),
-                    child: Center(
-                      child: SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: _kGreenLight.withValues(alpha: 0.6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _cameraViewportSize = constraints.biggest;
+        return Stack(
+          children: [
+            // 相机预览：延迟到 _cameraReady 后才创建 PlatformView
+            Positioned.fill(
+              child: ClipRect(
+                child: _cameraReady
+                    ? const CameraPreviewWidget(
+                        key: ValueKey('shared_camera_preview'),
+                      )
+                    : Container(
+                        color: const Color(0xFF1A1A1A),
+                        child: Center(
+                          child: SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: _kGreenLight.withValues(alpha: 0.6),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-          ),
-        ),
-        if (defaultTargetPlatform == TargetPlatform.android && _normalizedLandmarks.isNotEmpty)
-          Positioned.fill(
-            child: FaceLandmarkOverlay(
-              normalizedLandmarks: _normalizedLandmarks,
-              imageSize: _sourceImageSize,
-              mirrored: !_isBackCamera,
-            ),
-          ),
-        // 渐变遮罩（上下淡出，融入米色背景）
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
-                  Colors.transparent,
-                  Colors.transparent,
-                  const Color(0xFFF4F1EB).withValues(alpha: 0.55),
-                ],
-                stops: const [0.0, 0.18, 0.78, 1.0],
               ),
             ),
-          ),
-        ),
-        // 椭圆扫描框（上移，让下半屏留给底部卡）
-        Align(alignment: const Alignment(0, -0.25), child: _buildOvalFrame()),
-      ],
+            if (defaultTargetPlatform == TargetPlatform.android &&
+                _normalizedLandmarks.isNotEmpty)
+              Positioned.fill(
+                child: FaceLandmarkOverlay(
+                  normalizedLandmarks: _normalizedLandmarks,
+                  imageSize: _sourceImageSize,
+                  mirrored: !_isBackCamera,
+                ),
+              ),
+            // 渐变遮罩（上下淡出，融入米色背景）
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                      Colors.transparent,
+                      Colors.transparent,
+                      const Color(0xFFF4F1EB).withValues(alpha: 0.55),
+                    ],
+                    stops: const [0.0, 0.18, 0.78, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // 椭圆扫描框（上移，让下半屏留给底部卡）
+            Align(alignment: _faceGuideAlignment, child: _buildOvalFrame()),
+          ],
+        );
+      },
     );
   }
 
@@ -619,15 +742,15 @@ class _FaceScanPageState extends State<FaceScanPage>
                       progress: _scanProgress,
                     )
                   : (_faceDirection.isNotEmpty
-                      ? _DirectionPill(direction: _faceDirection)
-                      : _StatusPill(
-                          label: _hasPermission
-                              ? (_hasFaceDetected
-                                  ? l10n.scanFaceDetectedReady
-                                  : l10n.scanFaceAlignInFrame)
-                              : l10n.scanCameraPermissionRequired,
-                          detected: _hasFaceDetected,
-                        )),
+                        ? _DirectionPill(direction: _faceDirection)
+                        : _StatusPill(
+                            label: _hasPermission
+                                ? (_hasFaceDetected
+                                      ? l10n.scanFaceDetectedReady
+                                      : l10n.scanFaceAlignInFrame)
+                                : l10n.scanCameraPermissionRequired,
+                            detected: _hasFaceDetected,
+                          )),
             ),
           ),
         ],
@@ -662,9 +785,18 @@ class _FaceScanPageState extends State<FaceScanPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _TipItem(icon: Icons.wb_sunny_outlined, label: l10n.scanTipBrightLight),
-                _TipItem(icon: Icons.face_retouching_off, label: l10n.scanFaceTipNoMakeup),
-                _TipItem(icon: Icons.remove_red_eye_outlined, label: l10n.scanFaceTipLookForward),
+                _TipItem(
+                  icon: Icons.wb_sunny_outlined,
+                  label: l10n.scanTipBrightLight,
+                ),
+                _TipItem(
+                  icon: Icons.face_retouching_off,
+                  label: l10n.scanFaceTipNoMakeup,
+                ),
+                _TipItem(
+                  icon: Icons.remove_red_eye_outlined,
+                  label: l10n.scanFaceTipLookForward,
+                ),
               ],
             ),
           ),
@@ -677,18 +809,6 @@ class _FaceScanPageState extends State<FaceScanPage>
                 _BottomStatusPrompt(
                   label: _bottomStatusLabel,
                   highlighted: _bottomStatusHighlighted,
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () => unawaited(_navigateToTongueScan()),
-                  child: Text(
-                    l10n.scanSkipThisStep,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: const Color(0xFF3A3028).withValues(alpha: 0.35),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -842,10 +962,7 @@ class _HoldFeedback extends StatelessWidget {
       children: [
         _StatusPill(label: label, detected: true),
         const SizedBox(height: 8),
-        SizedBox(
-          width: 120,
-          child: _ScanProgressBar(progress: progress),
-        ),
+        SizedBox(width: 120, child: _ScanProgressBar(progress: progress)),
       ],
     );
   }
@@ -855,10 +972,7 @@ class _BottomStatusPrompt extends StatelessWidget {
   final String label;
   final bool highlighted;
 
-  const _BottomStatusPrompt({
-    required this.label,
-    required this.highlighted,
-  });
+  const _BottomStatusPrompt({required this.label, required this.highlighted});
 
   @override
   Widget build(BuildContext context) {
@@ -928,10 +1042,7 @@ class _ScanProgressBar extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
-              BoxShadow(
-                color: _kGreen.withValues(alpha: 0.35),
-                blurRadius: 6,
-              ),
+              BoxShadow(color: _kGreen.withValues(alpha: 0.35), blurRadius: 6),
             ],
           ),
         ),

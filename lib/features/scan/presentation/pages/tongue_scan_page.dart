@@ -17,14 +17,21 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/logger.dart';
+import '../../data/sources/scan_remote_source.dart';
+import '../services/scan_capture_bridge.dart';
 import '../services/tongue_scan_status_bridge.dart';
+import '../utils/scan_capture_geometry.dart';
+import '../utils/scan_debug_error_dialog.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
 
 // ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
-enum ScanState { idle, scanning, completed }
+enum ScanState { idle, scanning, uploading, completed }
 
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
 const _kAccent = Color(0xFF0D7A5A); // 主强调色
@@ -40,8 +47,13 @@ class TongueScanPage extends StatefulWidget {
 class _TongueScanPageState extends State<TongueScanPage>
     with TickerProviderStateMixin {
   final TongueScanStatusBridge _statusBridge = TongueScanStatusBridge();
+  late final ScanRemoteSource _scanRemoteSource;
+  final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
+  static const Alignment _tongueGuideAlignment = Alignment(0, 0.32);
+  static const double _tongueGuideWidth = 138;
+  static const double _tongueGuideHeight = 164;
 
   late AnimationController _scanCtrl;
   late Animation<double> _scanAnim;
@@ -53,13 +65,34 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _hasPermission = false;
   bool _mouthPresent = false;
   bool _tongueDetected = false;
+  bool _pauseAutoScanUntilReset = false;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
+  Size _cameraViewportSize = Size.zero;
   String _mouthDirection = ''; // 方向提示
+
+  Rect get _tongueGuideRectNormalized => buildNormalizedGuideRect(
+    _cameraViewportSize,
+    alignment: _tongueGuideAlignment,
+    guideWidth: _tongueGuideWidth,
+    guideHeight: _tongueGuideHeight,
+  );
+
+  ScanCaptureGuide get _tongueCaptureGuide {
+    final rect = _tongueGuideRectNormalized;
+    return ScanCaptureGuide(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    initInjector();
+    _scanRemoteSource = ScanRemoteSource(getIt<DioClient>());
     _scanCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -68,14 +101,16 @@ class _TongueScanPageState extends State<TongueScanPage>
       begin: 0.1,
       end: 0.88,
     ).animate(CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
-    
+
     _breatheCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
-    _breatheAnim = Tween<double>(begin: 0.6, end: 1.0)
-        .animate(CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut));
-        
+    _breatheAnim = Tween<double>(
+      begin: 0.6,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut));
+
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) _requestPermission();
     });
@@ -92,6 +127,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.scanning;
       _mouthPresent = false;
       _tongueDetected = false;
+      _pauseAutoScanUntilReset = false;
       _scanProgress = 0;
     });
     _statusSubscription?.cancel();
@@ -112,23 +148,54 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.scanning;
       _mouthPresent = false;
       _tongueDetected = false;
+      _pauseAutoScanUntilReset = false;
     });
     _statusSubscription?.cancel();
-    _statusSubscription = _statusBridge.statusStream().listen(_handleStatusUpdate);
+    _statusSubscription = _statusBridge.statusStream().listen(
+      _handleStatusUpdate,
+    );
     unawaited(_statusBridge.startMonitoring());
   }
 
+  bool _isTongueFramedForUpload(TongueScanStatus status) {
+    final guideRect = _tongueGuideRectNormalized;
+    final points = status.tongueLandmarks.isNotEmpty
+        ? status.tongueLandmarks
+        : status.mouthLandmarks;
+    final bounds = normalizedBoundingRect(points);
+    final center = status.mouthCenter ?? bounds?.center;
+
+    return bounds != null &&
+        center != null &&
+        guideRect != Rect.zero &&
+        guideRect.contains(center) &&
+        isNormalizedBoundsInsideGuide(
+          bounds: bounds,
+          guideRect: guideRect,
+          guideInsetFactor: 0.02,
+        );
+  }
+
   void _handleStatusUpdate(TongueScanStatus status) {
-    if (!mounted || _scanState != ScanState.scanning) return;
+    if (!mounted || _scanState == ScanState.uploading) return;
+    final readyToCapture =
+        status.readyToScan && _isTongueFramedForUpload(status);
+    if (_pauseAutoScanUntilReset && !readyToCapture) {
+      _pauseAutoScanUntilReset = false;
+    }
+    final canHold = readyToCapture && !_pauseAutoScanUntilReset;
 
     setState(() {
       _mouthPresent = status.mouthPresent;
-      _tongueDetected = status.readyToScan;
-      _mouthDirection = (status.mouthPresent && !status.readyToScan)
+      _tongueDetected = canHold;
+      _mouthDirection = (status.mouthPresent && !canHold)
           ? _computeMouthDirection(status.mouthCenter)
           : '';
     });
-    if (status.readyToScan) {
+    if (_scanState != ScanState.scanning) {
+      return;
+    }
+    if (canHold) {
       _startHoldTracking();
     } else {
       _cancelHoldTracking(resetProgress: true);
@@ -164,27 +231,76 @@ class _TongueScanPageState extends State<TongueScanPage>
       if (progress >= 1) {
         timer.cancel();
         _holdTimer = null;
-        _completeScan();
+        unawaited(_captureAndUploadTongue());
         return;
       }
-      setState(() => _scanProgress = progress.clamp(0.0, 1.0));
+      setState(() => _scanProgress = mapHoldProgressToVisualProgress(progress));
     });
   }
 
-  void _completeScan() {
-    _statusSubscription?.cancel();
-    _statusSubscription = null;
-    unawaited(_statusBridge.stopMonitoring());
-    if (!mounted) return;
+  Future<void> _captureAndUploadTongue() async {
+    if (!mounted || _scanState == ScanState.uploading) {
+      return;
+    }
+
     setState(() {
-      _scanState = ScanState.completed;
-      _scanProgress = 1;
+      _scanState = ScanState.uploading;
+      _scanProgress = 0.65;
     });
-    unawaited(_navigateToPalmScan());
+
+    try {
+      final capture = await _captureBridge.capture(
+        target: ScanCaptureTarget.tongue,
+        guide: _tongueCaptureGuide,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _scanProgress = 0.68);
+
+      await _scanRemoteSource.uploadTongue(
+        imageFilePath: capture.croppedPath,
+        onSendProgress: (sent, total) {
+          if (!mounted) {
+            return;
+          }
+          final progress = total > 0 ? sent / total : (sent > 0 ? 0.5 : 0.0);
+          setState(
+            () => _scanProgress = mapUploadProgressToVisualProgress(progress),
+          );
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _scanState = ScanState.completed;
+        _scanProgress = 1;
+      });
+      await _navigateToPalmScan();
+    } on Object catch (error, stackTrace) {
+      AppLogger.log('Tongue scan submission failed: $error\n$stackTrace');
+      if (!mounted) {
+        return;
+      }
+      _pauseAutoScanUntilReset = true;
+      _cancelHoldTracking(resetProgress: true);
+      setState(() {
+        _scanState = ScanState.scanning;
+      });
+      await showScanDebugErrorDialog(context, title: '舌象上传失败', error: error);
+    }
   }
 
   Future<void> _navigateToPalmScan() async {
     await Future<void>.delayed(_postSuccessDelay);
+    if (!mounted) return;
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
+    await _statusBridge.stopMonitoring();
     if (!mounted) return;
     context.pushReplacement(AppRoutes.scanPalm);
   }
@@ -204,6 +320,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     _breatheCtrl.dispose();
     _statusSubscription?.cancel();
     _statusSubscription = null;
+    unawaited(_statusBridge.stopMonitoring());
     super.dispose();
   }
 
@@ -214,6 +331,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     if (_scanState == ScanState.completed) return l10n.scanTongueCompleted;
     if (!_hasPermission) return l10n.scanCameraPermissionRequired;
     if (_scanState == ScanState.idle) return l10n.scanTongueTapToStart;
+    if (_scanState == ScanState.uploading) return l10n.scanScanning;
     if (_tongueDetected) return l10n.scanTongueDetectedHold;
     if (_mouthPresent) return l10n.scanTongueMouthDetected;
     return l10n.scanTongueAlignHint;
@@ -292,7 +410,7 @@ class _TongueScanPageState extends State<TongueScanPage>
                     color: Color(0xFF3A3028),
                   ),
                   tooltip: l10n.scanToggleCamera,
-                  onPressed: _hasPermission
+                  onPressed: _hasPermission && _scanState != ScanState.uploading
                       ? () {
                           unawaited(_statusBridge.toggleCamera());
                         }
@@ -389,9 +507,9 @@ class _TongueScanPageState extends State<TongueScanPage>
                         ],
                       ),
                       const SizedBox(height: 4),
-                        Text(
-                          l10n.scanTongueSubtitle,
-                          style: TextStyle(
+                      Text(
+                        l10n.scanTongueSubtitle,
+                        style: TextStyle(
                           fontSize: 12,
                           color: const Color(
                             0xFF3A3028,
@@ -443,35 +561,38 @@ class _TongueScanPageState extends State<TongueScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final cx = constraints.maxWidth / 2;
-      final tongueFrameAlignmentY = 0.32;
-      // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
-      final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
-      // 缩小圆圈半径
-      final radius = constraints.maxWidth * 0.36;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _cameraViewportSize = constraints.biggest;
+        final cx = constraints.maxWidth / 2;
+        final tongueFrameAlignmentY = _tongueGuideAlignment.y;
+        // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
+        final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
+        // 缩小圆圈半径
+        final radius = constraints.maxWidth * 0.36;
 
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: const CameraPreviewWidget(
-              key: ValueKey('shared_camera_preview'),
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: const CameraPreviewWidget(
+                key: ValueKey('shared_camera_preview'),
+              ),
             ),
-          ),
-          Positioned.fill(
-            child: _CircleMask(
-              center: Offset(cx, cy),
-              radius: radius,
-              bgColor: _kBgColor,
+            Positioned.fill(
+              child: _CircleMask(
+                center: Offset(cx, cy),
+                radius: radius,
+                bgColor: _kBgColor,
+              ),
             ),
-          ),
-          Align(
-            alignment: Alignment(0, tongueFrameAlignmentY),
-            child: _buildTongueFrame(),
-          ),
-        ],
-      );
-    });
+            Align(
+              alignment: Alignment(0, tongueFrameAlignmentY),
+              child: _buildTongueFrame(),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildTongueFrame() {
@@ -507,33 +628,35 @@ class _TongueScanPageState extends State<TongueScanPage>
           // 精准区 (内层) 带有呼吸动画及对齐后反馈
           Positioned.fill(
             child: AnimatedBuilder(
-                animation: _breatheAnim,
-                builder: (context, child) {
-                  final opacity =
-                      (!isAligned && !isCompleted) ? _breatheAnim.value : 1.0;
-                  final haloProgress = isCompleted ? 1.0 : 0.0;
+              animation: _breatheAnim,
+              builder: (context, child) {
+                final opacity = (!isAligned && !isCompleted)
+                    ? _breatheAnim.value
+                    : 1.0;
+                final haloProgress = isCompleted ? 1.0 : 0.0;
 
-                  return TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: haloProgress.toDouble()),
-                      duration: const Duration(milliseconds: 500),
-                      builder: (context, haloVal, _) {
-                        return Opacity(
-                          opacity: opacity,
-                          child: CustomPaint(
-                            painter: _BionicTonguePainter(
-                              color: innerColor,
-                              strokeWidth: 1.5,
-                              scale: 0.92,
-                              drawNodes: isAligned || isCompleted,
-                              nodeSize:
-                                  (isAligned && !isCompleted) ? 6.0 : 4.0,
-                              haloOpacity: haloVal,
-                              haloColor: const Color(0xFF7EC8A0),
-                            ),
-                          ),
-                        );
-                      });
-                }),
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: haloProgress.toDouble()),
+                  duration: const Duration(milliseconds: 500),
+                  builder: (context, haloVal, _) {
+                    return Opacity(
+                      opacity: opacity,
+                      child: CustomPaint(
+                        painter: _BionicTonguePainter(
+                          color: innerColor,
+                          strokeWidth: 1.5,
+                          scale: 0.92,
+                          drawNodes: isAligned || isCompleted,
+                          nodeSize: (isAligned && !isCompleted) ? 6.0 : 4.0,
+                          haloOpacity: haloVal,
+                          haloColor: const Color(0xFF7EC8A0),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
 
           // 扫描线
@@ -577,7 +700,8 @@ class _TongueScanPageState extends State<TongueScanPage>
                   ? _TongueDirectionPill(direction: _mouthDirection)
                   : _StatusPill(
                       label: _statusLabel,
-                      detected: _tongueDetected ||
+                      detected:
+                          _tongueDetected ||
                           (_scanState == ScanState.completed),
                     ),
             ),
@@ -591,7 +715,10 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   Widget _buildBottomCard() {
     final l10n = context.l10n;
-    final bool canStart = _hasPermission && _scanState != ScanState.scanning;
+    final bool canStart =
+        _hasPermission &&
+        _scanState != ScanState.scanning &&
+        _scanState != ScanState.uploading;
     final bool isCompleted = _scanState == ScanState.completed;
 
     return Container(
@@ -617,9 +744,18 @@ class _TongueScanPageState extends State<TongueScanPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _TipItem(icon: Icons.wb_sunny_outlined, label: l10n.scanTipBrightLight),
-                _TipItem(icon: Icons.no_food_outlined, label: l10n.scanTongueTipNoColoredFood),
-                _TipItem(icon: Icons.waves_outlined, label: l10n.scanTongueTipTongueFlat),
+                _TipItem(
+                  icon: Icons.wb_sunny_outlined,
+                  label: l10n.scanTipBrightLight,
+                ),
+                _TipItem(
+                  icon: Icons.no_food_outlined,
+                  label: l10n.scanTongueTipNoColoredFood,
+                ),
+                _TipItem(
+                  icon: Icons.waves_outlined,
+                  label: l10n.scanTongueTipTongueFlat,
+                ),
               ],
             ),
           ),
@@ -631,29 +767,19 @@ class _TongueScanPageState extends State<TongueScanPage>
               children: [
                 if (!isCompleted)
                   _buildPrimaryButton(
-                    label: _scanState == ScanState.scanning ? l10n.scanScanning : l10n.scanTongueStartButton,
+                    label: _scanState == ScanState.scanning
+                        ? l10n.scanScanning
+                        : l10n.scanTongueStartButton,
                     enabled: canStart,
                     onTap: () => unawaited(_startScan()),
                   )
                 else
                   _buildPrimaryButton(
                     label: l10n.scanTongueNextPalm,
-                    enabled: true,
-                    onTap: () => context.pushReplacement(AppRoutes.scanPalm),
+                    enabled: false,
+                    onTap: null,
                     isNext: true,
                   ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () => context.pushReplacement(AppRoutes.scanPalm),
-                  child: Text(
-                    l10n.scanSkipThisStep,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: const Color(0xFF3A3028).withValues(alpha: 0.35),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -665,7 +791,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   Widget _buildPrimaryButton({
     required String label,
     required bool enabled,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
     bool isNext = false,
   }) {
     return GestureDetector(
@@ -823,7 +949,6 @@ class _StatusPill extends StatelessWidget {
   );
 }
 
-
 // ── 背景画布（与 scan_guide_page 完全一致）──────────────────────────────────
 
 class _BgPainter extends CustomPainter {
@@ -889,7 +1014,11 @@ class _CircleMask extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _CircleMaskPainter(center: center, radius: radius, bgColor: bgColor),
+      painter: _CircleMaskPainter(
+        center: center,
+        radius: radius,
+        bgColor: bgColor,
+      ),
     );
   }
 }
@@ -899,13 +1028,23 @@ class _CircleMaskPainter extends CustomPainter {
   final double radius;
   final Color bgColor;
 
-  _CircleMaskPainter({required this.center, required this.radius, required this.bgColor});
+  _CircleMaskPainter({
+    required this.center,
+    required this.radius,
+    required this.bgColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final circlePath = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-    final fullPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final maskPath = Path.combine(PathOperation.difference, fullPath, circlePath);
+    final circlePath = Path()
+      ..addOval(Rect.fromCircle(center: center, radius: radius));
+    final fullPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final maskPath = Path.combine(
+      PathOperation.difference,
+      fullPath,
+      circlePath,
+    );
     canvas.drawPath(maskPath, Paint()..color = bgColor); // 不透明边缘遮罩
   }
 
@@ -996,7 +1135,6 @@ class _BionicTonguePainter extends CustomPainter {
   @override
   bool shouldRepaint(_BionicTonguePainter old) => true;
 }
-
 
 // ── 方向引导气泡 ────────────────────────────────────────────────────────────
 

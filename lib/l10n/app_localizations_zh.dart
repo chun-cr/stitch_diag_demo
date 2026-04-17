@@ -161,7 +161,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authOtherMethods => '其他方式';
 
   @override
-  String get authWechatLogin => '微信登录';
+  String get authWechatLogin => '微信小程序登录';
 
   @override
   String get authAppleLogin => 'Apple 登录';
@@ -194,6 +194,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authCodeSent => '验证码已发送，请注意查收';
+
+  @override
+  String authCodeSentToReceiver(String receiver) {
+    return '验证码已发送至 $receiver';
+  }
 
   @override
   String get authSendCodeFirst => '请先获取验证码';
@@ -349,6 +354,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonSave => '保存';
+
+  @override
+  String get commonRetry => '重试';
 
   @override
   String get commonLoading => '加载中';
@@ -589,6 +597,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileMenuAccountSub => '个人资料、家人信息与健康档案';
 
   @override
+  String get profileMenuShippingAddress => '收货地址';
+
+  @override
+  String get profileMenuShippingAddressSub => '新增、编辑和管理收货地址';
+
+  @override
+  String get profileMenuPoints => '积分中心';
+
+  @override
+  String get profileMenuPointsSub => '签到领积分，查看积分明细';
+
+  @override
   String get profileMenuSettings => '设置';
 
   @override
@@ -617,6 +637,226 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileMenuAboutSub => '了解服务说明与当前版本 v1.0.0';
+
+  @override
+  String get profileAddressTitle => '收货地址';
+
+  @override
+  String get profileAddressAdd => '新增地址';
+
+  @override
+  String get profileAddressEmptyTitle => '还没有收货地址';
+
+  @override
+  String get profileAddressEmptyBody => '添加常用收货地址后，下单时可以更快填写收货信息。';
+
+  @override
+  String get profileAddressReceiver => '收货人';
+
+  @override
+  String get profileAddressPhone => '手机号';
+
+  @override
+  String get profileAddressProvinceName => '省份名称';
+
+  @override
+  String get profileAddressProvinceCode => '省份编码';
+
+  @override
+  String get profileAddressCityName => '城市名称';
+
+  @override
+  String get profileAddressCityCode => '城市编码';
+
+  @override
+  String get profileAddressDistrictName => '区县名称';
+
+  @override
+  String get profileAddressDistrictCode => '区县编码';
+
+  @override
+  String get profileAddressStreetName => '街道名称';
+
+  @override
+  String get profileAddressStreetCode => '街道编码';
+
+  @override
+  String get profileAddressRegion => '所在地区';
+
+  @override
+  String get profileAddressDetail => '详细地址';
+
+  @override
+  String get profileAddressTag => '地址标签';
+
+  @override
+  String get profileAddressSetDefault => '设为默认';
+
+  @override
+  String get profileAddressDefault => '默认';
+
+  @override
+  String get profileAddressEdit => '编辑';
+
+  @override
+  String get profileAddressDelete => '删除';
+
+  @override
+  String get profileAddressDeleteTitle => '删除收货地址';
+
+  @override
+  String get profileAddressDeleteBody => '删除后将无法恢复，是否继续？';
+
+  @override
+  String get profileAddressDeleteAction => '删除';
+
+  @override
+  String get profileAddressFormAddTitle => '新增收货地址';
+
+  @override
+  String get profileAddressFormEditTitle => '编辑收货地址';
+
+  @override
+  String get profileAddressValidationReceiver => '请输入收货人姓名';
+
+  @override
+  String get profileAddressValidationPhone => '请输入正确的手机号';
+
+  @override
+  String get profileAddressValidationProvinceName => '请输入省份名称';
+
+  @override
+  String get profileAddressValidationProvinceCode => '请输入省份编码';
+
+  @override
+  String get profileAddressValidationCityName => '请输入城市名称';
+
+  @override
+  String get profileAddressValidationCityCode => '请输入城市编码';
+
+  @override
+  String get profileAddressValidationDistrictName => '请输入区县名称';
+
+  @override
+  String get profileAddressValidationDistrictCode => '请输入区县编码';
+
+  @override
+  String get profileAddressValidationRegion => '请输入所在地区';
+
+  @override
+  String get profileAddressValidationDetail => '请输入详细地址';
+
+  @override
+  String get profileAddressValidationCodeFormat => '编码仅支持字母、数字、下划线和短横线';
+
+  @override
+  String get profileAddressValidationStreetPair => '街道名称与街道编码需要同时填写或同时留空';
+
+  @override
+  String get profileAddressDefaultToggle => '设为默认收货地址';
+
+  @override
+  String get profileAddressSaveFailed => '保存收货地址失败，请稍后重试';
+
+  @override
+  String get profileAddressLoadFailed => '加载收货地址失败，请稍后重试';
+
+  @override
+  String get profileAddressDeleteFailed => '删除收货地址失败，请稍后重试';
+
+  @override
+  String get profileAddressDefaultFailed => '设置默认收货地址失败，请稍后重试';
+
+  @override
+  String get profilePointsTitle => '积分中心';
+
+  @override
+  String get profilePointsBalance => '当前积分';
+
+  @override
+  String get profilePointsTodayGain => '今日获得';
+
+  @override
+  String get profilePointsWeekGain => '本周获得';
+
+  @override
+  String get profilePointsHisTotal => '累计获得';
+
+  @override
+  String get profilePointsMonthlyEarned => '本月获得';
+
+  @override
+  String get profilePointsMonthlySpent => '本月消耗';
+
+  @override
+  String get profilePointsCheckIn => '每日签到 +5';
+
+  @override
+  String get profilePointsCheckInDone => '今日已签到';
+
+  @override
+  String get profilePointsCheckInHint => '每日签到可领取积分奖励，后续可用于兑换优惠权益。';
+
+  @override
+  String get profilePointsCheckInFailed => '签到失败，请稍后重试';
+
+  @override
+  String profilePointsCheckInSuccess(int points) {
+    return '签到成功，已获得 $points 积分';
+  }
+
+  @override
+  String get profilePointsHistory => '积分明细';
+
+  @override
+  String get profilePointsTasks => '积分任务';
+
+  @override
+  String get profilePointsRegisterTask => '新手任务';
+
+  @override
+  String get profilePointsTaskEmpty => '暂无可领取积分任务';
+
+  @override
+  String get profilePointsEmpty => '暂无积分记录';
+
+  @override
+  String get profilePointsLoadFailed => '加载积分信息失败，请稍后重试';
+
+  @override
+  String get profilePointsLoadMore => '加载更多';
+
+  @override
+  String get profilePointsLoadMoreFailed => '加载更多积分记录失败，请稍后重试';
+
+  @override
+  String profilePointsTaskActionUnsupported(String action) {
+    return '任务入口“$action”暂不可用';
+  }
+
+  @override
+  String get profilePointsEntryDailyCheckIn => '每日签到';
+
+  @override
+  String get profilePointsEntryDailyCheckInSub => '完成今日签到，积分已入账';
+
+  @override
+  String get profilePointsEntryWelcome => '新人欢迎积分';
+
+  @override
+  String get profilePointsEntryWelcomeSub => '完成新用户激活后发放';
+
+  @override
+  String get profilePointsEntryAssessment => '体质评估奖励';
+
+  @override
+  String get profilePointsEntryAssessmentSub => '完成个性化体质评估后发放';
+
+  @override
+  String get profilePointsEntryCoupon => '兑换咨询优惠券';
+
+  @override
+  String get profilePointsEntryCouponSub => '使用积分兑换优惠权益';
 
   @override
   String get profileLogout => '退出登录';

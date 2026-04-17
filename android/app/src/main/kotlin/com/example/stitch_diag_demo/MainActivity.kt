@@ -7,6 +7,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     companion object {
         private const val APP_INFO_CHANNEL = "app/info"
+        private const val AUTH_SESSION_CHANNEL = "auth/session"
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -19,6 +20,8 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AUTH_SESSION_CHANNEL)
+            .setMethodCallHandler(AuthSessionSecureStore(applicationContext))
     }
 
     override fun onDestroy() {

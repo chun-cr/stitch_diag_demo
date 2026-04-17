@@ -17,9 +17,16 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/logger.dart';
+import '../../data/sources/scan_remote_source.dart';
 import '../services/palm_scan_status_bridge.dart';
+import '../services/scan_capture_bridge.dart';
+import '../utils/scan_capture_geometry.dart';
+import '../utils/scan_debug_error_dialog.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/hand_landmark_overlay.dart';
 import '../widgets/scan_step_indicator.dart';
@@ -29,7 +36,7 @@ const _kAccent = Color(0xFF6B5B95); // 沉稳紫（主色）
 const _kAccentLight = Color(0xFF9B8EF0); // 亮紫色（点缀）
 const _kBgColor = Color(0xFFF4F1EB); // 宣纸米色
 
-enum PalmScanState { idle, scanning, completed }
+enum PalmScanState { idle, scanning, uploading, completed }
 
 enum PalmScanFeedbackStage {
   waitingPermission,
@@ -98,8 +105,13 @@ class PalmScanPage extends StatefulWidget {
 class _PalmScanPageState extends State<PalmScanPage>
     with SingleTickerProviderStateMixin {
   final PalmScanStatusBridge _statusBridge = PalmScanStatusBridge();
+  late final ScanRemoteSource _scanRemoteSource;
+  final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
+  static const Alignment _palmGuideAlignment = Alignment(0, -0.18);
+  static const double _palmGuideWidth = 244;
+  static const double _palmGuideHeight = 322;
   late AnimationController _scanCtrl;
   late Animation<double> _scanAnim;
   StreamSubscription<PalmScanStatus>? _statusSubscription;
@@ -113,28 +125,49 @@ class _PalmScanPageState extends State<PalmScanPage>
   bool _handStraight = false;
   String _gestureName = '';
   bool _isTransitioning = false;
+  bool _pauseAutoScanUntilReset = false;
   double _scanProgress = 0;
   PalmScanState _scanState = PalmScanState.idle;
   List<Offset> _handLandmarks = const [];
   Size? _imageSize;
+  Size _cameraViewportSize = Size.zero;
   String _palmHint = ''; // 距离 / 方向提示
 
   bool get _shouldRenderHandOverlay => shouldRenderPalmOverlay(
-        handLandmarks: _handLandmarks,
-        imageSize: _imageSize,
-      );
+    handLandmarks: _handLandmarks,
+    imageSize: _imageSize,
+  );
 
   PalmScanFeedbackStage get _feedbackStage => resolvePalmScanFeedbackStage(
-        hasPermission: _hasPermission,
-        isMonitoring: _isMonitoring,
-        handPresent: _handPresent,
-        readyToScan: _readyToScan,
-        scanState: _scanState,
-      );
+    hasPermission: _hasPermission,
+    isMonitoring: _isMonitoring,
+    handPresent: _handPresent,
+    readyToScan: _readyToScan,
+    scanState: _scanState,
+  );
+
+  Rect get _palmGuideRectNormalized => buildNormalizedGuideRect(
+    _cameraViewportSize,
+    alignment: _palmGuideAlignment,
+    guideWidth: _palmGuideWidth,
+    guideHeight: _palmGuideHeight,
+  );
+
+  ScanCaptureGuide get _palmCaptureGuide {
+    final rect = _palmGuideRectNormalized;
+    return ScanCaptureGuide(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    initInjector();
+    _scanRemoteSource = ScanRemoteSource(getIt<DioClient>());
     _scanCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -162,20 +195,29 @@ class _PalmScanPageState extends State<PalmScanPage>
         _readyToScan = false;
         _handStraight = false;
         _gestureName = '';
+        _pauseAutoScanUntilReset = false;
         _scanProgress = 0;
       });
       _statusSubscription?.cancel();
       _statusSubscription = _statusBridge.statusStream().listen((status) {
         if (!mounted) return;
+        final readyToCapture =
+            status.readyToScan && _isPalmFramedForUpload(status);
+        if (_pauseAutoScanUntilReset && !readyToCapture) {
+          _pauseAutoScanUntilReset = false;
+        }
+        if (_scanState == PalmScanState.uploading) return;
+        final canHold = readyToCapture && !_pauseAutoScanUntilReset;
         setState(() {
           final nextImageSize = Size(status.imageWidth, status.imageHeight);
           _handPresent = status.handPresent;
-          _readyToScan = status.readyToScan;
+          _readyToScan = canHold;
           _handStraight = status.handStraight;
           _gestureName = status.gestureName;
           _handLandmarks = status.landmarks;
           _imageSize = nextImageSize;
-          _palmHint = shouldShowPalmHint(
+          _palmHint =
+              shouldShowPalmHint(
                 handPresent: status.handPresent,
                 handLandmarks: status.landmarks,
                 imageSize: nextImageSize,
@@ -185,7 +227,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         });
 
         if (_scanState != PalmScanState.scanning) return;
-        if (status.readyToScan) {
+        if (canHold) {
           _startHoldTracking();
         } else {
           _cancelHoldTracking(resetProgress: true);
@@ -195,12 +237,28 @@ class _PalmScanPageState extends State<PalmScanPage>
     }
   }
 
+  bool _isPalmFramedForUpload(PalmScanStatus status) {
+    final bounds = normalizedBoundingRect(status.landmarks);
+    if (bounds == null) {
+      return false;
+    }
+
+    final area = normalizedRectArea(bounds);
+    return area >= 0.05 &&
+        area <= 0.32 &&
+        isNormalizedBoundsInsideGuide(
+          bounds: bounds,
+          guideRect: _palmGuideRectNormalized,
+          guideInsetFactor: 0.02,
+        );
+  }
+
   @override
   void dispose() {
     _statusSubscription?.cancel();
     _holdTimer?.cancel();
     // 只有彻底销毁时（如返回主页）才发指令停止，跳转时不发
-    // unawaited(_statusBridge.stopMonitoring());
+    unawaited(_statusBridge.stopMonitoring());
     _scanCtrl.dispose();
     super.dispose();
   }
@@ -233,11 +291,11 @@ class _PalmScanPageState extends State<PalmScanPage>
       if (progress >= 1) {
         timer.cancel();
         _holdTimer = null;
-        _completeScan();
+        unawaited(_captureAndUploadPalm());
         return;
       }
 
-      setState(() => _scanProgress = progress.clamp(0.0, 1.0));
+      setState(() => _scanProgress = mapHoldProgressToVisualProgress(progress));
     });
   }
 
@@ -249,17 +307,63 @@ class _PalmScanPageState extends State<PalmScanPage>
     }
   }
 
-  void _completeScan() {
-    _statusSubscription?.cancel();
-    _statusSubscription = null;
-    unawaited(_statusBridge.stopMonitoring());
-    if (!mounted) return;
+  Future<void> _captureAndUploadPalm() async {
+    if (!mounted || _scanState == PalmScanState.uploading) {
+      return;
+    }
+
     setState(() {
-      _isMonitoring = false;
-      _scanState = PalmScanState.completed;
-      _scanProgress = 1;
+      _scanState = PalmScanState.uploading;
+      _scanProgress = 0.65;
     });
-    unawaited(_navigateToReportAfterDelay());
+
+    try {
+      final capture = await _captureBridge.capture(
+        target: ScanCaptureTarget.palm,
+        guide: _palmCaptureGuide,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _scanProgress = 0.68);
+
+      await _scanRemoteSource.uploadPalm(
+        handFilePath: capture.croppedPath,
+        handFrameFilePath: capture.framePath,
+        onSendProgress: (sent, total) {
+          if (!mounted) {
+            return;
+          }
+          final progress = total > 0 ? sent / total : (sent > 0 ? 0.5 : 0.0);
+          setState(
+            () => _scanProgress = mapUploadProgressToVisualProgress(progress),
+          );
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isMonitoring = false;
+        _scanState = PalmScanState.completed;
+        _scanProgress = 1;
+      });
+      await _navigateToReportAfterDelay();
+    } on Object catch (error, stackTrace) {
+      AppLogger.log('Palm scan submission failed: $error\n$stackTrace');
+      if (!mounted) {
+        return;
+      }
+      _pauseAutoScanUntilReset = true;
+      _cancelHoldTracking(resetProgress: true);
+      setState(() {
+        _scanState = PalmScanState.scanning;
+      });
+      await showScanDebugErrorDialog(context, title: '手掌上传失败', error: error);
+    }
   }
 
   Future<void> _navigateToReportAfterDelay() async {
@@ -305,12 +409,15 @@ class _PalmScanPageState extends State<PalmScanPage>
     final l10n = context.l10n;
     if (!_hasPermission) return l10n.scanPalmWaitingPermission;
     if (_scanState == PalmScanState.completed) return l10n.scanPalmCompleted;
+    if (_scanState == PalmScanState.uploading) return l10n.scanScanning;
     if (_readyToScan) return l10n.scanPalmReadyHold;
     if (_gestureName == 'Open_Palm' && !_handStraight) {
       return l10n.scanPalmOpenDetectedStraighten;
     }
     final localizedGesture = _localizedGestureName(_gestureName);
-    if (localizedGesture.isNotEmpty) return l10n.scanPalmDetectedGesture(localizedGesture);
+    if (localizedGesture.isNotEmpty) {
+      return l10n.scanPalmDetectedGesture(localizedGesture);
+    }
     if (_handPresent) {
       return l10n.scanPalmStretchOpen;
     }
@@ -416,7 +523,8 @@ class _PalmScanPageState extends State<PalmScanPage>
                     color: Color(0xFF3A3028),
                   ),
                   tooltip: l10n.scanToggleCamera,
-                  onPressed: _hasPermission
+                  onPressed:
+                      _hasPermission && _scanState != PalmScanState.uploading
                       ? () {
                           setState(() => _isBackCamera = !_isBackCamera);
                           unawaited(_statusBridge.toggleCamera());
@@ -513,9 +621,9 @@ class _PalmScanPageState extends State<PalmScanPage>
                         ],
                       ),
                       const SizedBox(height: 4),
-                        Text(
-                          l10n.scanPalmSubtitle,
-                          style: TextStyle(
+                      Text(
+                        l10n.scanPalmSubtitle,
+                        style: TextStyle(
                           fontSize: 12,
                           color: const Color(
                             0xFF3A3028,
@@ -566,41 +674,46 @@ class _PalmScanPageState extends State<PalmScanPage>
   // ─── 中间拍摄区 ─────────────────────────────────────────────────────
 
   Widget _buildCameraArea() {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: const CameraPreviewWidget(
-            key: ValueKey('palm_camera_preview'),
-          ),
-        ),
-        Positioned.fill(
-          child: _shouldRenderHandOverlay
-              ? HandLandmarkOverlay(
-                  normalizedLandmarks: _handLandmarks,
-                  imageSize: _imageSize,
-                  mirrored: !_isBackCamera,
-                )
-              : const SizedBox.shrink(),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  _kBgColor.withValues(alpha: 0.55),
-                  Colors.transparent,
-                  Colors.transparent,
-                  _kBgColor.withValues(alpha: 0.55),
-                ],
-                stops: const [0.0, 0.18, 0.78, 1.0],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _cameraViewportSize = constraints.biggest;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: const CameraPreviewWidget(
+                key: ValueKey('palm_camera_preview'),
               ),
             ),
-          ),
-        ),
-        Align(alignment: const Alignment(0, -0.18), child: _buildPalmFrame()),
-      ],
+            Positioned.fill(
+              child: _shouldRenderHandOverlay
+                  ? HandLandmarkOverlay(
+                      normalizedLandmarks: _handLandmarks,
+                      imageSize: _imageSize,
+                      mirrored: !_isBackCamera,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      _kBgColor.withValues(alpha: 0.55),
+                      Colors.transparent,
+                      Colors.transparent,
+                      _kBgColor.withValues(alpha: 0.55),
+                    ],
+                    stops: const [0.0, 0.18, 0.78, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            Align(alignment: _palmGuideAlignment, child: _buildPalmFrame()),
+          ],
+        );
+      },
     );
   }
 
@@ -608,7 +721,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     const frameW = 244.0;
     const frameH = 322.0;
     final highlightColor =
-    (_readyToScan || _scanState == PalmScanState.completed)
+        (_readyToScan || _scanState == PalmScanState.completed)
         ? _kAccentLight
         : _kAccent.withValues(alpha: 0.45);
 
@@ -636,7 +749,8 @@ class _PalmScanPageState extends State<PalmScanPage>
                 painter: _TiltedPalmGuidePainter(
                   color: highlightColor,
                   accentColor: _kAccentLight,
-                  isAligned: _readyToScan || _scanState == PalmScanState.completed,
+                  isAligned:
+                      _readyToScan || _scanState == PalmScanState.completed,
                   progress: _scanProgress,
                   scanLineT: _scanAnim.value,
                   handPresent: _shouldRenderHandOverlay,
@@ -646,7 +760,7 @@ class _PalmScanPageState extends State<PalmScanPage>
           ),
 
           Positioned(
-              bottom: -16,
+            bottom: -16,
             left: -40,
             right: -40,
             child: Center(
@@ -656,13 +770,14 @@ class _PalmScanPageState extends State<PalmScanPage>
                       progress: _scanProgress,
                     )
                   : (_palmHint.isNotEmpty &&
-                          !(_gestureName == 'Open_Palm' && !_handStraight)
-                      ? _PalmDirectionPill(hint: _palmHint)
-                      : _StatusPill(
-                          label: _statusText(),
-                          detected:
-                              _readyToScan || _scanState == PalmScanState.completed,
-                        )),
+                            !(_gestureName == 'Open_Palm' && !_handStraight)
+                        ? _PalmDirectionPill(hint: _palmHint)
+                        : _StatusPill(
+                            label: _statusText(),
+                            detected:
+                                _readyToScan ||
+                                _scanState == PalmScanState.completed,
+                          )),
             ),
           ),
         ],
@@ -696,9 +811,18 @@ class _PalmScanPageState extends State<PalmScanPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _TipItem(icon: Icons.wb_sunny_outlined, label: l10n.scanTipBrightLight),
-                _TipItem(icon: Icons.pan_tool_outlined, label: l10n.scanPalmTipFlatten),
-                _TipItem(icon: Icons.do_not_touch_outlined, label: l10n.scanTipKeepSteady),
+                _TipItem(
+                  icon: Icons.wb_sunny_outlined,
+                  label: l10n.scanTipBrightLight,
+                ),
+                _TipItem(
+                  icon: Icons.pan_tool_outlined,
+                  label: l10n.scanPalmTipFlatten,
+                ),
+                _TipItem(
+                  icon: Icons.do_not_touch_outlined,
+                  label: l10n.scanTipKeepSteady,
+                ),
               ],
             ),
           ),
@@ -713,18 +837,6 @@ class _PalmScanPageState extends State<PalmScanPage>
                       : l10n.scanScanning,
                   enabled: false,
                   onTap: _navigateToReport,
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: _navigateToReport,
-                  child: Text(
-                    l10n.scanSkipThisStep,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: const Color(0xFF3A3028).withValues(alpha: 0.35),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -748,21 +860,21 @@ class _PalmScanPageState extends State<PalmScanPage>
         decoration: BoxDecoration(
           gradient: enabled
               ? const LinearGradient(
-            colors: [Color(0xFF4B3E75), _kAccent, _kAccentLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
+                  colors: [Color(0xFF4B3E75), _kAccent, _kAccentLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
               : null,
           color: enabled ? null : const Color(0xFFE0DDD8),
           borderRadius: BorderRadius.circular(14),
           boxShadow: enabled
               ? [
-            BoxShadow(
-              color: _kAccent.withValues(alpha: 0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ]
+                  BoxShadow(
+                    color: _kAccent.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
               : null,
         ),
         child: Center(
@@ -900,10 +1012,7 @@ class _PalmHoldFeedback extends StatelessWidget {
       children: [
         _StatusPill(label: label, detected: true),
         const SizedBox(height: 8),
-        SizedBox(
-          width: 132,
-          child: _ScanProgressBar(progress: progress),
-        ),
+        SizedBox(width: 132, child: _ScanProgressBar(progress: progress)),
       ],
     );
   }
@@ -954,8 +1063,8 @@ class _TiltedPalmGuidePainter extends CustomPainter {
 
     // ── 扫描线（未检测到手时显示，表示系统正在检测）
     if (!handPresent) {
-      final scanY = size.height * 0.05 +
-          size.height * 0.90 * scanLineT.clamp(0.0, 1.0);
+      final scanY =
+          size.height * 0.05 + size.height * 0.90 * scanLineT.clamp(0.0, 1.0);
       final scanPaint = Paint()
         ..shader = LinearGradient(
           colors: [
@@ -1134,8 +1243,6 @@ class _BgPainter extends CustomPainter {
 }
 
 // ── 手绘画笔：手掌轮廓引导图 ─────────────────────────────────────────────────────
-
-
 
 // ── 手掌方向/距离提示气泡 ─────────────────────────────────────────────────────
 

@@ -62,4 +62,26 @@ void main() {
       DioClient.platform,
     );
   });
+
+  test('rejects insecure API_BASE_URL overrides on web', () {
+    expect(
+      () => DioClient.resolveBaseUrl(
+        baseUrlOverride: 'http://api.example.com',
+        isWeb: true,
+        currentUri: Uri.parse('https://app.example.com'),
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test('allows loopback HTTP overrides on web for local development', () {
+    expect(
+      DioClient.resolveBaseUrl(
+        baseUrlOverride: 'http://localhost:8080',
+        isWeb: true,
+        currentUri: Uri.parse('http://localhost:3000'),
+      ),
+      'http://localhost:8080',
+    );
+  });
 }

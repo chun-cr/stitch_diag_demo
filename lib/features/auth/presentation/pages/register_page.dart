@@ -582,7 +582,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -598,9 +598,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
               ),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 24),
+            _buildFormContent(),
             const SizedBox(height: 20),
-            _buildFormCard(),
-            const SizedBox(height: 16),
             _buildLoginRow(),
           ],
         ),
@@ -609,48 +609,33 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   // 鈹€鈹€ Security Visual 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  Widget _buildFormCard() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.76),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFF0E6D7), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x1A6F7C6D),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+  Widget _buildFormContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildRegisterModeTabs(),
+        const SizedBox(height: 22),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: _buildRegisterFormTransition,
+            child: _isEmailRegister
+                ? _buildEmailRegisterFields()
+                : _buildPhoneRegisterFields(),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildRegisterModeTabs(),
-          const SizedBox(height: 18),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: _buildRegisterFormTransition,
-              child: _isEmailRegister
-                  ? _buildEmailRegisterFields()
-                  : _buildPhoneRegisterFields(),
-            ),
-          ),
-          const SizedBox(height: 18),
-          _buildTermsRow(),
-          const SizedBox(height: 20),
-          _buildRegisterButton(),
-          const SizedBox(height: 16),
-          _buildPrivacyTip(),
-        ],
-      ),
+        ),
+        const SizedBox(height: 20),
+        _buildTermsRow(),
+        const SizedBox(height: 22),
+        _buildRegisterButton(),
+        const SizedBox(height: 16),
+        _buildPrivacyTip(),
+      ],
     );
   }
 

@@ -155,6 +155,36 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                     }
                 })
             }
+            "scan/capture" -> {
+                val stage = call.argument<String>("stage")
+                val guideRect = call.argument<Map<String, Any?>>("guideRect")
+
+                if (stage.isNullOrBlank()) {
+                    result.error("INVALID_STAGE", "Missing capture stage", null)
+                    return
+                }
+
+                val normalizedRect = parseNormalizedRect(guideRect)
+                if (normalizedRect == null) {
+                    result.error("INVALID_GUIDE_RECT", "Missing or invalid guideRect", guideRect)
+                    return
+                }
+
+                cameraManager.captureVisibleRegion(
+                    stage = stage,
+                    normalizedRect = normalizedRect,
+                    onSuccess = { payload ->
+                        (context as? MainActivity)?.runOnUiThread {
+                            result.success(payload)
+                        }
+                    },
+                    onError = { error ->
+                        (context as? MainActivity)?.runOnUiThread {
+                            result.error("CAPTURE_FAILED", error, guideRect)
+                        }
+                    },
+                )
+            }
             else -> result.notImplemented()
         }
     }
@@ -226,5 +256,35 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
         eventSink = null
         gestureEventSink = null
         tongueEventSink = null
+    }
+
+    private fun parseNormalizedRect(raw: Map<String, Any?>?): RectFCompat? {
+        if (raw == null) {
+            return null
+        }
+
+        fun readDouble(key: String): Double? {
+            val value = raw[key]
+            return when (value) {
+                is Number -> value.toDouble()
+                else -> null
+            }
+        }
+
+        val left = readDouble("left") ?: return null
+        val top = readDouble("top") ?: return null
+        val width = readDouble("width") ?: return null
+        val height = readDouble("height") ?: return null
+
+        if (width <= 0 || height <= 0) {
+            return null
+        }
+
+        return RectFCompat(
+            left = left,
+            top = top,
+            width = width,
+            height = height,
+        )
     }
 }

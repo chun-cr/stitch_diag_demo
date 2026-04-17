@@ -405,7 +405,7 @@ abstract class AppLocalizations {
   /// No description provided for @authWechatLogin.
   ///
   /// In zh, this message translates to:
-  /// **'微信登录'**
+  /// **'微信小程序登录'**
   String get authWechatLogin;
 
   /// No description provided for @authAppleLogin.
@@ -467,6 +467,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'验证码已发送，请注意查收'**
   String get authCodeSent;
+
+  /// No description provided for @authCodeSentToReceiver.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码已发送至 {receiver}'**
+  String authCodeSentToReceiver(String receiver);
 
   /// No description provided for @authSendCodeFirst.
   ///
@@ -773,6 +779,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'保存'**
   String get commonSave;
+
+  /// No description provided for @commonRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get commonRetry;
 
   /// No description provided for @commonLoading.
   ///
@@ -1242,6 +1254,30 @@ abstract class AppLocalizations {
   /// **'个人资料、家人信息与健康档案'**
   String get profileMenuAccountSub;
 
+  /// No description provided for @profileMenuShippingAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'收货地址'**
+  String get profileMenuShippingAddress;
+
+  /// No description provided for @profileMenuShippingAddressSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增、编辑和管理收货地址'**
+  String get profileMenuShippingAddressSub;
+
+  /// No description provided for @profileMenuPoints.
+  ///
+  /// In zh, this message translates to:
+  /// **'积分中心'**
+  String get profileMenuPoints;
+
+  /// No description provided for @profileMenuPointsSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'签到领积分，查看积分明细'**
+  String get profileMenuPointsSub;
+
   /// No description provided for @profileMenuSettings.
   ///
   /// In zh, this message translates to:
@@ -1301,6 +1337,438 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'了解服务说明与当前版本 v1.0.0'**
   String get profileMenuAboutSub;
+
+  /// No description provided for @profileAddressTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'收货地址'**
+  String get profileAddressTitle;
+
+  /// No description provided for @profileAddressAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增地址'**
+  String get profileAddressAdd;
+
+  /// No description provided for @profileAddressEmptyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有收货地址'**
+  String get profileAddressEmptyTitle;
+
+  /// No description provided for @profileAddressEmptyBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加常用收货地址后，下单时可以更快填写收货信息。'**
+  String get profileAddressEmptyBody;
+
+  /// No description provided for @profileAddressReceiver.
+  ///
+  /// In zh, this message translates to:
+  /// **'收货人'**
+  String get profileAddressReceiver;
+
+  /// No description provided for @profileAddressPhone.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机号'**
+  String get profileAddressPhone;
+
+  /// No description provided for @profileAddressProvinceName.
+  ///
+  /// In zh, this message translates to:
+  /// **'省份名称'**
+  String get profileAddressProvinceName;
+
+  /// No description provided for @profileAddressProvinceCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'省份编码'**
+  String get profileAddressProvinceCode;
+
+  /// No description provided for @profileAddressCityName.
+  ///
+  /// In zh, this message translates to:
+  /// **'城市名称'**
+  String get profileAddressCityName;
+
+  /// No description provided for @profileAddressCityCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'城市编码'**
+  String get profileAddressCityCode;
+
+  /// No description provided for @profileAddressDistrictName.
+  ///
+  /// In zh, this message translates to:
+  /// **'区县名称'**
+  String get profileAddressDistrictName;
+
+  /// No description provided for @profileAddressDistrictCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'区县编码'**
+  String get profileAddressDistrictCode;
+
+  /// No description provided for @profileAddressStreetName.
+  ///
+  /// In zh, this message translates to:
+  /// **'街道名称'**
+  String get profileAddressStreetName;
+
+  /// No description provided for @profileAddressStreetCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'街道编码'**
+  String get profileAddressStreetCode;
+
+  /// No description provided for @profileAddressRegion.
+  ///
+  /// In zh, this message translates to:
+  /// **'所在地区'**
+  String get profileAddressRegion;
+
+  /// No description provided for @profileAddressDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'详细地址'**
+  String get profileAddressDetail;
+
+  /// No description provided for @profileAddressTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'地址标签'**
+  String get profileAddressTag;
+
+  /// No description provided for @profileAddressSetDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'设为默认'**
+  String get profileAddressSetDefault;
+
+  /// No description provided for @profileAddressDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认'**
+  String get profileAddressDefault;
+
+  /// No description provided for @profileAddressEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑'**
+  String get profileAddressEdit;
+
+  /// No description provided for @profileAddressDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除'**
+  String get profileAddressDelete;
+
+  /// No description provided for @profileAddressDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除收货地址'**
+  String get profileAddressDeleteTitle;
+
+  /// No description provided for @profileAddressDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除后将无法恢复，是否继续？'**
+  String get profileAddressDeleteBody;
+
+  /// No description provided for @profileAddressDeleteAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除'**
+  String get profileAddressDeleteAction;
+
+  /// No description provided for @profileAddressFormAddTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增收货地址'**
+  String get profileAddressFormAddTitle;
+
+  /// No description provided for @profileAddressFormEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑收货地址'**
+  String get profileAddressFormEditTitle;
+
+  /// No description provided for @profileAddressValidationReceiver.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入收货人姓名'**
+  String get profileAddressValidationReceiver;
+
+  /// No description provided for @profileAddressValidationPhone.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入正确的手机号'**
+  String get profileAddressValidationPhone;
+
+  /// No description provided for @profileAddressValidationProvinceName.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入省份名称'**
+  String get profileAddressValidationProvinceName;
+
+  /// No description provided for @profileAddressValidationProvinceCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入省份编码'**
+  String get profileAddressValidationProvinceCode;
+
+  /// No description provided for @profileAddressValidationCityName.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入城市名称'**
+  String get profileAddressValidationCityName;
+
+  /// No description provided for @profileAddressValidationCityCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入城市编码'**
+  String get profileAddressValidationCityCode;
+
+  /// No description provided for @profileAddressValidationDistrictName.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入区县名称'**
+  String get profileAddressValidationDistrictName;
+
+  /// No description provided for @profileAddressValidationDistrictCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入区县编码'**
+  String get profileAddressValidationDistrictCode;
+
+  /// No description provided for @profileAddressValidationRegion.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入所在地区'**
+  String get profileAddressValidationRegion;
+
+  /// No description provided for @profileAddressValidationDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入详细地址'**
+  String get profileAddressValidationDetail;
+
+  /// No description provided for @profileAddressValidationCodeFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'编码仅支持字母、数字、下划线和短横线'**
+  String get profileAddressValidationCodeFormat;
+
+  /// No description provided for @profileAddressValidationStreetPair.
+  ///
+  /// In zh, this message translates to:
+  /// **'街道名称与街道编码需要同时填写或同时留空'**
+  String get profileAddressValidationStreetPair;
+
+  /// No description provided for @profileAddressDefaultToggle.
+  ///
+  /// In zh, this message translates to:
+  /// **'设为默认收货地址'**
+  String get profileAddressDefaultToggle;
+
+  /// No description provided for @profileAddressSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存收货地址失败，请稍后重试'**
+  String get profileAddressSaveFailed;
+
+  /// No description provided for @profileAddressLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载收货地址失败，请稍后重试'**
+  String get profileAddressLoadFailed;
+
+  /// No description provided for @profileAddressDeleteFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除收货地址失败，请稍后重试'**
+  String get profileAddressDeleteFailed;
+
+  /// No description provided for @profileAddressDefaultFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置默认收货地址失败，请稍后重试'**
+  String get profileAddressDefaultFailed;
+
+  /// No description provided for @profilePointsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'积分中心'**
+  String get profilePointsTitle;
+
+  /// No description provided for @profilePointsBalance.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前积分'**
+  String get profilePointsBalance;
+
+  /// No description provided for @profilePointsTodayGain.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日获得'**
+  String get profilePointsTodayGain;
+
+  /// No description provided for @profilePointsWeekGain.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周获得'**
+  String get profilePointsWeekGain;
+
+  /// No description provided for @profilePointsHisTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'累计获得'**
+  String get profilePointsHisTotal;
+
+  /// No description provided for @profilePointsMonthlyEarned.
+  ///
+  /// In zh, this message translates to:
+  /// **'本月获得'**
+  String get profilePointsMonthlyEarned;
+
+  /// No description provided for @profilePointsMonthlySpent.
+  ///
+  /// In zh, this message translates to:
+  /// **'本月消耗'**
+  String get profilePointsMonthlySpent;
+
+  /// No description provided for @profilePointsCheckIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'每日签到 +5'**
+  String get profilePointsCheckIn;
+
+  /// No description provided for @profilePointsCheckInDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日已签到'**
+  String get profilePointsCheckInDone;
+
+  /// No description provided for @profilePointsCheckInHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'每日签到可领取积分奖励，后续可用于兑换优惠权益。'**
+  String get profilePointsCheckInHint;
+
+  /// No description provided for @profilePointsCheckInFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'签到失败，请稍后重试'**
+  String get profilePointsCheckInFailed;
+
+  /// No description provided for @profilePointsCheckInSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'签到成功，已获得 {points} 积分'**
+  String profilePointsCheckInSuccess(int points);
+
+  /// No description provided for @profilePointsHistory.
+  ///
+  /// In zh, this message translates to:
+  /// **'积分明细'**
+  String get profilePointsHistory;
+
+  /// No description provided for @profilePointsTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'积分任务'**
+  String get profilePointsTasks;
+
+  /// No description provided for @profilePointsRegisterTask.
+  ///
+  /// In zh, this message translates to:
+  /// **'新手任务'**
+  String get profilePointsRegisterTask;
+
+  /// No description provided for @profilePointsTaskEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无可领取积分任务'**
+  String get profilePointsTaskEmpty;
+
+  /// No description provided for @profilePointsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无积分记录'**
+  String get profilePointsEmpty;
+
+  /// No description provided for @profilePointsLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载积分信息失败，请稍后重试'**
+  String get profilePointsLoadFailed;
+
+  /// No description provided for @profilePointsLoadMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载更多'**
+  String get profilePointsLoadMore;
+
+  /// No description provided for @profilePointsLoadMoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载更多积分记录失败，请稍后重试'**
+  String get profilePointsLoadMoreFailed;
+
+  /// No description provided for @profilePointsTaskActionUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务入口“{action}”暂不可用'**
+  String profilePointsTaskActionUnsupported(String action);
+
+  /// No description provided for @profilePointsEntryDailyCheckIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'每日签到'**
+  String get profilePointsEntryDailyCheckIn;
+
+  /// No description provided for @profilePointsEntryDailyCheckInSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成今日签到，积分已入账'**
+  String get profilePointsEntryDailyCheckInSub;
+
+  /// No description provided for @profilePointsEntryWelcome.
+  ///
+  /// In zh, this message translates to:
+  /// **'新人欢迎积分'**
+  String get profilePointsEntryWelcome;
+
+  /// No description provided for @profilePointsEntryWelcomeSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成新用户激活后发放'**
+  String get profilePointsEntryWelcomeSub;
+
+  /// No description provided for @profilePointsEntryAssessment.
+  ///
+  /// In zh, this message translates to:
+  /// **'体质评估奖励'**
+  String get profilePointsEntryAssessment;
+
+  /// No description provided for @profilePointsEntryAssessmentSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成个性化体质评估后发放'**
+  String get profilePointsEntryAssessmentSub;
+
+  /// No description provided for @profilePointsEntryCoupon.
+  ///
+  /// In zh, this message translates to:
+  /// **'兑换咨询优惠券'**
+  String get profilePointsEntryCoupon;
+
+  /// No description provided for @profilePointsEntryCouponSub.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用积分兑换优惠权益'**
+  String get profilePointsEntryCouponSub;
 
   /// No description provided for @profileLogout.
   ///

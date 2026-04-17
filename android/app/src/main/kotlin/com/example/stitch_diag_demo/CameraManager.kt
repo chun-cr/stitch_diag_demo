@@ -2,12 +2,15 @@ package com.example.stitch_diag_demo
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Rect
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.Executors
 
 class CameraManager(private val context: Context) {
@@ -150,6 +153,66 @@ class CameraManager(private val context: Context) {
         }
     }
 
+    fun captureVisibleRegion(
+        stage: String,
+        normalizedRect: RectFCompat,
+        onSuccess: (Map<String, Any>) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val previewView = lastPreviewView ?: run {
+            onError("PreviewView not ready")
+            return
+        }
+
+        previewView.post {
+            val previewBitmap = previewView.bitmap
+            if (previewBitmap == null) {
+                onError("Preview bitmap unavailable")
+                return@post
+            }
+
+            backgroundExecutor.execute {
+                try {
+                    val cropRect = normalizedRect.toPixelRect(
+                        width = previewBitmap.width,
+                        height = previewBitmap.height,
+                    )
+                    val croppedBitmap = Bitmap.createBitmap(
+                        previewBitmap,
+                        cropRect.left,
+                        cropRect.top,
+                        cropRect.width(),
+                        cropRect.height(),
+                    )
+
+                    val timestamp = System.currentTimeMillis()
+                    val sourceFile = File(context.cacheDir, "${stage}_source_$timestamp.jpg")
+                    val cropFile = File(context.cacheDir, "${stage}_crop_$timestamp.jpg")
+
+                    saveBitmap(previewBitmap, sourceFile)
+                    saveBitmap(croppedBitmap, cropFile)
+
+                    onSuccess(
+                        mapOf(
+                            "stage" to stage,
+                            "sourcePath" to sourceFile.absolutePath,
+                            "croppedPath" to cropFile.absolutePath,
+                            "framePath" to cropFile.absolutePath,
+                            "sourceWidth" to previewBitmap.width.toDouble(),
+                            "sourceHeight" to previewBitmap.height.toDouble(),
+                            "cropLeft" to cropRect.left.toDouble(),
+                            "cropTop" to cropRect.top.toDouble(),
+                            "cropWidth" to cropRect.width().toDouble(),
+                            "cropHeight" to cropRect.height().toDouble(),
+                        )
+                    )
+                } catch (error: Exception) {
+                    onError(error.message ?: "Visible region capture failed")
+                }
+            }
+        }
+    }
+
     fun setPreviewView(previewView: androidx.camera.view.PreviewView) {
         lastPreviewView = previewView
         preview?.setSurfaceProvider(previewView.surfaceProvider)
@@ -159,6 +222,42 @@ class CameraManager(private val context: Context) {
     // For PlatformView
     fun attachPreview(previewView: androidx.camera.view.PreviewView) {
         setPreviewView(previewView)
+    }
+
+    private fun saveBitmap(bitmap: Bitmap, file: File) {
+        FileOutputStream(file).use { output ->
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)) {
+                throw IllegalStateException("Failed to write bitmap to ${file.absolutePath}")
+            }
+            output.flush()
+        }
+    }
+}
+
+data class RectFCompat(
+    val left: Double,
+    val top: Double,
+    val width: Double,
+    val height: Double,
+) {
+    fun toPixelRect(width: Int, height: Int): Rect {
+        val safeLeft = (left.coerceIn(0.0, 1.0) * width).toInt()
+        val safeTop = (top.coerceIn(0.0, 1.0) * height).toInt()
+        val safeRight = ((left + this.width).coerceIn(0.0, 1.0) * width).toInt()
+        val safeBottom = ((top + this.height).coerceIn(0.0, 1.0) * height).toInt()
+
+        val rect = Rect(
+            safeLeft.coerceIn(0, width - 1),
+            safeTop.coerceIn(0, height - 1),
+            safeRight.coerceIn(1, width),
+            safeBottom.coerceIn(1, height),
+        )
+
+        if (rect.width() <= 0 || rect.height() <= 0) {
+            throw IllegalArgumentException("Invalid crop rect from normalized guide: $this")
+        }
+
+        return rect
     }
 }
 
