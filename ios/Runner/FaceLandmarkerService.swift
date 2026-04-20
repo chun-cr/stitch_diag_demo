@@ -158,7 +158,8 @@ extension FaceLandmarkerService: FaceLandmarkerLiveStreamDelegate {
 
         let tongueResult = TongueDetectionEvaluator.evaluate(
             landmarks: result?.faceLandmarks.first,
-            imageSize: latestImageSize
+            imageSize: latestImageSize,
+            blendshapes: blendshapes
         )
 
         delegate?.faceLandmarkerService(

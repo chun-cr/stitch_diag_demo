@@ -6,6 +6,8 @@ class _Tab1Overview extends StatelessWidget {
   final bool isUnlocked;
   final Future<void> Function() onUnlock;
   final ValueChanged<int> onNavigateToTab;
+  final ReportAddSymptomAction addReportSymptom;
+  final ReportDeleteSymptomAction deleteReportSymptom;
 
   const _Tab1Overview({
     required this.viewData,
@@ -13,204 +15,59 @@ class _Tab1Overview extends StatelessWidget {
     required this.isUnlocked,
     required this.onUnlock,
     required this.onNavigateToTab,
+    required this.addReportSymptom,
+    required this.deleteReportSymptom,
   });
 
   @override
   Widget build(BuildContext context) {
+    final children = <Widget>[];
+    if (viewData.hasRiskIndexes) {
+      children.add(_buildRiskSection());
+      children.add(const SizedBox(height: 16));
+    }
+    if (viewData.hasHealthRadar) {
+      children.add(_buildHealthRadarSection());
+      children.add(const SizedBox(height: 16));
+    }
+    children.addAll([
+      _buildDiagSummary(context),
+      const SizedBox(height: 16),
+      _buildModuleEntries(context),
+      const SizedBox(height: 16),
+      _buildScanMeta(context),
+    ]);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-      children: [
-        // 三诊评分卡
-        _buildThreeDiagScores(context),
-        const SizedBox(height: 16),
-        // 舌象缩略 + 五行
-        _buildTongueAndWuxing(context),
-        const SizedBox(height: 16),
-        // 辨证摘要
-        _buildDiagSummary(context),
-        const SizedBox(height: 16),
-        // 模块入口导航卡
-        _buildModuleEntries(context),
-        const SizedBox(height: 16),
-        // 扫描时间信息
-        _buildScanMeta(context),
-      ],
+      children: children,
     );
   }
 
-  // ── 三诊评分 ─────────────────────────────────────────────────────
-  Widget _buildThreeDiagScores(BuildContext context) {
-    final l10n = context.l10n;
-    final diagData = [
-      (
-        l10n.metricFaceDiagnosis,
-        viewData.faceScore / 100,
-        const Color(0xFF2D6A4F),
-        Icons.face_retouching_natural_outlined,
-        l10n.reportOverviewFaceDiagnosisDesc,
-      ),
-      (
-        l10n.metricTongueDiagnosis,
-        viewData.tongueScore / 100,
-        const Color(0xFF0D7A5A),
-        Icons.sentiment_satisfied_alt_outlined,
-        l10n.reportOverviewTongueDiagnosisDesc,
-      ),
-      (
-        l10n.metricPalmDiagnosis,
-        viewData.palmScore / 100,
-        const Color(0xFF6B5B95),
-        Icons.back_hand_outlined,
-        l10n.reportOverviewPalmDiagnosisDesc,
-      ),
-    ];
-
+  // 鈹€鈹€ 椋庨櫓鎸囨暟 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  Widget _buildRiskSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FloatingSectionTitle(title: l10n.reportOverviewDiagScoresTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Row(
-                children: diagData.map((d) {
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: d == diagData.last ? 0 : 10,
-                      ),
-                      child: _DiagScoreCell(
-                        label: d.$1,
-                        score: d.$2,
-                        color: d.$3,
-                        icon: d.$4,
-                        desc: d.$5,
-                        anim: scoreAnim,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
+        _RiskIndexSectionBlock(
+          riskIndexes: viewData.riskIndexes,
+          scoreAnim: scoreAnim,
+          consultNavigate: viewData.consultNavigate,
         ),
       ],
     );
   }
 
-  // ── 舌象 + 五行 ──────────────────────────────────────────────────
-  Widget _buildTongueAndWuxing(BuildContext context) {
-    final l10n = context.l10n;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportOverviewFeatureDetailsTitle),
-        const SizedBox(height: 10),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 5,
-                child: _SectionCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reportOverviewTongueTitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E1810),
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          height: 90,
-                          width: double.infinity,
-                          color: const Color(0xFFE8F5EE),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.sentiment_satisfied_alt_outlined,
-                                  size: 32,
-                                  color: const Color(
-                                    0xFF0D7A5A,
-                                  ).withValues(alpha: 0.5),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  l10n.reportOverviewTongueImagePlaceholder,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: const Color(
-                                      0xFF0D7A5A,
-                                    ).withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _InfoRow(
-                        label: l10n.reportOverviewTongueColorLabel,
-                        value: l10n.reportOverviewTongueColorValue,
-                      ),
-                      const SizedBox(height: 4),
-                      _InfoRow(
-                        label: l10n.reportOverviewTongueCoatingLabel,
-                        value: l10n.reportOverviewTongueCoatingValue,
-                      ),
-                      const SizedBox(height: 4),
-                      _InfoRow(
-                        label: l10n.reportOverviewTongueShapeLabel,
-                        value: l10n.reportOverviewTongueShapeValue,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 5,
-                child: _SectionCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reportOverviewWuxingTitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E1810),
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Expanded(child: _WuxingBars()),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  // 鈹€鈹€ 鑸岃薄 + 浜旇 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  Widget _buildHealthRadarSection() {
+    return _HealthRadarSectionBlock(
+      viewData: viewData,
+      addReportSymptom: addReportSymptom,
+      deleteReportSymptom: deleteReportSymptom,
     );
   }
 
-  // ── 辨证摘要 ─────────────────────────────────────────────────────
+  // 鈹€鈹€ 杈ㄨ瘉鎽樿 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildDiagSummary(BuildContext context) {
     final l10n = context.l10n;
     final summary = viewData.summary ?? l10n.reportOverviewDiagnosisSummaryBody;
@@ -269,12 +126,12 @@ class _Tab1Overview extends StatelessWidget {
                         text: primaryConstitution,
                         style: TextStyle(color: Color(0xFF0D7A5A)),
                       ),
-                      const TextSpan(text: '  ·  '),
+                      const TextSpan(text: '  路  '),
                       TextSpan(
                         text: secondaryBias,
                         style: TextStyle(color: Color(0xFF2D6A4F)),
                       ),
-                      const TextSpan(text: '  ·  '),
+                      const TextSpan(text: '  路  '),
                       TextSpan(
                         text: l10n.reportOverviewDiagnosisTagSpleenWeak,
                         style: TextStyle(color: Color(0xFFC9A84C)),
@@ -290,7 +147,7 @@ class _Tab1Overview extends StatelessWidget {
     );
   }
 
-  // ── 模块入口 ─────────────────────────────────────────────────────
+  // 鈹€鈹€ 妯″潡鍏ュ彛 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildModuleEntries(BuildContext context) {
     final l10n = context.l10n;
     final entries = [
@@ -444,7 +301,7 @@ class _Tab1Overview extends StatelessWidget {
     );
   }
 
-  // ── 扫描元信息 ───────────────────────────────────────────────────
+  // 鈹€鈹€ 鎵弿鍏冧俊鎭?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildScanMeta(BuildContext context) {
     final l10n = context.l10n;
     final metaSegments = [
@@ -453,7 +310,7 @@ class _Tab1Overview extends StatelessWidget {
     ];
     final scanMeta = metaSegments.isEmpty
         ? l10n.reportOverviewScanMetaDisclaimer
-        : '${metaSegments.join(' · ')} · ${l10n.reportOverviewScanMetaDisclaimer}';
+        : '${metaSegments.join(' 路 ')} 路 ${l10n.reportOverviewScanMetaDisclaimer}';
 
     return Container(
       padding: const EdgeInsets.all(14),

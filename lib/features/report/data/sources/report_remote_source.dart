@@ -20,39 +20,129 @@ class ReportRemoteSource {
     );
   }
 
+  Future<DiagnosisMaNavigate?> getMaNavigate({
+    required String tenantId,
+    String? storeId,
+  }) async {
+    final queryParameters = _buildTenantStoreCompatQueryParameters(
+      tenantId: tenantId,
+      storeId: storeId,
+    );
+    if (queryParameters.isEmpty) {
+      return null;
+    }
+
+    final envelope = await _getEnvelope(
+      '/mb/clinic/ma/navigate',
+      queryParameters: queryParameters,
+    );
+    final payload = _asMap(envelope['data']);
+    if (payload.isEmpty) {
+      return null;
+    }
+    return DiagnosisMaNavigate.fromJson(payload);
+  }
+
+  Future<void> addReportSymptom({
+    required String reportId,
+    required String symptomId,
+    required String symptomName,
+    required String recommendType,
+  }) async {
+    if (reportId.trim().isEmpty || symptomId.trim().isEmpty) {
+      return;
+    }
+
+    await _sendEnvelope(
+      () => _dioClient.dio.post<dynamic>(
+        '/mb/physique/ai/diagnosis/report/symptom',
+        data: <String, dynamic>{
+          'reportId': reportId,
+          'symptomId': symptomId,
+          'symptomName': symptomName,
+          'recommendType': recommendType,
+        },
+      ),
+    );
+  }
+
+  Future<void> deleteReportSymptom({
+    required String reportId,
+    required String symptomId,
+    required String recommendType,
+  }) async {
+    if (reportId.trim().isEmpty || symptomId.trim().isEmpty) {
+      return;
+    }
+
+    await _sendEnvelope(
+      () => _dioClient.dio.delete<dynamic>(
+        '/mb/physique/ai/diagnosis/report/symptom',
+        data: <String, dynamic>{
+          'reportId': reportId,
+          'symptomId': symptomId,
+          'recommendType': recommendType,
+        },
+      ),
+    );
+  }
+
   Future<DiagnosisReportSummary?> getLatestReport({
     required String source,
   }) async {
-    final queryParameters = <String, dynamic>{
-      'pageNo': 1,
-      'pageSize': 1,
-      'source': source,
-    };
+    final envelope = await _getReportsEnvelope(
+      pageNo: 1,
+      pageSize: 1,
+      source: source,
+    );
+    return _firstSummaryOrNull(envelope);
+  }
 
-    try {
-      final envelope = await _getEnvelope(
-        '/api/v1/saas/physiques/reports',
-        queryParameters: queryParameters,
+  Future<List<DiagnosisReportSummary>> getAllReports({
+    String? source,
+    int pageSize = 50,
+  }) async {
+    final reports = <DiagnosisReportSummary>[];
+    var pageNo = 1;
+    int? totalCount;
+
+    while (true) {
+      final envelope = await _getReportsEnvelope(
+        pageNo: pageNo,
+        pageSize: pageSize,
+        source: source,
       );
-      return _firstSummaryOrNull(envelope);
-    } on DioException {
-      final fallbackEnvelope = await _getEnvelope(
-        '/api/v1/saas/physiques/reports',
-        queryParameters: <String, dynamic>{'pageNo': 1, 'pageSize': 1},
-      );
-      return _firstSummaryOrNull(fallbackEnvelope);
+      final items = _extractSummaries(envelope);
+      if (items.isEmpty) {
+        break;
+      }
+
+      reports.addAll(items);
+      totalCount ??= _extractTotalCount(envelope);
+      if ((totalCount != null && reports.length >= totalCount) ||
+          items.length < pageSize) {
+        break;
+      }
+
+      pageNo += 1;
     }
+
+    return reports;
   }
 
   Future<Map<String, dynamic>> _getEnvelope(
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    final response = await _dioClient.dio.get<dynamic>(
-      path,
-      queryParameters: queryParameters,
+    return _sendEnvelope(
+      () => _dioClient.dio.get<dynamic>(path, queryParameters: queryParameters),
     );
+  }
 
+  Future<Map<String, dynamic>> _sendEnvelope(
+    Future<Response<dynamic>> Function() request,
+  ) async {
+    final response = await request();
     final envelope = _asMap(response.data);
     final businessCode = (envelope['code'] as num?)?.toInt();
     if (businessCode != null && businessCode != 0) {
@@ -77,18 +167,88 @@ class ReportRemoteSource {
   }
 
   DiagnosisReportSummary? _firstSummaryOrNull(Map<String, dynamic> envelope) {
+    final items = _extractSummaries(envelope);
+    if (items.isEmpty) {
+      return null;
+    }
+    return items.first;
+  }
+
+  Future<Map<String, dynamic>> _getReportsEnvelope({
+    required int pageNo,
+    required int pageSize,
+    String? source,
+  }) async {
+    final queryParameters = <String, dynamic>{
+      'pageNo': pageNo,
+      'pageSize': pageSize,
+      if (source != null && source.trim().isNotEmpty) 'source': source,
+    };
+
+    try {
+      return await _getEnvelope(
+        '/api/v1/saas/physiques/reports',
+        queryParameters: queryParameters,
+      );
+    } on DioException {
+      if (!queryParameters.containsKey('source')) {
+        rethrow;
+      }
+      return _getEnvelope(
+        '/api/v1/saas/physiques/reports',
+        queryParameters: <String, dynamic>{
+          'pageNo': pageNo,
+          'pageSize': pageSize,
+        },
+      );
+    }
+  }
+
+  List<DiagnosisReportSummary> _extractSummaries(
+    Map<String, dynamic> envelope,
+  ) {
     final payload = _asMap(envelope['data']);
     if (payload.isEmpty) {
-      return null;
+      return const <DiagnosisReportSummary>[];
     }
     final items = _asList(payload['datas']).isNotEmpty
         ? _asList(payload['datas'])
         : _asList(payload['records']);
-    if (items.isEmpty) {
-      return null;
-    }
-    return DiagnosisReportSummary.fromJson(_asMap(items.first));
+    return items
+        .map((item) => _asMap(item))
+        .where((item) => item.isNotEmpty)
+        .map(DiagnosisReportSummary.fromJson)
+        .toList(growable: false);
   }
+
+  int? _extractTotalCount(Map<String, dynamic> envelope) {
+    final payload = _asMap(envelope['data']);
+    final total =
+        _asNum(payload['totalCount']) ??
+        _asNum(payload['total']) ??
+        _asNum(payload['count']);
+    return total?.toInt();
+  }
+}
+
+Map<String, dynamic> _buildTenantStoreCompatQueryParameters({
+  required String tenantId,
+  String? storeId,
+}) {
+  final queryParameters = <String, dynamic>{};
+  final normalizedTenantId = tenantId.trim();
+  if (normalizedTenantId.isNotEmpty) {
+    queryParameters['tenantId'] = normalizedTenantId;
+    queryParameters['topOrgId'] = normalizedTenantId;
+  }
+
+  final normalizedStoreId = storeId?.trim() ?? '';
+  if (normalizedStoreId.isNotEmpty) {
+    queryParameters['storeId'] = normalizedStoreId;
+    queryParameters['clinicId'] = normalizedStoreId;
+  }
+
+  return queryParameters;
 }
 
 Map<String, dynamic> _asMap(Object? value) {
@@ -106,4 +266,14 @@ List<dynamic> _asList(Object? value) {
     return value;
   }
   return const <dynamic>[];
+}
+
+num? _asNum(Object? value) {
+  if (value is num) {
+    return value;
+  }
+  if (value is String) {
+    return num.tryParse(value);
+  }
+  return null;
 }

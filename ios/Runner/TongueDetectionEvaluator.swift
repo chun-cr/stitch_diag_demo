@@ -8,6 +8,7 @@ enum TongueDetectionEvaluator {
         let faceLandmarks: [[String: Double]]
         let mouthLandmarks: [[String: Double]]
         let mouthCenter: [String: Double]?
+        let blendshapes: [String: Double]
         let imageWidth: Double
         let imageHeight: Double
 
@@ -15,6 +16,7 @@ enum TongueDetectionEvaluator {
             faceLandmarks: [],
             mouthLandmarks: [],
             mouthCenter: nil,
+            blendshapes: [:],
             imageWidth: 0,
             imageHeight: 0
         )
@@ -25,6 +27,7 @@ enum TongueDetectionEvaluator {
                 "landmarks": faceLandmarks,
                 "mouthLandmarks": mouthLandmarks,
                 "mouthCenter": mouthCenter as Any,
+                "blendshapes": blendshapes,
                 "imageWidth": imageWidth,
                 "imageHeight": imageHeight,
             ]
@@ -33,7 +36,8 @@ enum TongueDetectionEvaluator {
 
     static func evaluate(
         landmarks: [NormalizedLandmark]?,
-        imageSize: CGSize
+        imageSize: CGSize,
+        blendshapes: [String: Double] = [:]
     ) -> Result {
         guard let landmarks, !landmarks.isEmpty else {
             return .empty
@@ -65,6 +69,7 @@ enum TongueDetectionEvaluator {
                 faceLandmarks: allLandmarks,
                 mouthLandmarks: [],
                 mouthCenter: nil,
+                blendshapes: blendshapes,
                 imageWidth: Double(imageSize.width),
                 imageHeight: Double(imageSize.height)
             )
@@ -80,6 +85,7 @@ enum TongueDetectionEvaluator {
             faceLandmarks: allLandmarks,
             mouthLandmarks: mouthLandmarks,
             mouthCenter: center,
+            blendshapes: blendshapes,
             imageWidth: Double(imageSize.width),
             imageHeight: Double(imageSize.height)
         )

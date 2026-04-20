@@ -8,6 +8,7 @@ class TongueScanStatus {
   final int mouthLandmarkCount;
   final List<Offset> faceLandmarks;
   final List<Offset> mouthLandmarks;
+  final Map<String, double> blendshapes;
   final double imageWidth;
   final double imageHeight;
 
@@ -20,6 +21,7 @@ class TongueScanStatus {
     required this.mouthLandmarkCount,
     this.faceLandmarks = const [],
     this.mouthLandmarks = const [],
+    this.blendshapes = const <String, double>{},
     this.imageWidth = 0,
     this.imageHeight = 0,
     this.mouthCenter,
@@ -33,6 +35,7 @@ class TongueScanStatus {
     int? mouthLandmarkCount,
     List<Offset>? faceLandmarks,
     List<Offset>? mouthLandmarks,
+    Map<String, double>? blendshapes,
     double? imageWidth,
     double? imageHeight,
     Offset? mouthCenter,
@@ -43,6 +46,7 @@ class TongueScanStatus {
       mouthLandmarkCount: mouthLandmarkCount ?? this.mouthLandmarkCount,
       faceLandmarks: faceLandmarks ?? this.faceLandmarks,
       mouthLandmarks: mouthLandmarks ?? this.mouthLandmarks,
+      blendshapes: blendshapes ?? this.blendshapes,
       imageWidth: imageWidth ?? this.imageWidth,
       imageHeight: imageHeight ?? this.imageHeight,
       mouthCenter: mouthCenter ?? this.mouthCenter,
@@ -57,6 +61,7 @@ class TongueScanStatus {
         mouthLandmarkCount: 0,
         faceLandmarks: [],
         mouthLandmarks: [],
+        blendshapes: <String, double>{},
         imageWidth: 0,
         imageHeight: 0,
       );
@@ -67,6 +72,7 @@ class TongueScanStatus {
     final facePoints = _extractPoints(
       data['faceLandmarks'] ?? data['landmarks'],
     );
+    final blendshapes = _extractBlendshapes(data['blendshapes']);
 
     final explicitMouthCenter = _extractPoint(data['mouthCenter']);
     Offset? mouthCenter = explicitMouthCenter;
@@ -86,10 +92,28 @@ class TongueScanStatus {
       mouthLandmarkCount: mouthPoints.length,
       faceLandmarks: facePoints,
       mouthLandmarks: mouthPoints,
+      blendshapes: blendshapes,
       imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
       imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
       mouthCenter: mouthCenter,
     );
+  }
+
+  static Map<String, double> _extractBlendshapes(dynamic raw) {
+    if (raw is! Map) {
+      return const <String, double>{};
+    }
+
+    final blendshapes = <String, double>{};
+    for (final entry in raw.entries) {
+      final key = entry.key?.toString();
+      final value = entry.value;
+      if (key == null || key.isEmpty || value is! num) {
+        continue;
+      }
+      blendshapes[key] = value.toDouble();
+    }
+    return blendshapes;
   }
 
   static List<Offset> _extractPoints(dynamic raw) {
@@ -130,6 +154,7 @@ class TongueScanStatusBridge {
         faceLandmarks: rawStatus.faceLandmarks,
         mouthLandmarks: rawStatus.mouthLandmarks,
         mouthCenter: rawStatus.mouthCenter,
+        blendshapes: rawStatus.blendshapes,
       );
       final protrusionConfirmed = confirmationWindow.registerFrame(
         eligible: protrusionCandidate,

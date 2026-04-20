@@ -132,6 +132,7 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                 cameraManager.stopCamera()
                 sendTongueEvent(
                     mapOf(
+                        "blendshapes" to emptyMap<String, Double>(),
                         "mouthLandmarks" to emptyList<Map<String, Double>>(),
                         "faceLandmarks" to emptyList<Map<String, Double>>(),
                         "landmarks" to emptyList<Map<String, Double>>(),
@@ -197,7 +198,20 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
     }
 
     private fun sendTongueEvent(data: Map<String, Any?>) {
+        val blendshapePayload = (data["blendshapes"] as? Map<*, *>)
+            ?.mapNotNull { (key, value) ->
+                val name = key as? String
+                val score = (value as? Number)?.toDouble()
+                if (name != null && score != null) {
+                    name to score
+                } else {
+                    null
+                }
+            }
+            ?.toMap()
+            ?: emptyMap<String, Double>()
         val tonguePayload = mapOf(
+            "blendshapes" to blendshapePayload,
             "mouthLandmarks" to (data["mouthLandmarks"] as? List<*> ?: emptyList<Any>()),
             "faceLandmarks" to (data["faceLandmarks"] as? List<*> ?: data["landmarks"] as? List<*> ?: emptyList<Any>()),
             "landmarks" to (data["faceLandmarks"] as? List<*> ?: data["landmarks"] as? List<*> ?: emptyList<Any>()),

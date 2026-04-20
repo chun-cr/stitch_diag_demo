@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
+import 'package:stitch_diag_demo/features/scan/data/models/scan_upload_result.dart';
 import 'package:stitch_diag_demo/features/scan/data/sources/scan_remote_source.dart';
 
 class _StubResponse {
@@ -43,6 +44,14 @@ class _QueueHttpClientAdapter implements HttpClientAdapter {
 
 void main() {
   late Directory tempDir;
+  const fakeFaceUpload = ScanFaceUploadResult(<String, dynamic>{
+    'faceNum': 1,
+    'imageId': 'face-image-id',
+    'imageUrl': 'https://example.com/face.jpg',
+    'features': <int>[1, 2, 3],
+    'age': 30,
+    'sex': 'F',
+  });
 
   setUpAll(() async {
     tempDir = await Directory.systemTemp.createTemp('scan_remote_source_test');
@@ -101,7 +110,10 @@ void main() {
       final source = createSource(adapter);
 
       await expectLater(
-        () => source.uploadTongue(imageFilePath: file.path),
+        () => source.uploadTongue(
+          imageFilePath: file.path,
+          faceUpload: fakeFaceUpload,
+        ),
         throwsA(
           isA<ScanUploadException>()
               .having((error) => error.stage, 'stage', 'tongue')
@@ -133,7 +145,10 @@ void main() {
       final source = createSource(adapter);
 
       await expectLater(
-        () => source.uploadPalm(handFilePath: file.path),
+        () => source.uploadPalm(
+          handFilePath: file.path,
+          reportId: 'report-123',
+        ),
         throwsA(
           isA<ScanUploadException>()
               .having((error) => error.stage, 'stage', 'palm')

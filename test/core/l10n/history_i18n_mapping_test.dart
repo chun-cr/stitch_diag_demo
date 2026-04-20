@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
-import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_page.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 void main() {

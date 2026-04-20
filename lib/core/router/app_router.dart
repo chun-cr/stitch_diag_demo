@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:stitch_diag_demo/features/home/presentation/pages/home_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
@@ -18,7 +19,7 @@ import 'package:stitch_diag_demo/features/report/presentation/pages/report/repor
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_product_detail_page.dart';
-import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_page.dart';
 
 // ─── 路由路径常量 ─────────────────────────────────────────────────
 class AppRoutes {
@@ -48,6 +49,33 @@ final ValueNotifier<bool> _previewAuthState = ValueNotifier<bool>(false);
 
 bool get isPreviewAuthenticated => _previewAuthState.value;
 
+// Keep browser debugging unblocked while preserving the auth gate elsewhere.
+bool get _bypassPreviewAuthGuardForWebDebug => kDebugMode && kIsWeb;
+
+String? resolvePreviewAuthRedirect({
+  required String matchedLocation,
+  required bool isAuthenticated,
+  required bool bypassAuthGuard,
+}) {
+  final isEntryAuthRoute =
+      matchedLocation == AppRoutes.login ||
+      matchedLocation == AppRoutes.register;
+  final isProfileCompletionRoute = matchedLocation == AppRoutes.completeProfile;
+
+  if (!bypassAuthGuard &&
+      !isAuthenticated &&
+      !isEntryAuthRoute &&
+      !isProfileCompletionRoute) {
+    return AppRoutes.login;
+  }
+
+  if (isAuthenticated && isEntryAuthRoute) {
+    return AppRoutes.home;
+  }
+
+  return null;
+}
+
 void setPreviewAuthenticated(bool value) {
   if (_previewAuthState.value == value) {
     return;
@@ -67,25 +95,11 @@ final appRouter = GoRouter(
   initialLocation: AppRoutes.login,
   debugLogDiagnostics: true,
   refreshListenable: _previewAuthState,
-  redirect: (context, state) {
-    final isEntryAuthRoute =
-        state.matchedLocation == AppRoutes.login ||
-        state.matchedLocation == AppRoutes.register;
-    final isProfileCompletionRoute =
-        state.matchedLocation == AppRoutes.completeProfile;
-
-    if (!isPreviewAuthenticated &&
-        !isEntryAuthRoute &&
-        !isProfileCompletionRoute) {
-      return AppRoutes.login;
-    }
-
-    if (isPreviewAuthenticated && isEntryAuthRoute) {
-      return AppRoutes.home;
-    }
-
-    return null;
-  },
+  redirect: (context, state) => resolvePreviewAuthRedirect(
+    matchedLocation: state.matchedLocation,
+    isAuthenticated: isPreviewAuthenticated,
+    bypassAuthGuard: _bypassPreviewAuthGuardForWebDebug,
+  ),
   routes: [
     GoRoute(
       path: AppRoutes.home,

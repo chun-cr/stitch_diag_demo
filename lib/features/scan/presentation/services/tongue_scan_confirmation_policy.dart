@@ -16,11 +16,13 @@ class TongueProtrusionProxy {
   static const double _centerBandFactor = 0.18;
   static const double _sideBandFactor = 0.24;
   static const double _minCentralDropRatio = 0.02;
+  static const double _assistedCentralDropRatio = 0.015;
 
   static bool isFrameEligible({
     required List<Offset> mouthLandmarks,
     required Offset? mouthCenter,
     List<Offset> faceLandmarks = const [],
+    Map<String, double> blendshapes = const <String, double>{},
   }) {
     if (mouthLandmarks.length < 5 || mouthCenter == null) {
       return false;
@@ -81,8 +83,41 @@ class TongueProtrusionProxy {
             .clamp(mouthWidth, 1.0);
     final centralDropRatio = (centralLowerY - sideLowerEdgeY) / scaleWidth;
 
-    return centralDropRatio >= _minCentralDropRatio;
+    if (centralDropRatio >= _minCentralDropRatio) {
+      return true;
+    }
+
+    if (!TongueBlendshapeSupport.hasStrongSupport(blendshapes)) {
+      return false;
+    }
+
+    return centralDropRatio >= _assistedCentralDropRatio;
   }
+}
+
+class TongueBlendshapeSupport {
+  static const double _jawOpenThreshold = 0.16;
+  static const double _mouthFunnelThreshold = 0.10;
+  static const double _lowerLipDropThreshold = 0.08;
+
+  static bool hasStrongSupport(Map<String, double> blendshapes) {
+    if (blendshapes.isEmpty) {
+      return false;
+    }
+
+    final jawOpen = blendshapes['jawOpen'] ?? 0;
+    final mouthFunnel = blendshapes['mouthFunnel'] ?? 0;
+    final lowerLipDrop = _average(
+      blendshapes['mouthLowerDownLeft'] ?? 0,
+      blendshapes['mouthLowerDownRight'] ?? 0,
+    );
+
+    return jawOpen >= _jawOpenThreshold &&
+        (mouthFunnel >= _mouthFunnelThreshold ||
+            lowerLipDrop >= _lowerLipDropThreshold);
+  }
+
+  static double _average(double left, double right) => (left + right) / 2;
 }
 
 class TongueConfirmationWindow {

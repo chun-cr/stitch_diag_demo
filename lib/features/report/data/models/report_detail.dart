@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 class DiagnosisReportDetail {
   const DiagnosisReportDetail({
     required this.id,
@@ -19,9 +21,17 @@ class DiagnosisReportDetail {
   });
 
   factory DiagnosisReportDetail.fromJson(Map<String, dynamic> json) {
-    final analysisResult = DiagnosisAnalysisResult.fromJson(
-      _asMap(json['analysisResult']),
+    final analysisResultJson = _asMap(json['analysisResult']);
+    final deepPredicts = _normalizeDeepPredictsFromRiskIndexes(
+      _asMap(analysisResultJson['deepPredicts']).isNotEmpty
+          ? _asMap(analysisResultJson['deepPredicts'])
+          : _asMap(json['deepPredicts']),
+      _resolveRiskIndexes(json, analysisResultJson),
     );
+    final analysisResult = DiagnosisAnalysisResult.fromJson(<String, dynamic>{
+      ...analysisResultJson,
+      'deepPredicts': deepPredicts,
+    });
 
     return DiagnosisReportDetail(
       id: _asString(json['id']),
@@ -245,23 +255,27 @@ class DiagnosisNamedProbability {
   const DiagnosisNamedProbability({
     required this.id,
     required this.name,
+    required this.rawProbability,
     required this.probability,
     required this.raw,
   });
 
   factory DiagnosisNamedProbability.fromJson(Map<String, dynamic> json) {
+    final rawProbability = _normalizeProbability(
+      _asNum(json['prob']) ?? _asNum(json['score']),
+    );
     return DiagnosisNamedProbability(
       id: _asString(json['id']),
       name: _asString(json['name']),
-      probability: _normalizePercent(
-        _asNum(json['prob']) ?? _asNum(json['score']),
-      ),
+      rawProbability: rawProbability,
+      probability: rawProbability * 100,
       raw: Map<String, dynamic>.from(json),
     );
   }
 
   final String id;
   final String name;
+  final double rawProbability;
   final double probability;
   final Map<String, dynamic> raw;
 }
@@ -326,20 +340,210 @@ class DiagnosisReportSummary {
   const DiagnosisReportSummary({
     required this.id,
     required this.testTime,
+    required this.healthScore,
+    required this.physiqueName,
+    required this.imageUrl,
+    required this.faceImageUrl,
+    required this.lockedStatus,
+    required this.deepPredicts,
     required this.raw,
   });
 
   factory DiagnosisReportSummary.fromJson(Map<String, dynamic> json) {
+    final tongue = _asMap(json['tongue']);
+    final face = _asMap(json['face']);
+    final analysisResult = _asMap(json['analysisResult']);
+    final deepPredicts = _normalizeDeepPredictsFromRiskIndexes(
+      _asMap(json['deepPredicts']).isNotEmpty
+          ? _asMap(json['deepPredicts'])
+          : _asMap(tongue['deepPredicts']),
+      _asList(json['riskIndexes']).isNotEmpty
+          ? _asList(json['riskIndexes'])
+          : _asList(tongue['riskIndexes']),
+    );
+
     return DiagnosisReportSummary(
       id: _asString(json['id']),
       testTime: _asString(json['testTime']),
+      healthScore: _resolveSummaryHealthScore(json, analysisResult),
+      physiqueName: _resolveSummaryPhysiqueName(json, analysisResult),
+      imageUrl: _firstNonEmptyString(<String>[
+        _asString(json['imageUrl']),
+        _asString(tongue['imageUrl']),
+        _asString(tongue['thumbImageUrl']),
+        _asString(face['imageUrl']),
+        _asString(face['thumbImageUrl']),
+      ]),
+      faceImageUrl: _firstNonEmptyString(<String>[
+        _asString(json['faceImageUrl']),
+        _asString(face['imageUrl']),
+        _asString(face['thumbImageUrl']),
+        _asString(json['imageUrl']),
+        _asString(tongue['imageUrl']),
+        _asString(tongue['thumbImageUrl']),
+      ]),
+      lockedStatus: _asString(json['lockedStatus']),
+      deepPredicts: DiagnosisDeepPredicts.fromJson(deepPredicts),
       raw: Map<String, dynamic>.from(json),
     );
   }
 
   final String id;
   final String testTime;
+  final double healthScore;
+  final String physiqueName;
+  final String imageUrl;
+  final String faceImageUrl;
+  final String lockedStatus;
+  final DiagnosisDeepPredicts deepPredicts;
   final Map<String, dynamic> raw;
+
+  bool get isLocked =>
+      !(lockedStatus == '1' || lockedStatus == '9') &&
+      lockedStatus != 'UNLOCKED';
+}
+
+class DiagnosisMaNavigate {
+  const DiagnosisMaNavigate({
+    required this.type,
+    required this.appId,
+    required this.path,
+    required this.imageUrl,
+    required this.imageTitle,
+    required this.title,
+    required this.raw,
+  });
+
+  factory DiagnosisMaNavigate.fromJson(Map<String, dynamic> json) {
+    return DiagnosisMaNavigate(
+      type: _asString(json['type']),
+      appId: _asString(json['appId']),
+      path: _asString(json['path']),
+      imageUrl: _asString(json['imageUrl']),
+      imageTitle: _asString(json['imageTitle']),
+      title: _asString(json['title']),
+      raw: Map<String, dynamic>.from(json),
+    );
+  }
+
+  final String type;
+  final String appId;
+  final String path;
+  final String imageUrl;
+  final String imageTitle;
+  final String title;
+  final Map<String, dynamic> raw;
+
+  bool get hasImage => imageUrl.isNotEmpty;
+
+  bool get hasMiniProgram => type == 'M';
+
+  String get displayTitle {
+    if (imageTitle.trim().isNotEmpty) {
+      return imageTitle;
+    }
+    if (title.trim().isNotEmpty) {
+      return title;
+    }
+    return '专家解读';
+  }
+}
+
+double _resolveSummaryHealthScore(
+  Map<String, dynamic> json,
+  Map<String, dynamic> analysisResult,
+) {
+  final constitution = _asMap(analysisResult['tz']);
+  final score =
+      _asNum(json['healthScore']) ??
+      _asNum(json['score']) ??
+      _asNum(analysisResult['score']) ??
+      _asNum(constitution['score']);
+  return _normalizePercent(score);
+}
+
+String _resolveSummaryPhysiqueName(
+  Map<String, dynamic> json,
+  Map<String, dynamic> analysisResult,
+) {
+  final constitution = _asMap(analysisResult['tz']);
+  return _firstNonEmptyString(<String>[
+    _asString(json['physiqueName']),
+    _asString(json['physiqueDesc']),
+    _asString(json['tzName']),
+    _asString(constitution['name']),
+  ]);
+}
+
+Map<String, dynamic> _normalizeDeepPredictsFromRiskIndexes(
+  Map<String, dynamic> deepPredicts,
+  List<dynamic> riskIndexes,
+) {
+  if (_asList(deepPredicts['categoryProbabilities']).isNotEmpty) {
+    return deepPredicts;
+  }
+
+  if (riskIndexes.isEmpty) {
+    return deepPredicts;
+  }
+
+  final categoryProbabilities = riskIndexes
+      .map((item) {
+        final value = _asMap(item);
+        final score = _asNum(value['score']);
+        final prob = _asNum(value['prob']);
+        final normalizedProb = score != null
+            ? score.toDouble() / 100
+            : prob != null && prob > 1
+            ? prob.toDouble() / 100
+            : (prob?.toDouble() ?? 0);
+
+        return <String, dynamic>{
+          ...value,
+          'name': _firstNonEmptyString(<String>[
+            _asString(value['displayName']),
+            _asString(value['name']),
+            _asString(value['sourceKey']),
+          ]),
+          'prob': normalizedProb,
+        };
+      })
+      .toList(growable: false);
+
+  final categoryRisk = categoryProbabilities.fold<double>(
+    0,
+    (current, item) =>
+        math.max(current, (_asNum(_asMap(item)['prob']) ?? 0).toDouble()),
+  );
+
+  return <String, dynamic>{
+    ...deepPredicts,
+    'categoryProbabilities': categoryProbabilities,
+    'categoryRisk': categoryRisk,
+  };
+}
+
+List<dynamic> _resolveRiskIndexes(
+  Map<String, dynamic> json,
+  Map<String, dynamic> analysisResult,
+) {
+  final topLevelRiskIndexes = _asList(json['riskIndexes']);
+  if (topLevelRiskIndexes.isNotEmpty) {
+    return topLevelRiskIndexes;
+  }
+
+  final analysisRiskIndexes = _asList(analysisResult['riskIndexes']);
+  if (analysisRiskIndexes.isNotEmpty) {
+    return analysisRiskIndexes;
+  }
+
+  final tongue = _asMap(json['tongue']);
+  final tongueRiskIndexes = _asList(tongue['riskIndexes']);
+  if (tongueRiskIndexes.isNotEmpty) {
+    return tongueRiskIndexes;
+  }
+
+  return const <dynamic>[];
 }
 
 double _resolveHealthScore(
@@ -412,6 +616,29 @@ double _normalizePercent(num? value) {
     return normalized;
   }
   return 100;
+}
+
+double _normalizeProbability(num? value) {
+  if (value == null) {
+    return 0;
+  }
+  final normalized = value.toDouble();
+  if (normalized <= 1) {
+    return normalized.clamp(0, 1).toDouble();
+  }
+  if (normalized <= 100) {
+    return (normalized / 100).clamp(0, 1).toDouble();
+  }
+  return 1;
+}
+
+String _firstNonEmptyString(List<String> values) {
+  for (final value in values) {
+    if (value.trim().isNotEmpty) {
+      return value;
+    }
+  }
+  return '';
 }
 
 String _sexDescription(String sex) {

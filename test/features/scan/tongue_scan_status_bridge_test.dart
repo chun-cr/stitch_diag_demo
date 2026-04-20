@@ -21,6 +21,7 @@ void main() {
       expect(status.protrusionConfirmed, isFalse);
       expect(status.mouthCenter, const Offset(0.25, 0.325));
       expect(status.faceLandmarks, const [Offset(0.25, 0.36)]);
+      expect(status.blendshapes, isEmpty);
     });
 
     test('keeps legacy landmarks as fallback alias during migration', () {
@@ -41,13 +42,33 @@ void main() {
       ]);
     });
 
+    test('parses additive blendshapes payload for tongue v2', () {
+      final status = TongueScanStatus.fromEvent({
+        'mouthLandmarks': const [
+          {'x': 0.20, 'y': 0.30},
+          {'x': 0.40, 'y': 0.30},
+        ],
+        'blendshapes': const {
+          'jawOpen': 0.24,
+          'mouthFunnel': 0.12,
+        },
+      });
+
+      expect(status.blendshapes, {
+        'jawOpen': 0.24,
+        'mouthFunnel': 0.12,
+      });
+    });
+
     test('stores Flutter protrusion flags explicitly', () {
       const status = TongueScanStatus(
         mouthLandmarkCount: 8,
+        blendshapes: {'jawOpen': 0.3},
         protrusionCandidate: true,
         protrusionConfirmed: true,
       );
 
+      expect(status.blendshapes['jawOpen'], 0.3);
       expect(status.protrusionCandidate, isTrue);
       expect(status.protrusionConfirmed, isTrue);
     });

@@ -38,6 +38,35 @@ void main() {
       );
     });
 
+    test('accepts near-threshold geometry when strong blendshapes support it', () {
+      expect(
+        TongueProtrusionProxy.isFrameEligible(
+          mouthLandmarks: const [
+            Offset(0.50, 0.44),
+            Offset(0.50, 0.50),
+            Offset(0.50, 0.531),
+            Offset(0.34, 0.50),
+            Offset(0.66, 0.50),
+            Offset(0.38, 0.52),
+            Offset(0.62, 0.52),
+            Offset(0.70, 0.49),
+          ],
+          mouthCenter: const Offset(0.50, 0.50),
+          faceLandmarks: const [
+            Offset(0.20, 0.20),
+            Offset(0.80, 0.20),
+            Offset(0.20, 0.80),
+            Offset(0.80, 0.80),
+          ],
+          blendshapes: const {
+            'jawOpen': 0.22,
+            'mouthFunnel': 0.14,
+          },
+        ),
+        isTrue,
+      );
+    });
+
     test('rejects flat wide-open mouth geometry', () {
       expect(
         TongueProtrusionProxy.isFrameEligible(
@@ -58,6 +87,37 @@ void main() {
             Offset(0.20, 0.80),
             Offset(0.80, 0.80),
           ],
+        ),
+        isFalse,
+      );
+    });
+
+    test('rejects mouth-open false positives with strong blendshapes only', () {
+      expect(
+        TongueProtrusionProxy.isFrameEligible(
+          mouthLandmarks: const [
+            Offset(0.50, 0.42),
+            Offset(0.50, 0.54),
+            Offset(0.50, 0.548),
+            Offset(0.34, 0.50),
+            Offset(0.66, 0.50),
+            Offset(0.38, 0.54),
+            Offset(0.62, 0.54),
+            Offset(0.70, 0.50),
+          ],
+          mouthCenter: const Offset(0.50, 0.50),
+          faceLandmarks: const [
+            Offset(0.20, 0.20),
+            Offset(0.80, 0.20),
+            Offset(0.20, 0.80),
+            Offset(0.80, 0.80),
+          ],
+          blendshapes: const {
+            'jawOpen': 0.45,
+            'mouthFunnel': 0.20,
+            'mouthLowerDownLeft': 0.22,
+            'mouthLowerDownRight': 0.22,
+          },
         ),
         isFalse,
       );

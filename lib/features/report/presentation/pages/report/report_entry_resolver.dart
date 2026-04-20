@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
+import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 import 'package:stitch_diag_demo/features/report/data/sources/report_remote_source.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_view_data.dart';
 
@@ -10,11 +13,14 @@ class ReportEntryResolver extends StatefulWidget {
     super.key,
     required this.reportId,
     required this.loadReportViewData,
+    this.loadConsultNavigate,
     required this.buildReportScreen,
   });
 
   final String? reportId;
   final Future<ReportViewData> Function(String reportId)? loadReportViewData;
+  final Future<DiagnosisMaNavigate?> Function(ReportViewData viewData)?
+  loadConsultNavigate;
   final Widget Function(Key key, ReportViewData viewData) buildReportScreen;
 
   @override
@@ -23,6 +29,8 @@ class ReportEntryResolver extends StatefulWidget {
 
 class _ReportEntryResolverState extends State<ReportEntryResolver> {
   Future<ReportViewData>? _viewDataFuture;
+  DiagnosisMaNavigate? _consultNavigate;
+  String? _consultNavigateForReportId;
 
   String? get _normalizedReportId {
     final value = widget.reportId?.trim();
@@ -42,7 +50,10 @@ class _ReportEntryResolverState extends State<ReportEntryResolver> {
   void didUpdateWidget(covariant ReportEntryResolver oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.reportId != widget.reportId ||
-        oldWidget.loadReportViewData != widget.loadReportViewData) {
+        oldWidget.loadReportViewData != widget.loadReportViewData ||
+        oldWidget.loadConsultNavigate != widget.loadConsultNavigate) {
+      _consultNavigate = null;
+      _consultNavigateForReportId = null;
       _viewDataFuture = _createViewDataFuture();
     }
   }
@@ -61,14 +72,74 @@ class _ReportEntryResolverState extends State<ReportEntryResolver> {
   }
 
   Future<ReportViewData> _defaultLoadReportViewData(String reportId) async {
-    final detail = await ReportRemoteSource(
-      getIt<DioClient>(),
-    ).getReportDetail(reportId);
+    final source = ReportRemoteSource(getIt<DioClient>());
+    final detail = await source.getReportDetail(reportId);
     return ReportViewData.fromDetail(detail);
+  }
+
+  Future<DiagnosisMaNavigate?> _defaultLoadConsultNavigate(
+    ReportViewData viewData,
+  ) async {
+    final tenantId = viewData.tenantId?.trim() ?? '';
+    if (tenantId.isEmpty) {
+      return null;
+    }
+
+    final source = ReportRemoteSource(getIt<DioClient>());
+    try {
+      return await source.getMaNavigate(
+        tenantId: tenantId,
+        storeId: viewData.storeId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool get _shouldLoadConsultNavigate =>
+      widget.loadReportViewData == null || widget.loadConsultNavigate != null;
+
+  void _scheduleConsultNavigateLoad(ReportViewData viewData) {
+    if (!_shouldLoadConsultNavigate ||
+        viewData.consultNavigate != null ||
+        viewData.reportId == null ||
+        _consultNavigateForReportId == viewData.reportId) {
+      return;
+    }
+
+    _consultNavigateForReportId = viewData.reportId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _consultNavigateForReportId != viewData.reportId) {
+        return;
+      }
+      unawaited(_loadConsultNavigate(viewData));
+    });
+  }
+
+  Future<void> _loadConsultNavigate(ReportViewData viewData) async {
+    final loader = widget.loadConsultNavigate ?? _defaultLoadConsultNavigate;
+    DiagnosisMaNavigate? consultNavigate;
+    try {
+      consultNavigate = await loader(viewData);
+    } catch (_) {
+      return;
+    }
+    if (!mounted || _consultNavigateForReportId != viewData.reportId) {
+      return;
+    }
+    if (consultNavigate == null) {
+      return;
+    }
+
+    setState(() {
+      _consultNavigate = consultNavigate;
+    });
   }
 
   void _retry() {
     setState(() {
+      _consultNavigate = null;
+      _consultNavigateForReportId = null;
       _viewDataFuture = _createViewDataFuture();
     });
   }
@@ -131,9 +202,14 @@ class _ReportEntryResolverState extends State<ReportEntryResolver> {
           );
         }
 
+        final viewData = snapshot.requireData.copyWith(
+          consultNavigate: _consultNavigate,
+        );
+        _scheduleConsultNavigateLoad(viewData);
+
         return widget.buildReportScreen(
           const ValueKey('report_mode_live'),
-          snapshot.requireData,
+          viewData,
         );
       },
     );

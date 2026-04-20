@@ -6,7 +6,7 @@ import 'package:stitch_diag_demo/core/l10n/formatters.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
-import 'package:stitch_diag_demo/features/history/presentation/pages/history_page.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 
 // ─── Design Tokens ────────────────────────────────────────────────
@@ -294,8 +294,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with TickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _scoreController;
   late Animation<double> _scoreAnim;
 
@@ -615,9 +614,7 @@ class _HomePageState extends State<HomePage>
             }),
           ),
           const SizedBox(height: 16),
-          _MorphingScanCTA(
-            onMorphCompleted: _handleScanReveal,
-          ),
+          _MorphingScanCTA(onMorphCompleted: _handleScanReveal),
         ],
       ),
     );
@@ -632,12 +629,36 @@ class _HomePageState extends State<HomePage>
   Widget _buildFunctionGrid() {
     final l10n = context.l10n;
     final items = [
-      (Icons.biotech_outlined, l10n.homeFunctionConstitution, const Color(0xFFE8F5EE)),
-      (Icons.spa_outlined, l10n.homeFunctionMeridianTherapy, const Color(0xFFE4F7F1)),
-      (Icons.restaurant_menu_outlined, l10n.homeFunctionDietAdvice, const Color(0xFFFAF3E0)),
-      (Icons.self_improvement_outlined, l10n.homeFunctionMentalWellness, const Color(0xFFF0EDF8)),
-      (Icons.wb_sunny_outlined, l10n.homeFunctionSeasonalCare, const Color(0xFFFAEDE7)),
-      (Icons.history_outlined, l10n.homeFunctionHistory, const Color(0xFFF1EEE6)),
+      (
+        Icons.biotech_outlined,
+        l10n.homeFunctionConstitution,
+        const Color(0xFFE8F5EE),
+      ),
+      (
+        Icons.spa_outlined,
+        l10n.homeFunctionMeridianTherapy,
+        const Color(0xFFE4F7F1),
+      ),
+      (
+        Icons.restaurant_menu_outlined,
+        l10n.homeFunctionDietAdvice,
+        const Color(0xFFFAF3E0),
+      ),
+      (
+        Icons.self_improvement_outlined,
+        l10n.homeFunctionMentalWellness,
+        const Color(0xFFF0EDF8),
+      ),
+      (
+        Icons.wb_sunny_outlined,
+        l10n.homeFunctionSeasonalCare,
+        const Color(0xFFFAEDE7),
+      ),
+      (
+        Icons.history_outlined,
+        l10n.homeFunctionHistory,
+        const Color(0xFFF1EEE6),
+      ),
     ];
 
     return Column(
@@ -1191,7 +1212,10 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
           builder: (context, _) {
             final morph = Curves.easeInOutCubic.transform(_controller.value);
             final textOpacity = (1 - (_controller.value * 1.8)).clamp(0.0, 1.0);
-            final circleOpacity = ((_controller.value - 0.28) / 0.22).clamp(0.0, 1.0);
+            final circleOpacity = ((_controller.value - 0.28) / 0.22).clamp(
+              0.0,
+              1.0,
+            );
             final shadowFactor = _pressed && !_busy ? 0.58 : (1 - 0.35 * morph);
 
             return LayoutBuilder(
@@ -1212,7 +1236,8 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                       ),
                       borderRadius: BorderRadius.circular(radius),
                       border: Border.all(
-                        color: Color.lerp(
+                        color:
+                            Color.lerp(
                               Colors.transparent,
                               const Color(0xFFD8CFC0),
                               morph,
@@ -1223,22 +1248,20 @@ class _MorphingScanCTAState extends State<_MorphingScanCTA>
                       boxShadow: [
                         BoxShadow(
                           color: Color.lerp(
-                                const Color(0xFF5F9878),
-                                const Color(0xFFCFC3B1),
-                                morph,
-                              )!
-                              .withValues(alpha: 0.18 * shadowFactor),
+                            const Color(0xFF5F9878),
+                            const Color(0xFFCFC3B1),
+                            morph,
+                          )!.withValues(alpha: 0.18 * shadowFactor),
                           blurRadius: 18 * shadowFactor,
                           spreadRadius: 0.5 * shadowFactor,
                           offset: Offset(0, 6 * shadowFactor),
                         ),
                         BoxShadow(
                           color: Color.lerp(
-                                const Color(0xFFB9D8C4),
-                                const Color(0xFFF7F1E6),
-                                morph,
-                              )!
-                              .withValues(alpha: 0.1 * shadowFactor),
+                            const Color(0xFFB9D8C4),
+                            const Color(0xFFF7F1E6),
+                            morph,
+                          )!.withValues(alpha: 0.1 * shadowFactor),
                           blurRadius: 8 * shadowFactor,
                           offset: Offset(0, 1 * shadowFactor),
                         ),
@@ -1301,9 +1324,7 @@ class _XuanPaperCircle extends StatelessWidget {
     return SizedBox(
       width: 22,
       height: 22,
-      child: CustomPaint(
-        painter: _XuanPaperCirclePainter(progress: progress),
-      ),
+      child: CustomPaint(painter: _XuanPaperCirclePainter(progress: progress)),
     );
   }
 }
@@ -1474,7 +1495,10 @@ class _LastReportCard extends StatelessWidget {
                     onPressed: () => context.push(AppRoutes.history),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 2,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -1548,11 +1572,20 @@ class _LastReportCard extends StatelessWidget {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  _CompactScore(label: context.l10n.metricFaceDiagnosis, score: 86),
+                  _CompactScore(
+                    label: context.l10n.metricFaceDiagnosis,
+                    score: 86,
+                  ),
                   SizedBox(width: 18),
-                  _CompactScore(label: context.l10n.metricTongueDiagnosis, score: 72),
+                  _CompactScore(
+                    label: context.l10n.metricTongueDiagnosis,
+                    score: 72,
+                  ),
                   SizedBox(width: 18),
-                  _CompactScore(label: context.l10n.metricPalmDiagnosis, score: 80),
+                  _CompactScore(
+                    label: context.l10n.metricPalmDiagnosis,
+                    score: 80,
+                  ),
                 ],
               ),
             ],
@@ -1568,10 +1601,7 @@ class _CompactScore extends StatelessWidget {
   final String label;
   final int score;
 
-  const _CompactScore({
-    required this.label,
-    required this.score,
-  });
+  const _CompactScore({required this.label, required this.score});
 
   @override
   Widget build(BuildContext context) {
@@ -1630,7 +1660,9 @@ class _CompactScore extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF76AC88).withValues(alpha: 0.14),
+                            color: const Color(
+                              0xFF76AC88,
+                            ).withValues(alpha: 0.14),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),
@@ -2039,5 +2071,3 @@ class _ScoreBarState extends State<_ScoreBar>
     );
   }
 }
-
-

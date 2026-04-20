@@ -1,10 +1,15 @@
 part of '../report_page.dart';
 
 class _Tab2Constitution extends StatelessWidget {
+  final ReportViewData viewData;
   final bool isUnlocked;
   final Future<void> Function() onUnlock;
 
-  const _Tab2Constitution({required this.isUnlocked, required this.onUnlock});
+  const _Tab2Constitution({
+    required this.viewData,
+    required this.isUnlocked,
+    required this.onUnlock,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,52 +169,120 @@ class _Tab2Constitution extends StatelessWidget {
 
   List<(String, double, Color, bool)> _constitutionScores(
     BuildContext context,
-  ) => [
-    (context.l10n.constitutionBalanced, 0.72, const Color(0xFF2D6A4F), true),
-    (
-      context.l10n.constitutionQiDeficiency,
-      0.58,
-      const Color(0xFF6B5B95),
-      true,
-    ),
-    (
-      context.l10n.reportConstitutionYangDeficiency,
-      0.25,
-      const Color(0xFF4A7FA8),
-      false,
-    ),
-    (
-      context.l10n.reportConstitutionYinDeficiency,
-      0.20,
-      const Color(0xFF0D7A5A),
-      false,
-    ),
-    (context.l10n.constitutionDampness, 0.30, const Color(0xFFC9A84C), false),
-    (
-      context.l10n.reportConstitutionDampHeat,
-      0.18,
-      const Color(0xFFD4794A),
-      false,
-    ),
-    (
-      context.l10n.reportConstitutionBloodStasis,
-      0.15,
-      const Color(0xFFB05A5A),
-      false,
-    ),
-    (
-      context.l10n.reportConstitutionQiStagnation,
-      0.22,
-      const Color(0xFF7A6BA0),
-      false,
-    ),
-    (
-      context.l10n.reportConstitutionSpecial,
-      0.10,
-      const Color(0xFF909080),
-      false,
-    ),
-  ];
+  ) {
+    final liveScores = viewData.constitutionScores;
+    if (liveScores.isNotEmpty) {
+      return [
+        for (var index = 0; index < liveScores.length; index++)
+          (
+            liveScores[index].name,
+            liveScores[index].scoreFraction,
+            _constitutionColorFor(liveScores[index], index),
+            index < 2,
+          ),
+      ];
+    }
+
+    return [
+      (context.l10n.constitutionBalanced, 0.72, const Color(0xFF2D6A4F), true),
+      (
+        context.l10n.constitutionQiDeficiency,
+        0.58,
+        const Color(0xFF6B5B95),
+        true,
+      ),
+      (
+        context.l10n.reportConstitutionYangDeficiency,
+        0.25,
+        const Color(0xFF4A7FA8),
+        false,
+      ),
+      (
+        context.l10n.reportConstitutionYinDeficiency,
+        0.20,
+        const Color(0xFF0D7A5A),
+        false,
+      ),
+      (context.l10n.constitutionDampness, 0.30, const Color(0xFFC9A84C), false),
+      (
+        context.l10n.reportConstitutionDampHeat,
+        0.18,
+        const Color(0xFFD4794A),
+        false,
+      ),
+      (
+        context.l10n.reportConstitutionBloodStasis,
+        0.15,
+        const Color(0xFFB05A5A),
+        false,
+      ),
+      (
+        context.l10n.reportConstitutionQiStagnation,
+        0.22,
+        const Color(0xFF7A6BA0),
+        false,
+      ),
+      (
+        context.l10n.reportConstitutionSpecial,
+        0.10,
+        const Color(0xFF909080),
+        false,
+      ),
+    ];
+  }
+
+  Color _constitutionColorFor(
+    ReportConstitutionScoreData constitution,
+    int index,
+  ) {
+    final key = '${constitution.id} ${constitution.name}'.toLowerCase();
+    if (key.contains('balanced') || key.contains('平和')) {
+      return const Color(0xFF2D6A4F);
+    }
+    if (key.contains('qi deficiency') || key.contains('气虚')) {
+      return const Color(0xFF6B5B95);
+    }
+    if (key.contains('yang deficiency') || key.contains('阳虚')) {
+      return const Color(0xFF4A7FA8);
+    }
+    if (key.contains('yin deficiency') || key.contains('阴虚')) {
+      return const Color(0xFF0D7A5A);
+    }
+    if (key.contains('phlegm') ||
+        key.contains('dampness') ||
+        key.contains('痰湿')) {
+      return const Color(0xFFC9A84C);
+    }
+    if (key.contains('damp-heat') ||
+        key.contains('damp heat') ||
+        key.contains('湿热')) {
+      return const Color(0xFFD4794A);
+    }
+    if (key.contains('blood stasis') || key.contains('血瘀')) {
+      return const Color(0xFFB05A5A);
+    }
+    if (key.contains('qi stagnation') || key.contains('气郁')) {
+      return const Color(0xFF7A6BA0);
+    }
+    if (key.contains('special') ||
+        key.contains('inherited') ||
+        key.contains('特禀')) {
+      return const Color(0xFF909080);
+    }
+
+    const fallbackColors = [
+      Color(0xFF2D6A4F),
+      Color(0xFF6B5B95),
+      Color(0xFF4A7FA8),
+      Color(0xFF0D7A5A),
+      Color(0xFFC9A84C),
+      Color(0xFFD4794A),
+      Color(0xFFB05A5A),
+      Color(0xFF7A6BA0),
+      Color(0xFF909080),
+    ];
+    return fallbackColors[index % fallbackColors.length];
+  }
 
   // ── 分析成因 ─────────────────────────────────────────────────────
   Widget _buildCausalAnalysisContent(BuildContext context) {

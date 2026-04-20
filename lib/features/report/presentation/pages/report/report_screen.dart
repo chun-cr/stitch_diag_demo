@@ -8,9 +8,16 @@ part of 'report_page.dart';
 const _kReportMaskEnabled = false;
 
 class _ReportScreen extends StatefulWidget {
-  const _ReportScreen({super.key, required this.viewData});
+  const _ReportScreen({
+    super.key,
+    required this.viewData,
+    required this.addReportSymptom,
+    required this.deleteReportSymptom,
+  });
 
   final ReportViewData viewData;
+  final ReportAddSymptomAction addReportSymptom;
+  final ReportDeleteSymptomAction deleteReportSymptom;
 
   @override
   State<_ReportScreen> createState() => _ReportScreenState();
@@ -21,6 +28,7 @@ class _ReportScreenState extends State<_ReportScreen>
   late TabController _tabController;
   late AnimationController _heroScoreCtrl;
   late Animation<double> _heroScoreAnim;
+  Timer? _heroScoreTimer;
   ReportUnlockService? _reportUnlockService;
 
   int _currentTab = 0;
@@ -52,8 +60,10 @@ class _ReportScreenState extends State<_ReportScreen>
       parent: _heroScoreCtrl,
       curve: Curves.easeOutCubic,
     );
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _heroScoreCtrl.forward();
+    _heroScoreTimer = Timer(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _heroScoreCtrl.forward();
+      }
     });
 
     if (_kReportMaskEnabled) {
@@ -82,6 +92,7 @@ class _ReportScreenState extends State<_ReportScreen>
 
   @override
   void dispose() {
+    _heroScoreTimer?.cancel();
     final reportUnlockService = _reportUnlockService;
     if (reportUnlockService != null) {
       reportUnlockService.state.removeListener(_handleUnlockStateChanged);
@@ -135,8 +146,14 @@ class _ReportScreenState extends State<_ReportScreen>
               isUnlocked: _isUnlocked,
               onUnlock: _handleUnlock,
               onNavigateToTab: _navigateToTab,
+              addReportSymptom: widget.addReportSymptom,
+              deleteReportSymptom: widget.deleteReportSymptom,
             ),
-            _Tab2Constitution(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
+            _Tab2Constitution(
+              viewData: widget.viewData,
+              isUnlocked: _isUnlocked,
+              onUnlock: _handleUnlock,
+            ),
             _Tab3Therapy(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
             _Tab4Advice(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
           ],

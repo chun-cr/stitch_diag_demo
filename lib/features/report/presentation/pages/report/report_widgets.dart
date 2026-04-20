@@ -1,5 +1,7 @@
 part of 'report_page.dart';
 
+// ignore_for_file: unused_element
+
 class _HeroPill extends StatelessWidget {
   final String label;
   final bool active;
@@ -43,7 +45,10 @@ class _HeroPill extends StatelessWidget {
 /// 鍗＄墖瀹瑰櫒
 class _SectionCard extends StatelessWidget {
   final Widget child;
-  const _SectionCard({required this.child});
+  final Color? borderColor;
+  final Color? shadowColor;
+
+  const _SectionCard({required this.child, this.borderColor, this.shadowColor});
 
   @override
   Widget build(BuildContext context) {
@@ -54,12 +59,13 @@ class _SectionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
+          color: borderColor ?? const Color(0xFF2D6A4F).withValues(alpha: 0.08),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.05),
+            color:
+                shadowColor ?? const Color(0xFF2D6A4F).withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 5),
           ),
@@ -72,8 +78,12 @@ class _SectionCard extends StatelessWidget {
 
 class _FloatingSectionTitle extends StatelessWidget {
   final String title;
+  final Color accentColor;
 
-  const _FloatingSectionTitle({required this.title});
+  const _FloatingSectionTitle({
+    required this.title,
+    this.accentColor = const Color(0xFFC9A84C),
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +96,7 @@ class _FloatingSectionTitle extends StatelessWidget {
             width: 3,
             height: 16,
             decoration: BoxDecoration(
-              color: const Color(0xFFC9A84C),
+              color: accentColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -402,6 +412,832 @@ class _WuxingBars extends StatelessWidget {
     );
   }
 }
+
+const _kReportSymRecommendTypeAiDeep = '1';
+const _kReportSymRecommendTypeClassic = '2';
+
+class _HealthRadarSectionBlock extends StatefulWidget {
+  const _HealthRadarSectionBlock({
+    required this.viewData,
+    required this.addReportSymptom,
+    required this.deleteReportSymptom,
+  });
+
+  final ReportViewData viewData;
+  final ReportAddSymptomAction addReportSymptom;
+  final ReportDeleteSymptomAction deleteReportSymptom;
+
+  @override
+  State<_HealthRadarSectionBlock> createState() =>
+      _HealthRadarSectionBlockState();
+}
+
+class _HealthRadarSectionBlockState extends State<_HealthRadarSectionBlock> {
+  late bool _isClassicMode;
+  late List<ReportHealthRadarSymptomData> _classicSymptoms;
+  late List<ReportHealthRadarSymptomData> _visibleSymptoms;
+
+  @override
+  void initState() {
+    super.initState();
+    _isClassicMode = true;
+    _resetSymptoms();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HealthRadarSectionBlock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final shouldReset =
+        oldWidget.viewData.reportId != widget.viewData.reportId ||
+        !_symptomListsEqual(
+          oldWidget.viewData.healthRadarClassicSymptoms,
+          widget.viewData.healthRadarClassicSymptoms,
+        ) ||
+        !_symptomListsEqual(
+          oldWidget.viewData.healthRadarDeepSymptoms,
+          widget.viewData.healthRadarDeepSymptoms,
+        );
+    if (shouldReset) {
+      _resetSymptoms();
+    }
+  }
+
+  void _resetSymptoms() {
+    _classicSymptoms = _cloneSymptoms(
+      widget.viewData.healthRadarClassicSymptoms,
+      preserveSelection: true,
+    );
+    _visibleSymptoms = _isClassicMode
+        ? _classicSymptoms
+        : _cloneSymptoms(
+            widget.viewData.healthRadarDeepSymptoms,
+            preserveSelection: false,
+          );
+  }
+
+  List<ReportHealthRadarSymptomData> _cloneSymptoms(
+    List<ReportHealthRadarSymptomData> source, {
+    required bool preserveSelection,
+  }) {
+    return source
+        .map(
+          (item) => item.copyWith(
+            selected: preserveSelection ? item.selected : false,
+            raw: Map<String, dynamic>.from(item.raw),
+          ),
+        )
+        .toList(growable: true);
+  }
+
+  void _handleModeChanged(bool value) {
+    setState(() {
+      _isClassicMode = value;
+      _resetSymptoms();
+    });
+  }
+
+  Future<void> _handleSymptomTap(int index) async {
+    if (index < 0 || index >= _visibleSymptoms.length) {
+      return;
+    }
+
+    final current = _visibleSymptoms[index];
+    final next = current.copyWith(selected: !current.selected);
+
+    setState(() {
+      _visibleSymptoms[index] = next;
+      if (_isClassicMode) {
+        _classicSymptoms[index] = next;
+      }
+    });
+
+    final reportId = widget.viewData.reportId?.trim() ?? '';
+    if (reportId.isEmpty || !next.hasPersistableId) {
+      return;
+    }
+
+    final recommendType = _isClassicMode
+        ? _kReportSymRecommendTypeClassic
+        : _kReportSymRecommendTypeAiDeep;
+
+    try {
+      if (next.selected) {
+        await widget.addReportSymptom(
+          reportId: reportId,
+          symptomId: next.id,
+          symptomName: next.name,
+          recommendType: recommendType,
+        );
+      } else {
+        await widget.deleteReportSymptom(
+          reportId: reportId,
+          symptomId: next.id,
+          recommendType: recommendType,
+        );
+      }
+    } catch (_) {
+      // Keep the miniapp's optimistic toggle behavior even if persistence fails.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final symptoms = _visibleSymptoms;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 360;
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  _FloatingSectionTitle(title: '健康雷达'),
+                  SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '点击症状获取专属调理',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFE36A53),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return const Row(
+              children: [
+                Expanded(child: _FloatingSectionTitle(title: '健康雷达')),
+                Text(
+                  '点击症状获取专属调理',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFE36A53),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        _SectionCard(
+          borderColor: const Color(0xFFF0E6DE),
+          shadowColor: const Color(0x12000000),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 360;
+                  final title = const Text(
+                    '大数据提示容易伴有',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1E1810),
+                    ),
+                  );
+
+                  final switcher = _HealthRadarModeSwitch(
+                    isClassicMode: _isClassicMode,
+                    onChanged: _handleModeChanged,
+                  );
+
+                  if (compact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        title,
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: switcher,
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: title),
+                      const SizedBox(width: 12),
+                      switcher,
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 18),
+              if (symptoms.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 18),
+                  child: Center(
+                    child: Text(
+                      '暂无数据',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF9A8776)),
+                    ),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 12,
+                  children: List.generate(symptoms.length, (index) {
+                    final symptom = symptoms[index];
+                    return _HealthRadarSymptomChip(
+                      key: ValueKey(
+                        'report_health_radar_chip_${_isClassicMode ? 'classic' : 'deep'}_$index',
+                      ),
+                      label: symptom.name,
+                      selected: symptom.selected,
+                      onTap: () => _handleSymptomTap(index),
+                    );
+                  }),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HealthRadarModeSwitch extends StatelessWidget {
+  const _HealthRadarModeSwitch({
+    required this.isClassicMode,
+    required this.onChanged,
+  });
+
+  final bool isClassicMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const activeColor = Color(0xFFD89B49);
+    const inactiveColor = Color(0xFFB8AB99);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'AI深度',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isClassicMode ? inactiveColor : activeColor,
+          ),
+        ),
+        Transform.scale(
+          scale: 0.78,
+          child: Switch(
+            key: const ValueKey('report_health_radar_mode_switch'),
+            value: isClassicMode,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: activeColor,
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: const Color(0xFFE8DDD1),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        Text(
+          '大医经验',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isClassicMode ? activeColor : inactiveColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HealthRadarSymptomChip extends StatelessWidget {
+  const _HealthRadarSymptomChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFFFF3E6) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFFD1883A)
+                  : const Color(0xFFD8A867),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: selected
+                  ? const Color(0xFFC9781D)
+                  : const Color(0xFF5D4B39),
+              height: 1.2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+bool _symptomListsEqual(
+  List<ReportHealthRadarSymptomData> lhs,
+  List<ReportHealthRadarSymptomData> rhs,
+) {
+  if (lhs.length != rhs.length) {
+    return false;
+  }
+
+  for (var i = 0; i < lhs.length; i++) {
+    final left = lhs[i];
+    final right = rhs[i];
+    if (left.id != right.id ||
+        left.name != right.name ||
+        left.selected != right.selected) {
+      return false;
+    }
+  }
+  return true;
+}
+
+class _RiskIndexSectionBlock extends StatelessWidget {
+  final List<ReportRiskIndexData> riskIndexes;
+  final Animation<double> scoreAnim;
+  final DiagnosisMaNavigate? consultNavigate;
+
+  const _RiskIndexSectionBlock({
+    required this.riskIndexes,
+    required this.scoreAnim,
+    this.consultNavigate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedConsultNavigate = consultNavigate;
+    final visibleRiskIndexes = riskIndexes.take(4).toList(growable: false);
+    if (visibleRiskIndexes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final warningRiskIndexes = riskIndexes
+        .where((item) => item.isWarning)
+        .toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FloatingSectionTitle(
+          title: '风险指数',
+          accentColor: Color(0xFFC57B08),
+        ),
+        const SizedBox(height: 10),
+        _SectionCard(
+          borderColor: const Color(0xFFF0E6DE),
+          shadowColor: const Color(0x12000000),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (warningRiskIndexes.isNotEmpty) ...[
+                _RiskIndexTipCard(
+                  warningRiskIndexes: warningRiskIndexes,
+                  consultNavigate: resolvedConsultNavigate,
+                  onConsultTap: resolvedConsultNavigate == null
+                      ? null
+                      : () => _showConsultNavigateDialog(
+                          context,
+                          resolvedConsultNavigate,
+                        ),
+                ),
+                const SizedBox(height: 14),
+              ],
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: visibleRiskIndexes.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  mainAxisExtent: 186,
+                ),
+                itemBuilder: (context, index) => _RiskIndexCard(
+                  item: visibleRiskIndexes[index],
+                  anim: scoreAnim,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RiskIndexTipCard extends StatelessWidget {
+  final List<ReportRiskIndexData> warningRiskIndexes;
+  final DiagnosisMaNavigate? consultNavigate;
+  final VoidCallback? onConsultTap;
+
+  const _RiskIndexTipCard({
+    required this.warningRiskIndexes,
+    required this.consultNavigate,
+    required this.onConsultTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final highlightNames = warningRiskIndexes
+        .map((item) => item.name)
+        .where((item) => item.trim().isNotEmpty)
+        .take(4)
+        .toList(growable: false);
+
+    final spans = <InlineSpan>[const TextSpan(text: '根据大数据，您的')];
+    for (var i = 0; i < highlightNames.length; i++) {
+      spans.add(
+        TextSpan(
+          text: highlightNames[i],
+          style: const TextStyle(
+            color: Color(0xFFE36A53),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+      if (i < highlightNames.length - 1) {
+        spans.add(const TextSpan(text: '、'));
+      }
+    }
+    spans.add(
+      const TextSpan(text: '风险偏高，检测前是否吃了有色饮料或者食物，如果是自然状态的检测结果，建议咨询健康顾问。'),
+    );
+    if (consultNavigate != null) {
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: GestureDetector(
+              key: const ValueKey('report_risk_consult_button'),
+              onTap: onConsultTap,
+              child: const Text(
+                '点击咨询',
+                style: TextStyle(
+                  color: Color(0xFFE36A53),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                  decorationThickness: 1.1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8F7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3D9D5)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0B000000),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 5,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE86E64),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF66584E),
+                  height: 1.6,
+                ),
+                children: spans,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiskIndexCard extends StatelessWidget {
+  final ReportRiskIndexData item;
+  final Animation<double> anim;
+
+  const _RiskIndexCard({required this.item, required this.anim});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = item.isWarning
+        ? _kRiskWarningPalette
+        : _kRiskAttentionPalette;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF1E7E0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0A000000),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      child: AnimatedBuilder(
+        animation: anim,
+        builder: (context, child) {
+          final value = (item.displayProb * anim.value)
+              .round()
+              .clamp(0, 100)
+              .toInt();
+          final progress = (item.ringScore / 100) * anim.value;
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      size: const Size(64, 64),
+                      painter: _RiskIndexRingPainter(
+                        progress: progress,
+                        colors: palette.ringColors,
+                      ),
+                    ),
+                    Text(
+                      '$value',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w500,
+                        color: palette.numberColor,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              _RiskStatusPill(item: item, palette: palette),
+              const SizedBox(height: 10),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    item.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF54493F),
+                      height: 1.25,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _RiskStatusPill extends StatelessWidget {
+  final ReportRiskIndexData item;
+  final _RiskCardPalette palette;
+
+  const _RiskStatusPill({required this.item, required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: palette.pillBackground,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.pillBorder),
+      ),
+      child: Text(
+        item.statusLabel,
+        style: TextStyle(
+          color: palette.pillText,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _ConsultFallbackCard extends StatelessWidget {
+  final DiagnosisMaNavigate consultNavigate;
+
+  const _ConsultFallbackCard({required this.consultNavigate});
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = <String>[
+      if (consultNavigate.appId.trim().isNotEmpty)
+        'AppId: ${consultNavigate.appId}',
+      if (consultNavigate.path.trim().isNotEmpty)
+        'Path: ${consultNavigate.path}',
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F4EE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE9DDCF)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.qr_code_2_rounded,
+            size: 42,
+            color: Color(0xFFC57B08),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            consultNavigate.hasMiniProgram ? '当前版本不支持直接打开小程序' : '暂无二维码图片',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF6B5B4B),
+              height: 1.5,
+            ),
+          ),
+          if (lines.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SelectableText(
+              lines.join('\n'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF8A7868),
+                height: 1.45,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showConsultNavigateDialog(
+  BuildContext context,
+  DiagnosisMaNavigate consultNavigate,
+) async {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                consultNavigate.displayTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1810),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (consultNavigate.hasImage)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Image.network(
+                      consultNavigate.imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _ConsultFallbackCard(
+                            consultNavigate: consultNavigate,
+                          ),
+                    ),
+                  ),
+                )
+              else
+                _ConsultFallbackCard(consultNavigate: consultNavigate),
+              if (consultNavigate.hasImage) ...[
+                const SizedBox(height: 10),
+                const Text(
+                  '长按图片识别二维码',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF8B7A69)),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('关闭'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _RiskCardPalette {
+  const _RiskCardPalette({
+    required this.numberColor,
+    required this.pillBackground,
+    required this.pillBorder,
+    required this.pillText,
+    required this.ringColors,
+  });
+
+  final Color numberColor;
+  final Color pillBackground;
+  final Color pillBorder;
+  final Color pillText;
+  final List<Color> ringColors;
+}
+
+const _RiskCardPalette _kRiskWarningPalette = _RiskCardPalette(
+  numberColor: Color(0xFFE24D43),
+  pillBackground: Color(0xFFFBE7E5),
+  pillBorder: Color(0xFFF1C5C0),
+  pillText: Color(0xFFE35A4B),
+  ringColors: [Color(0xFFF2B132), Color(0xFFE94B3F)],
+);
+
+const _RiskCardPalette _kRiskAttentionPalette = _RiskCardPalette(
+  numberColor: Color(0xFF4E9A42),
+  pillBackground: Color(0xFFF5ECD2),
+  pillBorder: Color(0xFFE7D39C),
+  pillText: Color(0xFFC39A2F),
+  ringColors: [Color(0xFFF2B132), Color(0xFF4E9A42)],
+);
 
 Future<void> _showReportUnlockSheet(
   BuildContext context, {
