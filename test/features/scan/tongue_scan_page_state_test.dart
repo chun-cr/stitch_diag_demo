@@ -2,6 +2,60 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_page.dart';
 
 void main() {
+  group('describeTongueScanBlockers', () {
+    test('reports mouth missing before other blockers', () {
+      expect(
+        describeTongueScanBlockers(
+          mouthPresent: false,
+          protrusionCandidate: false,
+          protrusionConfirmed: false,
+          isFramed: false,
+          pauseAutoScanUntilReset: false,
+        ),
+        ['mouth_missing'],
+      );
+    });
+
+    test('reports candidate-not-confirmed and framing blockers together', () {
+      expect(
+        describeTongueScanBlockers(
+          mouthPresent: true,
+          protrusionCandidate: true,
+          protrusionConfirmed: false,
+          isFramed: false,
+          pauseAutoScanUntilReset: false,
+        ),
+        ['protrusion_unconfirmed', 'framing_failed'],
+      );
+    });
+
+    test('reports pause blocker even after confirmation and framing succeed', () {
+      expect(
+        describeTongueScanBlockers(
+          mouthPresent: true,
+          protrusionCandidate: true,
+          protrusionConfirmed: true,
+          isFramed: true,
+          pauseAutoScanUntilReset: true,
+        ),
+        ['paused_after_failure'],
+      );
+    });
+
+    test('reports hold_ready when no blockers remain', () {
+      expect(
+        describeTongueScanBlockers(
+          mouthPresent: true,
+          protrusionCandidate: true,
+          protrusionConfirmed: true,
+          isFramed: true,
+          pauseAutoScanUntilReset: false,
+        ),
+        ['hold_ready'],
+      );
+    });
+  });
+
   group('shouldKeepTongueHoldAlive', () {
     test('starts hold when a protrusion candidate is present', () {
       expect(

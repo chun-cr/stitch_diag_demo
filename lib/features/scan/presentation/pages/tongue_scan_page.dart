@@ -12,6 +12,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -47,6 +48,33 @@ bool shouldKeepTongueHoldAlive({
   required bool protrusionConfirmed,
 }) {
   return protrusionCandidate || protrusionConfirmed;
+}
+
+List<String> describeTongueScanBlockers({
+  required bool mouthPresent,
+  required bool protrusionCandidate,
+  required bool protrusionConfirmed,
+  required bool isFramed,
+  required bool pauseAutoScanUntilReset,
+}) {
+  if (!mouthPresent) {
+    return const ['mouth_missing'];
+  }
+
+  final blockers = <String>[];
+  if (!protrusionConfirmed) {
+    blockers.add(
+      protrusionCandidate ? 'protrusion_unconfirmed' : 'protrusion_missing',
+    );
+  }
+  if (!isFramed) {
+    blockers.add('framing_failed');
+  }
+  if (pauseAutoScanUntilReset) {
+    blockers.add('paused_after_failure');
+  }
+
+  return blockers.isEmpty ? const ['hold_ready'] : blockers;
 }
 
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
@@ -87,6 +115,8 @@ class _TongueScanPageState extends State<TongueScanPage>
   ScanState _scanState = ScanState.idle;
   Size _cameraViewportSize = Size.zero;
   String _mouthDirection = ''; // 方向提示
+  DateTime? _lastTongueDiagnosticAt;
+  String? _lastTongueDiagnosticFingerprint;
 
   Rect get _tongueGuideRectNormalized => buildNormalizedGuideRect(
     _cameraViewportSize,
@@ -207,13 +237,21 @@ class _TongueScanPageState extends State<TongueScanPage>
       isFramed: isFramed,
       pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
     );
+    final direction = (status.mouthPresent && !canHold)
+        ? _computeMouthDirection(status.mouthCenter)
+        : '';
+    _logTongueDiagnostics(
+      status: status,
+      protrusionReady: protrusionReady,
+      isFramed: isFramed,
+      canHold: canHold,
+      direction: direction,
+    );
 
     setState(() {
       _mouthPresent = status.mouthPresent;
       _holdEligible = canHold;
-      _mouthDirection = (status.mouthPresent && !canHold)
-          ? _computeMouthDirection(status.mouthCenter)
-          : '';
+      _mouthDirection = direction;
     });
     if (_scanState != ScanState.scanning) {
       return;
@@ -223,6 +261,121 @@ class _TongueScanPageState extends State<TongueScanPage>
     } else {
       _cancelHoldTracking(resetProgress: true);
     }
+  }
+
+  void _logTongueDiagnostics({
+    required TongueScanStatus status,
+    required bool protrusionReady,
+    required bool isFramed,
+    required bool canHold,
+    required String direction,
+  }) {
+    if (!kDebugMode || _scanState != ScanState.scanning) {
+      return;
+    }
+
+    final blockers = describeTongueScanBlockers(
+      mouthPresent: status.mouthPresent,
+      protrusionCandidate: status.protrusionCandidate,
+      protrusionConfirmed: protrusionReady,
+      isFramed: isFramed,
+      pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
+    );
+    final mouthBounds = normalizedBoundingRect(status.mouthLandmarks);
+    final guideRect = _tongueGuideRectNormalized;
+    final fingerprint = [
+      blockers.join(','),
+      status.protrusionCandidate,
+      status.protrusionConfirmed,
+      protrusionReady,
+      isFramed,
+      canHold,
+      _formatOffset(status.mouthCenter),
+      _formatRect(mouthBounds),
+      _formatRect(guideRect == Rect.zero ? null : guideRect),
+      direction,
+    ].join('|');
+    final now = DateTime.now();
+    final recentlyLogged =
+        _lastTongueDiagnosticAt != null &&
+        now.difference(_lastTongueDiagnosticAt!) <
+            const Duration(milliseconds: 700);
+    if (fingerprint == _lastTongueDiagnosticFingerprint && recentlyLogged) {
+      return;
+    }
+
+    _lastTongueDiagnosticFingerprint = fingerprint;
+    _lastTongueDiagnosticAt = now;
+
+    AppLogger.log(
+      'Tongue diag '
+      'blockers=${blockers.join(",")} '
+      'mouthPresent=${status.mouthPresent} '
+      'candidate=${status.protrusionCandidate} '
+      'confirmed=${status.protrusionConfirmed} '
+      'ready=$protrusionReady '
+      'framed=$isFramed '
+      'hold=$canHold '
+      'paused=$_pauseAutoScanUntilReset '
+      'direction=${direction.isEmpty ? "none" : direction} '
+      'mouthCenter=${_formatOffset(status.mouthCenter)} '
+      'mouthBounds=${_formatRect(mouthBounds)} '
+      'guideRect=${_formatRect(guideRect == Rect.zero ? null : guideRect)} '
+      'guideCenter=${_formatOffset(guideRect == Rect.zero ? null : guideRect.center)} '
+      'viewport=${_formatSize(_cameraViewportSize)} '
+      'image=${_formatImageSize(status.imageWidth, status.imageHeight)} '
+      'blendshapes=${_formatBlendshapes(status.blendshapes)}',
+    );
+  }
+
+  String _formatOffset(Offset? value) {
+    if (value == null) {
+      return 'null';
+    }
+    return '(${value.dx.toStringAsFixed(3)},${value.dy.toStringAsFixed(3)})';
+  }
+
+  String _formatRect(Rect? rect) {
+    if (rect == null) {
+      return 'null';
+    }
+    return '[${rect.left.toStringAsFixed(3)},${rect.top.toStringAsFixed(3)},'
+        '${rect.right.toStringAsFixed(3)},${rect.bottom.toStringAsFixed(3)}]';
+  }
+
+  String _formatSize(Size value) {
+    if (value == Size.zero) {
+      return '0x0';
+    }
+    return '${value.width.toStringAsFixed(1)}x${value.height.toStringAsFixed(1)}';
+  }
+
+  String _formatImageSize(double width, double height) {
+    if (width <= 0 || height <= 0) {
+      return '0x0';
+    }
+    return '${width.toStringAsFixed(0)}x${height.toStringAsFixed(0)}';
+  }
+
+  String _formatBlendshapes(Map<String, double> blendshapes) {
+    if (blendshapes.isEmpty) {
+      return '{}';
+    }
+
+    const keys = [
+      'jawOpen',
+      'mouthFunnel',
+      'mouthLowerDownLeft',
+      'mouthLowerDownRight',
+    ];
+    final entries = <String>[];
+    for (final key in keys) {
+      final value = blendshapes[key];
+      if (value != null) {
+        entries.add('$key=${value.toStringAsFixed(3)}');
+      }
+    }
+    return entries.isEmpty ? '{}' : '{${entries.join(',')}}';
   }
 
   /// 根据嘴部中心（已归一化）0~1 计算偏移方向
