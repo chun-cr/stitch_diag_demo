@@ -42,6 +42,14 @@ bool isTongueHoldEligible({
   return protrusionConfirmed && isFramed && !pauseAutoScanUntilReset;
 }
 
+bool shouldKeepTongueHoldAlive({
+  required bool protrusionCandidate,
+  required bool protrusionConfirmed,
+  required bool holdInProgress,
+}) {
+  return protrusionConfirmed || (holdInProgress && protrusionCandidate);
+}
+
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
 const _kAccent = Color(0xFF0D7A5A); // 主强调色
 const _kAccentLight = Color(0xFF3DAB78); // 按钮渐变亮端
@@ -187,12 +195,17 @@ class _TongueScanPageState extends State<TongueScanPage>
   void _handleStatusUpdate(TongueScanStatus status) {
     if (!mounted || _scanState == ScanState.uploading) return;
     final isFramed = _isTongueFramedForUpload(status);
-    final readyToCapture = status.protrusionConfirmed && isFramed;
+    final protrusionReady = shouldKeepTongueHoldAlive(
+      protrusionCandidate: status.protrusionCandidate,
+      protrusionConfirmed: status.protrusionConfirmed,
+      holdInProgress: _holdTimer != null,
+    );
+    final readyToCapture = protrusionReady && isFramed;
     if (_pauseAutoScanUntilReset && !readyToCapture) {
       _pauseAutoScanUntilReset = false;
     }
     final canHold = isTongueHoldEligible(
-      protrusionConfirmed: status.protrusionConfirmed,
+      protrusionConfirmed: protrusionReady,
       isFramed: isFramed,
       pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
     );
