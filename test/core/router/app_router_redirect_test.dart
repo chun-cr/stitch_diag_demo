@@ -7,10 +7,14 @@ void main() {
       expect(
         resolvePreviewAuthRedirect(
           matchedLocation: AppRoutes.home,
+          currentUri: Uri(path: AppRoutes.home),
           isAuthenticated: false,
           bypassAuthGuard: false,
         ),
-        AppRoutes.login,
+        Uri(
+          path: AppRoutes.login,
+          queryParameters: {'redirect': AppRoutes.home},
+        ).toString(),
       );
     });
 
@@ -18,6 +22,7 @@ void main() {
       expect(
         resolvePreviewAuthRedirect(
           matchedLocation: AppRoutes.home,
+          currentUri: Uri(path: AppRoutes.home),
           isAuthenticated: false,
           bypassAuthGuard: true,
         ),
@@ -29,6 +34,7 @@ void main() {
       expect(
         resolvePreviewAuthRedirect(
           matchedLocation: AppRoutes.completeProfile,
+          currentUri: Uri(path: AppRoutes.completeProfile),
           isAuthenticated: false,
           bypassAuthGuard: false,
         ),
@@ -40,6 +46,7 @@ void main() {
       expect(
         resolvePreviewAuthRedirect(
           matchedLocation: AppRoutes.login,
+          currentUri: Uri(path: AppRoutes.login),
           isAuthenticated: true,
           bypassAuthGuard: false,
         ),

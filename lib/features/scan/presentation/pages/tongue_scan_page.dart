@@ -45,9 +45,8 @@ bool isTongueHoldEligible({
 bool shouldKeepTongueHoldAlive({
   required bool protrusionCandidate,
   required bool protrusionConfirmed,
-  required bool holdInProgress,
 }) {
-  return protrusionConfirmed || (holdInProgress && protrusionCandidate);
+  return protrusionCandidate || protrusionConfirmed;
 }
 
 // ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
@@ -198,7 +197,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     final protrusionReady = shouldKeepTongueHoldAlive(
       protrusionCandidate: status.protrusionCandidate,
       protrusionConfirmed: status.protrusionConfirmed,
-      holdInProgress: _holdTimer != null,
     );
     final readyToCapture = protrusionReady && isFramed;
     if (_pauseAutoScanUntilReset && !readyToCapture) {

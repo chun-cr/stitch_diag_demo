@@ -8,7 +8,6 @@ class CompleteProfilePage extends StatefulWidget {
 }
 
 const _kCompleteProfilePrimary = Color(0xFF6FA585);
-const _kCompleteProfilePrimaryLight = Color(0xFF8DBB9D);
 
 class _CompleteProfilePageState extends State<CompleteProfilePage>
     with TickerProviderStateMixin {
@@ -1129,44 +1128,6 @@ class _HarmonySealPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BaguaRingPainter extends CustomPainter {
-  const _BaguaRingPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final r = size.width / 2 - 2;
-    final paint = Paint()
-      ..color = _kCompleteProfilePrimary.withValues(alpha: 0.12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    canvas.drawCircle(Offset(cx, cy), r, paint);
-    for (int i = 0; i < 8; i++) {
-      final a = i * math.pi / 4;
-      canvas.drawLine(
-        Offset(cx + math.cos(a) * (r - 10), cy + math.sin(a) * (r - 10)),
-        Offset(cx + math.cos(a) * r, cy + math.sin(a) * r),
-        paint,
-      );
-    }
-    for (int i = 0; i < 24; i++) {
-      final a = i * math.pi / 12;
-      canvas.drawCircle(
-        Offset(cx + math.cos(a) * r, cy + math.sin(a) * r),
-        1,
-        Paint()
-          ..color = _kCompleteProfilePrimary.withValues(alpha: 0.2)
-          ..style = PaintingStyle.fill,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 // 鈹€鈹€鈹€ Shared Sub-widgets 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€

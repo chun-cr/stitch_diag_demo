@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
@@ -16,6 +17,7 @@ import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_reposito
 import '../../../../core/router/app_router.dart';
 import '../../data/models/auth_request.dart';
 import '../providers/auth_repository_provider.dart';
+import 'package:stitch_diag_demo/features/share/presentation/providers/share_referral_provider.dart';
 import '../providers/wechat_code_acquirer_provider.dart';
 import '../utils/auth_verification_code_flow.dart';
 import '../utils/verification_code_feedback.dart';
@@ -27,10 +29,22 @@ part 'login_page_logic.dart';
 part 'login_page_view.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key, this.inviteTicket, this.initialMode});
+  const LoginPage({
+    super.key,
+    this.inviteTicket,
+    this.initialMode,
+    this.shareId,
+    this.sharerId,
+    this.visitorKey,
+    this.redirectLocation,
+  });
 
   final String? inviteTicket;
   final String? initialMode;
+  final String? shareId;
+  final String? sharerId;
+  final String? visitorKey;
+  final String? redirectLocation;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -97,6 +111,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   void initState() {
     super.initState();
     _isEmailLogin = widget.initialMode == 'email';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_initializeShareReferral());
+    });
 
     _breatheController = AnimationController(
       vsync: this,
@@ -172,8 +189,34 @@ class _LoginPageState extends ConsumerState<LoginPage>
         : 'WeChat authorization returned status "$normalizedStatus". Follow-up binding is not wired yet.';
   }
 
-  Future<void> _completeLoginWithSession(AuthSessionEntity session) async {
+  Future<void> _initializeShareReferral() async {
+    await ref
+        .read(shareReferralControllerProvider.notifier)
+        .handleIncomingShare(
+          shareId: widget.shareId,
+          sharerId: widget.sharerId,
+          visitorKey: widget.visitorKey,
+          redirect: widget.redirectLocation,
+          isAuthenticated: isPreviewAuthenticated,
+        );
+  }
+
+  Future<void> _synchronizeShareReferralAfterAuth() async {
+    try {
+      await ref
+          .read(shareReferralControllerProvider.notifier)
+          .initializeAfterAuth();
+    } catch (_) {
+      debugPrint('share referral initialization failed after login');
+    }
+  }
+
+  Future<void> _completeLoginWithSession(
+    AuthSessionEntity session, {
+    String? redirectLocation,
+  }) async {
     await getIt<AuthSessionStore>().saveSession(session);
+    unawaited(_synchronizeShareReferralAfterAuth());
 
     if (!mounted) {
       return;
@@ -185,7 +228,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
     }
 
     setPreviewAuthenticated(true);
-    context.go(AppRoutes.home);
+    context.go(_resolveSafeRedirect(redirectLocation) ?? AppRoutes.home);
   }
 
   @override
@@ -213,11 +256,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
           .read(authRepositoryProvider)
           .loginWithWechatMiniProgram(
             wechatCode: normalizedWechatCode,
-            inviteTicket: _inviteTicket,
+            inviteTicket: await _resolveInviteTicketForAuth(),
           );
 
       if (result.hasSession && result.session != null) {
-        await _completeLoginWithSession(result.session!);
+        await _completeLoginWithSession(
+          result.session!,
+          redirectLocation: _redirectLocation,
+        );
         return;
       }
 
@@ -283,20 +329,22 @@ class _LoginPageState extends ConsumerState<LoginPage>
       final repository = ref.read(authRepositoryProvider);
       final Future<AuthSessionEntity> loginFuture;
       if (_usesPasswordCredential) {
+        final inviteTicket = await _resolveInviteTicketForAuth();
         loginFuture = repository.login(
           AuthRequest(
             countryCode: _selectedCountryCode,
             phoneNumber: _phoneCtrl.text.trim(),
             password: _passCtrl.text,
-            inviteTicket: _inviteTicket,
+            inviteTicket: inviteTicket,
           ),
         );
       } else {
+        final inviteTicket = await _resolveInviteTicketForAuth();
         loginFuture = repository.authenticateVerificationCode(
           scene: VerificationCodeScene.login,
           challengeId: _challengeId!,
           verificationCode: _codeCtrl.text.trim(),
-          inviteTicket: _inviteTicket,
+          inviteTicket: inviteTicket,
         );
       }
 
@@ -306,7 +354,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
       ]);
       final session = results.first as AuthSessionEntity;
 
-      await _completeLoginWithSession(session);
+      await _completeLoginWithSession(
+        session,
+        redirectLocation: _redirectLocation,
+      );
     } on DioException catch (error) {
       if (!mounted) {
         return;

@@ -3,12 +3,12 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page
 
 void main() {
   group('isFaceHoldEligible', () {
-    test('returns true only when permission granted, face detected, and centered', () {
+    test('returns true only when permission granted, face detected, and framed', () {
       expect(
         isFaceHoldEligible(
           hasPermission: true,
           hasFaceDetected: true,
-          faceDirection: '',
+          isFramed: true,
         ),
         isTrue,
       );
@@ -19,18 +19,46 @@ void main() {
         isFaceHoldEligible(
           hasPermission: true,
           hasFaceDetected: false,
-          faceDirection: '',
+          isFramed: true,
         ),
         isFalse,
       );
     });
 
-    test('returns false when face is not centered', () {
+    test('returns false when face is not framed', () {
       expect(
         isFaceHoldEligible(
           hasPermission: true,
           hasFaceDetected: true,
-          faceDirection: 'Move left',
+          isFramed: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('shouldKeepFaceHoldAlive', () {
+    test('keeps hold alive with relaxed framing once countdown has started', () {
+      expect(
+        shouldKeepFaceHoldAlive(
+          hasPermission: true,
+          hasFaceDetected: true,
+          isFramed: false,
+          isRelaxedFramed: true,
+          holdInProgress: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('stops hold when face landmarks are lost', () {
+      expect(
+        shouldKeepFaceHoldAlive(
+          hasPermission: true,
+          hasFaceDetected: false,
+          isFramed: true,
+          isRelaxedFramed: true,
+          holdInProgress: true,
         ),
         isFalse,
       );
@@ -43,7 +71,7 @@ void main() {
         shouldAutoStartFaceScan(
           hasPermission: true,
           hasFaceDetected: true,
-          faceDirection: '',
+          isFramed: true,
           isScanning: false,
           isTransitioning: false,
         ),
@@ -56,7 +84,7 @@ void main() {
         shouldAutoStartFaceScan(
           hasPermission: true,
           hasFaceDetected: true,
-          faceDirection: '',
+          isFramed: true,
           isScanning: true,
           isTransitioning: false,
         ),
@@ -69,7 +97,7 @@ void main() {
         shouldAutoStartFaceScan(
           hasPermission: true,
           hasFaceDetected: true,
-          faceDirection: '',
+          isFramed: true,
           isScanning: false,
           isTransitioning: true,
         ),
@@ -77,12 +105,12 @@ void main() {
       );
     });
 
-    test('returns false when face is not yet ready to hold', () {
+    test('returns false when face is not yet framed for upload', () {
       expect(
         shouldAutoStartFaceScan(
           hasPermission: true,
           hasFaceDetected: true,
-          faceDirection: 'Move left',
+          isFramed: false,
           isScanning: false,
           isTransitioning: false,
         ),

@@ -27,16 +27,31 @@ const _kGreenLight = Color(0xFF3DAB78);
 bool isFaceHoldEligible({
   required bool hasPermission,
   required bool hasFaceDetected,
-  required String faceDirection,
+  required bool isFramed,
 }) {
-  return hasPermission && hasFaceDetected && faceDirection.isEmpty;
+  return hasPermission && hasFaceDetected && isFramed;
+}
+
+@visibleForTesting
+bool shouldKeepFaceHoldAlive({
+  required bool hasPermission,
+  required bool hasFaceDetected,
+  required bool isFramed,
+  required bool isRelaxedFramed,
+  required bool holdInProgress,
+}) {
+  if (!hasPermission || !hasFaceDetected) {
+    return false;
+  }
+
+  return holdInProgress ? isRelaxedFramed : isFramed;
 }
 
 @visibleForTesting
 bool shouldAutoStartFaceScan({
   required bool hasPermission,
   required bool hasFaceDetected,
-  required String faceDirection,
+  required bool isFramed,
   required bool isScanning,
   required bool isTransitioning,
 }) {
@@ -45,7 +60,7 @@ bool shouldAutoStartFaceScan({
       isFaceHoldEligible(
         hasPermission: hasPermission,
         hasFaceDetected: hasFaceDetected,
-        faceDirection: faceDirection,
+        isFramed: isFramed,
       );
 }
 
@@ -102,18 +117,24 @@ class _FaceScanPageState extends State<FaceScanPage>
     );
   }
 
-  bool get _isFaceFramedForUpload {
+  bool _isFaceFramedForUpload({
+    required bool allowHoldDrift,
+  }) {
     final bounds = normalizedBoundingRect(_normalizedLandmarks);
     if (bounds == null) {
       return false;
     }
     final area = normalizedRectArea(bounds);
-    return area >= 0.05 &&
-        area <= 0.32 &&
+    final minArea = allowHoldDrift ? 0.03 : 0.04;
+    final maxArea = allowHoldDrift ? 0.40 : 0.36;
+    final guideInsetFactor = allowHoldDrift ? 0.02 : 0.04;
+
+    return area >= minArea &&
+        area <= maxArea &&
         isNormalizedBoundsInsideGuide(
           bounds: bounds,
           guideRect: _faceGuideRectNormalized,
-          guideInsetFactor: 0.08,
+          guideInsetFactor: guideInsetFactor,
         );
   }
 
@@ -121,14 +142,22 @@ class _FaceScanPageState extends State<FaceScanPage>
       isFaceHoldEligible(
         hasPermission: _hasPermission,
         hasFaceDetected: _hasFaceDetected,
-        faceDirection: _faceDirection,
+        isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
       ) &&
-      _isFaceFramedForUpload;
+      !_pauseAutoScanUntilReset;
+
+  bool get _shouldKeepFaceHoldAlive => shouldKeepFaceHoldAlive(
+    hasPermission: _hasPermission,
+    hasFaceDetected: _hasFaceDetected,
+    isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
+    isRelaxedFramed: _isFaceFramedForUpload(allowHoldDrift: true),
+    holdInProgress: _timer != null,
+  );
 
   bool get _shouldAutoStartScan => shouldAutoStartFaceScan(
     hasPermission: _hasPermission,
     hasFaceDetected: _hasFaceDetected,
-    faceDirection: _faceDirection,
+    isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
     isScanning: _isScanning || _isSubmitting,
     isTransitioning: _isTransitioning,
   );
@@ -211,7 +240,7 @@ class _FaceScanPageState extends State<FaceScanPage>
         if (_isSubmitting) {
           return;
         }
-        if (_isScanning && !_isFaceReadyToHold) {
+        if (_isScanning && !_shouldKeepFaceHoldAlive) {
           _cancelScanHold(resetProgress: true);
         } else if (!_pauseAutoScanUntilReset && _shouldAutoStartScan) {
           _startScan();
@@ -236,7 +265,7 @@ class _FaceScanPageState extends State<FaceScanPage>
         t.cancel();
         return;
       }
-      if (!_isFaceReadyToHold) {
+      if (!_shouldKeepFaceHoldAlive) {
         _cancelScanHold(resetProgress: true);
         t.cancel();
         return;

@@ -45,6 +45,54 @@ class AppRoutes {
       '/profile/settings/account-security/set-login-password';
 }
 
+String? _trimmedOrNull(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
+}
+
+String? _buildRedirectTarget(Uri uri) {
+  final path = uri.path.trim();
+  if (path.isEmpty || path == AppRoutes.login || path == AppRoutes.register) {
+    return null;
+  }
+  final queryParameters = Map<String, String>.from(uri.queryParameters)
+    ..remove('redirect');
+  return Uri(
+    path: path,
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  ).toString();
+}
+
+Map<String, String> _buildAuthRedirectQueryParameters(Uri uri) {
+  final queryParameters = <String, String>{};
+  final shareId = _trimmedOrNull(uri.queryParameters['shareId']);
+  final sharerId = _trimmedOrNull(uri.queryParameters['sharerId']);
+  final visitorKey = _trimmedOrNull(uri.queryParameters['visitorKey']);
+  final inviteTicket = _trimmedOrNull(uri.queryParameters['inviteTicket']);
+  final redirect = _buildRedirectTarget(uri);
+
+  if (shareId != null) {
+    queryParameters['shareId'] = shareId;
+  }
+  if (sharerId != null) {
+    queryParameters['sharerId'] = sharerId;
+  }
+  if (visitorKey != null) {
+    queryParameters['visitorKey'] = visitorKey;
+  }
+  if (inviteTicket != null) {
+    queryParameters['inviteTicket'] = inviteTicket;
+  }
+  if (redirect != null) {
+    queryParameters['redirect'] = redirect;
+  }
+
+  return queryParameters;
+}
+
 final ValueNotifier<bool> _previewAuthState = ValueNotifier<bool>(false);
 
 bool get isPreviewAuthenticated => _previewAuthState.value;
@@ -54,6 +102,7 @@ bool get _bypassPreviewAuthGuardForWebDebug => kDebugMode && kIsWeb;
 
 String? resolvePreviewAuthRedirect({
   required String matchedLocation,
+  required Uri currentUri,
   required bool isAuthenticated,
   required bool bypassAuthGuard,
 }) {
@@ -66,7 +115,14 @@ String? resolvePreviewAuthRedirect({
       !isAuthenticated &&
       !isEntryAuthRoute &&
       !isProfileCompletionRoute) {
-    return AppRoutes.login;
+    final queryParameters = _buildAuthRedirectQueryParameters(currentUri);
+    if (queryParameters.isEmpty) {
+      return AppRoutes.login;
+    }
+    return Uri(
+      path: AppRoutes.login,
+      queryParameters: queryParameters,
+    ).toString();
   }
 
   if (isAuthenticated && isEntryAuthRoute) {
@@ -97,6 +153,7 @@ final appRouter = GoRouter(
   refreshListenable: _previewAuthState,
   redirect: (context, state) => resolvePreviewAuthRedirect(
     matchedLocation: state.matchedLocation,
+    currentUri: state.uri,
     isAuthenticated: isPreviewAuthenticated,
     bypassAuthGuard: _bypassPreviewAuthGuardForWebDebug,
   ),
@@ -130,6 +187,10 @@ final appRouter = GoRouter(
       builder: (context, state) => LoginPage(
         inviteTicket: state.uri.queryParameters['inviteTicket'],
         initialMode: state.uri.queryParameters['mode'],
+        shareId: state.uri.queryParameters['shareId'],
+        sharerId: state.uri.queryParameters['sharerId'],
+        visitorKey: state.uri.queryParameters['visitorKey'],
+        redirectLocation: state.uri.queryParameters['redirect'],
       ),
     ),
     GoRoute(
@@ -137,6 +198,10 @@ final appRouter = GoRouter(
       builder: (context, state) => RegisterPage(
         inviteTicket: state.uri.queryParameters['inviteTicket'],
         initialMode: state.uri.queryParameters['mode'],
+        shareId: state.uri.queryParameters['shareId'],
+        sharerId: state.uri.queryParameters['sharerId'],
+        visitorKey: state.uri.queryParameters['visitorKey'],
+        redirectLocation: state.uri.queryParameters['redirect'],
       ),
     ),
     GoRoute(

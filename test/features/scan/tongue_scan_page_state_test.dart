@@ -3,34 +3,31 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_pa
 
 void main() {
   group('shouldKeepTongueHoldAlive', () {
-    test('starts hold only after confirmed signal arrives', () {
+    test('starts hold when a protrusion candidate is present', () {
       expect(
         shouldKeepTongueHoldAlive(
           protrusionCandidate: true,
           protrusionConfirmed: false,
-          holdInProgress: false,
-        ),
-        isFalse,
-      );
-    });
-
-    test('keeps hold alive on candidate frames after confirmation jitter', () {
-      expect(
-        shouldKeepTongueHoldAlive(
-          protrusionCandidate: true,
-          protrusionConfirmed: false,
-          holdInProgress: true,
         ),
         isTrue,
       );
     });
 
-    test('stops hold when candidate disappears mid-countdown', () {
+    test('also stays alive when only confirmed signal is present', () {
+      expect(
+        shouldKeepTongueHoldAlive(
+          protrusionCandidate: false,
+          protrusionConfirmed: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('stops hold when both candidate and confirmation disappear', () {
       expect(
         shouldKeepTongueHoldAlive(
           protrusionCandidate: false,
           protrusionConfirmed: false,
-          holdInProgress: true,
         ),
         isFalse,
       );

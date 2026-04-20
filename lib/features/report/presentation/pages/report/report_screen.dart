@@ -129,6 +129,37 @@ class _ReportScreenState extends State<_ReportScreen>
     _tabController.animateTo(index);
   }
 
+  Future<void> _handleShare() async {
+    try {
+      final shareId = await ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(shareReferralControllerProvider.notifier).ensureRefererId();
+      await Clipboard.setData(ClipboardData(text: 'shareId=$shareId'));
+      if (!mounted) {
+        return;
+      }
+      final locale = Localizations.localeOf(context).languageCode;
+      final message = locale == 'zh'
+          ? '分享标识已复制，可用于后续分享接入'
+          : 'Referral shareId copied for downstream sharing.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      final locale = Localizations.localeOf(context).languageCode;
+      final message = locale == 'zh'
+          ? '获取分享标识失败，请稍后重试'
+          : 'Unable to load referral shareId right now.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -238,7 +269,7 @@ class _ReportScreenState extends State<_ReportScreen>
         Container(
           margin: const EdgeInsets.only(right: 12),
           child: GestureDetector(
-            onTap: () {},
+            onTap: _handleShare,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 36,

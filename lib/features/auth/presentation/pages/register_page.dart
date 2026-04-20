@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:dio/dio.dart';
@@ -19,14 +20,27 @@ import 'package:stitch_diag_demo/features/auth/presentation/utils/auth_verificat
 import 'package:stitch_diag_demo/features/auth/presentation/utils/verification_code_feedback.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/country_code_picker.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/auth_top_toast.dart';
+import 'package:stitch_diag_demo/features/share/presentation/providers/share_referral_provider.dart';
 
 part 'complete_profile_page.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
-  const RegisterPage({super.key, this.inviteTicket, this.initialMode});
+  const RegisterPage({
+    super.key,
+    this.inviteTicket,
+    this.initialMode,
+    this.shareId,
+    this.sharerId,
+    this.visitorKey,
+    this.redirectLocation,
+  });
 
   final String? inviteTicket;
   final String? initialMode;
+  final String? shareId;
+  final String? sharerId;
+  final String? visitorKey;
+  final String? redirectLocation;
 
   @override
   ConsumerState<RegisterPage> createState() => _RegisterPageState();
@@ -65,6 +79,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     _registerMode = widget.initialMode == 'email'
         ? _RegisterMode.email
         : _RegisterMode.phone;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_initializeShareReferral());
+    });
     _rotateController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
@@ -126,6 +143,36 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     return inviteTicket;
   }
 
+  String? get _incomingShareId {
+    final shareId = widget.shareId?.trim();
+    if (shareId != null && shareId.isNotEmpty) {
+      return shareId;
+    }
+    final sharerId = widget.sharerId?.trim();
+    if (sharerId == null || sharerId.isEmpty) {
+      return null;
+    }
+    return sharerId;
+  }
+
+  String? get _visitorKey {
+    final visitorKey = widget.visitorKey?.trim();
+    if (visitorKey == null || visitorKey.isEmpty) {
+      return null;
+    }
+    return visitorKey;
+  }
+
+  String? get _redirectLocation {
+    final redirectLocation = widget.redirectLocation?.trim();
+    if (redirectLocation == null ||
+        redirectLocation.isEmpty ||
+        !redirectLocation.startsWith('/')) {
+      return null;
+    }
+    return redirectLocation;
+  }
+
   bool get _isEmailRegister => _registerMode == _RegisterMode.email;
   String get _currentEntryMode => _isEmailRegister ? 'email' : 'phone';
   String get _currentAccountValue =>
@@ -181,11 +228,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   void showVerificationSuccess(String message) => _showSuccessSnack(message);
 
   String get _loginLocation {
-    final inviteTicket = _inviteTicket;
     final queryParameters = <String, String>{};
     queryParameters['mode'] = _currentEntryMode;
-    if (inviteTicket != null) {
-      queryParameters['inviteTicket'] = inviteTicket;
+    if (_inviteTicket != null) {
+      queryParameters['inviteTicket'] = _inviteTicket!;
+    }
+    if (_incomingShareId != null) {
+      queryParameters['shareId'] = _incomingShareId!;
+    }
+    if (_visitorKey != null) {
+      queryParameters['visitorKey'] = _visitorKey!;
+    }
+    if (_redirectLocation != null) {
+      queryParameters['redirect'] = _redirectLocation!;
     }
     if (queryParameters.isEmpty) {
       return AppRoutes.login;
@@ -194,6 +249,40 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       path: AppRoutes.login,
       queryParameters: queryParameters,
     ).toString();
+  }
+
+  Future<void> _initializeShareReferral() async {
+    await ref
+        .read(shareReferralControllerProvider.notifier)
+        .handleIncomingShare(
+          shareId: widget.shareId,
+          sharerId: widget.sharerId,
+          visitorKey: widget.visitorKey,
+          redirect: widget.redirectLocation,
+          isAuthenticated: isPreviewAuthenticated,
+        );
+  }
+
+  Future<void> _synchronizeShareReferralAfterAuth() async {
+    try {
+      await ref
+          .read(shareReferralControllerProvider.notifier)
+          .initializeAfterAuth();
+    } catch (_) {
+      debugPrint('share referral initialization failed after register');
+    }
+  }
+
+  Future<String?> _resolveInviteTicketForAuth() {
+    return ref
+        .read(shareReferralControllerProvider.notifier)
+        .resolveInviteTicketForAuth(
+          explicitInviteTicket: _inviteTicket,
+          shareId: _incomingShareId,
+          sharerId: widget.sharerId,
+          visitorKey: _visitorKey,
+          redirect: _redirectLocation ?? AppRoutes.register,
+        );
   }
 
   void _handlePhoneChanged(String value) {
@@ -315,13 +404,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     setState(() => _isLoading = true);
     try {
       final repository = ref.read(authRepositoryProvider);
+      final inviteTicket = await _resolveInviteTicketForAuth();
       final session = await repository.authenticateVerificationCode(
         scene: VerificationCodeScene.register,
         challengeId: _challengeId!,
         verificationCode: _codeCtrl.text.trim(),
-        inviteTicket: _inviteTicket,
+        inviteTicket: inviteTicket,
       );
       await getIt<AuthSessionStore>().saveSession(session);
+      unawaited(_synchronizeShareReferralAfterAuth());
       if (!mounted) return;
       setState(() => _isLoading = false);
       context.go(AppRoutes.completeProfile);

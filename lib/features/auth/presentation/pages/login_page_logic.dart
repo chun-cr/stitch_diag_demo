@@ -106,11 +106,71 @@ mixin _LoginPageLogic
     return inviteTicket;
   }
 
+  String? get _incomingShareId {
+    final shareId = widget.shareId?.trim();
+    if (shareId != null && shareId.isNotEmpty) {
+      return shareId;
+    }
+    final sharerId = widget.sharerId?.trim();
+    if (sharerId == null || sharerId.isEmpty) {
+      return null;
+    }
+    return sharerId;
+  }
+
+  String? get _visitorKey {
+    final visitorKey = widget.visitorKey?.trim();
+    if (visitorKey == null || visitorKey.isEmpty) {
+      return null;
+    }
+    return visitorKey;
+  }
+
+  String? get _redirectLocation {
+    final redirectLocation = widget.redirectLocation?.trim();
+    if (redirectLocation == null ||
+        redirectLocation.isEmpty ||
+        !redirectLocation.startsWith('/')) {
+      return null;
+    }
+    return redirectLocation;
+  }
+
+  Future<String?> _resolveInviteTicketForAuth() {
+    return ref
+        .read(shareReferralControllerProvider.notifier)
+        .resolveInviteTicketForAuth(
+          explicitInviteTicket: _inviteTicket,
+          shareId: _incomingShareId,
+          sharerId: widget.sharerId,
+          visitorKey: _visitorKey,
+          redirect: _redirectLocation ?? AppRoutes.login,
+        );
+  }
+
+  String? _resolveSafeRedirect(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null ||
+        normalized.isEmpty ||
+        !normalized.startsWith('/')) {
+      return null;
+    }
+    return normalized;
+  }
+
   String get _registerLocation {
-    final inviteTicket = _inviteTicket;
     final queryParameters = <String, String>{'mode': _currentEntryMode};
-    if (inviteTicket != null) {
-      queryParameters['inviteTicket'] = inviteTicket;
+    if (_inviteTicket != null) {
+      queryParameters['inviteTicket'] = _inviteTicket!;
+    }
+    if (_incomingShareId != null) {
+      queryParameters['shareId'] = _incomingShareId!;
+    }
+    if (_visitorKey != null) {
+      queryParameters['visitorKey'] = _visitorKey!;
+    }
+    if (_redirectLocation != null) {
+      queryParameters['redirect'] = _redirectLocation!;
     }
     return Uri(
       path: AppRoutes.register,

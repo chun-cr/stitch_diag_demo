@@ -11,12 +11,12 @@ import '../utils/scan_capture_geometry.dart';
 /// based proxy from mouth geometry instead of pretending to observe the tongue
 /// directly.
 class TongueProtrusionProxy {
-  static const double _minMouthAspectRatio = 0.18;
-  static const double _maxMouthAspectRatio = 0.72;
+  static const double _minMouthAspectRatio = 0.16;
+  static const double _maxMouthAspectRatio = 0.78;
   static const double _centerBandFactor = 0.18;
   static const double _sideBandFactor = 0.24;
-  static const double _minCentralDropRatio = 0.02;
-  static const double _assistedCentralDropRatio = 0.015;
+  static const double _minCentralDropRatio = 0.018;
+  static const double _assistedCentralDropRatio = 0.014;
 
   static bool isFrameEligible({
     required List<Offset> mouthLandmarks,
@@ -87,6 +87,10 @@ class TongueProtrusionProxy {
       return true;
     }
 
+    if (TongueBlendshapeSupport.hasDirectTongueSupport(blendshapes)) {
+      return true;
+    }
+
     if (!TongueBlendshapeSupport.hasStrongSupport(blendshapes)) {
       return false;
     }
@@ -96,9 +100,22 @@ class TongueProtrusionProxy {
 }
 
 class TongueBlendshapeSupport {
-  static const double _jawOpenThreshold = 0.16;
-  static const double _mouthFunnelThreshold = 0.10;
-  static const double _lowerLipDropThreshold = 0.08;
+  static const double _tongueOutThreshold = 0.20;
+  static const double _directJawOpenThreshold = 0.10;
+  static const double _jawOpenThreshold = 0.14;
+  static const double _mouthFunnelThreshold = 0.08;
+  static const double _lowerLipDropThreshold = 0.07;
+
+  static bool hasDirectTongueSupport(Map<String, double> blendshapes) {
+    if (blendshapes.isEmpty) {
+      return false;
+    }
+
+    final tongueOut = blendshapes['tongueOut'] ?? 0;
+    final jawOpen = blendshapes['jawOpen'] ?? 0;
+    return tongueOut >= _tongueOutThreshold &&
+        jawOpen >= _directJawOpenThreshold;
+  }
 
   static bool hasStrongSupport(Map<String, double> blendshapes) {
     if (blendshapes.isEmpty) {

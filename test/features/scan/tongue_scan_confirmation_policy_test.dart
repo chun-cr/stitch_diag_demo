@@ -67,6 +67,35 @@ void main() {
       );
     });
 
+    test('accepts direct tongueOut support when mouth geometry is otherwise borderline', () {
+      expect(
+        TongueProtrusionProxy.isFrameEligible(
+          mouthLandmarks: const [
+            Offset(0.50, 0.45),
+            Offset(0.50, 0.50),
+            Offset(0.50, 0.533),
+            Offset(0.34, 0.50),
+            Offset(0.66, 0.50),
+            Offset(0.38, 0.52),
+            Offset(0.62, 0.52),
+            Offset(0.70, 0.49),
+          ],
+          mouthCenter: const Offset(0.50, 0.50),
+          faceLandmarks: const [
+            Offset(0.20, 0.20),
+            Offset(0.80, 0.20),
+            Offset(0.20, 0.80),
+            Offset(0.80, 0.80),
+          ],
+          blendshapes: const {
+            'tongueOut': 0.24,
+            'jawOpen': 0.18,
+          },
+        ),
+        isTrue,
+      );
+    });
+
     test('rejects flat wide-open mouth geometry', () {
       expect(
         TongueProtrusionProxy.isFrameEligible(
@@ -87,6 +116,35 @@ void main() {
             Offset(0.20, 0.80),
             Offset(0.80, 0.80),
           ],
+        ),
+        isFalse,
+      );
+    });
+
+    test('rejects isolated tongueOut signal when mouth is barely open', () {
+      expect(
+        TongueProtrusionProxy.isFrameEligible(
+          mouthLandmarks: const [
+            Offset(0.50, 0.48),
+            Offset(0.50, 0.50),
+            Offset(0.50, 0.505),
+            Offset(0.34, 0.50),
+            Offset(0.66, 0.50),
+            Offset(0.38, 0.501),
+            Offset(0.62, 0.501),
+            Offset(0.70, 0.50),
+          ],
+          mouthCenter: const Offset(0.50, 0.50),
+          faceLandmarks: const [
+            Offset(0.20, 0.20),
+            Offset(0.80, 0.20),
+            Offset(0.20, 0.80),
+            Offset(0.80, 0.80),
+          ],
+          blendshapes: const {
+            'tongueOut': 0.30,
+            'jawOpen': 0.05,
+          },
         ),
         isFalse,
       );

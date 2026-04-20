@@ -4,6 +4,8 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
@@ -16,6 +18,7 @@ import 'package:stitch_diag_demo/features/report/application/report_unlock_servi
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_entry_resolver.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_view_data.dart';
+import 'package:stitch_diag_demo/features/share/presentation/providers/share_referral_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 export 'report_view_data.dart';
