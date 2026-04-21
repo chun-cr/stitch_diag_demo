@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/logger.dart';
 import '../../data/models/scan_session.dart';
+import '../../data/models/scan_upload_result.dart';
 import '../../data/sources/scan_remote_source.dart';
 import '../services/scan_capture_bridge.dart';
 import '../services/tongue_scan_status_bridge.dart';
@@ -462,6 +464,60 @@ class _TongueScanPageState extends State<TongueScanPage>
     return entries.isEmpty ? '{}' : '{${entries.join(',')}}';
   }
 
+  String _formatCaptureResult(ScanCaptureResult capture) {
+    return 'source=${capture.sourcePath} '
+        'crop=${capture.croppedPath} '
+        'frame=${capture.framePath} '
+        'sourceSize=${capture.sourceWidth.toStringAsFixed(0)}x${capture.sourceHeight.toStringAsFixed(0)} '
+        'cropRect=[${capture.cropLeft.toStringAsFixed(1)},${capture.cropTop.toStringAsFixed(1)},'
+        '${capture.cropWidth.toStringAsFixed(1)},${capture.cropHeight.toStringAsFixed(1)}]';
+  }
+
+  Future<String> _describeFile(String path) async {
+    try {
+      final file = File(path);
+      final exists = await file.exists();
+      if (!exists) {
+        return '$path (missing)';
+      }
+      final length = await file.length();
+      return '$path ($length bytes)';
+    } on Object catch (error) {
+      return '$path (stat failed: $error)';
+    }
+  }
+
+  Future<void> _logTongueUploadCapture({
+    required Rect analysisRect,
+    required ScanCaptureResult capture,
+  }) async {
+    final cropFile = await _describeFile(capture.croppedPath);
+    final sourceFile = await _describeFile(capture.sourcePath);
+    AppLogger.log(
+      'Tongue upload capture '
+      'analysisRect=${_formatRect(analysisRect)} '
+      'guideRect=${_formatRect(_tongueGuideRectNormalized)} '
+      'mouthCenter=${_formatOffset(_latestStatus.mouthCenter)} '
+      'mouthBounds=${_formatRect(normalizedBoundingRect(_latestStatus.mouthLandmarks))} '
+      'faceBounds=${_formatRect(normalizedBoundingRect(_latestStatus.faceLandmarks))} '
+      'capture=${_formatCaptureResult(capture)} '
+      'uploadFile=$cropFile '
+      'sourceFile=$sourceFile',
+    );
+  }
+
+  void _logTongueUploadResponse(ScanTongueUploadResult response) {
+    AppLogger.log(
+      'Tongue upload response '
+      'missingTongue=${response.missingTongue} '
+      'reportId=${response.reportId.isEmpty ? "empty" : response.reportId} '
+      'imageUrl=${response.imageUrl.isEmpty ? "empty" : response.imageUrl} '
+      'analysisResult=${response.analysisResult} '
+      'tongueReport=${response.tongueReport} '
+      'raw=${response.data}',
+    );
+  }
+
   /// 根据嘴部中心（已归一化）0~1 计算偏移方向
   String _computeMouthDirection(Offset? center) {
     if (center == null) return '';
@@ -518,6 +574,11 @@ class _TongueScanPageState extends State<TongueScanPage>
         return;
       }
 
+      await _logTongueUploadCapture(
+        analysisRect: analysisRect,
+        capture: capture,
+      );
+
       setState(() => _scanProgress = 0.68);
 
       final faceUpload = _scanSession.faceUpload;
@@ -542,6 +603,8 @@ class _TongueScanPageState extends State<TongueScanPage>
       if (!mounted) {
         return;
       }
+
+      _logTongueUploadResponse(tongueUpload);
 
       if (tongueUpload.missingTongue) {
         _pauseAutoScanUntilReset = true;
