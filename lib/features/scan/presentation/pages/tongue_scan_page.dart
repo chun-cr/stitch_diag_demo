@@ -11,9 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import 'dart:async';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -143,13 +141,10 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _mouthPresent = false;
   bool _holdEligible = false;
   bool _pauseAutoScanUntilReset = false;
-  bool _hasLoggedFirstStatusFrame = false;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
   Size _cameraViewportSize = Size.zero;
   String _mouthDirection = ''; // 方向提示
-  DateTime? _lastTongueDiagnosticAt;
-  String? _lastTongueDiagnosticFingerprint;
 
   Rect get _tongueGuideRectNormalized => buildNormalizedGuideRect(
     _cameraViewportSize,
@@ -216,7 +211,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.scanning;
       _mouthPresent = false;
       _holdEligible = false;
-      _hasLoggedFirstStatusFrame = false;
       _pauseAutoScanUntilReset = false;
       _scanProgress = 0;
     });
@@ -234,7 +228,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.scanning;
       _mouthPresent = false;
       _holdEligible = false;
-      _hasLoggedFirstStatusFrame = false;
       _pauseAutoScanUntilReset = false;
     });
     await _startMonitoringWhenReady();
@@ -271,7 +264,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     _statusSubscription = _statusBridge.statusStream().listen(
       _handleStatusUpdate,
     );
-    AppLogger.log('Tongue monitoring start requested');
     await _statusBridge.startMonitoring();
   }
 
@@ -295,10 +287,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     if (!mounted || _scanState == ScanState.uploading) return;
     _latestStatus = status;
     final isFramed = _isTongueFramedForUpload(status);
-    final protrusionSignalActive = shouldKeepTongueHoldAlive(
-      protrusionCandidate: status.protrusionCandidate,
-      protrusionConfirmed: status.protrusionConfirmed,
-    );
     final readyToCapture = status.protrusionConfirmed && isFramed;
     if (_pauseAutoScanUntilReset && !readyToCapture) {
       _pauseAutoScanUntilReset = false;
@@ -318,29 +306,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     final direction = (status.mouthPresent && !canHold)
         ? _computeMouthDirection(status.mouthCenter)
         : '';
-    if (!_hasLoggedFirstStatusFrame) {
-      _hasLoggedFirstStatusFrame = true;
-      AppLogger.log(
-        'Tongue first status '
-        'mouthPresent=${status.mouthPresent} '
-        'candidate=${status.protrusionCandidate} '
-        'confirmed=${status.protrusionConfirmed} '
-        'framed=$isFramed '
-        'direction=${direction.isEmpty ? "none" : direction} '
-        'mouthCenter=${_formatOffset(status.mouthCenter)} '
-        'mouthBounds=${_formatRect(normalizedBoundingRect(status.mouthLandmarks))} '
-        'faceBounds=${_formatRect(normalizedBoundingRect(status.faceLandmarks))} '
-        'guideRect=${_formatRect(_tongueGuideRectNormalized)}',
-      );
-    }
-    _logTongueDiagnostics(
-      status: status,
-      protrusionSignalActive: protrusionSignalActive,
-      isFramed: isFramed,
-      holdAlive: holdAlive,
-      canHold: canHold,
-      direction: direction,
-    );
 
     setState(() {
       _mouthPresent = status.mouthPresent;
@@ -361,168 +326,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     } else {
       _cancelHoldTracking(resetProgress: true);
     }
-  }
-
-  void _logTongueDiagnostics({
-    required TongueScanStatus status,
-    required bool protrusionSignalActive,
-    required bool isFramed,
-    required bool holdAlive,
-    required bool canHold,
-    required String direction,
-  }) {
-    if (!kDebugMode || _scanState != ScanState.scanning) {
-      return;
-    }
-
-    final blockers = describeTongueScanBlockers(
-      mouthPresent: status.mouthPresent,
-      protrusionCandidate: status.protrusionCandidate,
-      protrusionConfirmed: status.protrusionConfirmed,
-      isFramed: isFramed,
-      pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
-    );
-    final mouthBounds = normalizedBoundingRect(status.mouthLandmarks);
-    final guideRect = _tongueGuideRectNormalized;
-    final analysisRect = _tongueAnalysisRectForStatus(status);
-    final fingerprint = [
-      blockers.join(','),
-      status.protrusionCandidate,
-      status.protrusionConfirmed,
-      protrusionSignalActive,
-      isFramed,
-      canHold,
-      _formatOffset(status.mouthCenter),
-      _formatRect(mouthBounds),
-      _formatRect(guideRect == Rect.zero ? null : guideRect),
-      _formatRect(analysisRect == Rect.zero ? null : analysisRect),
-      direction,
-    ].join('|');
-    final now = DateTime.now();
-    final recentlyLogged =
-        _lastTongueDiagnosticAt != null &&
-        now.difference(_lastTongueDiagnosticAt!) <
-            const Duration(milliseconds: 700);
-    if (fingerprint == _lastTongueDiagnosticFingerprint && recentlyLogged) {
-      return;
-    }
-
-    _lastTongueDiagnosticFingerprint = fingerprint;
-    _lastTongueDiagnosticAt = now;
-
-    AppLogger.log(
-      'Tongue diag '
-      'blockers=${blockers.join(",")} '
-      'mouthPresent=${status.mouthPresent} '
-      'candidate=${status.protrusionCandidate} '
-      'confirmed=${status.protrusionConfirmed} '
-      'signalActive=$protrusionSignalActive '
-      'holdAlive=$holdAlive '
-      'framed=$isFramed '
-      'hold=$canHold '
-      'paused=$_pauseAutoScanUntilReset '
-      'direction=${direction.isEmpty ? "none" : direction} '
-      'mouthCenter=${_formatOffset(status.mouthCenter)} '
-      'mouthBounds=${_formatRect(mouthBounds)} '
-      'guideRect=${_formatRect(guideRect == Rect.zero ? null : guideRect)} '
-      'analysisRect=${_formatRect(analysisRect == Rect.zero ? null : analysisRect)} '
-      'guideCenter=${_formatOffset(guideRect == Rect.zero ? null : guideRect.center)} '
-      'viewport=${_formatSize(_cameraViewportSize)} '
-      'image=${_formatImageSize(status.imageWidth, status.imageHeight)} '
-      'blendshapes=${_formatBlendshapes(status.blendshapes)}',
-    );
-  }
-
-  String _formatOffset(Offset? value) {
-    if (value == null) {
-      return 'null';
-    }
-    return '(${value.dx.toStringAsFixed(3)},${value.dy.toStringAsFixed(3)})';
-  }
-
-  String _formatRect(Rect? rect) {
-    if (rect == null) {
-      return 'null';
-    }
-    return '[${rect.left.toStringAsFixed(3)},${rect.top.toStringAsFixed(3)},'
-        '${rect.right.toStringAsFixed(3)},${rect.bottom.toStringAsFixed(3)}]';
-  }
-
-  String _formatSize(Size value) {
-    if (value == Size.zero) {
-      return '0x0';
-    }
-    return '${value.width.toStringAsFixed(1)}x${value.height.toStringAsFixed(1)}';
-  }
-
-  String _formatImageSize(double width, double height) {
-    if (width <= 0 || height <= 0) {
-      return '0x0';
-    }
-    return '${width.toStringAsFixed(0)}x${height.toStringAsFixed(0)}';
-  }
-
-  String _formatBlendshapes(Map<String, double> blendshapes) {
-    if (blendshapes.isEmpty) {
-      return '{}';
-    }
-
-    const keys = [
-      'jawOpen',
-      'mouthFunnel',
-      'mouthLowerDownLeft',
-      'mouthLowerDownRight',
-    ];
-    final entries = <String>[];
-    for (final key in keys) {
-      final value = blendshapes[key];
-      if (value != null) {
-        entries.add('$key=${value.toStringAsFixed(3)}');
-      }
-    }
-    return entries.isEmpty ? '{}' : '{${entries.join(',')}}';
-  }
-
-  String _formatCaptureResult(ScanCaptureResult capture) {
-    return 'source=${capture.sourcePath} '
-        'crop=${capture.croppedPath} '
-        'frame=${capture.framePath} '
-        'sourceSize=${capture.sourceWidth.toStringAsFixed(0)}x${capture.sourceHeight.toStringAsFixed(0)} '
-        'cropRect=[${capture.cropLeft.toStringAsFixed(1)},${capture.cropTop.toStringAsFixed(1)},'
-        '${capture.cropWidth.toStringAsFixed(1)},${capture.cropHeight.toStringAsFixed(1)}]';
-  }
-
-  Future<String> _describeFile(String path) async {
-    try {
-      final file = File(path);
-      final exists = await file.exists();
-      if (!exists) {
-        return '$path (missing)';
-      }
-      final length = await file.length();
-      return '$path ($length bytes)';
-    } on Object catch (error) {
-      return '$path (stat failed: $error)';
-    }
-  }
-
-  Future<void> _logTongueUploadCapture({
-    required Rect analysisRect,
-    required ScanCaptureResult capture,
-  }) async {
-    final cropFile = await _describeFile(capture.croppedPath);
-    final sourceFile = await _describeFile(capture.sourcePath);
-    AppLogger.log(
-      'Tongue upload capture '
-      'analysisRect=${_formatRect(analysisRect)} '
-      'guideRect=${_formatRect(_tongueGuideRectNormalized)} '
-      'mouthCenter=${_formatOffset(_latestStatus.mouthCenter)} '
-      'mouthBounds=${_formatRect(normalizedBoundingRect(_latestStatus.mouthLandmarks))} '
-      'faceBounds=${_formatRect(normalizedBoundingRect(_latestStatus.faceLandmarks))} '
-      'capture=${_formatCaptureResult(capture)} '
-      'uploadFile=$cropFile '
-      'sourceFile=$sourceFile',
-    );
   }
 
   void _logTongueUploadResponse(ScanTongueUploadResult response) {
@@ -554,12 +357,6 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   void _startHoldTracking() {
     if (_holdTimer != null || _scanState != ScanState.scanning) return;
-    AppLogger.log(
-      'Tongue hold started '
-      'mouthCenter=${_formatOffset(_latestStatus.mouthCenter)} '
-      'mouthBounds=${_formatRect(normalizedBoundingRect(_latestStatus.mouthLandmarks))} '
-      'analysisRect=${_formatRect(_tongueAnalysisRectForStatus(_latestStatus))}',
-    );
     final stopwatch = Stopwatch()..start();
     _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted || _scanState != ScanState.scanning) {
@@ -591,11 +388,6 @@ class _TongueScanPageState extends State<TongueScanPage>
 
     try {
       final analysisRect = _tongueAnalysisRectForStatus(_latestStatus);
-      AppLogger.log(
-        'Tongue capture begin '
-        'analysisRect=${_formatRect(analysisRect)} '
-        'guideRect=${_formatRect(_tongueGuideRectNormalized)}',
-      );
       final capture = await _captureBridge.capture(
         target: ScanCaptureTarget.tongue,
         guide: _captureGuideFromRect(analysisRect),
@@ -603,11 +395,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       if (!mounted) {
         return;
       }
-
-      await _logTongueUploadCapture(
-        analysisRect: analysisRect,
-        capture: capture,
-      );
 
       setState(() => _scanProgress = 0.68);
 
@@ -637,7 +424,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       _logTongueUploadResponse(tongueUpload);
 
       if (tongueUpload.missingTongue) {
-        AppLogger.log('Tongue upload rejected by backend: hasTongue=false');
         _pauseAutoScanUntilReset = true;
         _cancelHoldTracking(resetProgress: true);
         setState(() {
@@ -659,8 +445,7 @@ class _TongueScanPageState extends State<TongueScanPage>
         _scanProgress = 1;
       });
       await _navigateToPalmScan();
-    } on Object catch (error, stackTrace) {
-      AppLogger.log('Tongue scan submission failed: $error\n$stackTrace');
+    } on Object catch (error) {
       if (!mounted) {
         return;
       }

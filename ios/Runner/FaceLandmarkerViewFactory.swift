@@ -237,72 +237,12 @@ final class NativeFaceScanView: UIView {
         onSuccess: @escaping ([String: Any]) -> Void,
         onError: @escaping (String) -> Void
     ) {
-        DispatchQueue.main.async {
-            let clampedRect = CGRect(
-                x: normalizedRect.origin.x.clamped(to: 0...1),
-                y: normalizedRect.origin.y.clamped(to: 0...1),
-                width: normalizedRect.width.clamped(to: 0...1),
-                height: normalizedRect.height.clamped(to: 0...1)
-            )
-
-            guard self.bounds.width > 0, self.bounds.height > 0 else {
-                onError("Camera view bounds are empty")
-                return
-            }
-
-            let previousAlpha = self.overlayView.alpha
-            self.overlayView.alpha = 0
-
-            let renderer = UIGraphicsImageRenderer(size: self.bounds.size)
-            let image = renderer.image { _ in
-                _ = self.drawHierarchy(in: self.bounds, afterScreenUpdates: false)
-            }
-
-            self.overlayView.alpha = previousAlpha
-
-            guard let croppedImage = image.cropped(toNormalizedRect: clampedRect) else {
-                onError("Failed to crop visible region from preview snapshot")
-                return
-            }
-
-            do {
-                let timestamp = Int(Date().timeIntervalSince1970 * 1000)
-                let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-                let sourceURL = tempDir.appendingPathComponent("\(stage)_source_\(timestamp).jpg")
-                let cropURL = tempDir.appendingPathComponent("\(stage)_crop_\(timestamp).jpg")
-
-                guard let sourceData = image.jpegData(compressionQuality: 0.92),
-                      let cropData = croppedImage.jpegData(compressionQuality: 0.92) else {
-                    onError("Failed to encode preview snapshot to JPEG")
-                    return
-                }
-
-                try sourceData.write(to: sourceURL)
-                try cropData.write(to: cropURL)
-
-                let cropRect = CGRect(
-                    x: clampedRect.origin.x * image.size.width,
-                    y: clampedRect.origin.y * image.size.height,
-                    width: clampedRect.width * image.size.width,
-                    height: clampedRect.height * image.size.height
-                ).integral
-
-                onSuccess([
-                    "stage": stage,
-                    "sourcePath": sourceURL.path,
-                    "croppedPath": cropURL.path,
-                    "framePath": sourceURL.path,
-                    "sourceWidth": image.size.width,
-                    "sourceHeight": image.size.height,
-                    "cropLeft": cropRect.origin.x,
-                    "cropTop": cropRect.origin.y,
-                    "cropWidth": cropRect.size.width,
-                    "cropHeight": cropRect.size.height,
-                ])
-            } catch {
-                onError("Failed to persist visible region capture: \(error.localizedDescription)")
-            }
-        }
+        cameraManager.captureVisibleRegion(
+            stage: stage,
+            normalizedRect: normalizedRect,
+            onSuccess: onSuccess,
+            onError: onError
+        )
     }
 
     private func stop(mode: DetectionMode) {
@@ -421,7 +361,21 @@ private extension Comparable {
     }
 }
 
-private extension UIImage {
+extension UIImage {
+    func normalizedImage() -> UIImage {
+        if imageOrientation == .up {
+            return self
+        }
+
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = scale
+        format.opaque = false
+
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+
     func cropped(toNormalizedRect normalizedRect: CGRect) -> UIImage? {
         guard let cgImage else {
             return nil

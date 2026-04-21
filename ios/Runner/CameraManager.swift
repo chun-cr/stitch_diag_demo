@@ -16,6 +16,45 @@ final class CameraManager: NSObject {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var configured = false
     private(set) var currentPosition: AVCaptureDevice.Position = .front
+    private var photoCompletion: ((Result<UIImage, Error>) -> Void)?
+
+    private enum CameraCaptureError: LocalizedError {
+        case sessionNotRunning
+        case previewLayerUnavailable
+        case previewBoundsEmpty
+        case captureInProgress
+        case invalidGuideRect
+        case captureDataUnavailable
+        case decodeFailed
+        case cropFailed
+        case encodeFailed
+        case persistFailed(Error)
+
+        var errorDescription: String? {
+            switch self {
+            case .sessionNotRunning:
+                return "Camera session is not running"
+            case .previewLayerUnavailable:
+                return "Preview layer is unavailable"
+            case .previewBoundsEmpty:
+                return "Preview layer bounds are empty"
+            case .captureInProgress:
+                return "A camera capture is already in progress"
+            case .invalidGuideRect:
+                return "Capture guide rect is invalid"
+            case .captureDataUnavailable:
+                return "Photo capture returned no image data"
+            case .decodeFailed:
+                return "Failed to decode captured photo"
+            case .cropFailed:
+                return "Failed to crop captured photo"
+            case .encodeFailed:
+                return "Failed to encode captured photo"
+            case .persistFailed(let error):
+                return "Failed to persist captured photo: \(error.localizedDescription)"
+            }
+        }
+    }
 
     private override init() {
         super.init()
@@ -36,10 +75,12 @@ final class CameraManager: NSObject {
             self.previewLayer = layer
         }
         layer.frame = view.bounds
+        configurePreviewConnection()
     }
 
     func layoutPreview(in bounds: CGRect) {
         previewLayer?.frame = bounds
+        configurePreviewConnection()
     }
 
     func toggleCamera() {
@@ -51,16 +92,19 @@ final class CameraManager: NSObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             let desiredPosition: AVCaptureDevice.Position = isBackCamera ? .back : .front
-            
+
             if self.configured && self.currentPosition != desiredPosition {
-                // Camera position changed, need to reconfigure
                 self.session.stopRunning()
                 self.configured = false
             }
-            
+
             self.currentPosition = desiredPosition
             self.configureSessionIfNeeded()
-            
+            self.configureOutputConnections()
+            DispatchQueue.main.async {
+                self.configurePreviewConnection()
+            }
+
             if self.session.isRunning {
                 print("CameraManager: Session already running.")
                 if let completion {
@@ -68,9 +112,13 @@ final class CameraManager: NSObject {
                 }
                 return
             }
+
             print("CameraManager: Starting session... (Position: \(self.currentPosition.rawValue))")
             self.session.startRunning()
             print("CameraManager: Session started isRunning=\(self.session.isRunning)")
+            DispatchQueue.main.async {
+                self.configurePreviewConnection()
+            }
             if let completion {
                 DispatchQueue.main.async { completion() }
             }
@@ -96,20 +144,148 @@ final class CameraManager: NSObject {
         }
     }
 
-    private var photoCompletion: ((String?) -> Void)?
     func capturePhoto(completion: @escaping (String?) -> Void) {
-        sessionQueue.async {
-            guard self.session.isRunning else {
+        captureStillImage { result in
+            switch result {
+            case .success(let image):
+                let normalizedImage = image.normalizedImage()
+                guard let imageData = normalizedImage.jpegData(compressionQuality: 0.92) else {
+                    completion(nil)
+                    return
+                }
+
+                let fileName = "tongue_\(Int(Date().timeIntervalSince1970)).jpg"
+                let path = NSTemporaryDirectory() + fileName
+                let url = URL(fileURLWithPath: path)
+
+                do {
+                    try imageData.write(to: url)
+                    completion(path)
+                } catch {
+                    completion(nil)
+                }
+            case .failure:
                 completion(nil)
+            }
+        }
+    }
+
+    func captureVisibleRegion(
+        stage: String,
+        normalizedRect: CGRect,
+        onSuccess: @escaping ([String: Any]) -> Void,
+        onError: @escaping (String) -> Void
+    ) {
+        DispatchQueue.main.async {
+            let clampedRect = self.clampNormalizedRect(normalizedRect)
+            guard !clampedRect.isEmpty else {
+                onError(CameraCaptureError.invalidGuideRect.localizedDescription)
                 return
             }
-            self.photoCompletion = completion
-            let settings = AVCapturePhotoSettings()
-            if let connection = self.photoOutput.connection(with: .video) {
-                if connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .portrait
+            guard let previewLayer = self.previewLayer else {
+                onError(CameraCaptureError.previewLayerUnavailable.localizedDescription)
+                return
+            }
+
+            let previewBounds = previewLayer.bounds
+            guard previewBounds.width > 0, previewBounds.height > 0 else {
+                onError(CameraCaptureError.previewBoundsEmpty.localizedDescription)
+                return
+            }
+
+            self.configurePreviewConnection()
+            let layerRect = CGRect(
+                x: clampedRect.origin.x * previewBounds.width,
+                y: clampedRect.origin.y * previewBounds.height,
+                width: clampedRect.width * previewBounds.width,
+                height: clampedRect.height * previewBounds.height
+            )
+            let captureRect = self.clampNormalizedRect(
+                previewLayer.metadataOutputRectConverted(fromLayerRect: layerRect)
+            )
+            guard !captureRect.isEmpty else {
+                onError(CameraCaptureError.cropFailed.localizedDescription)
+                return
+            }
+
+            self.captureStillImage { result in
+                switch result {
+                case .success(let image):
+                    let sourceImage = image.normalizedImage()
+                    guard let croppedImage = sourceImage.cropped(toNormalizedRect: captureRect) else {
+                        DispatchQueue.main.async {
+                            onError(CameraCaptureError.cropFailed.localizedDescription)
+                        }
+                        return
+                    }
+                    guard let sourceData = sourceImage.jpegData(compressionQuality: 0.92),
+                          let cropData = croppedImage.jpegData(compressionQuality: 0.92) else {
+                        DispatchQueue.main.async {
+                            onError(CameraCaptureError.encodeFailed.localizedDescription)
+                        }
+                        return
+                    }
+
+                    let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+                    let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                    let sourceURL = tempDir.appendingPathComponent("\(stage)_source_\(timestamp).jpg")
+                    let cropURL = tempDir.appendingPathComponent("\(stage)_crop_\(timestamp).jpg")
+                    let pixelWidth = Double(sourceImage.cgImage?.width ?? Int(sourceImage.size.width * sourceImage.scale))
+                    let pixelHeight = Double(sourceImage.cgImage?.height ?? Int(sourceImage.size.height * sourceImage.scale))
+
+                    do {
+                        try sourceData.write(to: sourceURL)
+                        try cropData.write(to: cropURL)
+
+                        let cropRect = CGRect(
+                            x: captureRect.origin.x * pixelWidth,
+                            y: captureRect.origin.y * pixelHeight,
+                            width: captureRect.width * pixelWidth,
+                            height: captureRect.height * pixelHeight
+                        ).integral
+
+                        DispatchQueue.main.async {
+                            onSuccess([
+                                "stage": stage,
+                                "sourcePath": sourceURL.path,
+                                "croppedPath": cropURL.path,
+                                "framePath": sourceURL.path,
+                                "sourceWidth": pixelWidth,
+                                "sourceHeight": pixelHeight,
+                                "cropLeft": cropRect.origin.x,
+                                "cropTop": cropRect.origin.y,
+                                "cropWidth": cropRect.size.width,
+                                "cropHeight": cropRect.size.height,
+                            ])
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            onError(CameraCaptureError.persistFailed(error).localizedDescription)
+                        }
+                    }
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        onError(error.localizedDescription)
+                    }
                 }
             }
+        }
+    }
+
+    private func captureStillImage(completion: @escaping (Result<UIImage, Error>) -> Void) {
+        sessionQueue.async {
+            guard self.session.isRunning else {
+                completion(.failure(CameraCaptureError.sessionNotRunning))
+                return
+            }
+            guard self.photoCompletion == nil else {
+                completion(.failure(CameraCaptureError.captureInProgress))
+                return
+            }
+
+            self.photoCompletion = completion
+            let settings = AVCapturePhotoSettings()
+            self.configureConnection(self.photoOutput.connection(with: .video))
             self.photoOutput.capturePhoto(with: settings, delegate: self)
         }
     }
@@ -124,7 +300,6 @@ final class CameraManager: NSObject {
             session.commitConfiguration()
         }
 
-        // Clear existing inputs and outputs to re-configure cleanly
         session.inputs.forEach { session.removeInput($0) }
         session.outputs.forEach { session.removeOutput($0) }
 
@@ -149,17 +324,40 @@ final class CameraManager: NSObject {
         guard session.canAddOutput(photoOutput) else { return }
         session.addOutput(photoOutput)
 
-        if let connection = videoOutput.connection(with: .video) {
-            if connection.isVideoMirroringSupported {
-                // Front camera should be mirrored for 'selfie' look, Back camera (for gestures) should not
-                connection.isVideoMirrored = (self.currentPosition == .front)
-            }
-            if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
-            }
+        configureOutputConnections()
+        configured = true
+    }
+
+    private func configureOutputConnections() {
+        configureConnection(videoOutput.connection(with: .video))
+        configureConnection(photoOutput.connection(with: .video))
+    }
+
+    private func configurePreviewConnection() {
+        configureConnection(previewLayer?.connection)
+    }
+
+    private func configureConnection(_ connection: AVCaptureConnection?) {
+        guard let connection else { return }
+        if connection.isVideoOrientationSupported {
+            connection.videoOrientation = .portrait
+        }
+        if connection.isVideoMirroringSupported {
+            connection.isVideoMirrored = (currentPosition == .front)
+        }
+    }
+
+    private func clampNormalizedRect(_ rect: CGRect) -> CGRect {
+        let left = min(max(rect.minX, 0), 1)
+        let top = min(max(rect.minY, 0), 1)
+        let right = min(max(rect.maxX, 0), 1)
+        let bottom = min(max(rect.maxY, 0), 1)
+
+        guard right > left, bottom > top else {
+            return .zero
         }
 
-        configured = true
+        return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }
 }
 
@@ -175,20 +373,24 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
 extension CameraManager: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard error == nil, let data = photo.fileDataRepresentation() else {
-            photoCompletion?(nil)
-            return
-        }
-        
-        let fileName = "tongue_\(Int(Date().timeIntervalSince1970)).jpg"
-        let path = NSTemporaryDirectory() + fileName
-        let url = URL(fileURLWithPath: path)
-        
-        do {
-            try data.write(to: url)
-            photoCompletion?(path)
-        } catch {
-            photoCompletion?(nil)
+        sessionQueue.async {
+            let completion = self.photoCompletion
+            self.photoCompletion = nil
+
+            if let error {
+                completion?(.failure(error))
+                return
+            }
+            guard let data = photo.fileDataRepresentation() else {
+                completion?(.failure(CameraCaptureError.captureDataUnavailable))
+                return
+            }
+            guard let image = UIImage(data: data) else {
+                completion?(.failure(CameraCaptureError.decodeFailed))
+                return
+            }
+
+            completion?(.success(image))
         }
     }
 }
