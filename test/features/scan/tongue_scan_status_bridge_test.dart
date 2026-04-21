@@ -19,10 +19,28 @@ void main() {
 
       expect(status.mouthPresent, isTrue);
       expect(status.protrusionConfirmed, isFalse);
-      expect(status.mouthCenter, const Offset(0.25, 0.325));
+      expect(status.mouthCenter?.dx, closeTo(0.25, 0.0001));
+      expect(status.mouthCenter?.dy, closeTo(0.325, 0.0001));
       expect(status.faceLandmarks, const [Offset(0.25, 0.36)]);
       expect(status.blendshapes, isEmpty);
     });
+
+    test(
+      'derives mouth center from mouth bounds when native center is skewed',
+      () {
+        final status = TongueScanStatus.fromEvent({
+          'mouthLandmarks': const [
+            {'x': 0.20, 'y': 0.30},
+            {'x': 0.30, 'y': 0.36},
+            {'x': 0.80, 'y': 0.34},
+          ],
+          'mouthCenter': const {'x': 0.58, 'y': 0.33},
+        });
+
+        expect(status.mouthCenter?.dx, closeTo(0.50, 0.0001));
+        expect(status.mouthCenter?.dy, closeTo(0.33, 0.0001));
+      },
+    );
 
     test('keeps legacy landmarks as fallback alias during migration', () {
       final status = TongueScanStatus.fromEvent({

@@ -169,4 +169,23 @@ void main() {
       );
     },
   );
+
+  test('uploadPalm accepts business success with null payload', () async {
+    final file = await createFile('palm-null-payload.jpg');
+    final adapter = _QueueHttpClientAdapter(<_StubResponse>[
+      const _StubResponse(200, <String, dynamic>{
+        'code': 0,
+        'message': '请求成功',
+        'data': null,
+      }),
+    ]);
+    final source = createSource(adapter);
+
+    final result = await source.uploadPalm(
+      handFilePath: file.path,
+      reportId: 'report-123',
+    );
+
+    expect(result.data, isEmpty);
+  });
 }

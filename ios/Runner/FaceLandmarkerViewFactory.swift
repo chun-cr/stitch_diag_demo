@@ -195,6 +195,12 @@ final class NativeFaceScanView: UIView {
         FaceLandmarkerViewFactory.shared.applyPendingCommand(for: self)
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil else { return }
+        FaceLandmarkerViewFactory.shared.applyPendingCommand(for: self)
+    }
+
     func startFaceDetection() {
         transition(to: .face)
     }

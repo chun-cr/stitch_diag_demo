@@ -30,9 +30,11 @@ class _Tab1Overview extends StatelessWidget {
       children.add(_buildHealthRadarSection());
       children.add(const SizedBox(height: 16));
     }
+    if (viewData.hasTongueAnalysis) {
+      children.add(_buildTongueAnalysisSection());
+      children.add(const SizedBox(height: 16));
+    }
     children.addAll([
-      _buildDiagSummary(context),
-      const SizedBox(height: 16),
       _buildModuleEntries(context),
       const SizedBox(height: 16),
       _buildScanMeta(context),
@@ -44,7 +46,6 @@ class _Tab1Overview extends StatelessWidget {
     );
   }
 
-  // 鈹€鈹€ 椋庨櫓鎸囨暟 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildRiskSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +59,6 @@ class _Tab1Overview extends StatelessWidget {
     );
   }
 
-  // 鈹€鈹€ 鑸岃薄 + 浜旇 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildHealthRadarSection() {
     return _HealthRadarSectionBlock(
       viewData: viewData,
@@ -67,87 +67,158 @@ class _Tab1Overview extends StatelessWidget {
     );
   }
 
-  // 鈹€鈹€ 杈ㄨ瘉鎽樿 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  Widget _buildDiagSummary(BuildContext context) {
-    final l10n = context.l10n;
-    final summary = viewData.summary ?? l10n.reportOverviewDiagnosisSummaryBody;
-    final primaryConstitution =
-        viewData.primaryConstitution ?? l10n.constitutionBalanced;
-    final secondaryBias =
-        viewData.secondaryBias ?? l10n.reportHeroSecondaryBias;
-
+  Widget _buildTongueAnalysisSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FloatingSectionTitle(title: l10n.reportOverviewDiagnosisSummaryTitle),
-        const SizedBox(height: 10),
-        _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        Padding(
+          key: const ValueKey('report_overview_tongue_analysis_section'),
+          padding: const EdgeInsets.only(left: 2, bottom: 10),
+          child: Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 1.5,
-                    height: 52,
-                    margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC9A84C).withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      summary,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6E5830),
-                        height: 1.8,
-                      ),
-                    ),
-                  ),
-                ],
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC9A84C),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: RichText(
-                  text: TextSpan(
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF3A3028).withValues(alpha: 0.52),
-                      height: 1.4,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: primaryConstitution,
-                        style: TextStyle(color: Color(0xFF0D7A5A)),
-                      ),
-                      const TextSpan(text: '  路  '),
-                      TextSpan(
-                        text: secondaryBias,
-                        style: TextStyle(color: Color(0xFF2D6A4F)),
-                      ),
-                      const TextSpan(text: '  路  '),
-                      TextSpan(
-                        text: l10n.reportOverviewDiagnosisTagSpleenWeak,
-                        style: TextStyle(color: Color(0xFFC9A84C)),
-                      ),
-                    ],
-                  ),
+              const SizedBox(width: 7),
+              const Text(
+                '舌象解析',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1810),
                 ),
               ),
             ],
+          ),
+        ),
+        ...viewData.tongueAnalysisItems.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _buildTongueAnalysisCard(item),
           ),
         ),
       ],
     );
   }
 
-  // 鈹€鈹€ 妯″潡鍏ュ彛 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  Widget _buildTongueAnalysisCard(ReportTongueAnalysisItemData item) {
+    return Container(
+      key: ValueKey('report_overview_tongue_analysis_${item.key}'),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8C8BA), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB14545).withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E1810),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB14545).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  '警惕',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFB14545),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildTongueAnalysisRow(label: '正常值', value: '正常'),
+          _buildTongueAnalysisRow(
+            label: '检测结果',
+            value: item.resultText,
+            highlight: true,
+          ),
+          _buildTongueAnalysisRow(label: '病理解析', value: item.pathologyText),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTongueAnalysisRow({
+    required String label,
+    required String value,
+    bool highlight = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: const Color(0xFFE9DDD3).withValues(alpha: 0.9),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 58,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.55),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
+                color: highlight
+                    ? const Color(0xFFB14545)
+                    : const Color(0xFF3A3028),
+                height: 1.65,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildModuleEntries(BuildContext context) {
     final l10n = context.l10n;
     final entries = [
@@ -199,7 +270,7 @@ class _Tab1Overview extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 l10n.reportOverviewModuleNavTitle,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1E1810),
@@ -301,7 +372,6 @@ class _Tab1Overview extends StatelessWidget {
     );
   }
 
-  // 鈹€鈹€ 鎵弿鍏冧俊鎭?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildScanMeta(BuildContext context) {
     final l10n = context.l10n;
     final metaSegments = [
@@ -310,7 +380,7 @@ class _Tab1Overview extends StatelessWidget {
     ];
     final scanMeta = metaSegments.isEmpty
         ? l10n.reportOverviewScanMetaDisclaimer
-        : '${metaSegments.join(' 路 ')} 路 ${l10n.reportOverviewScanMetaDisclaimer}';
+        : '${metaSegments.join(' · ')} · ${l10n.reportOverviewScanMetaDisclaimer}';
 
     return Container(
       padding: const EdgeInsets.all(14),

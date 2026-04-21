@@ -72,6 +72,21 @@ class ReportHealthRadarSymptomData {
 }
 
 @immutable
+class ReportTongueAnalysisItemData {
+  const ReportTongueAnalysisItemData({
+    required this.key,
+    required this.title,
+    required this.resultText,
+    required this.pathologyText,
+  });
+
+  final String key;
+  final String title;
+  final String resultText;
+  final String pathologyText;
+}
+
+@immutable
 class ReportViewData {
   const ReportViewData({
     required this.mode,
@@ -84,6 +99,10 @@ class ReportViewData {
     required this.riskIndexes,
     required this.healthRadarClassicSymptoms,
     required this.healthRadarDeepSymptoms,
+    required this.heroSecondaryConstitutions,
+    required this.heroTongueSymptoms,
+    required this.tongueAnalysisItems,
+    required this.heroImageUrls,
     this.recordedAt,
     this.source,
     this.tenantId,
@@ -91,6 +110,8 @@ class ReportViewData {
     this.primaryConstitution,
     this.secondaryBias,
     this.summary,
+    this.heroSkinAge,
+    this.heroTherapySummary,
     this.consultNavigate,
   });
 
@@ -104,6 +125,10 @@ class ReportViewData {
   final List<ReportRiskIndexData> riskIndexes;
   final List<ReportHealthRadarSymptomData> healthRadarClassicSymptoms;
   final List<ReportHealthRadarSymptomData> healthRadarDeepSymptoms;
+  final List<String> heroSecondaryConstitutions;
+  final List<String> heroTongueSymptoms;
+  final List<ReportTongueAnalysisItemData> tongueAnalysisItems;
+  final List<String> heroImageUrls;
   final String? recordedAt;
   final String? source;
   final String? tenantId;
@@ -111,12 +136,16 @@ class ReportViewData {
   final String? primaryConstitution;
   final String? secondaryBias;
   final String? summary;
+  final double? heroSkinAge;
+  final String? heroTherapySummary;
   final DiagnosisMaNavigate? consultNavigate;
 
   bool get hasRiskIndexes => riskIndexes.isNotEmpty;
   bool get hasHealthRadar =>
       healthRadarClassicSymptoms.isNotEmpty ||
       healthRadarDeepSymptoms.isNotEmpty;
+  bool get hasTongueAnalysis => tongueAnalysisItems.isNotEmpty;
+  bool get hasHeroImages => heroImageUrls.isNotEmpty;
 
   List<ReportRiskIndexData> get warningRiskIndexes =>
       riskIndexes.where((item) => item.isWarning).toList(growable: false);
@@ -138,6 +167,10 @@ class ReportViewData {
       riskIndexes: riskIndexes,
       healthRadarClassicSymptoms: healthRadarClassicSymptoms,
       healthRadarDeepSymptoms: healthRadarDeepSymptoms,
+      heroSecondaryConstitutions: heroSecondaryConstitutions,
+      heroTongueSymptoms: heroTongueSymptoms,
+      tongueAnalysisItems: tongueAnalysisItems,
+      heroImageUrls: heroImageUrls,
       recordedAt: recordedAt,
       source: source,
       tenantId: tenantId,
@@ -145,6 +178,8 @@ class ReportViewData {
       primaryConstitution: primaryConstitution,
       secondaryBias: secondaryBias,
       summary: summary,
+      heroSkinAge: heroSkinAge,
+      heroTherapySummary: heroTherapySummary,
       consultNavigate: consultNavigate ?? this.consultNavigate,
     );
   }
@@ -223,6 +258,25 @@ class ReportViewData {
       primaryConstitution: null,
       secondaryBias: null,
       summary: null,
+      heroSecondaryConstitutions: const ['阳虚体质', '湿热体质'],
+      heroTongueSymptoms: const ['舌边齿痕', '舌苔白'],
+      tongueAnalysisItems: const [
+        ReportTongueAnalysisItemData(
+          key: 'moss_color',
+          title: '舌苔颜色',
+          resultText: '舌苔白',
+          pathologyText: '多提示寒湿偏盛，阳气稍弱。',
+        ),
+        ReportTongueAnalysisItemData(
+          key: 'tongue_isIndentation',
+          title: '齿痕',
+          resultText: '舌边齿痕',
+          pathologyText: '多见于脾虚湿盛，运化乏力。',
+        ),
+      ],
+      heroImageUrls: const [],
+      heroSkinAge: 23,
+      heroTherapySummary: '疏肝解郁，多参加社交活动，食用香菜、金橘，练习瑜伽、冥想。',
       consultNavigate: null,
     );
   }
@@ -291,6 +345,17 @@ class ReportViewData {
       summary: primaryFinding?.result.isNotEmpty == true
           ? primaryFinding!.result
           : null,
+      heroSecondaryConstitutions: constitutionScores
+          .skip(1)
+          .map((item) => item.name.trim())
+          .where((item) => item.isNotEmpty)
+          .take(2)
+          .toList(growable: false),
+      heroTongueSymptoms: _extractHeroTongueSymptoms(detail.analysisResult),
+      tongueAnalysisItems: _buildTongueAnalysisItems(detail.analysisResult),
+      heroImageUrls: _collectHeroImageUrls(detail),
+      heroSkinAge: detail.hideAge ? null : detail.faceAnalysisResult.age,
+      heroTherapySummary: _resolveHeroTherapySummary(detail),
       riskIndexes: riskIndexes,
       healthRadarClassicSymptoms: classicSymptoms,
       healthRadarDeepSymptoms: deepSymptoms,
@@ -320,6 +385,154 @@ List<ReportConstitutionScoreData> _buildConstitutionScores(
 
   scores.sort((a, b) => b.scorePercent.compareTo(a.scorePercent));
   return List.unmodifiable(scores);
+}
+
+List<String> _extractHeroTongueSymptoms(
+  DiagnosisAnalysisResult analysisResult,
+) {
+  final symptoms = <String>[];
+  for (final finding in analysisResult.result) {
+    for (final symptom in finding.symptoms) {
+      final name = symptom.name.trim();
+      if (name.isEmpty || symptoms.contains(name)) {
+        continue;
+      }
+      symptoms.add(name);
+    }
+  }
+  return List.unmodifiable(symptoms);
+}
+
+List<ReportTongueAnalysisItemData> _buildTongueAnalysisItems(
+  DiagnosisAnalysisResult analysisResult,
+) {
+  final items = <ReportTongueAnalysisItemData>[];
+  for (final finding in analysisResult.result) {
+    final title = _resolveTongueFindingTitle(finding);
+    if (title.isEmpty) {
+      continue;
+    }
+
+    final symptomNames = _collectUniqueTexts(
+      finding.symptoms.map((item) => item.name),
+    );
+    if (symptomNames.isEmpty) {
+      continue;
+    }
+
+    final pathologyNotes = _collectUniqueTexts(
+      finding.symptoms.map(
+        (item) => _resolveTonguePathologyText(finding, item),
+      ),
+    );
+
+    final findingKey = _resolveTongueFindingKey(finding);
+    items.add(
+      ReportTongueAnalysisItemData(
+        key: findingKey.isNotEmpty ? findingKey : title,
+        title: title,
+        resultText: symptomNames.join('、'),
+        pathologyText: pathologyNotes.isNotEmpty
+            ? pathologyNotes.join('；')
+            : '提示舌象存在偏性，建议结合体感与生活习惯综合判断。',
+      ),
+    );
+  }
+  return List.unmodifiable(items);
+}
+
+String _resolveTongueFindingTitle(DiagnosisFinding finding) {
+  final rawTitle = _asString(finding.raw['typeDesc']).trim();
+  if (rawTitle.isNotEmpty) {
+    return rawTitle;
+  }
+  return finding.name.trim();
+}
+
+String _resolveTongueFindingKey(DiagnosisFinding finding) {
+  final rawKey = _asString(finding.raw['type']).trim();
+  if (rawKey.isNotEmpty) {
+    return rawKey;
+  }
+  return finding.key.trim();
+}
+
+String _resolveTonguePathologyText(
+  DiagnosisFinding finding,
+  DiagnosisSymptom symptom,
+) {
+  final describe = _asString(symptom.raw['describe']).trim();
+  if (describe.isNotEmpty) {
+    return describe;
+  }
+
+  final symptomName = symptom.name.trim();
+  final byName = _kTonguePathologyBySymptomName[symptomName];
+  if (byName != null) {
+    return byName;
+  }
+
+  for (final entry in _kTonguePathologyBySymptomKeyword.entries) {
+    if (symptomName.contains(entry.key)) {
+      return entry.value;
+    }
+  }
+
+  for (final candidate in [
+    _resolveTongueFindingKey(finding),
+    _resolveTongueFindingTitle(finding),
+  ]) {
+    final resolved = _kTonguePathologyByFinding[candidate];
+    if (resolved != null) {
+      return resolved;
+    }
+  }
+
+  return '提示舌象存在偏性，建议结合体感与生活习惯综合判断。';
+}
+
+List<String> _collectUniqueTexts(Iterable<String> values) {
+  final resolved = <String>[];
+  for (final value in values) {
+    final normalized = value.trim();
+    if (normalized.isEmpty || resolved.contains(normalized)) {
+      continue;
+    }
+    resolved.add(normalized);
+  }
+  return List.unmodifiable(resolved);
+}
+
+List<String> _collectHeroImageUrls(DiagnosisReportDetail detail) {
+  final urls = <String>[];
+  for (final value in [
+    detail.imageUrl,
+    detail.faceAnalysisResult.imageUrl,
+    detail.handAnalysisResult.imageUrl,
+  ]) {
+    final normalized = value.trim();
+    if (normalized.isEmpty || urls.contains(normalized)) {
+      continue;
+    }
+    urls.add(normalized);
+  }
+  return List.unmodifiable(urls);
+}
+
+String? _resolveHeroTherapySummary(DiagnosisReportDetail detail) {
+  final therapy = detail.analysisResult.tz.solutions.trim();
+  if (therapy.isNotEmpty) {
+    return therapy;
+  }
+
+  for (final finding in detail.analysisResult.result) {
+    final result = finding.result.trim();
+    if (result.isNotEmpty) {
+      return result;
+    }
+  }
+
+  return null;
 }
 
 Map<String, double> _constitutionScoreAdjustments(
@@ -455,3 +668,35 @@ bool? _asBool(Object? value) {
   }
   return null;
 }
+
+const Map<String, String> _kTonguePathologyBySymptomName = {
+  '舌苔白': '多提示寒湿偏盛，阳气稍弱。',
+  '齿痕': '多见于脾虚湿盛，运化乏力。',
+  '芒刺瘀点': '多提示热象或瘀阻，需留意气血运行。',
+  '瘀点': '多提示热象或瘀阻，需留意气血运行。',
+  '舌裂': '多提示阴液不足或津血偏亏。',
+  '舌苔黄': '多提示湿热或里热偏盛。',
+};
+
+const Map<String, String> _kTonguePathologyBySymptomKeyword = {
+  '薄腻': '多提示湿浊内停，脾胃运化不畅。',
+  '厚腻': '多提示湿浊内停，脾胃运化不畅。',
+  '腻': '多提示湿浊内停，脾胃运化不畅。',
+};
+
+const Map<String, String> _kTonguePathologyByFinding = {
+  'tongue_isIndentation': '多见于脾虚湿盛，运化乏力。',
+  '齿痕': '多见于脾虚湿盛，运化乏力。',
+  'tongue_isStab': '多提示热象或瘀阻，需留意气血运行。',
+  '芒刺瘀点': '多提示热象或瘀阻，需留意气血运行。',
+  'tongue_bao_greasy': '多提示湿浊内停，脾胃运化不畅。',
+  '舌苔薄腻': '多提示湿浊内停，脾胃运化不畅。',
+  'tongue_isCrack': '多提示阴液不足或津血偏亏。',
+  '舌裂': '多提示阴液不足或津血偏亏。',
+  'moss_color': '提示舌苔颜色存在偏性，建议结合体感继续观察。',
+  '舌苔颜色': '提示舌苔颜色存在偏性，建议结合体感继续观察。',
+  'tongue_moss_state': '提示舌苔状态存在偏性，建议结合饮食与作息继续观察。',
+  '舌苔状态': '提示舌苔状态存在偏性，建议结合饮食与作息继续观察。',
+  'tongue_color': '提示舌色存在偏性，建议结合体感继续观察。',
+  '舌色': '提示舌色存在偏性，建议结合体感继续观察。',
+};

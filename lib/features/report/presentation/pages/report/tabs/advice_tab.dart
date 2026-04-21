@@ -12,15 +12,6 @@ class _Tab4Advice extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
-        _FloatingSectionTitle(title: l10n.reportAdviceTongueAnalysisTitle),
-        const SizedBox(height: 10),
-        _Lockable(
-          isUnlocked: isUnlocked,
-          lockTitle: l10n.reportUnlockTongueAnalysisTitle,
-          onUnlock: onUnlock,
-          child: _buildTongueAnalysisContent(context),
-        ),
-        const SizedBox(height: 20),
         _FloatingSectionTitle(title: l10n.reportAdviceDietTitle),
         const SizedBox(height: 10),
         _Lockable(
@@ -36,6 +27,7 @@ class _Tab4Advice extends StatelessWidget {
   }
 
   // ── 舌象详解 ─────────────────────────────────────────────────────
+  // ignore: unused_element
   Widget _buildTongueAnalysisContent(BuildContext context) {
     final l10n = context.l10n;
     final features = [

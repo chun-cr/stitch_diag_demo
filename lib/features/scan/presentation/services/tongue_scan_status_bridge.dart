@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'tongue_scan_confirmation_policy.dart';
+import '../utils/scan_capture_geometry.dart';
 
 class TongueScanStatus {
   final int mouthLandmarkCount;
@@ -75,18 +76,8 @@ class TongueScanStatus {
     final blendshapes = _extractBlendshapes(data['blendshapes']);
 
     final explicitMouthCenter = _extractPoint(data['mouthCenter']);
-    Offset? mouthCenter = explicitMouthCenter;
-    if (mouthCenter == null && mouthPoints.isNotEmpty) {
-      double sumX = 0, sumY = 0;
-      for (final pt in mouthPoints) {
-        sumX += pt.dx;
-        sumY += pt.dy;
-      }
-      mouthCenter = Offset(
-        sumX / mouthPoints.length,
-        sumY / mouthPoints.length,
-      );
-    }
+    final mouthBounds = normalizedBoundingRect(mouthPoints);
+    final mouthCenter = mouthBounds?.center ?? explicitMouthCenter;
 
     return TongueScanStatus(
       mouthLandmarkCount: mouthPoints.length,

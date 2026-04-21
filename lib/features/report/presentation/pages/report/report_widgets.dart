@@ -6,6 +6,7 @@ class _HeroPill extends StatelessWidget {
   final String label;
   final bool active;
 
+  // ignore: unused_element_parameter
   const _HeroPill({required this.label, this.active = false});
 
   @override

@@ -48,6 +48,9 @@ enum PalmScanFeedbackStage {
 }
 
 @visibleForTesting
+const Duration palmScanHoldDuration = Duration(milliseconds: 800);
+
+@visibleForTesting
 bool shouldRenderPalmOverlay({
   required List<Offset> handLandmarks,
   required Size? imageSize,
@@ -69,6 +72,41 @@ bool shouldShowPalmHint({
         handLandmarks: handLandmarks,
         imageSize: imageSize,
       );
+}
+
+@visibleForTesting
+bool isPalmHoldEligible({
+  required bool handPresent,
+  required bool readyToScan,
+  required bool isFramed,
+  required bool pauseAutoScanUntilReset,
+}) {
+  return handPresent && readyToScan && isFramed && !pauseAutoScanUntilReset;
+}
+
+@visibleForTesting
+bool shouldTrackPalmHold({
+  required bool holdInProgress,
+  required bool handPresent,
+  required bool readyToScan,
+  required bool isFramed,
+  required bool isRelaxedFramed,
+  required bool pauseAutoScanUntilReset,
+}) {
+  if (pauseAutoScanUntilReset || !handPresent) {
+    return false;
+  }
+
+  if (holdInProgress) {
+    return isRelaxedFramed;
+  }
+
+  return isPalmHoldEligible(
+    handPresent: handPresent,
+    readyToScan: readyToScan,
+    isFramed: isFramed,
+    pauseAutoScanUntilReset: pauseAutoScanUntilReset,
+  );
 }
 
 @visibleForTesting
@@ -109,7 +147,10 @@ class _PalmScanPageState extends State<PalmScanPage>
   late final ScanRemoteSource _scanRemoteSource;
   late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
-  static const Duration _requiredHoldDuration = Duration(seconds: 2);
+  static const Duration _requiredHoldDuration = palmScanHoldDuration;
+  static const Duration _holdInterruptionGracePeriod = Duration(
+    milliseconds: 300,
+  );
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
   static const Alignment _palmGuideAlignment = Alignment(0, -0.18);
   static const double _palmGuideWidth = 244;
@@ -118,6 +159,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   late Animation<double> _scanAnim;
   StreamSubscription<PalmScanStatus>? _statusSubscription;
   Timer? _holdTimer;
+  DateTime? _lastHoldAliveAt;
 
   bool _hasPermission = false;
   bool _isBackCamera = true;
@@ -204,17 +246,40 @@ class _PalmScanPageState extends State<PalmScanPage>
       _statusSubscription?.cancel();
       _statusSubscription = _statusBridge.statusStream().listen((status) {
         if (!mounted) return;
-        final readyToCapture =
-            status.readyToScan && _isPalmFramedForUpload(status);
-        if (_pauseAutoScanUntilReset && !readyToCapture) {
+        final strictlyFramed = _isPalmFramedForUpload(
+          status,
+          allowHoldDrift: false,
+        );
+        final relaxedFramed = _isPalmFramedForUpload(
+          status,
+          allowHoldDrift: true,
+        );
+        final strictReadyToCapture = status.readyToScan && strictlyFramed;
+        if (_pauseAutoScanUntilReset && !strictReadyToCapture) {
           _pauseAutoScanUntilReset = false;
         }
         if (_scanState == PalmScanState.uploading) return;
-        final canHold = readyToCapture && !_pauseAutoScanUntilReset;
+        final canHold = isPalmHoldEligible(
+          handPresent: status.handPresent,
+          readyToScan: status.readyToScan,
+          isFramed: strictlyFramed,
+          pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
+        );
+        final holdAlive = shouldTrackPalmHold(
+          holdInProgress: _holdTimer != null,
+          handPresent: status.handPresent,
+          readyToScan: status.readyToScan,
+          isFramed: strictlyFramed,
+          isRelaxedFramed: relaxedFramed,
+          pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
+        );
+        final holdSignalActive =
+            canHold ||
+            (_holdTimer != null && _isPalmHoldAliveWithinGrace(holdAlive));
         setState(() {
           final nextImageSize = Size(status.imageWidth, status.imageHeight);
           _handPresent = status.handPresent;
-          _readyToScan = canHold;
+          _readyToScan = holdSignalActive;
           _handStraight = status.handStraight;
           _gestureName = status.gestureName;
           _handLandmarks = status.landmarks;
@@ -230,6 +295,13 @@ class _PalmScanPageState extends State<PalmScanPage>
         });
 
         if (_scanState != PalmScanState.scanning) return;
+        if (_holdTimer != null) {
+          if (!holdSignalActive) {
+            _cancelHoldTracking(resetProgress: true);
+          }
+          return;
+        }
+
         if (canHold) {
           _startHoldTracking();
         } else {
@@ -240,20 +312,46 @@ class _PalmScanPageState extends State<PalmScanPage>
     }
   }
 
-  bool _isPalmFramedForUpload(PalmScanStatus status) {
+  bool _isPalmFramedForUpload(
+    PalmScanStatus status, {
+    required bool allowHoldDrift,
+  }) {
     final bounds = normalizedBoundingRect(status.landmarks);
     if (bounds == null) {
       return false;
     }
 
     final area = normalizedRectArea(bounds);
-    return area >= 0.05 &&
-        area <= 0.32 &&
+    final minArea = allowHoldDrift ? 0.04 : 0.05;
+    final maxArea = allowHoldDrift ? 0.36 : 0.32;
+    final guideInsetFactor = allowHoldDrift ? 0.01 : 0.02;
+
+    return area >= minArea &&
+        area <= maxArea &&
         isNormalizedBoundsInsideGuide(
           bounds: bounds,
           guideRect: _palmGuideRectNormalized,
-          guideInsetFactor: 0.02,
+          guideInsetFactor: guideInsetFactor,
         );
+  }
+
+  bool _isPalmHoldAliveWithinGrace(bool holdAliveNow) {
+    if (holdAliveNow) {
+      _lastHoldAliveAt = DateTime.now();
+      return true;
+    }
+
+    if (_holdTimer == null) {
+      return false;
+    }
+
+    final lastHoldAliveAt = _lastHoldAliveAt;
+    if (lastHoldAliveAt == null) {
+      return false;
+    }
+
+    return DateTime.now().difference(lastHoldAliveAt) <=
+        _holdInterruptionGracePeriod;
   }
 
   @override
@@ -288,6 +386,7 @@ class _PalmScanPageState extends State<PalmScanPage>
 
   void _startHoldTracking() {
     if (_holdTimer != null || _scanState != PalmScanState.scanning) return;
+    _lastHoldAliveAt = DateTime.now();
     final stopwatch = Stopwatch()..start();
     _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted || _scanState != PalmScanState.scanning) {
@@ -312,6 +411,7 @@ class _PalmScanPageState extends State<PalmScanPage>
   void _cancelHoldTracking({required bool resetProgress}) {
     _holdTimer?.cancel();
     _holdTimer = null;
+    _lastHoldAliveAt = null;
     if (resetProgress && mounted) {
       setState(() => _scanProgress = 0);
     }
@@ -326,6 +426,7 @@ class _PalmScanPageState extends State<PalmScanPage>
       _scanState = PalmScanState.uploading;
       _scanProgress = 0.65;
     });
+    _lastHoldAliveAt = null;
 
     try {
       final capture = await _captureBridge.capture(

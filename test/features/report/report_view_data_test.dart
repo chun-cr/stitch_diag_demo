@@ -17,6 +17,13 @@ void main() {
     expect(viewData.constitutionScores, isEmpty);
     expect(viewData.recordedAt, isNull);
     expect(viewData.source, isNull);
+    expect(viewData.heroSecondaryConstitutions, ['阳虚体质', '湿热体质']);
+    expect(viewData.heroTongueSymptoms, ['舌边齿痕', '舌苔白']);
+    expect(viewData.tongueAnalysisItems, hasLength(2));
+    expect(viewData.tongueAnalysisItems.first.title, '舌苔颜色');
+    expect(viewData.heroSkinAge, 23);
+    expect(viewData.heroTherapySummary, contains('疏肝解郁'));
+    expect(viewData.hasHeroImages, isFalse);
   });
 
   test('ReportViewData.fromDetail maps live report detail into ui values', () {
@@ -28,9 +35,14 @@ void main() {
       summary: 'Mapped summary',
       primaryConstitution: 'Balanced',
       secondaryConstitution: 'Qi deficiency',
+      therapySummary: 'Keep warm and rest well.',
       faceFindingCount: 2,
       analysisFindingCount: 1,
       handFindingCount: 1,
+      imageUrl: 'https://img.test/tongue.png',
+      faceImageUrl: 'https://img.test/face.png',
+      handImageUrl: 'https://img.test/hand.png',
+      analysisFindingSymptoms: const ['齿痕', '苔白'],
     );
 
     final viewData = ReportViewData.fromDetail(detail);
@@ -49,7 +61,58 @@ void main() {
     expect(viewData.primaryConstitution, 'Balanced');
     expect(viewData.secondaryBias, 'Qi deficiency');
     expect(viewData.summary, 'Mapped summary');
+    expect(viewData.heroSecondaryConstitutions, ['Qi deficiency']);
+    expect(viewData.heroTongueSymptoms, ['齿痕', '苔白']);
+    expect(viewData.tongueAnalysisItems, hasLength(1));
+    expect(viewData.heroSkinAge, 30);
+    expect(viewData.heroTherapySummary, 'Keep warm and rest well.');
+    expect(viewData.heroImageUrls, [
+      'https://img.test/tongue.png',
+      'https://img.test/face.png',
+      'https://img.test/hand.png',
+    ]);
+    expect(viewData.hasHeroImages, isTrue);
   });
+
+  test(
+    'ReportViewData.fromDetail keeps only abnormal tongue findings and builds pathology fallback',
+    () {
+      final detail = buildDiagnosisReportDetail(
+        analysisFindings: const [
+          {
+            'type': 'tongue_isIndentation',
+            'typeDesc': '齿痕',
+            'symptoms': [
+              {
+                'id': 'indentation-1',
+                'name': '齿痕',
+                'describe': '多见于脾虚湿盛，运化乏力。',
+              },
+            ],
+          },
+          {
+            'type': 'moss_color',
+            'typeDesc': '舌苔颜色',
+            'symptoms': [
+              {'id': 'moss-1', 'name': '舌苔白'},
+            ],
+          },
+          {'type': 'tongue_isCrack', 'typeDesc': '舌裂', 'symptoms': []},
+        ],
+      );
+
+      final viewData = ReportViewData.fromDetail(detail);
+
+      expect(viewData.tongueAnalysisItems.map((item) => item.title).toList(), [
+        '齿痕',
+        '舌苔颜色',
+      ]);
+      expect(viewData.tongueAnalysisItems.first.resultText, '齿痕');
+      expect(viewData.tongueAnalysisItems.first.pathologyText, '多见于脾虚湿盛，运化乏力。');
+      expect(viewData.tongueAnalysisItems.last.resultText, '舌苔白');
+      expect(viewData.tongueAnalysisItems.last.pathologyText, '多提示寒湿偏盛，阳气稍弱。');
+    },
+  );
 
   test(
     'ReportViewData.fromDetail sorts constitution detail rows by live scores',
@@ -191,11 +254,14 @@ void main() {
     final detail = buildDiagnosisReportDetail(
       includeSecondaryConstitution: false,
       primaryConstitution: 'Balanced',
+      hideAge: true,
     );
 
     final viewData = ReportViewData.fromDetail(detail);
 
     expect(viewData.primaryConstitution, 'Balanced');
     expect(viewData.secondaryBias, isNull);
+    expect(viewData.heroSecondaryConstitutions, isEmpty);
+    expect(viewData.heroSkinAge, isNull);
   });
 }

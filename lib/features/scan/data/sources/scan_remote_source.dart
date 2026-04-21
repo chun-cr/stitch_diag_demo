@@ -165,6 +165,7 @@ class ScanRemoteSource {
     final payload = await _postMultipart(
       stage: 'palm',
       path: path,
+      allowEmptyPayload: true,
       data: FormData.fromMap({
         'reportId': reportId,
         'handFile': await MultipartFile.fromFile(
@@ -185,6 +186,7 @@ class ScanRemoteSource {
     required String stage,
     required String path,
     required FormData data,
+    bool allowEmptyPayload = false,
     ProgressCallback? onSendProgress,
   }) async {
     try {
@@ -193,7 +195,12 @@ class ScanRemoteSource {
         data: data,
         onSendProgress: onSendProgress,
       );
-      return _extractSuccessPayload(stage: stage, path: path, data: response.data);
+      return _extractSuccessPayload(
+        stage: stage,
+        path: path,
+        data: response.data,
+        allowEmptyPayload: allowEmptyPayload,
+      );
     } on DioException catch (error) {
       final exception = ScanUploadException.fromDioException(
         stage: stage,
@@ -209,6 +216,7 @@ class ScanRemoteSource {
     required String stage,
     required String path,
     required dynamic data,
+    bool allowEmptyPayload = false,
   }) {
     final envelope = _asMap(data);
     if (envelope == null) {
@@ -235,6 +243,9 @@ class ScanRemoteSource {
 
     final payload = _asMap(envelope['data']);
     if (payload == null) {
+      if (allowEmptyPayload && envelope.containsKey('data') && envelope['data'] == null) {
+        return const <String, dynamic>{};
+      }
       throw ScanUploadException(
         stage: stage,
         path: path,

@@ -8,10 +8,18 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
   String summary = 'Live summary insight',
   String primaryConstitution = 'Balanced',
   String secondaryConstitution = 'Qi deficiency',
+  String therapySummary = 'Prefer warm meals and steady routines.',
   bool includeSecondaryConstitution = true,
+  bool hideAge = false,
   int faceFindingCount = 2,
   int analysisFindingCount = 1,
   int handFindingCount = 1,
+  double faceAge = 30,
+  String imageUrl = '',
+  String faceImageUrl = '',
+  String handImageUrl = '',
+  List<String> analysisFindingSymptoms = const ['舌边齿痕', '舌苔白'],
+  List<Map<String, Object?>> analysisFindings = const [],
   List<Map<String, Object>> categoryProbabilities = const [],
   List<Map<String, Object>> riskIndexes = const [],
   List<Map<String, Object>> relativeSyms = const [],
@@ -19,13 +27,28 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
   List<Map<String, Object?>> constitutionScores = const [],
   List<Map<String, Object?>> tzpdResults = const [],
 }) {
-  List<Map<String, Object>> findings(int count, String leadingResult) {
+  List<Map<String, Object>> findings(
+    int count,
+    String leadingResult, {
+    List<String> firstSymptoms = const [],
+  }) {
     return List.generate(count, (index) {
       return {
         'name': 'finding-$index',
         'result': index == 0 ? leadingResult : 'detail-$index',
         'key': 'key-$index',
-        'symptoms': const <Map<String, Object>>[],
+        'symptoms': index == 0
+            ? firstSymptoms
+                  .asMap()
+                  .entries
+                  .map((entry) {
+                    return {
+                      'id': 'symptom-$index-${entry.key}',
+                      'name': entry.value,
+                    };
+                  })
+                  .toList(growable: false)
+            : const <Map<String, Object>>[],
       };
     });
   }
@@ -37,7 +60,7 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
             'id': 'constitution-primary',
             'name': primaryConstitution,
             'score': healthScore,
-            'solutions': '',
+            'solutions': therapySummary,
           },
           if (includeSecondaryConstitution)
             {
@@ -52,7 +75,7 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
   return DiagnosisReportDetail.fromJson({
     'id': id,
     'testTime': testTime,
-    'imageUrl': '',
+    'imageUrl': imageUrl,
     'healthScore': healthScore,
     'riskIndexes': riskIndexes,
     'analysisResult': {
@@ -60,11 +83,17 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
         'id': primaryConstitutionData['id'] ?? 'constitution-primary',
         'name': primaryConstitutionData['name'] ?? primaryConstitution,
         'score': primaryConstitutionData['score'] ?? healthScore,
-        'solutions': primaryConstitutionData['solutions'] ?? '',
+        'solutions': primaryConstitutionData['solutions'] ?? therapySummary,
       },
       'tzData': resolvedConstitutionScores,
       'symptoms': const <Map<String, Object>>[],
-      'result': findings(analysisFindingCount, summary),
+      'result': analysisFindings.isNotEmpty
+          ? analysisFindings
+          : findings(
+              analysisFindingCount,
+              summary,
+              firstSymptoms: analysisFindingSymptoms,
+            ),
       'relativeSyms': relativeSyms,
       'deepPredicts': {
         'categoryProbabilities': categoryProbabilities,
@@ -76,15 +105,15 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
       'pos': const <String, Object>{},
     },
     'faceAnalysisResult': {
-      'imageUrl': '',
-      'age': 30,
+      'imageUrl': faceImageUrl,
+      'age': faceAge,
       'sex': 'F',
       'sexDesc': 'Female',
       'result': findings(faceFindingCount, 'face-summary'),
     },
     'handAnalysisResult': {
-      'imageUrl': '',
-      'age': 30,
+      'imageUrl': handImageUrl,
+      'age': faceAge,
       'sex': 'F',
       'sexDesc': 'Female',
       'result': findings(handFindingCount, 'hand-summary'),
@@ -96,7 +125,7 @@ DiagnosisReportDetail buildDiagnosisReportDetail({
     'source': source,
     'token': '',
     'lockedStatus': 'UNLOCKED',
-    'hideAge': false,
+    'hideAge': hideAge,
     'tenantId': 'tenant-1',
     'storeId': 'store-1',
   });
@@ -110,10 +139,18 @@ ReportViewData buildReportViewData({
   String summary = 'Live summary insight',
   String primaryConstitution = 'Balanced',
   String secondaryConstitution = 'Qi deficiency',
+  String therapySummary = 'Prefer warm meals and steady routines.',
   bool includeSecondaryConstitution = true,
+  bool hideAge = false,
   int faceFindingCount = 2,
   int analysisFindingCount = 1,
   int handFindingCount = 1,
+  double faceAge = 30,
+  String imageUrl = '',
+  String faceImageUrl = '',
+  String handImageUrl = '',
+  List<String> analysisFindingSymptoms = const ['舌边齿痕', '舌苔白'],
+  List<Map<String, Object?>> analysisFindings = const [],
   List<Map<String, Object>> categoryProbabilities = const [],
   List<Map<String, Object>> riskIndexes = const [],
   List<Map<String, Object>> relativeSyms = const [],
@@ -130,10 +167,18 @@ ReportViewData buildReportViewData({
       summary: summary,
       primaryConstitution: primaryConstitution,
       secondaryConstitution: secondaryConstitution,
+      therapySummary: therapySummary,
       includeSecondaryConstitution: includeSecondaryConstitution,
+      hideAge: hideAge,
       faceFindingCount: faceFindingCount,
       analysisFindingCount: analysisFindingCount,
       handFindingCount: handFindingCount,
+      faceAge: faceAge,
+      imageUrl: imageUrl,
+      faceImageUrl: faceImageUrl,
+      handImageUrl: handImageUrl,
+      analysisFindingSymptoms: analysisFindingSymptoms,
+      analysisFindings: analysisFindings,
       categoryProbabilities: categoryProbabilities,
       riskIndexes: riskIndexes,
       relativeSyms: relativeSyms,

@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-21T03:19:59.599Z",
-  "turn_count": 122,
-  "last_progress_at": "2026-04-21T03:19:59.599Z",
-  "last_agent_output": "这次修复已经落地。\n\n现在的上传链路是这样：\n面诊不再“面部已就位就立刻上传”，而是按你最新要求改成稳定识别 `0.8s` 后再开始上传，改动在 [face_scan_page.dart](D:/wo"
+  "last_turn_at": "2026-04-21T07:23:14.725Z",
+  "turn_count": 143,
+  "last_progress_at": "2026-04-21T07:23:14.725Z",
+  "last_agent_output": "报告页顶部 hero 的“下拉一大段空白”已经收紧了，主要改在 [report_screen.dart](D:/work/stitch_diag_demo/lib/features/report/pr"
 }

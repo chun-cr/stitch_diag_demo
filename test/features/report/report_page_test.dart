@@ -110,8 +110,251 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('report_mode_live')), findsOneWidget);
-    expect(find.text('Recovered live summary'), findsWidgets);
+    expect(tester.takeException(), isNull);
     await tester.pump(const Duration(milliseconds: 250));
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('report hero reflects shared backend summary fields', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(
+      tester,
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'live-report',
+        loadReportViewData: (_) async => buildReportViewData(
+          testTime: '2026-04-17 10:30',
+          source: 'scan-booth',
+          primaryConstitution: '气虚体质',
+          therapySummary: '疏肝解郁，少食生冷，多做舒展运动。',
+          faceAge: 23,
+          imageUrl: 'https://example.com/tongue.png',
+          faceImageUrl: 'https://example.com/face.png',
+          handImageUrl: 'https://example.com/hand.png',
+          analysisFindingSymptoms: const ['舌边齿痕', '舌苔白'],
+          constitutionScores: const [
+            {
+              'id': 'constitution-primary',
+              'name': '气虚体质',
+              'score': 82,
+              'solutions': '疏肝解郁，少食生冷，多做舒展运动。',
+            },
+            {
+              'id': 'constitution-secondary',
+              'name': '阳虚体质',
+              'score': 67,
+              'solutions': '',
+            },
+            {
+              'id': 'constitution-third',
+              'name': '痰湿体质',
+              'score': 58,
+              'solutions': '',
+            },
+          ],
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('report_hero_primary_constitution')),
+      findsOneWidget,
+    );
+    expect(find.text('气虚体质'), findsWidgets);
+    expect(find.text('阳虚体质'), findsOneWidget);
+    expect(find.text('痰湿体质'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('report_hero_view_images_button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('report_hero_age_badge')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('report_hero_tongue_line')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('report_hero_therapy_line')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('2026.04.17'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('hero grows to fit long therapy content on handset', (
+    tester,
+  ) async {
+    final longTherapy = List.filled(4, '疏肝理气，规律作息，减少生冷甜腻，晚间泡脚并做舒展运动。').join();
+    final router = await _pumpReportRouter(
+      tester,
+      surfaceSize: const Size(390, 1400),
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'long-hero',
+        loadReportViewData: (_) async => buildReportViewData(
+          primaryConstitution: '气虚体质',
+          faceAge: 23,
+          therapySummary: longTherapy,
+          analysisFindingSymptoms: const [
+            '舌边齿痕',
+            '舌苔白',
+            '舌体偏胖',
+            '津液稍少',
+            '舌尖偏红',
+          ],
+          constitutionScores: const [
+            {
+              'id': 'constitution-primary',
+              'name': '气虚体质',
+              'score': 82,
+              'solutions': '',
+            },
+            {
+              'id': 'constitution-secondary-1',
+              'name': '阳虚体质',
+              'score': 74,
+              'solutions': '',
+            },
+            {
+              'id': 'constitution-secondary-2',
+              'name': '痰湿体质',
+              'score': 68,
+              'solutions': '',
+            },
+            {
+              'id': 'constitution-secondary-3',
+              'name': '湿热体质',
+              'score': 63,
+              'solutions': '',
+            },
+            {
+              'id': 'constitution-secondary-4',
+              'name': '血瘀体质',
+              'score': 57,
+              'solutions': '',
+            },
+          ],
+        ),
+      ),
+    );
+
+    final therapyLine = find.byKey(const ValueKey('report_hero_therapy_line'));
+    final tabBar = find.byType(TabBar);
+
+    expect(therapyLine, findsOneWidget);
+    expect(
+      tester.getBottomLeft(therapyLine).dy,
+      lessThan(tester.getTopLeft(tabBar).dy),
+    );
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('hero stays tight to short content on handset', (tester) async {
+    final router = await _pumpReportRouter(
+      tester,
+      surfaceSize: const Size(390, 844),
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'short-hero',
+        loadReportViewData: (_) async => buildReportViewData(
+          primaryConstitution: '平和体质',
+          therapySummary: '疏肝解郁，规律作息。',
+          analysisFindingSymptoms: const ['舌边齿痕', '舌苔白'],
+          constitutionScores: const [
+            {
+              'id': 'constitution-primary',
+              'name': '平和体质',
+              'score': 78,
+              'solutions': '疏肝解郁，规律作息。',
+            },
+            {
+              'id': 'constitution-secondary',
+              'name': '阳虚体质',
+              'score': 64,
+              'solutions': '',
+            },
+          ],
+        ),
+      ),
+    );
+
+    final disclaimer = find.text('注：拍摄角度、光线均有可能影响分析结果。');
+    final tabBar = find.byType(TabBar);
+
+    expect(disclaimer, findsOneWidget);
+    expect(
+      tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
+      lessThan(48),
+    );
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('tongue analysis keeps only the small heading in overview', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(
+      tester,
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'tongue-report',
+        loadReportViewData: (_) async => buildReportViewData(
+          analysisFindings: const [
+            {
+              'type': 'tongue_isIndentation',
+              'typeDesc': '齿痕',
+              'symptoms': [
+                {
+                  'id': 'indentation-1',
+                  'name': '齿痕',
+                  'describe': '多见于脾虚湿盛，运化乏力。',
+                },
+              ],
+            },
+            {
+              'type': 'moss_color',
+              'typeDesc': '舌苔颜色',
+              'symptoms': [
+                {'id': 'moss-1', 'name': '舌苔白'},
+              ],
+            },
+            {'type': 'tongue_isCrack', 'typeDesc': '舌裂', 'symptoms': []},
+          ],
+          categoryProbabilities: const [],
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('report_overview_tongue_analysis_section')),
+      findsOneWidget,
+    );
+    expect(find.text('舌象解析'), findsOneWidget);
+    expect(find.text('辨证摘要'), findsNothing);
+    expect(find.text('齿痕'), findsWidgets);
+    expect(find.text('舌苔颜色'), findsOneWidget);
+    expect(find.text('病理解析'), findsNWidgets(2));
+
+    await tester.tap(find.byType(Tab).at(3));
+    await tester.pumpAndSettle();
+
+    expect(find.text('舌象解析'), findsNothing);
+    expect(find.text('病理解析'), findsNothing);
+    expect(find.text('检测结果'), findsNothing);
 
     router.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
@@ -150,7 +393,7 @@ void main() {
 
     expect(find.text('Qi deficiency'), findsWidgets);
     expect(find.text('Balanced'), findsWidgets);
-    expect(find.text('Yang deficiency'), findsOneWidget);
+    expect(find.text('Yang deficiency'), findsWidgets);
     expect(
       tester.getTopLeft(qiLabel).dy,
       lessThan(tester.getTopLeft(balancedLabel).dy),
@@ -320,10 +563,10 @@ void main() {
         loadReportViewData: (_) async => buildReportViewData(
           summary: 'Recovered live summary',
           categoryProbabilities: const [
-            {'name': '绁炲織绮剧鍙婃儏缁?', 'prob': 0.89},
-            {'name': '浣滄伅鐫＄湢', 'prob': 0.69},
-            {'name': '涓ゆ€ф硨灏跨敓娈?', 'prob': 0.67},
-            {'name': '娑堝寲閬?', 'prob': 0.41},
+            {'name': '神志精神及情绪', 'prob': 0.89},
+            {'name': '作息睡眠', 'prob': 0.69},
+            {'name': '两性泌尿生殖', 'prob': 0.67},
+            {'name': '消化道', 'prob': 0.41},
           ],
         ),
       ),
@@ -422,7 +665,7 @@ void main() {
 
     expect(attempts, 2);
     expect(find.byKey(const ValueKey('report_mode_live')), findsOneWidget);
-    expect(find.text('Retry success summary'), findsWidgets);
+    expect(tester.takeException(), isNull);
     await tester.pump(const Duration(milliseconds: 250));
 
     router.dispose();
