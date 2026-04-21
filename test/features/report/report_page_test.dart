@@ -77,6 +77,8 @@ Future<GoRouter> _pumpReportRouter(
 }
 
 void main() {
+  String twoDigits(int value) => value.toString().padLeft(2, '0');
+
   testWidgets('report page boots safely without reportId', (tester) async {
     final router = await _pumpReportRouter(tester);
 
@@ -180,7 +182,35 @@ void main() {
       find.byKey(const ValueKey('report_hero_therapy_line')),
       findsOneWidget,
     );
-    expect(find.textContaining('2026.04.17'), findsOneWidget);
+    expect(find.textContaining('2026.04.17'), findsWidgets);
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('report time renders formatted date when backend returns epoch', (
+    tester,
+  ) async {
+    const rawTimestamp = '1776326400000';
+    final expectedDateTime = DateTime.fromMillisecondsSinceEpoch(
+      int.parse(rawTimestamp),
+    );
+    final expectedDate =
+        '${expectedDateTime.year}.${twoDigits(expectedDateTime.month)}.${twoDigits(expectedDateTime.day)}';
+    final router = await _pumpReportRouter(
+      tester,
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'timestamp-report',
+        loadReportViewData: (_) async =>
+            buildReportViewData(testTime: rawTimestamp, source: 'scan-booth'),
+      ),
+    );
+
+    expect(find.textContaining(rawTimestamp), findsNothing);
+    expect(find.textContaining(expectedDate), findsWidgets);
     expect(tester.takeException(), isNull);
 
     router.dispose();
@@ -295,7 +325,7 @@ void main() {
     expect(disclaimer, findsOneWidget);
     expect(
       tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
-      lessThan(48),
+      lessThan(20),
     );
     expect(tester.takeException(), isNull);
 
@@ -613,6 +643,45 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('report_mode_live')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('risk tip stays tight to cards without grid auto padding', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(
+      tester,
+      surfaceSize: const Size(390, 844),
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'risk-spacing',
+        loadReportViewData: (_) async => buildReportViewData(
+          categoryProbabilities: const [
+            {'name': 'Mood', 'prob': 0.89},
+            {'name': 'Sleep', 'prob': 0.82},
+            {'name': 'Digestive', 'prob': 0.77},
+            {'name': 'Stress', 'prob': 0.69},
+          ],
+        ),
+      ),
+    );
+
+    final tipCard = find.byKey(const ValueKey('report_risk_tip_card'));
+    final firstRiskCard = find.byKey(const ValueKey('report_risk_card_Mood'));
+    final gridView = tester.widget<GridView>(find.byType(GridView).first);
+
+    expect(tipCard, findsOneWidget);
+    expect(firstRiskCard, findsOneWidget);
+    expect(gridView.primary, isFalse);
+    expect(gridView.padding, equals(EdgeInsets.zero));
+    expect(
+      tester.getTopLeft(firstRiskCard).dy - tester.getBottomLeft(tipCard).dy,
+      lessThan(8),
+    );
     expect(tester.takeException(), isNull);
 
     router.dispose();

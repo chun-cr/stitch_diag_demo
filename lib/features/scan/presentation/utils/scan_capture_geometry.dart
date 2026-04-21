@@ -88,36 +88,61 @@ Rect buildTongueAnalysisRect({
       ? Rect.zero
       : clampNormalizedRect(mouthBounds);
 
+  final horizontalCenter = safeFaceBounds != Rect.zero
+      ? safeFaceBounds.center.dx
+      : safeMouthCenter.dx;
   final widthCandidates = <double>[fallbackRect.width];
-  final heightCandidates = <double>[fallbackRect.height];
 
   if (safeFaceBounds != Rect.zero) {
-    widthCandidates.add(safeFaceBounds.width * 0.92);
-    heightCandidates.add(safeFaceBounds.height * 0.62);
+    widthCandidates.add(safeFaceBounds.width * 1.16);
   }
 
   if (safeMouthBounds != Rect.zero) {
-    widthCandidates.add(safeMouthBounds.width * 3.4);
-    heightCandidates.add(safeMouthBounds.height * 4.6);
+    widthCandidates.add(safeMouthBounds.width * 3.8);
   }
 
   final width = widthCandidates
       .reduce(math.max)
       .clamp(fallbackRect.width, 1.0)
       .toDouble();
-  final height = heightCandidates
-      .reduce(math.max)
-      .clamp(fallbackRect.height, 1.0)
-      .toDouble();
+
+  var top = fallbackRect.top;
+  var bottom = fallbackRect.bottom;
+
+  if (safeFaceBounds != Rect.zero) {
+    top = math.min(top, safeFaceBounds.top - safeFaceBounds.height * 0.18);
+    bottom = math.max(
+      bottom,
+      safeFaceBounds.bottom + safeFaceBounds.height * 0.20,
+    );
+  } else {
+    top = math.min(top, safeMouthCenter.dy - fallbackRect.height * 0.46);
+  }
+
+  if (safeMouthBounds != Rect.zero) {
+    bottom = math.max(
+      bottom,
+      safeMouthBounds.bottom + safeMouthBounds.height * 3.2,
+    );
+  }
+
+  bottom = math.max(
+    bottom,
+    safeMouthCenter.dy +
+        math.max(
+          safeGuideRect.height * 0.82,
+          safeFaceBounds != Rect.zero
+              ? safeFaceBounds.height * 0.34
+              : fallbackRect.height * 0.30,
+        ),
+  );
 
   return clampNormalizedRect(
-    Rect.fromCenter(
-      center: Offset(
-        safeMouthCenter.dx,
-        _clamp01(safeMouthCenter.dy + math.min(height * 0.14, 0.08)),
-      ),
-      width: width,
-      height: height,
+    Rect.fromLTRB(
+      horizontalCenter - width / 2,
+      top,
+      horizontalCenter + width / 2,
+      bottom,
     ),
   );
 }

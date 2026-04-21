@@ -5,8 +5,10 @@ const _kReportTabBarHeight = 48.0;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
 const _kHeroBottomPaddingCompact = 0.0;
 const _kHeroBottomPaddingRegular = 2.0;
-const _kHeroMeasurementSlackCompact = 22.0;
+const _kHeroMeasurementSlackCompact = 16.0;
 const _kHeroMeasurementSlackRegular = 16.0;
+const _kHeroMinExpandedDeltaCompact = 8.0;
+const _kHeroMinExpandedDeltaRegular = 18.0;
 
 class _ReportScreen extends StatefulWidget {
   const _ReportScreen({
@@ -375,7 +377,13 @@ double _estimateHeroExpandedHeight(
   final collapsedHeight =
       kToolbarHeight + mediaQuery.padding.top + _kReportTabBarHeight;
 
-  return math.max(expandedHeight, collapsedHeight + (compact ? 20.0 : 40.0));
+  return math.max(
+    expandedHeight,
+    collapsedHeight +
+        (compact
+            ? _kHeroMinExpandedDeltaCompact
+            : _kHeroMinExpandedDeltaRegular),
+  );
 }
 
 double _estimateHeroMetaHeight(
@@ -810,15 +818,18 @@ class _ReportHeroSpace extends StatelessWidget {
                             AnimatedOpacity(
                               duration: const Duration(milliseconds: 120),
                               opacity: expandedOpacity,
-                              child: Text(
-                                _heroDisclaimer(),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: compact ? 10 : 11,
-                                  height: 1.5,
-                                  color: const Color(
-                                    0xFF6F665A,
-                                  ).withValues(alpha: 0.82),
+                              child: Transform.translate(
+                                offset: Offset(0, compact ? 6 : 4),
+                                child: Text(
+                                  _heroDisclaimer(),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: compact ? 10 : 11,
+                                    height: 1.5,
+                                    color: const Color(
+                                      0xFF6F665A,
+                                    ).withValues(alpha: 0.82),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1415,6 +1426,17 @@ String _formatHeroDate(String? rawValue) {
   final parsed = DateTime.tryParse(normalized);
   if (parsed != null) {
     return '${parsed.year}.${_twoDigits(parsed.month)}.${_twoDigits(parsed.day)}';
+  }
+
+  if (RegExp(r'^\d{10,16}$').hasMatch(trimmed)) {
+    final epochValue = int.tryParse(trimmed);
+    if (epochValue != null) {
+      final milliseconds = trimmed.length <= 10
+          ? epochValue * 1000
+          : epochValue;
+      final epochDate = DateTime.fromMillisecondsSinceEpoch(milliseconds);
+      return '${epochDate.year}.${_twoDigits(epochDate.month)}.${_twoDigits(epochDate.day)}';
+    }
   }
 
   final match = RegExp(

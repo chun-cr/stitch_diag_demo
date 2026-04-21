@@ -376,7 +376,7 @@ class _Tab1Overview extends StatelessWidget {
   Widget _buildScanMeta(BuildContext context) {
     final l10n = context.l10n;
     final metaSegments = [
-      if (viewData.recordedAt != null) viewData.recordedAt!,
+      if (viewData.recordedAt != null) _formatHeroDate(viewData.recordedAt),
       if (viewData.source != null) viewData.source!,
     ];
     final scanMeta = metaSegments.isEmpty

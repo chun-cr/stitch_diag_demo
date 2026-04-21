@@ -836,14 +836,16 @@ class _RiskIndexSectionBlock extends StatelessWidget {
                           resolvedConsultNavigate,
                         ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
               ],
               LayoutBuilder(
                 builder: (context, constraints) {
                   final compact = constraints.maxWidth < 380;
                   return GridView.builder(
+                    primary: false,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
                     itemCount: visibleRiskIndexes.length,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -929,6 +931,7 @@ class _RiskIndexTipCard extends StatelessWidget {
     }
 
     return Container(
+      key: const ValueKey('report_risk_tip_card'),
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(

@@ -36,20 +36,42 @@ void main() {
       'expands beyond the visible guide when face and mouth bounds are known',
       () {
         final guideRect = const Rect.fromLTWH(0.32, 0.46, 0.24, 0.20);
+        final faceBounds = const Rect.fromLTWH(0.22, 0.12, 0.56, 0.72);
+        final mouthBounds = const Rect.fromLTWH(0.38, 0.46, 0.18, 0.12);
 
         final rect = buildTongueAnalysisRect(
           guideRect: guideRect,
-          faceBounds: const Rect.fromLTWH(0.22, 0.12, 0.56, 0.72),
-          mouthBounds: const Rect.fromLTWH(0.38, 0.46, 0.18, 0.12),
+          faceBounds: faceBounds,
+          mouthBounds: mouthBounds,
           mouthCenter: const Offset(0.47, 0.52),
         );
 
         expect(rect.width, greaterThan(guideRect.width));
-        expect(rect.height, greaterThan(guideRect.height));
         expect(rect.left, lessThan(0.38));
         expect(rect.right, greaterThan(0.56));
-        expect(rect.top, lessThan(0.46));
-        expect(rect.bottom, greaterThan(0.58));
+        expect(rect.top, lessThan(faceBounds.top));
+        expect(rect.bottom, greaterThan(faceBounds.bottom));
+        expect(rect.bottom, greaterThan(mouthBounds.bottom));
+      },
+    );
+
+    test(
+      'keeps the forehead visible instead of centering only on the mouth',
+      () {
+        const guideRect = Rect.fromLTWH(0.323, 0.449, 0.354, 0.422);
+        const faceBounds = Rect.fromLTWH(0.25, 0.16, 0.50, 0.58);
+        const mouthBounds = Rect.fromLTWH(0.42, 0.53, 0.16, 0.10);
+
+        final rect = buildTongueAnalysisRect(
+          guideRect: guideRect,
+          faceBounds: faceBounds,
+          mouthBounds: mouthBounds,
+          mouthCenter: const Offset(0.50, 0.57),
+        );
+
+        expect(rect.top, lessThanOrEqualTo(0.08));
+        expect(rect.bottom, greaterThan(faceBounds.bottom));
+        expect(rect.height, greaterThan(0.75));
       },
     );
 
