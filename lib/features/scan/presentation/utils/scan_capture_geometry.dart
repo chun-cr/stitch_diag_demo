@@ -122,6 +122,37 @@ Rect buildTongueAnalysisRect({
   );
 }
 
+Rect buildFaceCaptureRect({required Rect guideRect, Rect? faceBounds}) {
+  final safeGuideRect = clampNormalizedRect(guideRect);
+  final safeFaceBounds = faceBounds == null
+      ? Rect.zero
+      : clampNormalizedRect(faceBounds);
+
+  if (safeFaceBounds == Rect.zero) {
+    return safeGuideRect;
+  }
+
+  final minWidth = safeGuideRect == Rect.zero
+      ? 0.0
+      : safeGuideRect.width * 1.04;
+  final minHeight = safeGuideRect == Rect.zero
+      ? 0.0
+      : safeGuideRect.height * 1.08;
+  final targetWidth = math.max(safeFaceBounds.width * 1.52, minWidth);
+  final targetHeight = math.max(safeFaceBounds.height * 1.72, minHeight);
+  final centerY = _clamp01(
+    safeFaceBounds.center.dy - math.min(safeFaceBounds.height * 0.05, 0.025),
+  );
+
+  return clampNormalizedRect(
+    Rect.fromCenter(
+      center: Offset(safeFaceBounds.center.dx, centerY),
+      width: math.min(targetWidth, 1.0),
+      height: math.min(targetHeight, 1.0),
+    ),
+  );
+}
+
 Rect? normalizedBoundingRect(Iterable<Offset> points) {
   double? minX;
   double? maxX;

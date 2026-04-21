@@ -77,7 +77,7 @@ class TongueScanStatus {
 
     final explicitMouthCenter = _extractPoint(data['mouthCenter']);
     final mouthBounds = normalizedBoundingRect(mouthPoints);
-    final mouthCenter = mouthBounds?.center ?? explicitMouthCenter;
+    final mouthCenter = explicitMouthCenter ?? mouthBounds?.center;
 
     return TongueScanStatus(
       mouthLandmarkCount: mouthPoints.length,

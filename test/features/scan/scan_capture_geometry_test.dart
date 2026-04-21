@@ -80,6 +80,32 @@ void main() {
     });
   });
 
+  group('buildFaceCaptureRect', () {
+    test(
+      'expands around detected face bounds to keep the whole face visible',
+      () {
+        final rect = buildFaceCaptureRect(
+          guideRect: const Rect.fromLTWH(0.28, 0.14, 0.44, 0.60),
+          faceBounds: const Rect.fromLTWH(0.34, 0.24, 0.26, 0.36),
+        );
+
+        expect(rect.left, lessThan(0.34));
+        expect(rect.top, lessThan(0.24));
+        expect(rect.right, greaterThan(0.60));
+        expect(rect.bottom, greaterThan(0.60));
+        expect(rect.width, greaterThan(0.26));
+        expect(rect.height, greaterThan(0.36));
+      },
+    );
+
+    test('falls back to the guide rect when face bounds are unavailable', () {
+      const guideRect = Rect.fromLTWH(0.28, 0.14, 0.44, 0.60);
+      final rect = buildFaceCaptureRect(guideRect: guideRect);
+
+      expect(rect, guideRect);
+    });
+  });
+
   group('isNormalizedBoundsInsideGuide', () {
     test('accepts bounds fully inside the guide safe area', () {
       expect(

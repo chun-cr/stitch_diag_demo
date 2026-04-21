@@ -2,8 +2,9 @@ part of 'report_page.dart';
 
 const _kReportMaskEnabled = false;
 const _kReportTabBarHeight = 48.0;
-const _kHeroBottomPaddingCompact = 12.0;
-const _kHeroBottomPaddingRegular = 28.0;
+// Hero 底部与 TabBar 之间的间距，收紧避免大片空白
+const _kHeroBottomPaddingCompact = 8.0;
+const _kHeroBottomPaddingRegular = 14.0;
 
 class _ReportScreen extends StatefulWidget {
   const _ReportScreen({
@@ -322,7 +323,8 @@ double _estimateHeroExpandedHeight(
   final mediaQuery = MediaQuery.of(context);
   final compact = mediaQuery.size.width < 430;
   final horizontalPadding = compact ? 18.0 : 24.0;
-  final topPadding = compact ? 56.0 : 64.0;
+  // 收紧顶部 padding，减少 Hero 与 AppBar 按钮之间的空隙
+  final topPadding = compact ? 44.0 : 52.0;
   final bottomPadding = compact
       ? _kHeroBottomPaddingCompact
       : _kHeroBottomPaddingRegular;
@@ -356,9 +358,11 @@ double _estimateHeroExpandedHeight(
       mediaQuery.padding.top +
       topPadding +
       metaHeight +
-      (compact ? 14.0 : 18.0) +
+      // meta 与内容区之间的间距，与 _ReportHeroSpace 保持一致
+      (compact ? 10.0 : 14.0) +
       contentHeight +
-      (compact ? 6.0 : 10.0) +
+      // 内容区与 disclaimer 之间的间距
+      (compact ? 6.0 : 8.0) +
       disclaimerHeight +
       bottomPadding;
   final collapsedHeight =
@@ -486,7 +490,8 @@ double _estimateHeroInfoHeight(
   );
 
   if (secondaryConstitutions.isNotEmpty) {
-    height += compact ? 10.0 : 14.0;
+    // 主体质标题 → 次体质标签行间距，与 _HeroInfoColumn 保持一致
+    height += compact ? 8.0 : 10.0;
     height += _estimateHeroChipWrapHeight(
       context,
       labels: secondaryConstitutions,
@@ -496,12 +501,14 @@ double _estimateHeroInfoHeight(
   }
 
   if (viewData.heroSkinAge != null) {
-    height += compact ? 10.0 : 16.0;
-    height += compact ? 30.0 : 50.0;
+    // 次体质标签 → 肤龄行间距
+    height += compact ? 8.0 : 10.0;
+    height += compact ? 30.0 : 36.0;
   }
 
   if (tongueSummary.isNotEmpty) {
-    height += compact ? 10.0 : 16.0;
+    // 肤龄 → 舌相行间距
+    height += compact ? 8.0 : 10.0;
     height += _estimateHeroInfoLineHeight(
       context,
       label: _heroTongueLabel(),
@@ -511,7 +518,8 @@ double _estimateHeroInfoHeight(
     );
   }
 
-  height += compact ? 10.0 : 14.0;
+  // 舌相 → 调理行间距
+  height += compact ? 8.0 : 10.0;
   height += _estimateHeroInfoLineHeight(
     context,
     label: _heroTherapyLabel(),
@@ -745,16 +753,17 @@ class _ReportHeroSpace extends StatelessWidget {
                     SafeArea(
                       bottom: false,
                       child: Padding(
+                        // 顶部 padding 收紧，与估算函数保持一致
                         padding: compact
                             ? const EdgeInsets.fromLTRB(
                                 18,
-                                56,
+                                44,
                                 18,
                                 _kHeroBottomPaddingCompact,
                               )
                             : const EdgeInsets.fromLTRB(
                                 24,
-                                64,
+                                52,
                                 24,
                                 _kHeroBottomPaddingRegular,
                               ),
@@ -771,7 +780,8 @@ class _ReportHeroSpace extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            SizedBox(height: compact ? 14 : 18),
+                            // meta 与内容区间距，与估算函数保持一致
+                            SizedBox(height: compact ? 10 : 14),
                             Flexible(
                               fit: FlexFit.loose,
                               child: AnimatedOpacity(
@@ -788,7 +798,8 @@ class _ReportHeroSpace extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            SizedBox(height: compact ? 6 : 10),
+                            // 内容区与 disclaimer 间距，与估算函数保持一致
+                            SizedBox(height: compact ? 6 : 8),
                             AnimatedOpacity(
                               duration: const Duration(milliseconds: 120),
                               opacity: expandedOpacity,
@@ -891,7 +902,7 @@ class _HeroContentCard extends StatelessWidget {
             ],
           );
 
-    // 去掉卡片容器，直接返回内容
+    // 无卡片容器，内容直接铺在渐变背景上
     return SizedBox(
       width: double.infinity,
       child: LayoutBuilder(
@@ -1123,7 +1134,8 @@ class _HeroInfoColumn extends StatelessWidget {
           ),
         ),
         if (secondaryConstitutions.isNotEmpty) ...[
-          SizedBox(height: compact ? 10 : 14),
+          // 主体质 → 次体质标签，统一间距
+          SizedBox(height: compact ? 8 : 10),
           Wrap(
             spacing: compact ? 6 : 8,
             runSpacing: compact ? 6 : 8,
@@ -1134,7 +1146,8 @@ class _HeroInfoColumn extends StatelessWidget {
           ),
         ],
         if (viewData.heroSkinAge != null) ...[
-          SizedBox(height: compact ? 10 : 16),
+          // 次体质标签 → 肤龄，统一间距
+          SizedBox(height: compact ? 8 : 10),
           _HeroAgeBadge(
             key: const ValueKey('report_hero_age_badge'),
             ageLabel: _heroAgeLabel(),
@@ -1143,7 +1156,8 @@ class _HeroInfoColumn extends StatelessWidget {
           ),
         ],
         if (tongueSummary.isNotEmpty) ...[
-          SizedBox(height: compact ? 10 : 16),
+          // 肤龄 → 舌相，统一间距
+          SizedBox(height: compact ? 8 : 10),
           _HeroInfoLine(
             key: const ValueKey('report_hero_tongue_line'),
             label: _heroTongueLabel(),
@@ -1151,7 +1165,8 @@ class _HeroInfoColumn extends StatelessWidget {
             compact: compact,
           ),
         ],
-        SizedBox(height: compact ? 10 : 14),
+        // 舌相 → 调理，统一间距
+        SizedBox(height: compact ? 8 : 10),
         _HeroInfoLine(
           key: const ValueKey('report_hero_therapy_line'),
           label: _heroTherapyLabel(),
@@ -1396,7 +1411,7 @@ String _formatHeroDate(String? rawValue) {
   }
 
   final match = RegExp(
-    r'(\\d{4})[-.](\\d{1,2})[-.](\\d{1,2})',
+    r'(\d{4})[-.](\\d{1,2})[-.](\\d{1,2})',
   ).firstMatch(normalized);
   if (match != null) {
     final year = match.group(1)!;
@@ -1489,29 +1504,35 @@ Future<void> _showHeroImagesDialog(
                             clipBehavior: Clip.antiAlias,
                             child: AspectRatio(
                               aspectRatio: 1,
-                              child: InteractiveViewer(
-                                minScale: 1,
-                                maxScale: 4,
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                        if (loadingProgress == null) {
-                                          return child;
-                                        }
-                                        return const Center(
-                                          child: CircularProgressIndicator(),
-                                        );
-                                      },
-                                  errorBuilder: (_, _, _) => Center(
-                                    child: Text(
-                                      _heroImageEmptyState(),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: const Color(
-                                          0xFF3C342B,
-                                        ).withValues(alpha: 0.76),
+                              child: ColoredBox(
+                                color: const Color(0xFFF8F5EF),
+                                child: InteractiveViewer(
+                                  minScale: 1,
+                                  maxScale: 4,
+                                  child: SizedBox.expand(
+                                    child: Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.contain,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                          },
+                                      errorBuilder: (_, _, _) => Center(
+                                        child: Text(
+                                          _heroImageEmptyState(),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: const Color(
+                                              0xFF3C342B,
+                                            ).withValues(alpha: 0.76),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),

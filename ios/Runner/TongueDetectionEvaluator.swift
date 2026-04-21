@@ -2,7 +2,10 @@ import Foundation
 import MediaPipeTasksVision
 
 enum TongueDetectionEvaluator {
-    private static let mouthIndices = [13, 14, 17, 37, 267, 269, 270, 291]
+    // Use a symmetric outer-lip contour plus upper/lower lip centers.
+    // The previous sparse set skewed to the subject's right side and biased
+    // framing decisions, forcing users to move left before tongue upload started.
+    private static let mouthIndices = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 13, 14]
 
     struct Result {
         let faceLandmarks: [[String: Double]]
@@ -75,11 +78,23 @@ enum TongueDetectionEvaluator {
             )
         }
 
-        let center: [String: Double] = [
-            "x": mouthLandmarks.map { $0["x"] ?? 0 }.reduce(0, +) / Double(mouthLandmarks.count),
-            "y": mouthLandmarks.map { $0["y"] ?? 0 }.reduce(0, +) / Double(mouthLandmarks.count),
-            "z": mouthLandmarks.map { $0["z"] ?? 0 }.reduce(0, +) / Double(mouthLandmarks.count),
-        ]
+        let center: [String: Double]
+        if let leftCorner = landmarks[safe: 61],
+           let rightCorner = landmarks[safe: 291],
+           let upperLip = landmarks[safe: 13],
+           let lowerLip = landmarks[safe: 14] {
+            center = [
+                "x": (Double(leftCorner.x) + Double(rightCorner.x)) / 2.0,
+                "y": (Double(upperLip.y) + Double(lowerLip.y)) / 2.0,
+                "z": (Double(upperLip.z) + Double(lowerLip.z)) / 2.0,
+            ]
+        } else {
+            center = [
+                "x": mouthLandmarks.map { $0["x"] ?? 0 }.reduce(0, +) / Double(mouthLandmarks.count),
+                "y": mouthLandmarks.map { $0["y"] ?? 0 }.reduce(0, +) / Double(mouthLandmarks.count),
+                "z": mouthLandmarks.map { $0["z"] ?? 0 }.reduce(0, +) / Double(mouthLandmarks.count),
+            ]
+        }
 
         return Result(
             faceLandmarks: allLandmarks,
@@ -89,5 +104,11 @@ enum TongueDetectionEvaluator {
             imageWidth: Double(imageSize.width),
             imageHeight: Double(imageSize.height)
         )
+    }
+}
+
+private extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

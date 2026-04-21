@@ -25,22 +25,18 @@ void main() {
       expect(status.blendshapes, isEmpty);
     });
 
-    test(
-      'derives mouth center from mouth bounds when native center is skewed',
-      () {
-        final status = TongueScanStatus.fromEvent({
-          'mouthLandmarks': const [
-            {'x': 0.20, 'y': 0.30},
-            {'x': 0.30, 'y': 0.36},
-            {'x': 0.80, 'y': 0.34},
-          ],
-          'mouthCenter': const {'x': 0.58, 'y': 0.33},
-        });
+    test('falls back to mouth bounds center when native center is absent', () {
+      final status = TongueScanStatus.fromEvent({
+        'mouthLandmarks': const [
+          {'x': 0.20, 'y': 0.30},
+          {'x': 0.30, 'y': 0.36},
+          {'x': 0.80, 'y': 0.34},
+        ],
+      });
 
-        expect(status.mouthCenter?.dx, closeTo(0.50, 0.0001));
-        expect(status.mouthCenter?.dy, closeTo(0.33, 0.0001));
-      },
-    );
+      expect(status.mouthCenter?.dx, closeTo(0.50, 0.0001));
+      expect(status.mouthCenter?.dy, closeTo(0.33, 0.0001));
+    });
 
     test('keeps legacy landmarks as fallback alias during migration', () {
       final status = TongueScanStatus.fromEvent({
@@ -66,16 +62,10 @@ void main() {
           {'x': 0.20, 'y': 0.30},
           {'x': 0.40, 'y': 0.30},
         ],
-        'blendshapes': const {
-          'jawOpen': 0.24,
-          'mouthFunnel': 0.12,
-        },
+        'blendshapes': const {'jawOpen': 0.24, 'mouthFunnel': 0.12},
       });
 
-      expect(status.blendshapes, {
-        'jawOpen': 0.24,
-        'mouthFunnel': 0.12,
-      });
+      expect(status.blendshapes, {'jawOpen': 0.24, 'mouthFunnel': 0.12});
     });
 
     test('stores Flutter protrusion flags explicitly', () {

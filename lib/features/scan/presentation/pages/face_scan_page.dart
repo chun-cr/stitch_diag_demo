@@ -112,7 +112,10 @@ class _FaceScanPageState extends State<FaceScanPage>
   );
 
   ScanCaptureGuide get _faceCaptureGuide {
-    final rect = _faceGuideRectNormalized;
+    final rect = buildFaceCaptureRect(
+      guideRect: _faceGuideRectNormalized,
+      faceBounds: normalizedBoundingRect(_normalizedLandmarks),
+    );
     return ScanCaptureGuide(
       left: rect.left,
       top: rect.top,
