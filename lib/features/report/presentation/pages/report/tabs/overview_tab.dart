@@ -41,6 +41,7 @@ class _Tab1Overview extends StatelessWidget {
     ]);
 
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: children,
     );
@@ -256,7 +257,7 @@ class _Tab1Overview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 10, left: 2),
+          padding: const EdgeInsets.only(bottom: 4, left: 2),
           child: Row(
             children: [
               Container(
@@ -284,8 +285,8 @@ class _Tab1Overview extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
           childAspectRatio: 2.5,
           children: entries.map((e) {
             return GestureDetector(
@@ -314,7 +315,7 @@ class _Tab1Overview extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 10,
+                  vertical: 8,
                 ),
                 child: Row(
                   children: [

@@ -177,7 +177,7 @@ void main() {
   );
 
   test(
-    'ReportViewData.fromDetail keeps risk order and clamps visible scores',
+    'ReportViewData.fromDetail sorts risk indexes by highest score and clamps visible scores',
     () {
       final detail = buildDiagnosisReportDetail(
         categoryProbabilities: [
@@ -193,28 +193,28 @@ void main() {
       final viewData = ReportViewData.fromDetail(detail);
 
       expect(viewData.riskIndexes.map((item) => item.name).toList(), [
-        '消化道',
+        '饮食习惯',
         '神志精神及情绪',
         '作息睡眠',
         '两性泌尿生殖',
         '睡眠失调',
-        '饮食习惯',
+        '消化道',
       ]);
       expect(viewData.visibleRiskIndexes.map((item) => item.name).toList(), [
-        '消化道',
+        '饮食习惯',
         '神志精神及情绪',
         '作息睡眠',
         '两性泌尿生殖',
       ]);
       expect(viewData.warningRiskIndexes.map((item) => item.name).toList(), [
+        '饮食习惯',
         '神志精神及情绪',
         '作息睡眠',
         '两性泌尿生殖',
         '睡眠失调',
-        '饮食习惯',
       ]);
-      expect(viewData.riskIndexes.last.displayProb, 100);
-      expect(viewData.riskIndexes.last.ringScore, 98);
+      expect(viewData.riskIndexes.first.displayProb, 100);
+      expect(viewData.riskIndexes.first.ringScore, 98);
     },
   );
 

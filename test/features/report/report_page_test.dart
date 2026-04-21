@@ -431,6 +431,46 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
+  testWidgets('risk section shows only the highest four scores', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(
+      tester,
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'live-report',
+        loadReportViewData: (_) async => buildReportViewData(
+          categoryProbabilities: const [
+            {'name': '消化道', 'prob': 0.41},
+            {'name': '神志精神及情绪', 'prob': 0.89},
+            {'name': '作息睡眠', 'prob': 0.69},
+            {'name': '两性泌尿生殖', 'prob': 0.67},
+            {'name': '睡眠失调', 'prob': 0.58},
+            {'name': '饮食习惯', 'prob': 1.0},
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('report_risk_card_饮食习惯')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('report_risk_card_神志精神及情绪')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('report_risk_card_作息睡眠')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('report_risk_card_两性泌尿生殖')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('report_risk_card_睡眠失调')), findsNothing);
+    expect(find.byKey(const ValueKey('report_risk_card_消化道')), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('health radar hides when both symptom sources are empty', (
     tester,
   ) async {
@@ -627,7 +667,7 @@ void main() {
       find.byKey(const ValueKey('report_risk_consult_button')),
       findsOneWidget,
     );
-    expect(find.text('睡眠失调'), findsNothing);
+    expect(find.text('睡眠失调'), findsOneWidget);
 
     router.dispose();
     await tester.pumpWidget(const SizedBox.shrink());

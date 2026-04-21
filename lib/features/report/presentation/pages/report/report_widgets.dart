@@ -818,7 +818,7 @@ class _RiskIndexSectionBlock extends StatelessWidget {
           title: '风险指数',
           accentColor: Color(0xFFC57B08),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         _SectionCard(
           borderColor: const Color(0xFFF0E6DE),
           shadowColor: const Color(0x12000000),
@@ -836,22 +836,27 @@ class _RiskIndexSectionBlock extends StatelessWidget {
                           resolvedConsultNavigate,
                         ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 6),
               ],
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: visibleRiskIndexes.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  mainAxisExtent: 186,
-                ),
-                itemBuilder: (context, index) => _RiskIndexCard(
-                  item: visibleRiskIndexes[index],
-                  anim: scoreAnim,
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 380;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: visibleRiskIndexes.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: compact ? 6 : 8,
+                      crossAxisSpacing: compact ? 6 : 8,
+                      mainAxisExtent: compact ? 160 : 164,
+                    ),
+                    itemBuilder: (context, index) => _RiskIndexCard(
+                      item: visibleRiskIndexes[index],
+                      anim: scoreAnim,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -925,16 +930,16 @@ class _RiskIndexTipCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8F7),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFF3D9D5)),
         boxShadow: [
           BoxShadow(
             color: const Color(0x0B000000),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -942,21 +947,21 @@ class _RiskIndexTipCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 5,
-            height: 72,
+            width: 4,
+            height: 68,
             decoration: BoxDecoration(
               color: const Color(0xFFE86E64),
               borderRadius: BorderRadius.circular(999),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Text.rich(
               TextSpan(
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF66584E),
-                  height: 1.6,
+                  height: 1.55,
                 ),
                 children: spans,
               ),
@@ -981,19 +986,20 @@ class _RiskIndexCard extends StatelessWidget {
         : _kRiskAttentionPalette;
 
     return Container(
+      key: ValueKey('report_risk_card_${item.name}'),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF1E7E0)),
         boxShadow: [
           BoxShadow(
             color: const Color(0x0A000000),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
       child: AnimatedBuilder(
         animation: anim,
         builder: (context, child) {
@@ -1004,16 +1010,17 @@ class _RiskIndexCard extends StatelessWidget {
           final progress = (item.ringScore / 100) * anim.value;
 
           return Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 64,
-                height: 64,
+                width: 72,
+                height: 72,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     CustomPaint(
-                      size: const Size(64, 64),
+                      size: const Size(72, 72),
                       painter: _RiskIndexRingPainter(
                         progress: progress,
                         colors: palette.ringColors,
@@ -1022,7 +1029,7 @@ class _RiskIndexCard extends StatelessWidget {
                     Text(
                       '$value',
                       style: TextStyle(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w500,
                         color: palette.numberColor,
                         height: 1,
@@ -1031,10 +1038,11 @@ class _RiskIndexCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               _RiskStatusPill(item: item, palette: palette),
-              const SizedBox(height: 10),
-              Expanded(
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 32),
                 child: Center(
                   child: Text(
                     item.name,
@@ -1044,7 +1052,7 @@ class _RiskIndexCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF54493F),
-                      height: 1.25,
+                      height: 1.2,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1067,7 +1075,7 @@ class _RiskStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
         color: palette.pillBackground,
         borderRadius: BorderRadius.circular(999),

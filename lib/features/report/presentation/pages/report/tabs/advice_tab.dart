@@ -10,6 +10,7 @@ class _Tab4Advice extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
         _FloatingSectionTitle(title: l10n.reportAdviceDietTitle),

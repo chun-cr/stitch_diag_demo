@@ -16,6 +16,7 @@ class _Tab3Therapy extends StatelessWidget {
     );
 
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
         _FloatingSectionTitle(title: l10n.reportTherapyAcupointsTitle),

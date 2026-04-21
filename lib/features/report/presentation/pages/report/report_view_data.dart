@@ -306,6 +306,9 @@ class ReportViewData {
         ReportRiskIndexData(name: name, rawProbability: item.rawProbability),
       );
     }
+    riskIndexes.sort(
+      (left, right) => right.rawProbability.compareTo(left.rawProbability),
+    );
     final classicSymptoms = detail.analysisResult.relativeSyms
         .map(_mapClassicHealthRadarSymptom)
         .whereType<ReportHealthRadarSymptomData>()

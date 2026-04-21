@@ -16,6 +16,7 @@ class _Tab2Constitution extends StatelessWidget {
     final l10n = context.l10n;
 
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
         _buildConstitutionDetail(context),

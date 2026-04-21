@@ -340,6 +340,52 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
+  void _logTongueCaptureDiagnostics({
+    required Rect analysisRect,
+    required ScanCaptureResult capture,
+  }) {
+    String fixed(double value, [int digits = 3]) =>
+        value.toStringAsFixed(digits);
+
+    String formatRect(Rect rect) {
+      return '[${fixed(rect.left)},${fixed(rect.top)},${fixed(rect.width)},${fixed(rect.height)}]';
+    }
+
+    final normalizedCropLeft = capture.sourceWidth <= 0
+        ? 0.0
+        : capture.cropLeft / capture.sourceWidth;
+    final normalizedCropTop = capture.sourceHeight <= 0
+        ? 0.0
+        : capture.cropTop / capture.sourceHeight;
+    final normalizedCropWidth = capture.sourceWidth <= 0
+        ? 0.0
+        : capture.cropWidth / capture.sourceWidth;
+    final normalizedCropHeight = capture.sourceHeight <= 0
+        ? 0.0
+        : capture.cropHeight / capture.sourceHeight;
+    final cropAspect = capture.cropHeight <= 0
+        ? 0.0
+        : capture.cropWidth / capture.cropHeight;
+    final cropAreaRatio = (normalizedCropWidth * normalizedCropHeight).clamp(
+      0.0,
+      1.0,
+    );
+
+    AppLogger.log(
+      'Tongue capture local '
+      'stage=${capture.stage} '
+      'source=${capture.sourceWidth.toStringAsFixed(0)}x${capture.sourceHeight.toStringAsFixed(0)} '
+      'cropPx=[${capture.cropLeft.toStringAsFixed(1)},${capture.cropTop.toStringAsFixed(1)},${capture.cropWidth.toStringAsFixed(1)},${capture.cropHeight.toStringAsFixed(1)}] '
+      'cropNorm=[${fixed(normalizedCropLeft)},${fixed(normalizedCropTop)},${fixed(normalizedCropWidth)},${fixed(normalizedCropHeight)}] '
+      'cropAspect=${fixed(cropAspect)} '
+      'cropArea=${fixed(cropAreaRatio)} '
+      'analysisRect=${formatRect(analysisRect)} '
+      'sourcePath=${capture.sourcePath} '
+      'croppedPath=${capture.croppedPath} '
+      'framePath=${capture.framePath}',
+    );
+  }
+
   /// 根据嘴部中心（已归一化）0~1 计算偏移方向
   String _computeMouthDirection(Offset? center) {
     if (center == null) return '';
@@ -395,6 +441,11 @@ class _TongueScanPageState extends State<TongueScanPage>
       if (!mounted) {
         return;
       }
+
+      _logTongueCaptureDiagnostics(
+        analysisRect: analysisRect,
+        capture: capture,
+      );
 
       setState(() => _scanProgress = 0.68);
 
