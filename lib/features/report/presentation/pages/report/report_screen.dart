@@ -3,8 +3,8 @@ part of 'report_page.dart';
 const _kReportMaskEnabled = false;
 const _kReportTabBarHeight = 48.0;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
-const _kHeroBottomPaddingCompact = 4.0;
-const _kHeroBottomPaddingRegular = 8.0;
+const _kHeroBottomPaddingCompact = 0.0;
+const _kHeroBottomPaddingRegular = 2.0;
 const _kHeroMeasurementSlackCompact = 22.0;
 const _kHeroMeasurementSlackRegular = 16.0;
 
@@ -429,7 +429,7 @@ double _estimateHeroContentHeight(
   );
 
   if (stacked) {
-    return scoreHeight + (compact ? 14.0 : 20.0) + infoHeight;
+    return scoreHeight + (compact ? 10.0 : 20.0) + infoHeight;
   }
   return math.max(scoreHeight, infoHeight);
 }
@@ -498,7 +498,7 @@ double _estimateHeroInfoHeight(
 
   if (secondaryConstitutions.isNotEmpty) {
     // 主体质标题 → 次体质标签行间距，与 _HeroInfoColumn 保持一致
-    height += compact ? 6.0 : 10.0;
+    height += compact ? 4.0 : 10.0;
     height += _estimateHeroChipWrapHeight(
       context,
       labels: secondaryConstitutions,
@@ -509,13 +509,13 @@ double _estimateHeroInfoHeight(
 
   if (viewData.heroSkinAge != null) {
     // 次体质标签 → 肤龄行间距
-    height += compact ? 6.0 : 10.0;
+    height += compact ? 4.0 : 10.0;
     height += compact ? 30.0 : 36.0;
   }
 
   if (tongueSummary.isNotEmpty) {
     // 肤龄 → 舌相行间距
-    height += compact ? 6.0 : 10.0;
+    height += compact ? 4.0 : 10.0;
     height += _estimateHeroInfoLineHeight(
       context,
       label: _heroTongueLabel(),
@@ -526,7 +526,7 @@ double _estimateHeroInfoHeight(
   }
 
   // 舌相 → 调理行间距
-  height += compact ? 6.0 : 10.0;
+  height += compact ? 4.0 : 10.0;
   height += _estimateHeroInfoLineHeight(
     context,
     label: _heroTherapyLabel(),
@@ -883,7 +883,7 @@ class _HeroContentCard extends StatelessWidget {
             children: [
               Align(
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: compact ? 14 : 20),
+                  padding: EdgeInsets.only(bottom: compact ? 10 : 20),
                   child: _HeroScoreColumn(
                     viewData: viewData,
                     scoreAnim: scoreAnim,
@@ -1142,7 +1142,7 @@ class _HeroInfoColumn extends StatelessWidget {
         ),
         if (secondaryConstitutions.isNotEmpty) ...[
           // 主体质 → 次体质标签，统一间距
-          SizedBox(height: compact ? 6 : 10),
+          SizedBox(height: compact ? 4 : 10),
           Wrap(
             spacing: compact ? 6 : 8,
             runSpacing: compact ? 6 : 8,
@@ -1154,7 +1154,7 @@ class _HeroInfoColumn extends StatelessWidget {
         ],
         if (viewData.heroSkinAge != null) ...[
           // 次体质标签 → 肤龄，统一间距
-          SizedBox(height: compact ? 6 : 10),
+          SizedBox(height: compact ? 4 : 10),
           _HeroAgeBadge(
             key: const ValueKey('report_hero_age_badge'),
             ageLabel: _heroAgeLabel(),
@@ -1164,7 +1164,7 @@ class _HeroInfoColumn extends StatelessWidget {
         ],
         if (tongueSummary.isNotEmpty) ...[
           // 肤龄 → 舌相，统一间距
-          SizedBox(height: compact ? 6 : 10),
+          SizedBox(height: compact ? 4 : 10),
           _HeroInfoLine(
             key: const ValueKey('report_hero_tongue_line'),
             label: _heroTongueLabel(),
@@ -1173,7 +1173,7 @@ class _HeroInfoColumn extends StatelessWidget {
           ),
         ],
         // 舌相 → 调理，统一间距
-        SizedBox(height: compact ? 6 : 10),
+        SizedBox(height: compact ? 4 : 10),
         _HeroInfoLine(
           key: const ValueKey('report_hero_therapy_line'),
           label: _heroTherapyLabel(),

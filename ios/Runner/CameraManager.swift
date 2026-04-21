@@ -190,18 +190,23 @@ final class CameraManager: NSObject {
                 width: clampedRect.width * previewBounds.width,
                 height: clampedRect.height * previewBounds.height
             )
-            let captureRect = self.clampNormalizedRect(
-                previewLayer.metadataOutputRectConverted(fromLayerRect: layerRect)
-            )
-            guard !captureRect.isEmpty else {
-                onError(CameraCaptureError.cropFailed.localizedDescription)
-                return
-            }
 
             self.captureStillImage { result in
                 switch result {
                 case .success(let image):
                     let sourceImage = image.normalizedImage()
+                    let captureRect = self.normalizedImageRect(
+                        forLayerRect: layerRect,
+                        previewBounds: previewBounds,
+                        imageSize: sourceImage.size,
+                        videoGravity: previewLayer.videoGravity
+                    )
+                    guard !captureRect.isEmpty else {
+                        DispatchQueue.main.async {
+                            onError(CameraCaptureError.cropFailed.localizedDescription)
+                        }
+                        return
+                    }
                     guard let croppedImage = sourceImage.cropped(toNormalizedRect: captureRect) else {
                         DispatchQueue.main.async {
                             onError(CameraCaptureError.cropFailed.localizedDescription)
@@ -339,6 +344,67 @@ final class CameraManager: NSObject {
         }
 
         return CGRect(x: left, y: top, width: right - left, height: bottom - top)
+    }
+
+    private func normalizedImageRect(
+        forLayerRect layerRect: CGRect,
+        previewBounds: CGRect,
+        imageSize: CGSize,
+        videoGravity: AVLayerVideoGravity
+    ) -> CGRect {
+        guard
+            previewBounds.width > 0,
+            previewBounds.height > 0,
+            imageSize.width > 0,
+            imageSize.height > 0
+        else {
+            return .zero
+        }
+
+        let widthScale = previewBounds.width / imageSize.width
+        let heightScale = previewBounds.height / imageSize.height
+        let scale: CGFloat
+
+        switch videoGravity {
+        case .resizeAspect:
+            scale = min(widthScale, heightScale)
+        case .resize:
+            let rect = CGRect(
+                x: layerRect.minX / previewBounds.width,
+                y: layerRect.minY / previewBounds.height,
+                width: layerRect.width / previewBounds.width,
+                height: layerRect.height / previewBounds.height
+            )
+            return clampNormalizedRect(rect)
+        default:
+            scale = max(widthScale, heightScale)
+        }
+
+        guard scale > 0 else {
+            return .zero
+        }
+
+        let displayedImageSize = CGSize(
+            width: imageSize.width * scale,
+            height: imageSize.height * scale
+        )
+        let horizontalInset = (displayedImageSize.width - previewBounds.width) / 2
+        let verticalInset = (displayedImageSize.height - previewBounds.height) / 2
+        let imageRect = CGRect(
+            x: (layerRect.minX + horizontalInset) / scale,
+            y: (layerRect.minY + verticalInset) / scale,
+            width: layerRect.width / scale,
+            height: layerRect.height / scale
+        )
+
+        return clampNormalizedRect(
+            CGRect(
+                x: imageRect.minX / imageSize.width,
+                y: imageRect.minY / imageSize.height,
+                width: imageRect.width / imageSize.width,
+                height: imageRect.height / imageSize.height
+            )
+        )
     }
 }
 
