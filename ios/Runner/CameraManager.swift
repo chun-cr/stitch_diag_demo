@@ -75,12 +75,10 @@ final class CameraManager: NSObject {
             self.previewLayer = layer
         }
         layer.frame = view.bounds
-        configurePreviewConnection()
     }
 
     func layoutPreview(in bounds: CGRect) {
         previewLayer?.frame = bounds
-        configurePreviewConnection()
     }
 
     func toggleCamera() {
@@ -100,10 +98,6 @@ final class CameraManager: NSObject {
 
             self.currentPosition = desiredPosition
             self.configureSessionIfNeeded()
-            self.configureOutputConnections()
-            DispatchQueue.main.async {
-                self.configurePreviewConnection()
-            }
 
             if self.session.isRunning {
                 print("CameraManager: Session already running.")
@@ -116,9 +110,6 @@ final class CameraManager: NSObject {
             print("CameraManager: Starting session... (Position: \(self.currentPosition.rawValue))")
             self.session.startRunning()
             print("CameraManager: Session started isRunning=\(self.session.isRunning)")
-            DispatchQueue.main.async {
-                self.configurePreviewConnection()
-            }
             if let completion {
                 DispatchQueue.main.async { completion() }
             }
@@ -193,7 +184,6 @@ final class CameraManager: NSObject {
                 return
             }
 
-            self.configurePreviewConnection()
             let layerRect = CGRect(
                 x: clampedRect.origin.x * previewBounds.width,
                 y: clampedRect.origin.y * previewBounds.height,
@@ -324,17 +314,8 @@ final class CameraManager: NSObject {
         guard session.canAddOutput(photoOutput) else { return }
         session.addOutput(photoOutput)
 
-        configureOutputConnections()
-        configured = true
-    }
-
-    private func configureOutputConnections() {
         configureConnection(videoOutput.connection(with: .video))
-        configureConnection(photoOutput.connection(with: .video))
-    }
-
-    private func configurePreviewConnection() {
-        configureConnection(previewLayer?.connection)
+        configured = true
     }
 
     private func configureConnection(_ connection: AVCaptureConnection?) {
