@@ -77,6 +77,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
+  static const bool _captureImmediatelyWhenReady = true;
   static const Alignment _faceGuideAlignment = Alignment(0, -0.25);
   static const double _faceGuideWidth = 210;
   static const double _faceGuideHeight = 262;
@@ -90,6 +91,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   bool _pauseAutoScanUntilReset = false;
   double _scanProgress = 0;
   bool _isTransitioning = false;
+  bool _stopMonitoringOnDispose = true;
 
   Timer? _timer;
   StreamSubscription<Map<String, dynamic>>? _faceStatusSub;
@@ -117,9 +119,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     );
   }
 
-  bool _isFaceFramedForUpload({
-    required bool allowHoldDrift,
-  }) {
+  bool _isFaceFramedForUpload({required bool allowHoldDrift}) {
     final bounds = normalizedBoundingRect(_normalizedLandmarks);
     if (bounds == null) {
       return false;
@@ -259,6 +259,10 @@ class _FaceScanPageState extends State<FaceScanPage>
       _isScanning = true;
       _scanProgress = 0;
     });
+    if (_captureImmediatelyWhenReady) {
+      unawaited(_captureAndUploadFace());
+      return;
+    }
     final stopwatch = Stopwatch()..start();
     _timer = Timer.periodic(const Duration(milliseconds: 100), (t) {
       if (!mounted) {
@@ -367,6 +371,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   Future<void> _navigateToTongueScan() async {
     if (_isTransitioning || !mounted) return;
     _isTransitioning = true;
+    _stopMonitoringOnDispose = false;
     _cancelScanHold(resetProgress: true);
     setState(() => _isSubmitting = false);
     await _faceStatusSub?.cancel();
@@ -379,7 +384,9 @@ class _FaceScanPageState extends State<FaceScanPage>
   void dispose() {
     _timer?.cancel();
     _faceStatusSub?.cancel();
-    unawaited(_statusBridge.stopMonitoring());
+    if (_stopMonitoringOnDispose) {
+      unawaited(_statusBridge.stopMonitoring());
+    }
     _scanLineCtrl.dispose();
     super.dispose();
   }

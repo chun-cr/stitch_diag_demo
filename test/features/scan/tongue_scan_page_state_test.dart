@@ -29,18 +29,21 @@ void main() {
       );
     });
 
-    test('reports pause blocker even after confirmation and framing succeed', () {
-      expect(
-        describeTongueScanBlockers(
-          mouthPresent: true,
-          protrusionCandidate: true,
-          protrusionConfirmed: true,
-          isFramed: true,
-          pauseAutoScanUntilReset: true,
-        ),
-        ['paused_after_failure'],
-      );
-    });
+    test(
+      'reports pause blocker even after confirmation and framing succeed',
+      () {
+        expect(
+          describeTongueScanBlockers(
+            mouthPresent: true,
+            protrusionCandidate: true,
+            protrusionConfirmed: true,
+            isFramed: true,
+            pauseAutoScanUntilReset: true,
+          ),
+          ['paused_after_failure'],
+        );
+      },
+    );
 
     test('reports hold_ready when no blockers remain', () {
       expect(
@@ -82,6 +85,60 @@ void main() {
         shouldKeepTongueHoldAlive(
           protrusionCandidate: false,
           protrusionConfirmed: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('shouldTrackTongueHold', () {
+    test('does not start hold from candidate-only frames', () {
+      expect(
+        shouldTrackTongueHold(
+          holdInProgress: false,
+          protrusionCandidate: true,
+          protrusionConfirmed: false,
+          isFramed: true,
+          pauseAutoScanUntilReset: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('starts hold once protrusion is confirmed inside the frame', () {
+      expect(
+        shouldTrackTongueHold(
+          holdInProgress: false,
+          protrusionCandidate: true,
+          protrusionConfirmed: true,
+          isFramed: true,
+          pauseAutoScanUntilReset: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps an active hold alive while candidate frames continue', () {
+      expect(
+        shouldTrackTongueHold(
+          holdInProgress: true,
+          protrusionCandidate: true,
+          protrusionConfirmed: false,
+          isFramed: true,
+          pauseAutoScanUntilReset: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('stops tracking when framing is lost', () {
+      expect(
+        shouldTrackTongueHold(
+          holdInProgress: true,
+          protrusionCandidate: true,
+          protrusionConfirmed: true,
+          isFramed: false,
+          pauseAutoScanUntilReset: false,
         ),
         isFalse,
       );

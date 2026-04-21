@@ -50,6 +50,32 @@ bool shouldKeepTongueHoldAlive({
   return protrusionCandidate || protrusionConfirmed;
 }
 
+@visibleForTesting
+bool shouldTrackTongueHold({
+  required bool holdInProgress,
+  required bool protrusionCandidate,
+  required bool protrusionConfirmed,
+  required bool isFramed,
+  required bool pauseAutoScanUntilReset,
+}) {
+  if (!isFramed || pauseAutoScanUntilReset) {
+    return false;
+  }
+
+  if (holdInProgress) {
+    return shouldKeepTongueHoldAlive(
+      protrusionCandidate: protrusionCandidate,
+      protrusionConfirmed: protrusionConfirmed,
+    );
+  }
+
+  return isTongueHoldEligible(
+    protrusionConfirmed: protrusionConfirmed,
+    isFramed: isFramed,
+    pauseAutoScanUntilReset: pauseAutoScanUntilReset,
+  );
+}
+
 List<String> describeTongueScanBlockers({
   required bool mouthPresent,
   required bool protrusionCandidate,
@@ -108,6 +134,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   Timer? _holdTimer;
 
   bool _hasPermission = false;
+  bool _cameraReady = false;
   bool _mouthPresent = false;
   bool _holdEligible = false;
   bool _pauseAutoScanUntilReset = false;
@@ -178,11 +205,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       _pauseAutoScanUntilReset = false;
       _scanProgress = 0;
     });
-    _statusSubscription?.cancel();
-    _statusSubscription = _statusBridge.statusStream().listen(
-      _handleStatusUpdate,
-    );
-    unawaited(_statusBridge.startMonitoring());
+    await _startMonitoringWhenReady();
   }
 
   Future<void> _startScan() async {
@@ -198,11 +221,41 @@ class _TongueScanPageState extends State<TongueScanPage>
       _holdEligible = false;
       _pauseAutoScanUntilReset = false;
     });
-    _statusSubscription?.cancel();
+    await _startMonitoringWhenReady();
+  }
+
+  Future<void> _startMonitoringWhenReady() async {
+    if (!_cameraReady) {
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted) {
+        return;
+      }
+      setState(() => _cameraReady = true);
+
+      final completer = Completer<void>();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          if (mounted) {
+            await _subscribeAndStartMonitoring();
+          }
+          completer.complete();
+        } on Object catch (error, stackTrace) {
+          completer.completeError(error, stackTrace);
+        }
+      });
+      await completer.future;
+      return;
+    }
+
+    await _subscribeAndStartMonitoring();
+  }
+
+  Future<void> _subscribeAndStartMonitoring() async {
+    await _statusSubscription?.cancel();
     _statusSubscription = _statusBridge.statusStream().listen(
       _handleStatusUpdate,
     );
-    unawaited(_statusBridge.startMonitoring());
+    await _statusBridge.startMonitoring();
   }
 
   bool _isTongueFramedForUpload(TongueScanStatus status) {
@@ -228,12 +281,19 @@ class _TongueScanPageState extends State<TongueScanPage>
       protrusionCandidate: status.protrusionCandidate,
       protrusionConfirmed: status.protrusionConfirmed,
     );
-    final readyToCapture = protrusionReady && isFramed;
+    final readyToCapture = status.protrusionConfirmed && isFramed;
     if (_pauseAutoScanUntilReset && !readyToCapture) {
       _pauseAutoScanUntilReset = false;
     }
     final canHold = isTongueHoldEligible(
-      protrusionConfirmed: protrusionReady,
+      protrusionConfirmed: status.protrusionConfirmed,
+      isFramed: isFramed,
+      pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
+    );
+    final holdAlive = shouldTrackTongueHold(
+      holdInProgress: _holdTimer != null,
+      protrusionCandidate: status.protrusionCandidate,
+      protrusionConfirmed: status.protrusionConfirmed,
       isFramed: isFramed,
       pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
     );
@@ -244,16 +304,23 @@ class _TongueScanPageState extends State<TongueScanPage>
       status: status,
       protrusionReady: protrusionReady,
       isFramed: isFramed,
+      holdAlive: holdAlive,
       canHold: canHold,
       direction: direction,
     );
 
     setState(() {
       _mouthPresent = status.mouthPresent;
-      _holdEligible = canHold;
+      _holdEligible = canHold || (_holdTimer != null && holdAlive);
       _mouthDirection = direction;
     });
     if (_scanState != ScanState.scanning) {
+      return;
+    }
+    if (_holdTimer != null) {
+      if (!holdAlive) {
+        _cancelHoldTracking(resetProgress: true);
+      }
       return;
     }
     if (canHold) {
@@ -267,6 +334,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     required TongueScanStatus status,
     required bool protrusionReady,
     required bool isFramed,
+    required bool holdAlive,
     required bool canHold,
     required String direction,
   }) {
@@ -314,6 +382,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       'candidate=${status.protrusionCandidate} '
       'confirmed=${status.protrusionConfirmed} '
       'ready=$protrusionReady '
+      'holdAlive=$holdAlive '
       'framed=$isFramed '
       'hold=$canHold '
       'paused=$_pauseAutoScanUntilReset '
@@ -773,8 +842,24 @@ class _TongueScanPageState extends State<TongueScanPage>
         return Stack(
           children: [
             Positioned.fill(
-              child: const CameraPreviewWidget(
-                key: ValueKey('shared_camera_preview'),
+              child: ClipRect(
+                child: _cameraReady
+                    ? const CameraPreviewWidget(
+                        key: ValueKey('shared_camera_preview'),
+                      )
+                    : Container(
+                        color: const Color(0xFF1A1A1A),
+                        child: Center(
+                          child: SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: _kAccentLight.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
+                      ),
               ),
             ),
             Positioned.fill(
