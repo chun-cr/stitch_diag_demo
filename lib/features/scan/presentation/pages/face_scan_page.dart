@@ -24,6 +24,9 @@ const _kGreen = Color(0xFF2D6A4F);
 const _kGreenLight = Color(0xFF3DAB78);
 
 @visibleForTesting
+const Duration faceScanHoldDuration = Duration(milliseconds: 800);
+
+@visibleForTesting
 bool isFaceHoldEligible({
   required bool hasPermission,
   required bool hasFaceDetected,
@@ -76,8 +79,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   late final ScanRemoteSource _scanRemoteSource;
   late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
-  static const Duration _requiredHoldDuration = Duration(seconds: 2);
-  static const bool _captureImmediatelyWhenReady = true;
+  static const Duration _requiredHoldDuration = faceScanHoldDuration;
   static const Alignment _faceGuideAlignment = Alignment(0, -0.25);
   static const double _faceGuideWidth = 210;
   static const double _faceGuideHeight = 262;
@@ -259,14 +261,11 @@ class _FaceScanPageState extends State<FaceScanPage>
       _isScanning = true;
       _scanProgress = 0;
     });
-    if (_captureImmediatelyWhenReady) {
-      unawaited(_captureAndUploadFace());
-      return;
-    }
     final stopwatch = Stopwatch()..start();
     _timer = Timer.periodic(const Duration(milliseconds: 100), (t) {
       if (!mounted) {
         t.cancel();
+        _timer = null;
         return;
       }
       if (!_shouldKeepFaceHoldAlive) {
@@ -278,6 +277,7 @@ class _FaceScanPageState extends State<FaceScanPage>
           stopwatch.elapsedMilliseconds / _requiredHoldDuration.inMilliseconds;
       if (progress >= 1) {
         t.cancel();
+        _timer = null;
         unawaited(_captureAndUploadFace());
         return;
       }

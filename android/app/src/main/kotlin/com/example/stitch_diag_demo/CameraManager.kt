@@ -197,7 +197,7 @@ class CameraManager(private val context: Context) {
                             "stage" to stage,
                             "sourcePath" to sourceFile.absolutePath,
                             "croppedPath" to cropFile.absolutePath,
-                            "framePath" to cropFile.absolutePath,
+                            "framePath" to sourceFile.absolutePath,
                             "sourceWidth" to previewBitmap.width.toDouble(),
                             "sourceHeight" to previewBitmap.height.toDouble(),
                             "cropLeft" to cropRect.left.toDouble(),

@@ -291,7 +291,7 @@ final class NativeFaceScanView: UIView {
                     "stage": stage,
                     "sourcePath": sourceURL.path,
                     "croppedPath": cropURL.path,
-                    "framePath": cropURL.path,
+                    "framePath": sourceURL.path,
                     "sourceWidth": image.size.width,
                     "sourceHeight": image.size.height,
                     "cropLeft": cropRect.origin.x,

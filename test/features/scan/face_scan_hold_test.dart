@@ -2,17 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page.dart';
 
 void main() {
+  test('uses an 800ms stable hold before face upload', () {
+    expect(faceScanHoldDuration, const Duration(milliseconds: 800));
+  });
+
   group('isFaceHoldEligible', () {
-    test('returns true only when permission granted, face detected, and framed', () {
-      expect(
-        isFaceHoldEligible(
-          hasPermission: true,
-          hasFaceDetected: true,
-          isFramed: true,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'returns true only when permission granted, face detected, and framed',
+      () {
+        expect(
+          isFaceHoldEligible(
+            hasPermission: true,
+            hasFaceDetected: true,
+            isFramed: true,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('returns false when face is lost', () {
       expect(
@@ -38,18 +45,21 @@ void main() {
   });
 
   group('shouldKeepFaceHoldAlive', () {
-    test('keeps hold alive with relaxed framing once countdown has started', () {
-      expect(
-        shouldKeepFaceHoldAlive(
-          hasPermission: true,
-          hasFaceDetected: true,
-          isFramed: false,
-          isRelaxedFramed: true,
-          holdInProgress: true,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'keeps hold alive with relaxed framing once countdown has started',
+      () {
+        expect(
+          shouldKeepFaceHoldAlive(
+            hasPermission: true,
+            hasFaceDetected: true,
+            isFramed: false,
+            isRelaxedFramed: true,
+            holdInProgress: true,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('stops hold when face landmarks are lost', () {
       expect(

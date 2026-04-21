@@ -31,6 +31,55 @@ void main() {
     });
   });
 
+  group('buildTongueAnalysisRect', () {
+    test(
+      'expands beyond the visible guide when face and mouth bounds are known',
+      () {
+        final guideRect = const Rect.fromLTWH(0.32, 0.46, 0.24, 0.20);
+
+        final rect = buildTongueAnalysisRect(
+          guideRect: guideRect,
+          faceBounds: const Rect.fromLTWH(0.22, 0.12, 0.56, 0.72),
+          mouthBounds: const Rect.fromLTWH(0.38, 0.46, 0.18, 0.12),
+          mouthCenter: const Offset(0.47, 0.52),
+        );
+
+        expect(rect.width, greaterThan(guideRect.width));
+        expect(rect.height, greaterThan(guideRect.height));
+        expect(rect.left, lessThan(0.38));
+        expect(rect.right, greaterThan(0.56));
+        expect(rect.top, lessThan(0.46));
+        expect(rect.bottom, greaterThan(0.58));
+      },
+    );
+
+    test(
+      'falls back to an expanded guide when tongue landmarks are missing',
+      () {
+        final guideRect = const Rect.fromLTWH(0.30, 0.45, 0.20, 0.18);
+        final rect = buildTongueAnalysisRect(guideRect: guideRect);
+
+        expect(rect.width, greaterThan(guideRect.width));
+        expect(rect.height, greaterThan(guideRect.height));
+        expect(rect.center.dx, closeTo(guideRect.center.dx, 0.0001));
+        expect(rect.center.dy, greaterThan(guideRect.center.dy));
+      },
+    );
+
+    test('clamps the analysis rect to normalized bounds near screen edges', () {
+      final rect = buildTongueAnalysisRect(
+        guideRect: const Rect.fromLTWH(0.82, 0.80, 0.24, 0.22),
+        mouthBounds: const Rect.fromLTWH(0.86, 0.84, 0.10, 0.08),
+        mouthCenter: const Offset(0.95, 0.92),
+      );
+
+      expect(rect.left, greaterThanOrEqualTo(0));
+      expect(rect.top, greaterThanOrEqualTo(0));
+      expect(rect.right, lessThanOrEqualTo(1));
+      expect(rect.bottom, lessThanOrEqualTo(1));
+    });
+  });
+
   group('isNormalizedBoundsInsideGuide', () {
     test('accepts bounds fully inside the guide safe area', () {
       expect(

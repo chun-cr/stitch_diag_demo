@@ -33,6 +33,95 @@ Rect buildNormalizedGuideRect(
   );
 }
 
+double _clamp01(double value) => value.clamp(0.0, 1.0).toDouble();
+
+Rect clampNormalizedRect(Rect rect) {
+  if (rect.isEmpty) {
+    return Rect.zero;
+  }
+
+  final left = _clamp01(rect.left);
+  final top = _clamp01(rect.top);
+  final right = _clamp01(rect.right);
+  final bottom = _clamp01(rect.bottom);
+
+  if (right <= left || bottom <= top) {
+    return Rect.zero;
+  }
+
+  return Rect.fromLTRB(left, top, right, bottom);
+}
+
+Rect buildTongueAnalysisRect({
+  required Rect guideRect,
+  Rect? faceBounds,
+  Rect? mouthBounds,
+  Offset? mouthCenter,
+}) {
+  final safeGuideRect = clampNormalizedRect(guideRect);
+  if (safeGuideRect == Rect.zero) {
+    return Rect.zero;
+  }
+
+  final fallbackRect = clampNormalizedRect(
+    Rect.fromCenter(
+      center: Offset(
+        safeGuideRect.center.dx,
+        _clamp01(safeGuideRect.center.dy + safeGuideRect.height * 0.10),
+      ),
+      width: math.min(safeGuideRect.width * 1.45, 1.0),
+      height: math.min(safeGuideRect.height * 1.65, 1.0),
+    ),
+  );
+
+  final safeMouthCenter = mouthCenter == null
+      ? null
+      : Offset(_clamp01(mouthCenter.dx), _clamp01(mouthCenter.dy));
+  if (safeMouthCenter == null) {
+    return fallbackRect;
+  }
+
+  final safeFaceBounds = faceBounds == null
+      ? Rect.zero
+      : clampNormalizedRect(faceBounds);
+  final safeMouthBounds = mouthBounds == null
+      ? Rect.zero
+      : clampNormalizedRect(mouthBounds);
+
+  final widthCandidates = <double>[fallbackRect.width];
+  final heightCandidates = <double>[fallbackRect.height];
+
+  if (safeFaceBounds != Rect.zero) {
+    widthCandidates.add(safeFaceBounds.width * 0.92);
+    heightCandidates.add(safeFaceBounds.height * 0.62);
+  }
+
+  if (safeMouthBounds != Rect.zero) {
+    widthCandidates.add(safeMouthBounds.width * 3.4);
+    heightCandidates.add(safeMouthBounds.height * 4.6);
+  }
+
+  final width = widthCandidates
+      .reduce(math.max)
+      .clamp(fallbackRect.width, 1.0)
+      .toDouble();
+  final height = heightCandidates
+      .reduce(math.max)
+      .clamp(fallbackRect.height, 1.0)
+      .toDouble();
+
+  return clampNormalizedRect(
+    Rect.fromCenter(
+      center: Offset(
+        safeMouthCenter.dx,
+        _clamp01(safeMouthCenter.dy + math.min(height * 0.14, 0.08)),
+      ),
+      width: width,
+      height: height,
+    ),
+  );
+}
+
 Rect? normalizedBoundingRect(Iterable<Offset> points) {
   double? minX;
   double? maxX;

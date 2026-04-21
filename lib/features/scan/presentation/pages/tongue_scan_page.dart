@@ -132,6 +132,9 @@ class _TongueScanPageState extends State<TongueScanPage>
   late Animation<double> _breatheAnim;
   StreamSubscription<TongueScanStatus>? _statusSubscription;
   Timer? _holdTimer;
+  TongueScanStatus _latestStatus = const TongueScanStatus(
+    mouthLandmarkCount: 0,
+  );
 
   bool _hasPermission = false;
   bool _cameraReady = false;
@@ -152,8 +155,16 @@ class _TongueScanPageState extends State<TongueScanPage>
     guideHeight: _tongueGuideHeight,
   );
 
-  ScanCaptureGuide get _tongueCaptureGuide {
-    final rect = _tongueGuideRectNormalized;
+  Rect _tongueAnalysisRectForStatus(TongueScanStatus status) {
+    return buildTongueAnalysisRect(
+      guideRect: _tongueGuideRectNormalized,
+      faceBounds: normalizedBoundingRect(status.faceLandmarks),
+      mouthBounds: normalizedBoundingRect(status.mouthLandmarks),
+      mouthCenter: status.mouthCenter,
+    );
+  }
+
+  ScanCaptureGuide _captureGuideFromRect(Rect rect) {
     return ScanCaptureGuide(
       left: rect.left,
       top: rect.top,
@@ -276,8 +287,9 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   void _handleStatusUpdate(TongueScanStatus status) {
     if (!mounted || _scanState == ScanState.uploading) return;
+    _latestStatus = status;
     final isFramed = _isTongueFramedForUpload(status);
-    final protrusionReady = shouldKeepTongueHoldAlive(
+    final protrusionSignalActive = shouldKeepTongueHoldAlive(
       protrusionCandidate: status.protrusionCandidate,
       protrusionConfirmed: status.protrusionConfirmed,
     );
@@ -302,7 +314,7 @@ class _TongueScanPageState extends State<TongueScanPage>
         : '';
     _logTongueDiagnostics(
       status: status,
-      protrusionReady: protrusionReady,
+      protrusionSignalActive: protrusionSignalActive,
       isFramed: isFramed,
       holdAlive: holdAlive,
       canHold: canHold,
@@ -332,7 +344,7 @@ class _TongueScanPageState extends State<TongueScanPage>
 
   void _logTongueDiagnostics({
     required TongueScanStatus status,
-    required bool protrusionReady,
+    required bool protrusionSignalActive,
     required bool isFramed,
     required bool holdAlive,
     required bool canHold,
@@ -345,22 +357,24 @@ class _TongueScanPageState extends State<TongueScanPage>
     final blockers = describeTongueScanBlockers(
       mouthPresent: status.mouthPresent,
       protrusionCandidate: status.protrusionCandidate,
-      protrusionConfirmed: protrusionReady,
+      protrusionConfirmed: status.protrusionConfirmed,
       isFramed: isFramed,
       pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
     );
     final mouthBounds = normalizedBoundingRect(status.mouthLandmarks);
     final guideRect = _tongueGuideRectNormalized;
+    final analysisRect = _tongueAnalysisRectForStatus(status);
     final fingerprint = [
       blockers.join(','),
       status.protrusionCandidate,
       status.protrusionConfirmed,
-      protrusionReady,
+      protrusionSignalActive,
       isFramed,
       canHold,
       _formatOffset(status.mouthCenter),
       _formatRect(mouthBounds),
       _formatRect(guideRect == Rect.zero ? null : guideRect),
+      _formatRect(analysisRect == Rect.zero ? null : analysisRect),
       direction,
     ].join('|');
     final now = DateTime.now();
@@ -381,7 +395,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       'mouthPresent=${status.mouthPresent} '
       'candidate=${status.protrusionCandidate} '
       'confirmed=${status.protrusionConfirmed} '
-      'ready=$protrusionReady '
+      'signalActive=$protrusionSignalActive '
       'holdAlive=$holdAlive '
       'framed=$isFramed '
       'hold=$canHold '
@@ -390,6 +404,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       'mouthCenter=${_formatOffset(status.mouthCenter)} '
       'mouthBounds=${_formatRect(mouthBounds)} '
       'guideRect=${_formatRect(guideRect == Rect.zero ? null : guideRect)} '
+      'analysisRect=${_formatRect(analysisRect == Rect.zero ? null : analysisRect)} '
       'guideCenter=${_formatOffset(guideRect == Rect.zero ? null : guideRect.center)} '
       'viewport=${_formatSize(_cameraViewportSize)} '
       'image=${_formatImageSize(status.imageWidth, status.imageHeight)} '
@@ -494,9 +509,10 @@ class _TongueScanPageState extends State<TongueScanPage>
     });
 
     try {
+      final analysisRect = _tongueAnalysisRectForStatus(_latestStatus);
       final capture = await _captureBridge.capture(
         target: ScanCaptureTarget.tongue,
-        guide: _tongueCaptureGuide,
+        guide: _captureGuideFromRect(analysisRect),
       );
       if (!mounted) {
         return;
