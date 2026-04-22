@@ -66,9 +66,7 @@ class DiagnosisRecord {
           ? summary.physiqueName.trim()
           : '--',
       score: summary.healthScore.round(),
-      faceImageUrl: summary.faceImageUrl.isNotEmpty
-          ? summary.faceImageUrl
-          : summary.imageUrl,
+      faceImageUrl: summary.faceImageUrl,
       isUnlocked: !summary.isLocked,
       healthTrend: summary.healthScore,
       riskIndexMap: _buildRiskIndexMap(summary),

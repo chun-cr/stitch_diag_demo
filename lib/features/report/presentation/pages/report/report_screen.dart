@@ -2,10 +2,13 @@ part of 'report_page.dart';
 
 const _kReportMaskEnabled = false;
 const _kReportTabBarHeight = 48.0;
+const _kReportCompactWidthBreakpoint = 430.0;
+const _kReportTabBarOverlapCompact = 6.5;
+const _kReportTabBarOverlapRegular = 4.5;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
 const _kHeroBottomPaddingCompact = 0.0;
 const _kHeroBottomPaddingRegular = 2.0;
-const _kHeroMeasurementSlackCompact = 16.0;
+const _kHeroMeasurementSlackCompact = 12.0;
 const _kHeroMeasurementSlackRegular = 16.0;
 const _kHeroMinExpandedDeltaCompact = 8.0;
 const _kHeroMinExpandedDeltaRegular = 18.0;
@@ -223,6 +226,8 @@ class _ReportScreenState extends State<_ReportScreen>
 
   Widget _buildSliverHeader(bool _) {
     final heroExpandedHeight = _heroExpandedHeight(context);
+    final tabBarOverlap = _reportTabBarOverlap(context);
+    final tabBarReservedHeight = _reportTabBarReservedHeight(context);
 
     return SliverAppBar(
       expandedHeight: heroExpandedHeight,
@@ -255,8 +260,14 @@ class _ReportScreenState extends State<_ReportScreen>
         expandedHeight: heroExpandedHeight,
       ),
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(_kReportTabBarHeight),
-        child: _buildTabBar(),
+        preferredSize: Size.fromHeight(tabBarReservedHeight),
+        child: SizedBox(
+          height: _kReportTabBarHeight,
+          child: Transform.translate(
+            offset: Offset(0, -tabBarOverlap),
+            child: _buildTabBar(),
+          ),
+        ),
       ),
     );
   }
@@ -340,7 +351,7 @@ double _estimateHeroExpandedHeight(
   ReportViewData viewData,
 ) {
   final mediaQuery = MediaQuery.of(context);
-  final compact = mediaQuery.size.width < 430;
+  final compact = _isCompactReportWidth(mediaQuery.size.width);
   final horizontalPadding = compact ? 18.0 : 24.0;
   // 收紧顶部 padding，减少 Hero 与 AppBar 按钮之间的空隙
   final topPadding = compact ? 44.0 : 52.0;
@@ -389,7 +400,9 @@ double _estimateHeroExpandedHeight(
       bottomPadding +
       measurementSlack;
   final collapsedHeight =
-      kToolbarHeight + mediaQuery.padding.top + _kReportTabBarHeight;
+      kToolbarHeight +
+      mediaQuery.padding.top +
+      _reportTabBarReservedHeight(context);
 
   return math.max(
     expandedHeight,
@@ -399,6 +412,19 @@ double _estimateHeroExpandedHeight(
             : _kHeroMinExpandedDeltaRegular),
   );
 }
+
+double _reportTabBarOverlap(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  return _isCompactReportWidth(width)
+      ? _kReportTabBarOverlapCompact
+      : _kReportTabBarOverlapRegular;
+}
+
+double _reportTabBarReservedHeight(BuildContext context) =>
+    _kReportTabBarHeight - _reportTabBarOverlap(context);
+
+bool _isCompactReportWidth(double width) =>
+    width <= _kReportCompactWidthBreakpoint;
 
 double _estimateHeroMetaHeight(
   BuildContext context, {
@@ -703,9 +729,11 @@ class _ReportHeroSpace extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final mediaQuery = MediaQuery.of(context);
-        final compact = constraints.maxWidth < 430;
+        final compact = _isCompactReportWidth(constraints.maxWidth);
         final collapsedHeight =
-            kToolbarHeight + mediaQuery.padding.top + _kReportTabBarHeight;
+            kToolbarHeight +
+            mediaQuery.padding.top +
+            _reportTabBarReservedHeight(context);
         final expandRange = math.max(expandedHeight - collapsedHeight, 1.0);
         final progress =
             ((constraints.maxHeight - collapsedHeight) / expandRange).clamp(
@@ -868,6 +896,9 @@ class _ReportHeroSpace extends StatelessWidget {
                                     duration: const Duration(milliseconds: 120),
                                     opacity: expandedOpacity,
                                     child: Text(
+                                      key: const ValueKey(
+                                        'report_hero_disclaimer',
+                                      ),
                                       _heroDisclaimer(),
                                       textAlign: TextAlign.center,
                                       style: disclaimerStyle,

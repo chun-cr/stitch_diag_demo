@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 
 import 'report_test_data.dart';
 
@@ -42,6 +43,54 @@ void main() {
       expect(probabilities.last.name, '消化道');
       expect(probabilities.last.rawProbability, closeTo(0.41, 0.0001));
       expect(probabilities.last.probability, closeTo(41, 0.0001));
+    },
+  );
+
+  test(
+    'DiagnosisReportSummary prefers face payload image for faceImageUrl',
+    () {
+      final summary = DiagnosisReportSummary.fromJson({
+        'id': 'report-001',
+        'testTime': '2026-04-17 10:30',
+        'healthScore': 82,
+        'physiqueName': 'Balanced',
+        'imageUrl': 'https://example.com/tongue-top-level.png',
+        'tongue': {
+          'imageUrl': 'https://example.com/tongue.png',
+          'thumbImageUrl': 'https://example.com/tongue-thumb.png',
+        },
+        'face': {
+          'imageUrl': 'https://example.com/face.png',
+          'thumbImageUrl': 'https://example.com/face-thumb.png',
+        },
+        'lockedStatus': '1',
+        'deepPredicts': const <String, Object>{},
+      });
+
+      expect(summary.imageUrl, 'https://example.com/tongue-top-level.png');
+      expect(summary.faceImageUrl, 'https://example.com/face.png');
+    },
+  );
+
+  test(
+    'DiagnosisReportSummary keeps faceImageUrl empty when only tongue images exist',
+    () {
+      final summary = DiagnosisReportSummary.fromJson({
+        'id': 'report-002',
+        'testTime': '2026-04-17 10:30',
+        'healthScore': 82,
+        'physiqueName': 'Balanced',
+        'imageUrl': 'https://example.com/tongue-top-level.png',
+        'tongue': {
+          'imageUrl': 'https://example.com/tongue.png',
+          'thumbImageUrl': 'https://example.com/tongue-thumb.png',
+        },
+        'lockedStatus': '1',
+        'deepPredicts': const <String, Object>{},
+      });
+
+      expect(summary.imageUrl, 'https://example.com/tongue-top-level.png');
+      expect(summary.faceImageUrl, isEmpty);
     },
   );
 }

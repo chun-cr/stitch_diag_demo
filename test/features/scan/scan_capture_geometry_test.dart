@@ -53,6 +53,7 @@ void main() {
         expect(rect.top, lessThan(faceBounds.top));
         expect(rect.bottom, greaterThan(faceBounds.bottom));
         expect(rect.bottom, greaterThan(mouthBounds.bottom));
+        expect(rect.width, greaterThan(0.85));
       },
     );
 
@@ -70,10 +71,10 @@ void main() {
           mouthCenter: const Offset(0.50, 0.57),
         );
 
-        expect(rect.top, lessThanOrEqualTo(0.08));
+        expect(rect.top, lessThanOrEqualTo(0.02));
         expect(rect.bottom, greaterThan(faceBounds.bottom));
         expect(rect.height, greaterThan(0.82));
-        expect(rect.width, greaterThan(0.70));
+        expect(rect.width, greaterThan(0.76));
       },
     );
 

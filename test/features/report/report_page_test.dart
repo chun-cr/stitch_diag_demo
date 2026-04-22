@@ -358,7 +358,51 @@ void main() {
       ),
     );
 
-    final disclaimer = find.text('注：拍摄角度、光线均有可能影响分析结果。');
+    final disclaimer = find.byKey(const ValueKey('report_hero_disclaimer'));
+    final tabBar = find.byType(TabBar);
+
+    expect(disclaimer, findsOneWidget);
+    expect(
+      tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
+      lessThan(20),
+    );
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('hero stays tight on 430dp wide handset', (tester) async {
+    final router = await _pumpReportRouter(
+      tester,
+      surfaceSize: const Size(430, 932),
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'wide-handset-hero',
+        loadReportViewData: (_) async => buildReportViewData(
+          primaryConstitution: '平和体质',
+          therapySummary: '疏肝解郁，规律作息。',
+          analysisFindingSymptoms: const ['舌边齿痕', '舌苔白'],
+          constitutionScores: const [
+            {
+              'id': 'constitution-primary',
+              'name': '平和体质',
+              'score': 78,
+              'solutions': '疏肝解郁，规律作息。',
+            },
+            {
+              'id': 'constitution-secondary',
+              'name': '阳虚体质',
+              'score': 64,
+              'solutions': '',
+            },
+          ],
+        ),
+      ),
+    );
+
+    final disclaimer = find.byKey(const ValueKey('report_hero_disclaimer'));
     final tabBar = find.byType(TabBar);
 
     expect(disclaimer, findsOneWidget);

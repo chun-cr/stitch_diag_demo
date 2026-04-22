@@ -91,7 +91,7 @@ Rect buildTongueAnalysisRect({
   if (safeFaceBounds != Rect.zero) {
     final widthCandidates = <double>[
       fallbackRect.width,
-      safeFaceBounds.width * 1.48,
+      safeFaceBounds.width * 1.56,
     ];
     if (safeMouthBounds != Rect.zero) {
       widthCandidates.add(safeMouthBounds.width * 4.0);
@@ -102,7 +102,7 @@ Rect buildTongueAnalysisRect({
         .clamp(fallbackRect.width, 1.0);
     final top = math.min(
       fallbackRect.top,
-      safeFaceBounds.top - safeFaceBounds.height * 0.22,
+      safeFaceBounds.top - safeFaceBounds.height * 0.36,
     );
     var bottom = math.max(
       safeFaceBounds.bottom + safeFaceBounds.height * 0.28,
