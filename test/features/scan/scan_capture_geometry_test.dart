@@ -47,6 +47,7 @@ void main() {
         );
 
         expect(rect.width, greaterThan(guideRect.width));
+        expect(rect.width, greaterThan(faceBounds.width));
         expect(rect.left, lessThan(0.38));
         expect(rect.right, greaterThan(0.56));
         expect(rect.top, lessThan(faceBounds.top));
@@ -71,7 +72,8 @@ void main() {
 
         expect(rect.top, lessThanOrEqualTo(0.08));
         expect(rect.bottom, greaterThan(faceBounds.bottom));
-        expect(rect.height, greaterThan(0.75));
+        expect(rect.height, greaterThan(0.82));
+        expect(rect.width, greaterThan(0.70));
       },
     );
 
@@ -115,8 +117,8 @@ void main() {
         expect(rect.top, lessThan(0.24));
         expect(rect.right, greaterThan(0.60));
         expect(rect.bottom, greaterThan(0.60));
-        expect(rect.width, greaterThan(0.26));
-        expect(rect.height, greaterThan(0.36));
+        expect(rect.width, greaterThan(0.37));
+        expect(rect.height, greaterThan(0.52));
       },
     );
 

@@ -88,37 +88,46 @@ Rect buildTongueAnalysisRect({
       ? Rect.zero
       : clampNormalizedRect(mouthBounds);
 
-  final horizontalCenter = safeFaceBounds != Rect.zero
-      ? safeFaceBounds.center.dx
-      : safeMouthCenter.dx;
-  final widthCandidates = <double>[fallbackRect.width];
-
   if (safeFaceBounds != Rect.zero) {
-    widthCandidates.add(safeFaceBounds.width * 1.16);
-  }
+    final widthCandidates = <double>[
+      fallbackRect.width,
+      safeFaceBounds.width * 1.48,
+    ];
+    if (safeMouthBounds != Rect.zero) {
+      widthCandidates.add(safeMouthBounds.width * 4.0);
+    }
 
-  if (safeMouthBounds != Rect.zero) {
-    widthCandidates.add(safeMouthBounds.width * 3.8);
-  }
-
-  final width = widthCandidates
-      .reduce(math.max)
-      .clamp(fallbackRect.width, 1.0)
-      .toDouble();
-
-  var top = fallbackRect.top;
-  var bottom = fallbackRect.bottom;
-
-  if (safeFaceBounds != Rect.zero) {
-    top = math.min(top, safeFaceBounds.top - safeFaceBounds.height * 0.18);
-    bottom = math.max(
-      bottom,
-      safeFaceBounds.bottom + safeFaceBounds.height * 0.20,
+    final width = widthCandidates
+        .reduce(math.max)
+        .clamp(fallbackRect.width, 1.0);
+    final top = math.min(
+      fallbackRect.top,
+      safeFaceBounds.top - safeFaceBounds.height * 0.22,
     );
-  } else {
-    top = math.min(top, safeMouthCenter.dy - fallbackRect.height * 0.46);
+    var bottom = math.max(
+      safeFaceBounds.bottom + safeFaceBounds.height * 0.28,
+      safeMouthCenter.dy +
+          math.max(safeGuideRect.height * 0.72, safeFaceBounds.height * 0.38),
+    );
+
+    if (safeMouthBounds != Rect.zero) {
+      bottom = math.max(
+        bottom,
+        safeMouthBounds.bottom + safeMouthBounds.height * 3.2,
+      );
+    }
+
+    return clampNormalizedRect(
+      Rect.fromLTRB(
+        safeFaceBounds.center.dx - width / 2,
+        top,
+        safeFaceBounds.center.dx + width / 2,
+        bottom,
+      ),
+    );
   }
 
+  var bottom = fallbackRect.bottom;
   if (safeMouthBounds != Rect.zero) {
     bottom = math.max(
       bottom,
@@ -126,22 +135,14 @@ Rect buildTongueAnalysisRect({
     );
   }
 
-  bottom = math.max(
-    bottom,
-    safeMouthCenter.dy +
-        math.max(
-          safeGuideRect.height * 0.82,
-          safeFaceBounds != Rect.zero
-              ? safeFaceBounds.height * 0.34
-              : fallbackRect.height * 0.30,
-        ),
-  );
-
   return clampNormalizedRect(
     Rect.fromLTRB(
-      horizontalCenter - width / 2,
-      top,
-      horizontalCenter + width / 2,
+      fallbackRect.left,
+      math.min(
+        fallbackRect.top,
+        safeMouthCenter.dy - fallbackRect.height * 0.50,
+      ),
+      fallbackRect.right,
       bottom,
     ),
   );
@@ -157,16 +158,22 @@ Rect buildFaceCaptureRect({required Rect guideRect, Rect? faceBounds}) {
     return safeGuideRect;
   }
 
+  final expandedFaceRect = Rect.fromLTRB(
+    safeFaceBounds.left - safeFaceBounds.width * 0.24,
+    safeFaceBounds.top - safeFaceBounds.height * 0.22,
+    safeFaceBounds.right + safeFaceBounds.width * 0.24,
+    safeFaceBounds.bottom + safeFaceBounds.height * 0.28,
+  );
   final minWidth = safeGuideRect == Rect.zero
       ? 0.0
-      : safeGuideRect.width * 1.04;
+      : safeGuideRect.width * 1.10;
   final minHeight = safeGuideRect == Rect.zero
       ? 0.0
-      : safeGuideRect.height * 1.08;
-  final targetWidth = math.max(safeFaceBounds.width * 1.52, minWidth);
-  final targetHeight = math.max(safeFaceBounds.height * 1.72, minHeight);
+      : safeGuideRect.height * 1.14;
+  final targetWidth = math.max(expandedFaceRect.width, minWidth);
+  final targetHeight = math.max(expandedFaceRect.height, minHeight);
   final centerY = _clamp01(
-    safeFaceBounds.center.dy - math.min(safeFaceBounds.height * 0.05, 0.025),
+    expandedFaceRect.center.dy - math.min(safeFaceBounds.height * 0.04, 0.02),
   );
 
   return clampNormalizedRect(
