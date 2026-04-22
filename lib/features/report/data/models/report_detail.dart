@@ -352,6 +352,7 @@ class DiagnosisReportSummary {
   factory DiagnosisReportSummary.fromJson(Map<String, dynamic> json) {
     final tongue = _asMap(json['tongue']);
     final face = _asMap(json['face']);
+    final faceAnalysisResult = _asMap(json['faceAnalysisResult']);
     final analysisResult = _asMap(json['analysisResult']);
     final deepPredicts = _normalizeDeepPredictsFromRiskIndexes(
       _asMap(json['deepPredicts']).isNotEmpty
@@ -376,6 +377,8 @@ class DiagnosisReportSummary {
       ]),
       faceImageUrl: _firstNonEmptyString(<String>[
         _asString(json['faceImageUrl']),
+        _asString(faceAnalysisResult['imageUrl']),
+        _asString(faceAnalysisResult['thumbImageUrl']),
         _asString(face['imageUrl']),
         _asString(face['thumbImageUrl']),
       ]),
@@ -394,6 +397,20 @@ class DiagnosisReportSummary {
   final String lockedStatus;
   final DiagnosisDeepPredicts deepPredicts;
   final Map<String, dynamic> raw;
+
+  DiagnosisReportSummary copyWith({String? faceImageUrl}) {
+    return DiagnosisReportSummary(
+      id: id,
+      testTime: testTime,
+      healthScore: healthScore,
+      physiqueName: physiqueName,
+      imageUrl: imageUrl,
+      faceImageUrl: faceImageUrl ?? this.faceImageUrl,
+      lockedStatus: lockedStatus,
+      deepPredicts: deepPredicts,
+      raw: raw,
+    );
+  }
 
   bool get isLocked =>
       !(lockedStatus == '1' || lockedStatus == '9') &&

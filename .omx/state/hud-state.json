@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-22T07:38:48.648Z",
-  "turn_count": 171,
-  "last_progress_at": "2026-04-22T07:38:48.648Z",
-  "last_agent_output": "这次把真机上 hero 到 tab 仍然偏大的空白继续收紧了，根因不是 hero 定长，而是 `430dp` 宽的 iPhone 会落到原来的宽松分支。现在报告页把 `430` 也归到紧凑布局，tab"
+  "last_turn_at": "2026-04-22T08:11:41.376Z",
+  "turn_count": 172,
+  "last_progress_at": "2026-04-22T08:11:41.376Z",
+  "last_agent_output": "问题确认了：history 和报告页走的不是同一条取图链路。报告页 hero 用的是详情接口里的 `faceAnalysisResult.imageUrl`，而 history 原来只看 summar"
 }

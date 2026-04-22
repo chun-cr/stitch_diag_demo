@@ -93,4 +93,27 @@ void main() {
       expect(summary.faceImageUrl, isEmpty);
     },
   );
+
+  test(
+    'DiagnosisReportSummary reads faceImageUrl from faceAnalysisResult when face payload is absent',
+    () {
+      final summary = DiagnosisReportSummary.fromJson({
+        'id': 'report-003',
+        'testTime': '2026-04-17 10:30',
+        'healthScore': 82,
+        'physiqueName': 'Balanced',
+        'imageUrl': 'https://example.com/tongue-top-level.png',
+        'faceAnalysisResult': {
+          'imageUrl': 'https://example.com/face-from-analysis.png',
+        },
+        'lockedStatus': '1',
+        'deepPredicts': const <String, Object>{},
+      });
+
+      expect(
+        summary.faceImageUrl,
+        'https://example.com/face-from-analysis.png',
+      );
+    },
+  );
 }

@@ -115,6 +115,7 @@ class ReportRemoteSource {
   Future<List<DiagnosisReportSummary>> getAllReports({
     String? source,
     int pageSize = 50,
+    bool resolveFaceImages = false,
   }) async {
     final reports = <DiagnosisReportSummary>[];
     var pageNo = 1;
@@ -141,7 +142,11 @@ class ReportRemoteSource {
       pageNo += 1;
     }
 
-    return reports;
+    if (!resolveFaceImages) {
+      return reports;
+    }
+
+    return _resolveSummariesFaceImages(reports);
   }
 
   Future<Map<String, dynamic>> _getEnvelope(
@@ -242,6 +247,34 @@ class ReportRemoteSource {
         _asNum(payload['total']) ??
         _asNum(payload['count']);
     return total?.toInt();
+  }
+
+  Future<List<DiagnosisReportSummary>> _resolveSummariesFaceImages(
+    List<DiagnosisReportSummary> summaries,
+  ) async {
+    final resolved = await Future.wait(summaries.map(_resolveSummaryFaceImage));
+    return List<DiagnosisReportSummary>.unmodifiable(resolved);
+  }
+
+  Future<DiagnosisReportSummary> _resolveSummaryFaceImage(
+    DiagnosisReportSummary summary,
+  ) async {
+    if (summary.faceImageUrl.trim().isNotEmpty || summary.id.trim().isEmpty) {
+      return summary;
+    }
+
+    try {
+      final detail = await getReportDetail(summary.id);
+      final resolvedFaceImageUrl = detail.faceAnalysisResult.imageUrl.trim();
+      if (resolvedFaceImageUrl.isEmpty) {
+        return summary;
+      }
+      return summary.copyWith(faceImageUrl: resolvedFaceImageUrl);
+    } on DioException {
+      return summary;
+    } on StateError {
+      return summary;
+    }
   }
 }
 

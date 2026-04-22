@@ -358,13 +358,19 @@ void main() {
       ),
     );
 
+    final therapyLine = find.byKey(const ValueKey('report_hero_therapy_line'));
     final disclaimer = find.byKey(const ValueKey('report_hero_disclaimer'));
     final tabBar = find.byType(TabBar);
 
+    expect(therapyLine, findsOneWidget);
     expect(disclaimer, findsOneWidget);
     expect(
+      tester.getTopLeft(disclaimer).dy - tester.getBottomLeft(therapyLine).dy,
+      lessThan(6),
+    );
+    expect(
       tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
-      lessThan(20),
+      lessThan(8),
     );
     expect(tester.takeException(), isNull);
 
@@ -402,13 +408,19 @@ void main() {
       ),
     );
 
+    final therapyLine = find.byKey(const ValueKey('report_hero_therapy_line'));
     final disclaimer = find.byKey(const ValueKey('report_hero_disclaimer'));
     final tabBar = find.byType(TabBar);
 
+    expect(therapyLine, findsOneWidget);
     expect(disclaimer, findsOneWidget);
     expect(
+      tester.getTopLeft(disclaimer).dy - tester.getBottomLeft(therapyLine).dy,
+      lessThan(6),
+    );
+    expect(
       tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
-      lessThan(20),
+      lessThan(8),
     );
     expect(tester.takeException(), isNull);
 

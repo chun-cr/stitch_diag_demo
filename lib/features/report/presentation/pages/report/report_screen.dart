@@ -7,7 +7,11 @@ const _kReportTabBarOverlapCompact = 6.5;
 const _kReportTabBarOverlapRegular = 4.5;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
 const _kHeroBottomPaddingCompact = 0.0;
-const _kHeroBottomPaddingRegular = 2.0;
+const _kHeroBottomPaddingRegular = 0.0;
+const _kHeroContentDisclaimerGapCompact = 2.0;
+const _kHeroContentDisclaimerGapRegular = 4.0;
+const _kHeroContentBottomPinThresholdCompact = 48.0;
+const _kHeroContentBottomPinThresholdRegular = 56.0;
 const _kHeroMeasurementSlackCompact = 12.0;
 const _kHeroMeasurementSlackRegular = 16.0;
 const _kHeroMinExpandedDeltaCompact = 8.0;
@@ -395,7 +399,7 @@ double _estimateHeroExpandedHeight(
       (compact ? 8.0 : 14.0) +
       contentHeight +
       // 内容区与 disclaimer 之间的间距
-      (compact ? 4.0 : 8.0) +
+      _heroContentDisclaimerGap(compact) +
       disclaimerHeight +
       bottomPadding +
       measurementSlack;
@@ -422,6 +426,11 @@ double _reportTabBarOverlap(BuildContext context) {
 
 double _reportTabBarReservedHeight(BuildContext context) =>
     _kReportTabBarHeight - _reportTabBarOverlap(context);
+
+double _heroContentDisclaimerGap(bool compact) =>
+    compact
+        ? _kHeroContentDisclaimerGapCompact
+        : _kHeroContentDisclaimerGapRegular;
 
 bool _isCompactReportWidth(double width) =>
     width <= _kReportCompactWidthBreakpoint;
@@ -456,8 +465,9 @@ double _estimateHeroContentHeight(
   required ReportViewData viewData,
   required double maxWidth,
   required bool compact,
+  bool? stackedOverride,
 }) {
-  final stacked = maxWidth < 360;
+  final stacked = stackedOverride ?? maxWidth < 360;
   final scoreHeight = _estimateHeroScoreHeight(
     context,
     hasImages: viewData.hasHeroImages,
@@ -840,8 +850,7 @@ class _ReportHeroSpace extends StatelessWidget {
                                   style: disclaimerStyle,
                                   maxWidth: innerConstraints.maxWidth,
                                 ) +
-                                (compact ? 4.0 : 8.0);
-
+                                _heroContentDisclaimerGap(compact);
                             return Stack(
                               fit: StackFit.expand,
                               children: [
@@ -868,20 +877,54 @@ class _ReportHeroSpace extends StatelessWidget {
                                       SizedBox(height: compact ? 8 : 14),
                                       Flexible(
                                         fit: FlexFit.loose,
-                                        child: AnimatedOpacity(
-                                          duration: const Duration(
-                                            milliseconds: 120,
-                                          ),
-                                          opacity: expandedOpacity,
-                                          child: Transform.translate(
-                                            offset: Offset(0, 20 * (1 - eased)),
-                                            child: _HeroContentCard(
-                                              viewData: viewData,
-                                              scoreAnim: scoreAnim,
-                                              maxWidth: constraints.maxWidth,
-                                              compact: compact,
-                                            ),
-                                          ),
+                                        child: LayoutBuilder(
+                                          builder: (context, slotConstraints) {
+                                            final estimatedContentHeight =
+                                                _estimateHeroContentHeight(
+                                                  context,
+                                                  viewData: viewData,
+                                                  maxWidth:
+                                                      slotConstraints.maxWidth,
+                                                  compact: compact,
+                                                  stackedOverride:
+                                                      constraints.maxWidth <
+                                                      360,
+                                                );
+                                            final shouldPinToBottom =
+                                                slotConstraints.maxHeight -
+                                                    estimatedContentHeight >
+                                                (compact
+                                                    ? _kHeroContentBottomPinThresholdCompact
+                                                    : _kHeroContentBottomPinThresholdRegular);
+                                            final heroContent = AnimatedOpacity(
+                                              duration: const Duration(
+                                                milliseconds: 120,
+                                              ),
+                                              opacity: expandedOpacity,
+                                              child: Transform.translate(
+                                                offset: Offset(
+                                                  0,
+                                                  20 * (1 - eased),
+                                                ),
+                                                child: _HeroContentCard(
+                                                  viewData: viewData,
+                                                  scoreAnim: scoreAnim,
+                                                  maxWidth:
+                                                      constraints.maxWidth,
+                                                  compact: compact,
+                                                ),
+                                              ),
+                                            );
+
+                                            if (!shouldPinToBottom) {
+                                              return heroContent;
+                                            }
+
+                                            return Align(
+                                              alignment: Alignment.bottomCenter,
+                                              child: heroContent,
+                                            );
+                                          },
                                         ),
                                       ),
                                       // 内容区与 disclaimer 间距，与估算函数保持一致
@@ -962,8 +1005,7 @@ class _HeroContentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stacked = maxWidth < 360;
-    final content = stacked
-        ? Column(
+    final stackedContent = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Align(
@@ -978,34 +1020,36 @@ class _HeroContentCard extends StatelessWidget {
               ),
               _HeroInfoColumn(viewData: viewData, compact: compact),
             ],
-          )
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HeroScoreColumn(
-                viewData: viewData,
-                scoreAnim: scoreAnim,
-                compact: compact,
-              ),
-              SizedBox(width: compact ? 16 : 22),
-              Expanded(
-                child: _HeroInfoColumn(viewData: viewData, compact: compact),
-              ),
-            ],
           );
+    final rowContent = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _HeroScoreColumn(
+          viewData: viewData,
+          scoreAnim: scoreAnim,
+          compact: compact,
+        ),
+        SizedBox(width: compact ? 16 : 22),
+        Expanded(
+          child: _HeroInfoColumn(viewData: viewData, compact: compact),
+        ),
+      ],
+    );
+    final content = stacked ? stackedContent : rowContent;
 
     // 无卡片容器，内容直接铺在渐变背景上
     return SizedBox(
       width: double.infinity,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (!compact || constraints.maxHeight >= 220) {
-            return content;
+          if (compact && constraints.maxHeight < 220) {
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: content,
+            );
           }
-          return SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: content,
-          );
+
+          return content;
         },
       ),
     );

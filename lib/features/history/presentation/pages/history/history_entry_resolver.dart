@@ -57,7 +57,7 @@ class _HistoryEntryResolverState extends State<HistoryEntryResolver> {
   Future<List<DiagnosisRecord>> _defaultLoadHistoryRecords() async {
     final summaries = await ReportRemoteSource(
       getIt<DioClient>(),
-    ).getAllReports(source: ScanSession.reportSource);
+    ).getAllReports(source: ScanSession.reportSource, resolveFaceImages: true);
     return summaries.map(DiagnosisRecord.fromSummary).toList();
   }
 
