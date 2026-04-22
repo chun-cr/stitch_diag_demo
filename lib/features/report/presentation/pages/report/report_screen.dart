@@ -782,58 +782,87 @@ class _ReportHeroSpace extends StatelessWidget {
                                 24,
                                 _kHeroBottomPaddingRegular,
                               ),
-                        child: Column(
-                          children: [
-                            AnimatedOpacity(
-                              duration: const Duration(milliseconds: 120),
-                              opacity: expandedOpacity,
-                              child: Transform.translate(
-                                offset: Offset(0, 18 * (1 - eased)),
-                                child: _HeroMetaLine(
-                                  viewData: viewData,
-                                  compact: compact,
-                                ),
-                              ),
-                            ),
-                            // meta 与内容区间距，与估算函数保持一致
-                            SizedBox(height: compact ? 8 : 14),
-                            Flexible(
-                              fit: FlexFit.loose,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 120),
-                                opacity: expandedOpacity,
-                                child: Transform.translate(
-                                  offset: Offset(0, 20 * (1 - eased)),
-                                  child: _HeroContentCard(
-                                    viewData: viewData,
-                                    scoreAnim: scoreAnim,
-                                    maxWidth: constraints.maxWidth,
-                                    compact: compact,
+                        child: LayoutBuilder(
+                          builder: (context, innerConstraints) {
+                            final disclaimerStyle = TextStyle(
+                              fontSize: compact ? 10 : 11,
+                              height: 1.5,
+                              color: const Color(
+                                0xFF6F665A,
+                              ).withValues(alpha: 0.82),
+                            );
+                            final disclaimerReservedHeight =
+                                _measureHeroTextHeight(
+                                  context,
+                                  text: _heroDisclaimer(),
+                                  style: disclaimerStyle,
+                                  maxWidth: innerConstraints.maxWidth,
+                                ) +
+                                (compact ? 4.0 : 8.0);
+
+                            return Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: disclaimerReservedHeight,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      AnimatedOpacity(
+                                        duration: const Duration(
+                                          milliseconds: 120,
+                                        ),
+                                        opacity: expandedOpacity,
+                                        child: Transform.translate(
+                                          offset: Offset(0, 18 * (1 - eased)),
+                                          child: _HeroMetaLine(
+                                            viewData: viewData,
+                                            compact: compact,
+                                          ),
+                                        ),
+                                      ),
+                                      // meta 与内容区间距，与估算函数保持一致
+                                      SizedBox(height: compact ? 8 : 14),
+                                      Flexible(
+                                        fit: FlexFit.loose,
+                                        child: AnimatedOpacity(
+                                          duration: const Duration(
+                                            milliseconds: 120,
+                                          ),
+                                          opacity: expandedOpacity,
+                                          child: Transform.translate(
+                                            offset: Offset(0, 20 * (1 - eased)),
+                                            child: _HeroContentCard(
+                                              viewData: viewData,
+                                              scoreAnim: scoreAnim,
+                                              maxWidth: constraints.maxWidth,
+                                              compact: compact,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // 内容区与 disclaimer 间距，与估算函数保持一致
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ),
-                            // 内容区与 disclaimer 间距，与估算函数保持一致
-                            SizedBox(height: compact ? 4 : 8),
-                            AnimatedOpacity(
-                              duration: const Duration(milliseconds: 120),
-                              opacity: expandedOpacity,
-                              child: Transform.translate(
-                                offset: Offset(0, compact ? 6 : 4),
-                                child: Text(
-                                  _heroDisclaimer(),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: compact ? 10 : 11,
-                                    height: 1.5,
-                                    color: const Color(
-                                      0xFF6F665A,
-                                    ).withValues(alpha: 0.82),
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 120),
+                                    opacity: expandedOpacity,
+                                    child: Text(
+                                      _heroDisclaimer(),
+                                      textAlign: TextAlign.center,
+                                      style: disclaimerStyle,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
