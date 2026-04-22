@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
@@ -18,7 +18,6 @@ import 'package:stitch_diag_demo/features/report/application/report_unlock_servi
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_entry_resolver.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_view_data.dart';
-import 'package:stitch_diag_demo/features/share/presentation/providers/share_referral_provider.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 export 'report_view_data.dart';
@@ -47,6 +46,9 @@ typedef ReportDeleteSymptomAction =
       required String recommendType,
     });
 
+typedef ReportShareQrCodeLoader =
+    Future<DiagnosisReportShareQrCode> Function(String reportId);
+
 class ReportPage extends StatelessWidget {
   const ReportPage({
     super.key,
@@ -55,6 +57,7 @@ class ReportPage extends StatelessWidget {
     this.loadConsultNavigate,
     this.addReportSymptom,
     this.deleteReportSymptom,
+    this.loadReportShareQrCode,
   });
 
   final String? reportId;
@@ -63,6 +66,7 @@ class ReportPage extends StatelessWidget {
   loadConsultNavigate;
   final ReportAddSymptomAction? addReportSymptom;
   final ReportDeleteSymptomAction? deleteReportSymptom;
+  final ReportShareQrCodeLoader? loadReportShareQrCode;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +77,11 @@ class ReportPage extends StatelessWidget {
       buildReportScreen: (key, viewData) => _ReportScreen(
         key: key,
         viewData: viewData,
+        loadReportShareQrCode:
+            loadReportShareQrCode ??
+            (reportId) => ReportRemoteSource(
+              getIt<DioClient>(),
+            ).getReportShareQrCode(reportId),
         addReportSymptom:
             addReportSymptom ??
             ({

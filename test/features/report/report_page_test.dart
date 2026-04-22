@@ -191,6 +191,45 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
+  testWidgets('share button opens report share dialog', (tester) async {
+    const qrCodeBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2kZXcAAAAASUVORK5CYII=';
+    final router = await _pumpReportRouter(
+      tester,
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'share-report',
+        loadReportViewData: (_) async =>
+            buildReportViewData(id: 'share-report'),
+        loadReportShareQrCode: (_) async => const DiagnosisReportShareQrCode(
+          imageUrl: '',
+          imageBase64: 'data:image/png;base64,$qrCodeBase64',
+          shareUrl: 'https://example.com/report?reportId=share-report',
+          shareText: '',
+          raw: <String, dynamic>{},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('report_share_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('report_share_dialog')), findsOneWidget);
+    expect(
+      find.text('https://example.com/report?reportId=share-report'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('report_share_copy_button')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('report time renders formatted date when backend returns epoch', (
     tester,
   ) async {

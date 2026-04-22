@@ -449,6 +449,104 @@ class DiagnosisMaNavigate {
   }
 }
 
+class DiagnosisReportShareQrCode {
+  const DiagnosisReportShareQrCode({
+    required this.imageUrl,
+    required this.imageBase64,
+    required this.shareUrl,
+    required this.shareText,
+    required this.raw,
+  });
+
+  factory DiagnosisReportShareQrCode.fromDynamic(Object? value) {
+    final payload = _asMap(value);
+    if (payload.isNotEmpty) {
+      final directQrValue = _firstNonEmptyString(<String>[
+        _asString(payload['qrCode']),
+        _asString(payload['qrcode']),
+      ]);
+      final imageUrlCandidate = _firstNonEmptyString(<String>[
+        _asString(payload['imageUrl']),
+        _asString(payload['qrCodeUrl']),
+        _asString(payload['qrcodeUrl']),
+        _asString(payload['qrCodeImageUrl']),
+        _asString(payload['qrcodeImageUrl']),
+        _asString(payload['imgUrl']),
+        _asString(payload['image']),
+        if (_looksLikeUrl(directQrValue)) directQrValue,
+        if (_looksLikeUrl(_asString(payload['url']))) _asString(payload['url']),
+      ]);
+      final imageBase64Candidate = _normalizeBase64Image(
+        _firstNonEmptyString(<String>[
+          _asString(payload['imageBase64']),
+          _asString(payload['base64Image']),
+          _asString(payload['base64']),
+          _asString(payload['qrCodeBase64']),
+          _asString(payload['qrcodeBase64']),
+          _asString(payload['imgBase64']),
+          if (_looksLikeImageDataUri(directQrValue) ||
+              _looksLikeBase64Payload(directQrValue))
+            directQrValue,
+        ]),
+      );
+      final shareUrlCandidate = _firstNonEmptyString(<String>[
+        _asString(payload['shareUrl']),
+        _asString(payload['link']),
+        _asString(payload['landingPage']),
+        _asString(payload['pageUrl']),
+        _asString(payload['url']),
+      ]);
+      final shareTextCandidate = _firstNonEmptyString(<String>[
+        _asString(payload['shareText']),
+        _asString(payload['content']),
+        _asString(payload['text']),
+        _asString(payload['message']),
+      ]);
+
+      return DiagnosisReportShareQrCode(
+        imageUrl: imageUrlCandidate,
+        imageBase64: imageBase64Candidate,
+        shareUrl: shareUrlCandidate,
+        shareText: shareTextCandidate,
+        raw: payload,
+      );
+    }
+
+    final scalarValue = _asString(value).trim();
+    if (scalarValue.isEmpty) {
+      return const DiagnosisReportShareQrCode(
+        imageUrl: '',
+        imageBase64: '',
+        shareUrl: '',
+        shareText: '',
+        raw: <String, dynamic>{},
+      );
+    }
+
+    return DiagnosisReportShareQrCode(
+      imageUrl: _looksLikeUrl(scalarValue) ? scalarValue : '',
+      imageBase64: _normalizeBase64Image(scalarValue),
+      shareUrl: _looksLikeUrl(scalarValue) ? scalarValue : '',
+      shareText: _looksLikeUrl(scalarValue) ? '' : scalarValue,
+      raw: <String, dynamic>{'value': scalarValue},
+    );
+  }
+
+  final String imageUrl;
+  final String imageBase64;
+  final String shareUrl;
+  final String shareText;
+  final Map<String, dynamic> raw;
+
+  bool get hasImageUrl => imageUrl.trim().isNotEmpty;
+
+  bool get hasImageBase64 => imageBase64.trim().isNotEmpty;
+
+  bool get hasDisplayableImage => hasImageUrl || hasImageBase64;
+
+  String get copyValue => shareUrl.trim().isNotEmpty ? shareUrl : shareText;
+}
+
 double _resolveSummaryHealthScore(
   Map<String, dynamic> json,
   Map<String, dynamic> analysisResult,
@@ -647,4 +745,33 @@ String _sexDescription(String sex) {
     'M' => 'Male',
     _ => sex,
   };
+}
+
+bool _looksLikeUrl(String value) {
+  final normalized = value.trim().toLowerCase();
+  return normalized.startsWith('https://') || normalized.startsWith('http://');
+}
+
+bool _looksLikeImageDataUri(String value) {
+  return value.trim().toLowerCase().startsWith('data:image/');
+}
+
+bool _looksLikeBase64Payload(String value) {
+  final normalized = value.trim();
+  if (normalized.isEmpty || normalized.contains(' ')) {
+    return false;
+  }
+  return RegExp(r'^[A-Za-z0-9+/=]+$').hasMatch(normalized);
+}
+
+String _normalizeBase64Image(String value) {
+  final normalized = value.trim();
+  if (normalized.isEmpty) {
+    return '';
+  }
+  if (_looksLikeImageDataUri(normalized) ||
+      _looksLikeBase64Payload(normalized)) {
+    return normalized;
+  }
+  return '';
 }

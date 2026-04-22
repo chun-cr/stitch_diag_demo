@@ -20,6 +20,20 @@ class ReportRemoteSource {
     );
   }
 
+  Future<DiagnosisReportShareQrCode> getReportShareQrCode(
+    String reportId,
+  ) async {
+    final normalizedReportId = reportId.trim();
+    if (normalizedReportId.isEmpty) {
+      throw ArgumentError.value(reportId, 'reportId', 'reportId is required');
+    }
+
+    final envelope = await _getEnvelope(
+      '/api/v1/saas/mobile/physique/ai/diagnosis/report/$normalizedReportId/share/qrcode',
+    );
+    return DiagnosisReportShareQrCode.fromDynamic(envelope['data']);
+  }
+
   Future<DiagnosisMaNavigate?> getMaNavigate({
     required String tenantId,
     String? storeId,
