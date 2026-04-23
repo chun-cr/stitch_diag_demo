@@ -87,6 +87,10 @@ DiagnosisRecord _buildRecord({
   required DateTime date,
   required bool isUnlocked,
   int score = 82,
+  List<DiagnosisRiskIndex> riskIndices = const <DiagnosisRiskIndex>[
+    DiagnosisRiskIndex(name: '脾胃', value: 0.55),
+    DiagnosisRiskIndex(name: '气虚', value: 0.38),
+  ],
 }) {
   return DiagnosisRecord(
     id: id,
@@ -97,10 +101,7 @@ DiagnosisRecord _buildRecord({
     faceImageUrl: '',
     isUnlocked: isUnlocked,
     healthTrend: score.toDouble(),
-    riskIndexMap: const <RiskCategory, double>{
-      RiskCategory.spleenStomach: 0.55,
-      RiskCategory.qiDeficiency: 0.38,
-    },
+    riskIndices: riskIndices,
     rawSummary: DiagnosisReportSummary(
       id: id,
       testTime: date.toIso8601String(),
@@ -151,6 +152,8 @@ void main() {
     expect(find.text(l10n.historyPastReports), findsOneWidget);
     expect(find.text('Balanced'), findsOneWidget);
     expect(find.text('Qi Deficiency'), findsOneWidget);
+    expect(find.text('脾胃'), findsOneWidget);
+    expect(find.text('气虚'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
     router.dispose();

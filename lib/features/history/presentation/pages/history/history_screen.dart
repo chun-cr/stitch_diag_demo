@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_record.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_risk_trend_chart.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_style.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_widgets.dart';
 
@@ -17,17 +18,9 @@ class HistoryReportScreen extends StatefulWidget {
 }
 
 class _HistoryReportScreenState extends State<HistoryReportScreen> {
-  static const Map<RiskCategory, Color> _riskColors = <RiskCategory, Color>{
-    RiskCategory.spleenStomach: historyEarth,
-    RiskCategory.qiDeficiency: Color(0xFF5C8768),
-    RiskCategory.dampness: Color(0xFF8A5C7C),
-  };
-
   List<DiagnosisRecord> _records = const <DiagnosisRecord>[];
-  Map<RiskCategory, bool> _riskVisible = const <RiskCategory, bool>{};
   Set<int> _xAxisLabelIndexes = const <int>{};
   int? _trendTouchedIndex;
-  int? _riskTouchedIndex;
 
   @override
   void initState() {
@@ -46,13 +39,8 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
   void _applyRecords(List<DiagnosisRecord> records) {
     _records = records.toList()
       ..sort((left, right) => left.date.compareTo(right.date));
-    final keys = <RiskCategory>{
-      for (final record in _records) ...record.riskIndexMap.keys,
-    };
-    _riskVisible = <RiskCategory, bool>{for (final key in keys) key: true};
     _xAxisLabelIndexes = _buildSparseLabelIndexes(_records.length);
     _trendTouchedIndex = null;
-    _riskTouchedIndex = null;
   }
 
   @override
@@ -255,130 +243,9 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
   }
 
   Widget _buildRiskChart(BuildContext context) {
-    final categories = _riskVisible.keys.toList(growable: false);
-    final lineBarsData = categories
-        .map((category) {
-          final isActive = _riskVisible[category] ?? false;
-          final color = _riskColors[category] ?? historyPrimaryGreen;
-          final lineColor = color.withValues(alpha: isActive ? 0.94 : 0.16);
-          return LineChartBarData(
-            spots: [
-              for (var index = 0; index < _records.length; index++)
-                FlSpot(
-                  index.toDouble(),
-                  _records[index].riskIndexMap[category] ?? 0,
-                ),
-            ],
-            isCurved: true,
-            color: lineColor,
-            barWidth: 1.7,
-            isStrokeCapRound: true,
-            curveSmoothness: 0.22,
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  color.withValues(alpha: isActive ? 0.14 : 0.03),
-                  color.withValues(alpha: isActive ? 0.02 : 0),
-                ],
-              ),
-            ),
-            dotData: const FlDotData(show: false),
-          );
-        })
-        .toList(growable: false);
-
     return HistoryChartSectionCard(
       title: context.l10n.historyRiskTrend,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 236,
-            child: LineChart(
-              LineChartData(
-                minX: _chartMinX,
-                maxX: _chartMaxX,
-                minY: 0,
-                maxY: 1,
-                lineTouchData: _buildTouchData(
-                  enabled: lineBarsData.isNotEmpty,
-                  onTouchIndexChanged: (value) {
-                    if (_riskTouchedIndex == value) {
-                      return;
-                    }
-                    setState(() => _riskTouchedIndex = value);
-                  },
-                  valueFormatter: (value) =>
-                      context.l10n.percentValue((value * 100).round()),
-                  lineNameResolver: (bar) =>
-                      _riskCategoryForBar(bar).label(context),
-                ),
-                showingTooltipIndicators: _buildRiskTooltipIndicators(
-                  lineBarsData,
-                ),
-                gridData: _buildGridData(horizontalInterval: 0.25),
-                borderData: _buildBorderData(),
-                titlesData: _buildTitlesData(
-                  showLeftPercent: true,
-                  leftInterval: 0.25,
-                  leftReservedSize: 40,
-                ),
-                lineBarsData: lineBarsData,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: categories
-                .map((category) {
-                  final isActive = _riskVisible[category] ?? false;
-                  final color = _riskColors[category] ?? historyPrimaryGreen;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => setState(() {
-                      _riskVisible[category] = !isActive;
-                    }),
-                    child: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isActive ? historyTextPrimary : historyTextHint,
-                        letterSpacing: 0.2,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 2,
-                          vertical: 6,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(category.label(context)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                })
-                .toList(growable: false),
-          ),
-        ],
-      ),
+      child: HistoryRiskTrendChart(records: _records),
     );
   }
 
@@ -485,7 +352,7 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
     bool enabled = true,
     required ValueChanged<int?> onTouchIndexChanged,
     required String Function(double value) valueFormatter,
-    required String Function(LineChartBarData barData) lineNameResolver,
+    required String Function(LineBarSpot touchedSpot) lineNameResolver,
   }) {
     return LineTouchData(
       enabled: enabled,
@@ -552,7 +419,7 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
               final itemDate = _dateLabel(_records[item.x.toInt()].date);
               final itemColor = _lineColorOf(item.bar);
               final itemValueText = valueFormatter(item.y);
-              final itemLineName = lineNameResolver(item.bar);
+              final itemLineName = lineNameResolver(item);
               final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
               return LineTooltipItem(
                 '$itemTitle$itemLineName  $itemValueText',
@@ -594,33 +461,6 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
         LineBarSpot(barData, 0, barData.spots[index]),
       ]),
     ];
-  }
-
-  List<ShowingTooltipIndicators> _buildRiskTooltipIndicators(
-    List<LineChartBarData> lineBarsData,
-  ) {
-    final index = _riskTouchedIndex;
-    if (index == null ||
-        index < 0 ||
-        index >= _records.length ||
-        lineBarsData.isEmpty) {
-      return const <ShowingTooltipIndicators>[];
-    }
-
-    final touchedSpots = <LineBarSpot>[];
-    for (var lineIndex = 0; lineIndex < lineBarsData.length; lineIndex++) {
-      final barData = lineBarsData[lineIndex];
-      if (!_isRiskSeriesActive(barData) || index >= barData.spots.length) {
-        continue;
-      }
-      touchedSpots.add(LineBarSpot(barData, lineIndex, barData.spots[index]));
-    }
-
-    if (touchedSpots.isEmpty) {
-      return const <ShowingTooltipIndicators>[];
-    }
-
-    return <ShowingTooltipIndicators>[ShowingTooltipIndicators(touchedSpots)];
   }
 
   double get _chartMinX => _records.isEmpty ? 0 : -0.5;
@@ -667,26 +507,6 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
     return barData.gradient?.colors.last ??
         barData.color ??
         historyPrimaryGreen;
-  }
-
-  RiskCategory _riskCategoryForBar(LineChartBarData barData) {
-    final color = _lineColorOf(barData);
-    return _riskColors.entries
-        .firstWhere(
-          (entry) => _sameRgb(entry.value, color),
-          orElse: () =>
-              const MapEntry(RiskCategory.qiDeficiency, historyPrimaryGreen),
-        )
-        .key;
-  }
-
-  bool _isRiskSeriesActive(LineChartBarData barData) {
-    final category = _riskCategoryForBar(barData);
-    return _riskVisible[category] ?? true;
-  }
-
-  bool _sameRgb(Color left, Color right) {
-    return left.r == right.r && left.g == right.g && left.b == right.b;
   }
 
   Set<int> _buildSparseLabelIndexes(int length) {

@@ -3,8 +3,7 @@ part of 'report_page.dart';
 const _kReportMaskEnabled = false;
 const _kReportTabBarHeight = 48.0;
 const _kReportCompactWidthBreakpoint = 430.0;
-const _kReportTabBarOverlapCompact = 6.5;
-const _kReportTabBarOverlapRegular = 4.5;
+const _kReportHeaderJoinRadius = 32.0;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
 const _kHeroBottomPaddingCompact = 0.0;
 const _kHeroBottomPaddingRegular = 0.0;
@@ -202,6 +201,7 @@ class _ReportScreenState extends State<_ReportScreen>
         physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           _buildSliverHeader(innerBoxIsScrolled),
+          _buildTabBarHeader(),
         ],
         body: TabBarView(
           controller: _tabController,
@@ -230,8 +230,6 @@ class _ReportScreenState extends State<_ReportScreen>
 
   Widget _buildSliverHeader(bool _) {
     final heroExpandedHeight = _heroExpandedHeight(context);
-    final tabBarOverlap = _reportTabBarOverlap(context);
-    final tabBarReservedHeight = _reportTabBarReservedHeight(context);
 
     return SliverAppBar(
       expandedHeight: heroExpandedHeight,
@@ -263,15 +261,15 @@ class _ReportScreenState extends State<_ReportScreen>
         scoreAnim: _heroScoreAnim,
         expandedHeight: heroExpandedHeight,
       ),
-      bottom: PreferredSize(
-        preferredSize: Size.fromHeight(tabBarReservedHeight),
-        child: SizedBox(
-          height: _kReportTabBarHeight,
-          child: Transform.translate(
-            offset: Offset(0, -tabBarOverlap),
-            child: _buildTabBar(),
-          ),
-        ),
+    );
+  }
+
+  Widget _buildTabBarHeader() {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _ReportTabBarHeaderDelegate(
+        height: _kReportTabBarHeight,
+        child: _buildTabBar(),
       ),
     );
   }
@@ -288,11 +286,12 @@ class _ReportScreenState extends State<_ReportScreen>
     ];
 
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
         color: Color(0xFFF4F1EB),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+          topLeft: Radius.circular(_kReportHeaderJoinRadius),
+          topRight: Radius.circular(_kReportHeaderJoinRadius),
         ),
         border: Border(bottom: BorderSide(color: Color(0x1A2D6A4F), width: 1)),
       ),
@@ -362,6 +361,7 @@ double _estimateHeroExpandedHeight(
   final bottomPadding = compact
       ? _kHeroBottomPaddingCompact
       : _kHeroBottomPaddingRegular;
+  final heroBottomInset = bottomPadding;
   final contentWidth = math.max(
     mediaQuery.size.width - horizontalPadding * 2,
     1.0,
@@ -377,17 +377,9 @@ double _estimateHeroExpandedHeight(
     viewData: viewData,
     maxWidth: contentWidth,
     compact: compact,
+    stackedOverride: _shouldStackHeroContent(mediaQuery.size.width),
   );
-  final disclaimerHeight = _measureHeroTextHeight(
-    context,
-    text: _heroDisclaimer(),
-    style: TextStyle(
-      fontSize: compact ? 10 : 11,
-      height: 1.5,
-      color: const Color(0xFF6F665A).withValues(alpha: 0.82),
-    ),
-    maxWidth: contentWidth,
-  );
+  final contentGapCompensation = -_heroContentDisclaimerGap(compact);
   final measurementSlack = compact
       ? _kHeroMeasurementSlackCompact
       : _kHeroMeasurementSlackRegular;
@@ -400,13 +392,11 @@ double _estimateHeroExpandedHeight(
       contentHeight +
       // 内容区与 disclaimer 之间的间距
       _heroContentDisclaimerGap(compact) +
-      disclaimerHeight +
-      bottomPadding +
+      contentGapCompensation +
+      heroBottomInset +
       measurementSlack;
   final collapsedHeight =
-      kToolbarHeight +
-      mediaQuery.padding.top +
-      _reportTabBarReservedHeight(context);
+      kToolbarHeight + mediaQuery.padding.top;
 
   return math.max(
     expandedHeight,
@@ -417,20 +407,12 @@ double _estimateHeroExpandedHeight(
   );
 }
 
-double _reportTabBarOverlap(BuildContext context) {
-  final width = MediaQuery.of(context).size.width;
-  return _isCompactReportWidth(width)
-      ? _kReportTabBarOverlapCompact
-      : _kReportTabBarOverlapRegular;
-}
-
-double _reportTabBarReservedHeight(BuildContext context) =>
-    _kReportTabBarHeight - _reportTabBarOverlap(context);
-
 double _heroContentDisclaimerGap(bool compact) =>
     compact
         ? _kHeroContentDisclaimerGapCompact
         : _kHeroContentDisclaimerGapRegular;
+
+bool _shouldStackHeroContent(double maxWidth) => maxWidth < 360;
 
 bool _isCompactReportWidth(double width) =>
     width <= _kReportCompactWidthBreakpoint;
@@ -467,7 +449,7 @@ double _estimateHeroContentHeight(
   required bool compact,
   bool? stackedOverride,
 }) {
-  final stacked = stackedOverride ?? maxWidth < 360;
+  final stacked = stackedOverride ?? _shouldStackHeroContent(maxWidth);
   final scoreHeight = _estimateHeroScoreHeight(
     context,
     hasImages: viewData.hasHeroImages,
@@ -486,10 +468,18 @@ double _estimateHeroContentHeight(
     compact: compact,
   );
 
-  if (stacked) {
-    return scoreHeight + (compact ? 10.0 : 20.0) + infoHeight;
-  }
-  return math.max(scoreHeight, infoHeight);
+  final primaryContentHeight = stacked
+      ? scoreHeight + (compact ? 10.0 : 20.0) + infoHeight
+      : math.max(scoreHeight, infoHeight);
+  final disclaimerHeight = _estimateHeroDisclaimerHeight(
+    context,
+    maxWidth: maxWidth,
+    compact: compact,
+  );
+
+  return primaryContentHeight +
+      _heroContentDisclaimerGap(compact) +
+      disclaimerHeight;
 }
 
 double _estimateHeroScoreHeight(
@@ -594,6 +584,23 @@ double _estimateHeroInfoHeight(
   );
 
   return height;
+}
+
+double _estimateHeroDisclaimerHeight(
+  BuildContext context, {
+  required double maxWidth,
+  required bool compact,
+}) {
+  return _measureHeroTextHeight(
+    context,
+    text: _heroDisclaimer(),
+    style: TextStyle(
+      fontSize: compact ? 10 : 11,
+      height: 1.5,
+      color: const Color(0xFF6F665A).withValues(alpha: 0.82),
+    ),
+    maxWidth: maxWidth,
+  );
 }
 
 double _estimateHeroChipWrapHeight(
@@ -740,10 +747,10 @@ class _ReportHeroSpace extends StatelessWidget {
       builder: (context, constraints) {
         final mediaQuery = MediaQuery.of(context);
         final compact = _isCompactReportWidth(constraints.maxWidth);
-        final collapsedHeight =
-            kToolbarHeight +
-            mediaQuery.padding.top +
-            _reportTabBarReservedHeight(context);
+        final collapsedHeight = kToolbarHeight + mediaQuery.padding.top;
+        final heroBottomInset = compact
+            ? _kHeroBottomPaddingCompact
+            : _kHeroBottomPaddingRegular;
         final expandRange = math.max(expandedHeight - collapsedHeight, 1.0);
         final progress =
             ((constraints.maxHeight - collapsedHeight) / expandRange).clamp(
@@ -762,8 +769,8 @@ class _ReportHeroSpace extends StatelessWidget {
             ),
             ClipRRect(
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(32),
-                bottomRight: Radius.circular(32),
+                bottomLeft: Radius.circular(_kReportHeaderJoinRadius),
+                bottomRight: Radius.circular(_kReportHeaderJoinRadius),
               ),
               child: DecoratedBox(
                 decoration: const BoxDecoration(
@@ -822,35 +829,11 @@ class _ReportHeroSpace extends StatelessWidget {
                       child: Padding(
                         // 顶部 padding 收紧，与估算函数保持一致
                         padding: compact
-                            ? const EdgeInsets.fromLTRB(
-                                18,
-                                44,
-                                18,
-                                _kHeroBottomPaddingCompact,
-                              )
-                            : const EdgeInsets.fromLTRB(
-                                24,
-                                52,
-                                24,
-                                _kHeroBottomPaddingRegular,
-                              ),
+                            ? EdgeInsets.fromLTRB(18, 44, 18, heroBottomInset)
+                            : EdgeInsets.fromLTRB(24, 52, 24, heroBottomInset),
                         child: LayoutBuilder(
                           builder: (context, innerConstraints) {
-                            final disclaimerStyle = TextStyle(
-                              fontSize: compact ? 10 : 11,
-                              height: 1.5,
-                              color: const Color(
-                                0xFF6F665A,
-                              ).withValues(alpha: 0.82),
-                            );
-                            final disclaimerReservedHeight =
-                                _measureHeroTextHeight(
-                                  context,
-                                  text: _heroDisclaimer(),
-                                  style: disclaimerStyle,
-                                  maxWidth: innerConstraints.maxWidth,
-                                ) +
-                                _heroContentDisclaimerGap(compact);
+                            const disclaimerReservedHeight = 0.0;
                             return Stack(
                               fit: StackFit.expand,
                               children: [
@@ -887,8 +870,9 @@ class _ReportHeroSpace extends StatelessWidget {
                                                       slotConstraints.maxWidth,
                                                   compact: compact,
                                                   stackedOverride:
-                                                      constraints.maxWidth <
-                                                      360,
+                                                      _shouldStackHeroContent(
+                                                        constraints.maxWidth,
+                                                      ),
                                                 );
                                             final shouldPinToBottom =
                                                 slotConstraints.maxHeight -
@@ -929,23 +913,6 @@ class _ReportHeroSpace extends StatelessWidget {
                                       ),
                                       // 内容区与 disclaimer 间距，与估算函数保持一致
                                     ],
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 120),
-                                    opacity: expandedOpacity,
-                                    child: Text(
-                                      key: const ValueKey(
-                                        'report_hero_disclaimer',
-                                      ),
-                                      _heroDisclaimer(),
-                                      textAlign: TextAlign.center,
-                                      style: disclaimerStyle,
-                                    ),
                                   ),
                                 ),
                               ],
@@ -1004,7 +971,7 @@ class _HeroContentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stacked = maxWidth < 360;
+    final stacked = _shouldStackHeroContent(maxWidth);
     final stackedContent = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1035,7 +1002,16 @@ class _HeroContentCard extends StatelessWidget {
         ),
       ],
     );
-    final content = stacked ? stackedContent : rowContent;
+    final primaryContent = stacked ? stackedContent : rowContent;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        primaryContent,
+        SizedBox(height: _heroContentDisclaimerGap(compact)),
+        _HeroDisclaimerText(compact: compact),
+      ],
+    );
 
     // 无卡片容器，内容直接铺在渐变背景上
     return SizedBox(
@@ -1311,6 +1287,59 @@ class _HeroInfoColumn extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _HeroDisclaimerText extends StatelessWidget {
+  const _HeroDisclaimerText({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Text(
+        _heroDisclaimer(),
+        key: const ValueKey('report_hero_disclaimer'),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: compact ? 10 : 11,
+          height: 1.5,
+          color: const Color(0xFF6F665A).withValues(alpha: 0.82),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _ReportTabBarHeaderDelegate({
+    required this.height,
+    required this.child,
+  });
+
+  final double height;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant _ReportTabBarHeaderDelegate oldDelegate) {
+    return height != oldDelegate.height || child != oldDelegate.child;
   }
 }
 

@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-22T08:11:41.376Z",
-  "turn_count": 172,
-  "last_progress_at": "2026-04-22T08:11:41.376Z",
-  "last_agent_output": "问题确认了：history 和报告页走的不是同一条取图链路。报告页 hero 用的是详情接口里的 `faceAnalysisResult.imageUrl`，而 history 原来只看 summar"
+  "last_turn_at": "2026-04-23T02:59:17.525Z",
+  "turn_count": 180,
+  "last_progress_at": "2026-04-23T02:59:17.525Z",
+  "last_agent_output": "已完成。历史页现在会复用现有历史报告拉取链路，把每份报告 `deepPredicts.categoryProbabilities` 的前 4 个风险指数按“时间 + 指数名称”对齐，并在支持的平台上用"
 }

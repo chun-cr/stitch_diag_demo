@@ -32,6 +32,13 @@ extension RiskCategoryL10n on RiskCategory {
   }
 }
 
+class DiagnosisRiskIndex {
+  const DiagnosisRiskIndex({required this.name, required this.value});
+
+  final String name;
+  final double value;
+}
+
 class DiagnosisRecord {
   const DiagnosisRecord({
     required this.id,
@@ -42,7 +49,7 @@ class DiagnosisRecord {
     required this.faceImageUrl,
     required this.isUnlocked,
     required this.healthTrend,
-    required this.riskIndexMap,
+    required this.riskIndices,
     required this.rawSummary,
   });
 
@@ -54,7 +61,7 @@ class DiagnosisRecord {
   final String faceImageUrl;
   final bool isUnlocked;
   final double healthTrend;
-  final Map<RiskCategory, double> riskIndexMap;
+  final List<DiagnosisRiskIndex> riskIndices;
   final DiagnosisReportSummary rawSummary;
 
   factory DiagnosisRecord.fromSummary(DiagnosisReportSummary summary) {
@@ -69,7 +76,7 @@ class DiagnosisRecord {
       faceImageUrl: summary.faceImageUrl,
       isUnlocked: !summary.isLocked,
       healthTrend: summary.healthScore,
-      riskIndexMap: _buildRiskIndexMap(summary),
+      riskIndices: _buildRiskIndices(summary),
       rawSummary: summary,
     );
   }
@@ -85,11 +92,11 @@ class DiagnosisRecord {
           'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
       isUnlocked: true,
       healthTrend: 86,
-      riskIndexMap: <RiskCategory, double>{
-        RiskCategory.spleenStomach: 0.58,
-        RiskCategory.qiDeficiency: 0.52,
-        RiskCategory.dampness: 0.34,
-      },
+      riskIndices: <DiagnosisRiskIndex>[
+        DiagnosisRiskIndex(name: '脾胃', value: 0.58),
+        DiagnosisRiskIndex(name: '气虚', value: 0.52),
+        DiagnosisRiskIndex(name: '湿困', value: 0.34),
+      ],
       rawSummary: DiagnosisReportSummary(
         id: 'sample-1',
         testTime: '2025-03-14T00:00:00Z',
@@ -129,18 +136,28 @@ DateTime _parseRecordDate(String value) {
   return DateTime.fromMillisecondsSinceEpoch(0);
 }
 
-Map<RiskCategory, double> _buildRiskIndexMap(DiagnosisReportSummary summary) {
-  final result = <RiskCategory, double>{};
+List<DiagnosisRiskIndex> _buildRiskIndices(DiagnosisReportSummary summary) {
+  final result = <DiagnosisRiskIndex>[];
+  final seenNames = <String>{};
   for (final item in summary.deepPredicts.categoryProbabilities) {
-    final category = _matchRiskCategory(item.name);
-    if (category == null || result.containsKey(category)) {
+    final normalizedName = item.name.trim();
+    if (normalizedName.isEmpty || !seenNames.add(normalizedName)) {
       continue;
     }
-    result[category] = (item.probability / 100).clamp(0, 1).toDouble();
+    result.add(
+      DiagnosisRiskIndex(
+        name: normalizedName,
+        value: item.rawProbability.clamp(0, 1).toDouble(),
+      ),
+    );
+    if (result.length == 4) {
+      break;
+    }
   }
-  return result;
+  return List<DiagnosisRiskIndex>.unmodifiable(result);
 }
 
+// ignore: unused_element
 RiskCategory? _matchRiskCategory(String name) {
   final normalized = name.trim().toLowerCase();
   if (normalized.isEmpty) {
