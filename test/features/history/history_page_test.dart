@@ -221,7 +221,7 @@ void main() {
     await _pumpHistoryPage(tester, loadHistoryRecords: () => completer.future);
 
     expect(find.byKey(const ValueKey('history_loading')), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
 
     completer.complete(<DiagnosisRecord>[
       _buildRecord(
@@ -274,6 +274,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('history_loading')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
 
     await tester.pumpAndSettle();
 

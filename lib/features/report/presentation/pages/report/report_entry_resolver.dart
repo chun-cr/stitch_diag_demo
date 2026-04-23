@@ -6,6 +6,7 @@ import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
 import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 import 'package:stitch_diag_demo/features/report/data/sources/report_remote_source.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_loading_view.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_view_data.dart';
 
 class ReportEntryResolver extends StatefulWidget {
@@ -158,20 +159,7 @@ class _ReportEntryResolverState extends State<ReportEntryResolver> {
       future: _viewDataFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF4F1EB),
-            body: Center(
-              child: Column(
-                key: const ValueKey('report_loading'),
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(context.l10n.commonLoading),
-                ],
-              ),
-            ),
-          );
+          return const ReportLoadingView();
         }
 
         if (snapshot.hasError || !snapshot.hasData) {

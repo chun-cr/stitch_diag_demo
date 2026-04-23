@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_shipping_address_entity.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_address_provider.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/widgets/profile_loading_skeletons.dart';
 
 const _kAddressPageBg = Color(0xFFF9FCF7);
 const _kAddressCardBg = Colors.white;
@@ -153,6 +154,10 @@ class ShippingAddressPage extends ConsumerWidget {
     final addresses = addressesAsync.asData?.value ?? const [];
     final showEmptyState = addressesAsync.hasValue && addresses.isEmpty;
 
+    if (addressesAsync.isLoading && !addressesAsync.hasValue) {
+      return const ShippingAddressLoadingSkeleton();
+    }
+
     return Scaffold(
       backgroundColor: _kAddressPageBg,
       appBar: AppBar(
@@ -243,7 +248,7 @@ class ShippingAddressPage extends ConsumerWidget {
               ),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const SizedBox.shrink(),
           error: (error, stackTrace) {
             return Center(
               child: Padding(

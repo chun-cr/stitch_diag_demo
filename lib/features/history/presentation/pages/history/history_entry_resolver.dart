@@ -3,6 +3,7 @@ import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_record.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_loading_view.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_style.dart';
 import 'package:stitch_diag_demo/features/report/data/sources/report_remote_source.dart';
 import 'package:stitch_diag_demo/features/scan/data/models/scan_session.dart';
@@ -80,20 +81,7 @@ class _HistoryEntryResolverState extends State<HistoryEntryResolver> {
       future: _recordsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return Scaffold(
-            backgroundColor: historyPageBg,
-            body: Center(
-              child: Column(
-                key: const ValueKey('history_loading'),
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(context.l10n.commonLoading),
-                ],
-              ),
-            ),
-          );
+          return const HistoryLoadingView();
         }
 
         if (snapshot.hasError || !snapshot.hasData) {

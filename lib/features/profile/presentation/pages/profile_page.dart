@@ -14,6 +14,7 @@ import 'package:stitch_diag_demo/features/profile/domain/entities/profile_shippi
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_address_provider.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_points_provider.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_repository_provider.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/widgets/profile_loading_skeletons.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
 const _kPageBg = Color(0xFFF4F1EB); // 宣纸米色
@@ -34,6 +35,10 @@ class ProfilePage extends ConsumerWidget {
     final profileAsync = ref.watch(profileMeProvider);
     final profile = profileAsync.asData?.value;
     final isProfileLoading = profileAsync.isLoading && !profileAsync.hasValue;
+
+    if (isProfileLoading) {
+      return const ProfilePageLoadingSkeleton();
+    }
 
     return Scaffold(
       backgroundColor: _kPageBg,

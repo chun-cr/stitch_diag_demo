@@ -9,6 +9,7 @@ import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points_overview_entity.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points_task_entity.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_points_provider.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/widgets/profile_loading_skeletons.dart';
 
 const _kPointsPageBg = Color(0xFFF4F1EB);
 const _kPointsCardBg = Colors.white;
@@ -188,6 +189,10 @@ class PointsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final overviewAsync = ref.watch(profilePointsProvider);
 
+    if (overviewAsync.isLoading && !overviewAsync.hasValue) {
+      return const PointsPageLoadingSkeleton();
+    }
+
     return Scaffold(
       backgroundColor: _kPointsPageBg,
       appBar: AppBar(
@@ -284,7 +289,7 @@ class PointsPage extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SizedBox.shrink(),
         error: (error, stackTrace) {
           return Center(
             child: Padding(
