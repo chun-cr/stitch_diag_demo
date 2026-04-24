@@ -203,6 +203,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get authWechatUnsupported =>
+      'WeChat Mini Program authorization is not wired yet.';
+
+  @override
+  String get authWechatCodeMissing =>
+      'WeChat authorization code was not acquired.';
+
+  @override
+  String get authWechatCompletedWithoutToken =>
+      'WeChat authorization completed without a login token.';
+
+  @override
+  String authWechatStatusPendingBinding(String status) {
+    return 'WeChat authorization returned status \"$status\". Follow-up binding is not wired yet.';
+  }
+
+  @override
   String get authSendCodeFirst => 'Please request a verification code first.';
 
   @override
@@ -284,6 +301,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get registerPasswordSetupPrompt =>
       'Registration succeeded. You can set a login password later in Me - Settings - Account & Security.';
+
+  @override
+  String get registerPhoneMode => 'Phone Sign Up';
+
+  @override
+  String get registerEmailMode => 'Email Sign Up';
+
+  @override
+  String get registerAlreadyHaveAccount => 'Already have an account? ';
+
+  @override
+  String get registerLoginNow => 'Log in now';
 
   @override
   String get registerGenderOptional => 'Gender';

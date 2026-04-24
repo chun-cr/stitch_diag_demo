@@ -201,6 +201,20 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get authWechatUnsupported => '微信授权环境未接入，请先实现 acquireWechatCode()。';
+
+  @override
+  String get authWechatCodeMissing => '未获取到微信授权码，请重试。';
+
+  @override
+  String get authWechatCompletedWithoutToken => '微信授权已完成，但当前未返回登录令牌。';
+
+  @override
+  String authWechatStatusPendingBinding(String status) {
+    return '微信授权返回状态：$status，后续绑定流程待接入。';
+  }
+
+  @override
   String get authSendCodeFirst => '请先获取验证码';
 
   @override
@@ -273,6 +287,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get registerPasswordSetupPrompt => '注册成功，可在“我的 - 设置 - 账号与安全”中设置登录密码';
+
+  @override
+  String get registerPhoneMode => '手机注册';
+
+  @override
+  String get registerEmailMode => '邮箱注册';
+
+  @override
+  String get registerAlreadyHaveAccount => '已有账号？';
+
+  @override
+  String get registerLoginNow => '立即登录';
 
   @override
   String get registerGenderOptional => '性别';

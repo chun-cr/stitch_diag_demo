@@ -163,30 +163,19 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   String _wechatUnsupportedMessage() {
-    final locale = Localizations.localeOf(context).languageCode;
-    return locale == 'zh'
-        ? '微信授权环境未接入，请先实现 acquireWechatCode()。'
-        : 'WeChat Mini Program authorization is not wired yet.';
+    return context.l10n.authWechatUnsupported;
   }
 
   String _wechatCodeMissingMessage() {
-    final locale = Localizations.localeOf(context).languageCode;
-    return locale == 'zh'
-        ? '未获取到微信授权码，请重试。'
-        : 'WeChat authorization code was not acquired.';
+    return context.l10n.authWechatCodeMissing;
   }
 
   String _wechatStatusMessage(String authStatus) {
-    final locale = Localizations.localeOf(context).languageCode;
     final normalizedStatus = authStatus.trim();
     if (normalizedStatus.isEmpty) {
-      return locale == 'zh'
-          ? '微信授权已完成，但当前未返回登录令牌。'
-          : 'WeChat authorization completed without a login token.';
+      return context.l10n.authWechatCompletedWithoutToken;
     }
-    return locale == 'zh'
-        ? '微信授权返回状态：$normalizedStatus，后续绑定流程待接入。'
-        : 'WeChat authorization returned status "$normalizedStatus". Follow-up binding is not wired yet.';
+    return context.l10n.authWechatStatusPendingBinding(normalizedStatus);
   }
 
   Future<void> _initializeShareReferral() async {

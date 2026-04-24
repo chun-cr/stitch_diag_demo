@@ -99,6 +99,17 @@
       }
     }
   },
+  "authWechatUnsupported": "WeChat ミニプログラム認証はまだ接続されていません。",
+  "authWechatCodeMissing": "WeChat の認証コードを取得できませんでした。",
+  "authWechatCompletedWithoutToken": "WeChat 認証は完了しましたが、ログイントークンは返されませんでした。",
+  "authWechatStatusPendingBinding": "WeChat 認証から状態 \"{status}\" が返されました。後続の連携フローはまだ未接続です。",
+  "@authWechatStatusPendingBinding": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "authSendCodeFirst": "先に認証コードを取得してください。",
   "commonContinue": "続ける",
   "authCaptchaTitle": "人機検証",
@@ -132,6 +143,10 @@
   "registerCreateAccountAction": "アカウントを作成",
   "registerCreateFailed": "アカウントの作成に失敗しました。しばらくしてからもう一度お試しください。",
   "registerPasswordSetupPrompt": "登録が完了しました。「マイページ - 設定 - アカウントとセキュリティ」からログインパスワードを設定できます。",
+  "registerPhoneMode": "電話登録",
+  "registerEmailMode": "メール登録",
+  "registerAlreadyHaveAccount": "すでにアカウントをお持ちですか？",
+  "registerLoginNow": "今すぐログイン",
   "registerGenderOptional": "性別",
   "registerGenderRequired": "性別を選択してください",
   "completeProfileTitle": "プロフィールを整える",

@@ -201,6 +201,21 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get authWechatUnsupported => 'WeChat ミニプログラム認証はまだ接続されていません。';
+
+  @override
+  String get authWechatCodeMissing => 'WeChat の認証コードを取得できませんでした。';
+
+  @override
+  String get authWechatCompletedWithoutToken =>
+      'WeChat 認証は完了しましたが、ログイントークンは返されませんでした。';
+
+  @override
+  String authWechatStatusPendingBinding(String status) {
+    return 'WeChat 認証から状態 \"$status\" が返されました。後続の連携フローはまだ未接続です。';
+  }
+
+  @override
   String get authSendCodeFirst => '先に認証コードを取得してください。';
 
   @override
@@ -276,6 +291,18 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get registerPasswordSetupPrompt =>
       '登録が完了しました。「マイページ - 設定 - アカウントとセキュリティ」からログインパスワードを設定できます。';
+
+  @override
+  String get registerPhoneMode => '電話登録';
+
+  @override
+  String get registerEmailMode => 'メール登録';
+
+  @override
+  String get registerAlreadyHaveAccount => 'すでにアカウントをお持ちですか？';
+
+  @override
+  String get registerLoginNow => '今すぐログイン';
 
   @override
   String get registerGenderOptional => '性別';

@@ -63,7 +63,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   final _errorToastController = AuthTopToastController();
   _RegisterMode _registerMode = _RegisterMode.phone;
   String _selectedCountryCode = '+86';
-  String _selectedCountryFlag = '馃嚚馃嚦';
+  String _selectedCountryFlag = authCountryCodeOptions.first.flag;
 
   late AnimationController _rotateController;
   late AnimationController _fadeController;
@@ -323,37 +323,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   String _registerModeLabel(_RegisterMode mode) {
-    final locale = Localizations.localeOf(context).languageCode;
-    return switch ((locale, mode)) {
-      ('en', _RegisterMode.phone) => 'Phone Sign Up',
-      ('en', _RegisterMode.email) => 'Email Sign Up',
-      ('ja', _RegisterMode.phone) => '電話登録',
-      ('ja', _RegisterMode.email) => 'メール登録',
-      ('ko', _RegisterMode.phone) => '휴대폰 가입',
-      ('ko', _RegisterMode.email) => '이메일 가입',
-      (_, _RegisterMode.phone) => '手机注册',
-      (_, _RegisterMode.email) => '邮箱注册',
+    return switch (mode) {
+      _RegisterMode.phone => context.l10n.registerPhoneMode,
+      _RegisterMode.email => context.l10n.registerEmailMode,
     };
   }
 
   String _registerLoginPrompt() {
-    final locale = Localizations.localeOf(context).languageCode;
-    return switch (locale) {
-      'en' => 'Already have an account? ',
-      'ja' => 'すでにアカウントをお持ちですか？',
-      'ko' => '이미 계정이 있으신가요? ',
-      _ => '已有账号？',
-    };
+    return context.l10n.registerAlreadyHaveAccount;
   }
 
   String _registerLoginActionLabel() {
-    final locale = Localizations.localeOf(context).languageCode;
-    return switch (locale) {
-      'en' => 'Log in now',
-      'ja' => '今すぐログイン',
-      'ko' => '바로 로그인',
-      _ => '立即登录',
-    };
+    return context.l10n.registerLoginNow;
   }
 
   void _showErrorSnack(String message) {
@@ -1051,7 +1032,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         if (maskedReceiver != null && maskedReceiver.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            '楠岃瘉鐮佸凡鍙戦€佽嚦 $maskedReceiver',
+            context.l10n.authCodeSentToReceiver(maskedReceiver),
             key: const ValueKey('register_masked_receiver_hint'),
             style: TextStyle(
               fontSize: 12,

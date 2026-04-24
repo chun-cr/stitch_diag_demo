@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
+from pathlib import PurePosixPath
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +20,11 @@ STRING_PATTERNS = [
     re.compile(r"'([^'\\]|\\.)*[\u4e00-\u9fff]([^'\\]|\\.)*'"),
     re.compile(r'"([^"\\]|\\.)*[\u4e00-\u9fff]([^"\\]|\\.)*"'),
 ]
+
+
+def configure_stdout() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def strip_comments(source: str) -> str:
@@ -89,16 +97,83 @@ def find_matches(file_path: Path) -> list[tuple[int, str]]:
     return matches
 
 
-def iter_target_files() -> list[Path]:
+def is_target_file(file_path: Path) -> bool:
+    try:
+        rel_path = file_path.relative_to(SCAN_ROOT)
+    except ValueError:
+        return False
+
+    rel_posix = PurePosixPath(rel_path.as_posix())
+    return any(rel_posix.match(pattern) for pattern in TARGET_GLOBS)
+
+
+def git_diff_files(base: str, head: str) -> list[Path]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--diff-filter=ACMRTUXB",
+            base,
+            head,
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    files: list[Path] = []
+    for raw_line in result.stdout.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        files.append((ROOT / line).resolve())
+    return files
+
+
+def iter_target_files(explicit_files: list[Path] | None = None) -> list[Path]:
+    if explicit_files is not None:
+        files = {path.resolve() for path in explicit_files}
+        return sorted(
+            path for path in files if path.is_file() and is_target_file(path)
+        )
+
     files: set[Path] = set()
     for pattern in TARGET_GLOBS:
         files.update(SCAN_ROOT.glob(pattern))
     return sorted(path for path in files if path.is_file())
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Optional explicit files to scan instead of scanning the full presentation layer.",
+    )
+    parser.add_argument(
+        "--diff",
+        nargs=2,
+        metavar=("BASE", "HEAD"),
+        help="Scan only files changed between two git revisions.",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    configure_stdout()
+    args = parse_args()
+
+    explicit_files: list[Path] | None = None
+    if args.diff is not None:
+        base, head = args.diff
+        explicit_files = git_diff_files(base, head)
+    elif args.paths:
+        explicit_files = [(ROOT / path).resolve() for path in args.paths]
+
     findings: list[tuple[Path, int, str]] = []
-    for file_path in iter_target_files():
+    for file_path in iter_target_files(explicit_files):
         for line_no, snippet in find_matches(file_path):
             findings.append((file_path.relative_to(ROOT), line_no, snippet))
 

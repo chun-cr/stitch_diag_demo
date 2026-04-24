@@ -92,6 +92,17 @@
       }
     }
   },
+  "authWechatUnsupported": "WeChat Mini Program authorization is not wired yet.",
+  "authWechatCodeMissing": "WeChat authorization code was not acquired.",
+  "authWechatCompletedWithoutToken": "WeChat authorization completed without a login token.",
+  "authWechatStatusPendingBinding": "WeChat authorization returned status \"{status}\". Follow-up binding is not wired yet.",
+  "@authWechatStatusPendingBinding": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "authSendCodeFirst": "Please request a verification code first.",
   "commonContinue": "Continue",
   "authCaptchaTitle": "Captcha verification",
@@ -123,6 +134,10 @@
   "registerCreateAccountAction": "Create account",
   "registerCreateFailed": "Account creation failed. Please try again later.",
   "registerPasswordSetupPrompt": "Registration succeeded. You can set a login password later in Me - Settings - Account & Security.",
+  "registerPhoneMode": "Phone Sign Up",
+  "registerEmailMode": "Email Sign Up",
+  "registerAlreadyHaveAccount": "Already have an account? ",
+  "registerLoginNow": "Log in now",
   "registerGenderOptional": "Gender",
   "registerGenderRequired": "Please select a gender",
   "completeProfileTitle": "Complete your profile",

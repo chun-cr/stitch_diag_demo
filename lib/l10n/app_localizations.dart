@@ -474,6 +474,30 @@ abstract class AppLocalizations {
   /// **'验证码已发送至 {receiver}'**
   String authCodeSentToReceiver(String receiver);
 
+  /// No description provided for @authWechatUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信授权环境未接入，请先实现 acquireWechatCode()。'**
+  String get authWechatUnsupported;
+
+  /// No description provided for @authWechatCodeMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'未获取到微信授权码，请重试。'**
+  String get authWechatCodeMissing;
+
+  /// No description provided for @authWechatCompletedWithoutToken.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信授权已完成，但当前未返回登录令牌。'**
+  String get authWechatCompletedWithoutToken;
+
+  /// No description provided for @authWechatStatusPendingBinding.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信授权返回状态：{status}，后续绑定流程待接入。'**
+  String authWechatStatusPendingBinding(String status);
+
   /// No description provided for @authSendCodeFirst.
   ///
   /// In zh, this message translates to:
@@ -617,6 +641,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'注册成功，可在“我的 - 设置 - 账号与安全”中设置登录密码'**
   String get registerPasswordSetupPrompt;
+
+  /// No description provided for @registerPhoneMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机注册'**
+  String get registerPhoneMode;
+
+  /// No description provided for @registerEmailMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'邮箱注册'**
+  String get registerEmailMode;
+
+  /// No description provided for @registerAlreadyHaveAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已有账号？'**
+  String get registerAlreadyHaveAccount;
+
+  /// No description provided for @registerLoginNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即登录'**
+  String get registerLoginNow;
 
   /// No description provided for @registerGenderOptional.
   ///

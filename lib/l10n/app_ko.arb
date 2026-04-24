@@ -99,6 +99,17 @@
       }
     }
   },
+  "authWechatUnsupported": "WeChat 미니프로그램 인증은 아직 연결되지 않았습니다.",
+  "authWechatCodeMissing": "WeChat 인증 코드를 받아오지 못했어요.",
+  "authWechatCompletedWithoutToken": "WeChat 인증은 완료됐지만 로그인 토큰이 반환되지 않았어요.",
+  "authWechatStatusPendingBinding": "WeChat 인증에서 상태 \"{status}\" 가 반환됐어요. 후속 연결 플로우는 아직 미구현 상태예요.",
+  "@authWechatStatusPendingBinding": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "authSendCodeFirst": "먼저 인증코드를 받아 주세요.",
   "commonContinue": "계속",
   "authCaptchaTitle": "캡차 인증",
@@ -132,6 +143,10 @@
   "registerCreateAccountAction": "계정 만들기",
   "registerCreateFailed": "계정 생성에 실패했어요. 잠시 후 다시 시도해 주세요.",
   "registerPasswordSetupPrompt": "가입이 완료되었어요. 나중에 '내 정보 - 설정 - 계정 및 보안'에서 로그인 비밀번호를 설정할 수 있어요.",
+  "registerPhoneMode": "휴대폰 가입",
+  "registerEmailMode": "이메일 가입",
+  "registerAlreadyHaveAccount": "이미 계정이 있으신가요? ",
+  "registerLoginNow": "바로 로그인",
   "registerGenderOptional": "성별",
   "registerGenderRequired": "성별을 선택해 주세요",
   "completeProfileTitle": "프로필 완성",
