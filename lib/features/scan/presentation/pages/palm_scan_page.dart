@@ -110,6 +110,26 @@ bool shouldTrackPalmHold({
 }
 
 @visibleForTesting
+bool isPalmFramedForUploadBounds({
+  required Rect bounds,
+  required Rect guideRect,
+  required bool allowHoldDrift,
+}) {
+  final area = normalizedRectArea(bounds);
+  final minArea = allowHoldDrift ? 0.04 : 0.05;
+  final maxArea = allowHoldDrift ? 0.40 : 0.32;
+  final guideInsetFactor = allowHoldDrift ? 0.0 : 0.02;
+
+  return area >= minArea &&
+      area <= maxArea &&
+      isNormalizedBoundsInsideGuide(
+        bounds: bounds,
+        guideRect: guideRect,
+        guideInsetFactor: guideInsetFactor,
+      );
+}
+
+@visibleForTesting
 PalmScanFeedbackStage resolvePalmScanFeedbackStage({
   required bool hasPermission,
   required bool isMonitoring,
@@ -323,18 +343,11 @@ class _PalmScanPageState extends State<PalmScanPage>
       return false;
     }
 
-    final area = normalizedRectArea(bounds);
-    final minArea = allowHoldDrift ? 0.04 : 0.05;
-    final maxArea = allowHoldDrift ? 0.36 : 0.32;
-    final guideInsetFactor = allowHoldDrift ? 0.01 : 0.02;
-
-    return area >= minArea &&
-        area <= maxArea &&
-        isNormalizedBoundsInsideGuide(
-          bounds: bounds,
-          guideRect: _palmGuideRectNormalized,
-          guideInsetFactor: guideInsetFactor,
-        );
+    return isPalmFramedForUploadBounds(
+      bounds: bounds,
+      guideRect: _palmGuideRectNormalized,
+      allowHoldDrift: allowHoldDrift,
+    );
   }
 
   bool _isPalmHoldAliveWithinGrace(bool holdAliveNow) {

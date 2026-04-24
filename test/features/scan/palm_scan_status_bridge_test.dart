@@ -285,4 +285,37 @@ void main() {
       );
     });
   });
+
+  group('isPalmFramedForUploadBounds', () {
+    const guideRect = Rect.fromLTWH(0.15, 0.05, 0.70, 0.90);
+
+    test(
+      'accepts a fully stretched palm inside the visible guide under relaxed framing',
+      () {
+        const bounds = Rect.fromLTRB(0.155, 0.06, 0.688, 0.80);
+
+        expect(
+          isPalmFramedForUploadBounds(
+            bounds: bounds,
+            guideRect: guideRect,
+            allowHoldDrift: true,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('still rejects a palm that is too close even under relaxed framing', () {
+      const bounds = Rect.fromLTRB(0.17, 0.06, 0.70, 0.83);
+
+      expect(
+        isPalmFramedForUploadBounds(
+          bounds: bounds,
+          guideRect: guideRect,
+          allowHoldDrift: true,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

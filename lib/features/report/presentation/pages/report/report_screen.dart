@@ -7,6 +7,8 @@ const _kReportHeaderJoinRadius = 32.0;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
 const _kHeroBottomPaddingCompact = 0.0;
 const _kHeroBottomPaddingRegular = 0.0;
+const _kHeroTopPaddingCompact = 48.0;
+const _kHeroTopPaddingRegular = 56.0;
 const _kHeroContentDisclaimerGapCompact = 2.0;
 const _kHeroContentDisclaimerGapRegular = 4.0;
 const _kHeroMeasurementSlackCompact = 12.0;
@@ -370,7 +372,9 @@ double _estimateHeroExpandedHeight(
   final compact = _isCompactReportWidth(mediaQuery.size.width);
   final horizontalPadding = compact ? 18.0 : 24.0;
   // 收紧顶部 padding，减少 Hero 与 AppBar 按钮之间的空隙
-  final topPadding = compact ? 44.0 : 52.0;
+  final topPadding = compact
+      ? _kHeroTopPaddingCompact
+      : _kHeroTopPaddingRegular;
   final bottomPadding = compact
       ? _kHeroBottomPaddingCompact
       : _kHeroBottomPaddingRegular;
@@ -809,8 +813,18 @@ class _ReportHeroSpace extends StatelessWidget {
                       child: Padding(
                         // 顶部 padding 收紧，与估算函数保持一致
                         padding: compact
-                            ? EdgeInsets.fromLTRB(18, 44, 18, heroBottomInset)
-                            : EdgeInsets.fromLTRB(24, 52, 24, heroBottomInset),
+                            ? EdgeInsets.fromLTRB(
+                                18,
+                                _kHeroTopPaddingCompact,
+                                18,
+                                heroBottomInset,
+                              )
+                            : EdgeInsets.fromLTRB(
+                                24,
+                                _kHeroTopPaddingRegular,
+                                24,
+                                heroBottomInset,
+                              ),
                         child: LayoutBuilder(
                           builder: (context, _) {
                             return Stack(
