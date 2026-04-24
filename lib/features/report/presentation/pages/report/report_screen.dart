@@ -228,7 +228,11 @@ class _ReportScreenState extends State<_ReportScreen>
               onUnlock: _handleUnlock,
             ),
             _Tab3Therapy(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
-            _Tab4Advice(isUnlocked: _isUnlocked, onUnlock: _handleUnlock),
+            _Tab4Advice(
+              viewData: widget.viewData,
+              isUnlocked: _isUnlocked,
+              onUnlock: _handleUnlock,
+            ),
           ],
         ),
       ),

@@ -35,7 +35,93 @@ class ReportProductData {
     }
     return '¥$yuan.${fen.toString().padLeft(2, '0')}';
   }
+
+  factory ReportProductData.fromBackend(
+    Map<String, dynamic> json, {
+    int index = 0,
+  }) {
+    return ReportProductData(
+      id: _firstText(
+            json,
+            const [
+              'id',
+              'productId',
+              'spuId',
+              'skuId',
+              'itemId',
+              'code',
+            ],
+          ) ??
+          'backend-$index',
+      name: _firstText(
+            json,
+            const ['name', 'productName', 'spuName', 'skuName', 'title'],
+          ) ??
+          '推荐商品',
+      type: _firstText(
+            json,
+            const ['type', 'typeName', 'categoryName', 'productType'],
+          ) ??
+          _kBackendDefaultType,
+      description: _firstText(
+            json,
+            const [
+              'description',
+              'desc',
+              'detail',
+              'recommendationReason',
+              'reason',
+              'summary',
+            ],
+          ) ??
+          _kBackendDefaultDescription,
+      priceCents: _resolvePriceCents(json),
+      tag: _firstText(
+            json,
+            const ['tag', 'label', 'badge', 'recommendTag', 'sceneTag'],
+          ) ??
+          (index == 0 ? '推荐' : '精选'),
+      color: _resolveColor(json, index),
+      icon: _resolveIcon(json, index),
+      packageNote: _firstText(
+            json,
+            const [
+              'packageNote',
+              'packageDesc',
+              'specification',
+              'spec',
+              'packageInfo',
+            ],
+          ) ??
+          _kBackendDefaultPackageNote,
+      shippingNote: _firstText(
+            json,
+            const [
+              'shippingNote',
+              'shippingDesc',
+              'deliveryDesc',
+              'logisticsDesc',
+              'deliveryInfo',
+            ],
+          ) ??
+          _kBackendDefaultShippingNote,
+    );
+  }
 }
+
+const _kBackendFallbackColors = <Color>[
+  Color(0xFF2D6A4F),
+  Color(0xFF0D7A5A),
+  Color(0xFFC9A84C),
+  Color(0xFF6B5B95),
+  Color(0xFF4A7FA8),
+  Color(0xFFD4794A),
+];
+
+const _kBackendDefaultDescription = '基于报告结果推荐的理疗商品。';
+const _kBackendDefaultType = '理疗推荐';
+const _kBackendDefaultPackageNote = '以实际发货规格为准。';
+const _kBackendDefaultShippingNote = '支持快递配送，具体以页面说明为准。';
 
 List<ReportProductData> buildReportProducts(AppLocalizations l10n) {
   return [
@@ -88,4 +174,171 @@ List<ReportProductData> buildReportProducts(AppLocalizations l10n) {
       shippingNote: l10n.reportProductCommonShipping,
     ),
   ];
+}
+
+String? _firstText(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value == null) {
+      continue;
+    }
+    final text = value.toString().trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+  }
+  return null;
+}
+
+int _resolvePriceCents(Map<String, dynamic> json) {
+  const minorKeys = [
+    'priceMinor',
+    'salePriceMinor',
+    'currentPriceMinor',
+    'amountMinor',
+    'unitPriceMinor',
+    'marketPriceMinor',
+    'originalPriceMinor',
+  ];
+  for (final key in minorKeys) {
+    final cents = _parseMoneyValue(json[key]);
+    if (cents != null) {
+      return cents.round();
+    }
+  }
+
+  const yuanKeys = [
+    'price',
+    'salePrice',
+    'currentPrice',
+    'amount',
+    'unitPrice',
+    'marketPrice',
+    'originalPrice',
+  ];
+  for (final key in yuanKeys) {
+    final yuan = _parseMoneyValue(json[key]);
+    if (yuan != null) {
+      return (yuan * 100).round();
+    }
+  }
+
+  return 0;
+}
+
+double? _parseMoneyValue(Object? value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String) {
+    final normalized = value
+        .replaceAll(RegExp(r'[^0-9.\-]'), '')
+        .trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return double.tryParse(normalized);
+  }
+  return null;
+}
+
+Color _resolveColor(Map<String, dynamic> json, int index) {
+  for (final key in const ['color', 'themeColor', 'brandColor', 'mainColor']) {
+    final color = _parseColorValue(json[key]);
+    if (color != null) {
+      return color;
+    }
+  }
+  return _kBackendFallbackColors[index % _kBackendFallbackColors.length];
+}
+
+Color? _parseColorValue(Object? value) {
+  if (value is Color) {
+    return value;
+  }
+  if (value is int) {
+    return Color(value);
+  }
+  if (value is String) {
+    var hex = value.trim();
+    if (hex.isEmpty) {
+      return null;
+    }
+    hex = hex
+        .replaceFirst('#', '')
+        .replaceFirst('0x', '')
+        .replaceFirst('0X', '');
+    if (hex.length == 6) {
+      hex = 'FF$hex';
+    }
+    if (hex.length != 8) {
+      return null;
+    }
+    final parsed = int.tryParse(hex, radix: 16);
+    if (parsed == null) {
+      return null;
+    }
+    return Color(parsed);
+  }
+  return null;
+}
+
+IconData _resolveIcon(Map<String, dynamic> json, int index) {
+  final hint = [
+    _firstText(json, const ['icon', 'iconName', 'iconKey']),
+    _firstText(json, const ['category', 'categoryName', 'type', 'typeName']),
+    _firstText(json, const ['name', 'title', 'description']),
+  ].whereType<String>().join(' ').toLowerCase();
+
+  if (hint.contains('pharmacy') ||
+      hint.contains('medicine') ||
+      hint.contains('drug') ||
+      hint.contains('药') ||
+      hint.contains('丸') ||
+      hint.contains('膏')) {
+    return Icons.local_pharmacy_outlined;
+  }
+
+  if (hint.contains('food') ||
+      hint.contains('diet') ||
+      hint.contains('meal') ||
+      hint.contains('餐') ||
+      hint.contains('食') ||
+      hint.contains('汤') ||
+      hint.contains('粥')) {
+    return Icons.restaurant_menu_outlined;
+  }
+
+  if (hint.contains('device') ||
+      hint.contains('equip') ||
+      hint.contains('instrument') ||
+      hint.contains('thera') ||
+      hint.contains('理疗') ||
+      hint.contains('器') ||
+      hint.contains('仪')) {
+    return Icons.medical_services_outlined;
+  }
+
+  if (hint.contains('eco') ||
+      hint.contains('herb') ||
+      hint.contains('tea') ||
+      hint.contains('草') ||
+      hint.contains('养生') ||
+      hint.contains('植物')) {
+    return Icons.eco_outlined;
+  }
+
+  if (hint.contains('spa') ||
+      hint.contains('massage') ||
+      hint.contains('灸') ||
+      hint.contains('艾')) {
+    return Icons.spa_outlined;
+  }
+
+  return switch (index % 4) {
+    0 => Icons.local_pharmacy_outlined,
+    1 => Icons.eco_outlined,
+    2 => Icons.spa_outlined,
+    _ => Icons.restaurant_menu_outlined,
+  };
 }

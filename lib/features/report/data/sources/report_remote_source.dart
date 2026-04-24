@@ -57,6 +57,33 @@ class ReportRemoteSource {
     return DiagnosisMaNavigate.fromJson(payload);
   }
 
+  Future<List<Map<String, dynamic>>> getPhysiqueProducts({
+    String? token,
+    String? topOrgId,
+    String? clinicId,
+    List<int> physiqueIds = const [],
+    List<int> symptomIds = const [],
+  }) async {
+    final queryParameters = _buildPhysiqueProductQueryParameters(
+      token: token,
+      topOrgId: topOrgId,
+      clinicId: clinicId,
+      physiqueIds: physiqueIds,
+      symptomIds: symptomIds,
+    );
+    if (queryParameters.isEmpty) {
+      return const <Map<String, dynamic>>[];
+    }
+
+    final envelope = await _getEnvelope(
+      _resolvePhysiqueProductsPath(queryParameters['token']?.toString()),
+      queryParameters: queryParameters,
+    );
+    return List<Map<String, dynamic>>.unmodifiable(
+      _extractPhysiqueProductItems(envelope),
+    );
+  }
+
   Future<void> addReportSymptom({
     required String reportId,
     required String symptomId,
@@ -276,6 +303,91 @@ class ReportRemoteSource {
       return summary;
     }
   }
+}
+
+String _resolvePhysiqueProductsPath(String? token) {
+  return token != null && token.trim().isNotEmpty
+      ? '/api/v1/saas/mobile/physique/products/by/token'
+      : '/api/v1/saas/mobile/physique/products';
+}
+
+Map<String, dynamic> _buildPhysiqueProductQueryParameters({
+  required String? token,
+  required String? topOrgId,
+  required String? clinicId,
+  required List<int> physiqueIds,
+  required List<int> symptomIds,
+}) {
+  final queryParameters = <String, dynamic>{};
+
+  final normalizedToken = token?.trim() ?? '';
+  if (normalizedToken.isNotEmpty) {
+    queryParameters['token'] = normalizedToken;
+  }
+
+  final compatParams = _buildTenantStoreCompatQueryParameters(
+    tenantId: topOrgId?.trim() ?? '',
+    storeId: clinicId?.trim(),
+  );
+  queryParameters.addAll(compatParams);
+
+  final normalizedPhysiqueIds = _normalizeIntIds(physiqueIds);
+  if (normalizedPhysiqueIds.isNotEmpty) {
+    queryParameters['physiqueIds'] = normalizedPhysiqueIds;
+  }
+
+  final normalizedSymptomIds = _normalizeIntIds(symptomIds);
+  if (normalizedSymptomIds.isNotEmpty) {
+    queryParameters['symptomIds'] = normalizedSymptomIds;
+  }
+
+  return queryParameters;
+}
+
+List<Map<String, dynamic>> _extractPhysiqueProductItems(
+  Map<String, dynamic> envelope,
+) {
+  final payload = _asMap(envelope['data']);
+  if (payload.isEmpty) {
+    final raw = envelope['data'];
+    if (raw is List) {
+      return raw
+          .map((item) => _asMap(item))
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  for (final key in const [
+    'datas',
+    'records',
+    'items',
+    'list',
+    'rows',
+    'products',
+  ]) {
+    final items = _asList(payload[key])
+        .map((item) => _asMap(item))
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    if (items.isNotEmpty) {
+      return items;
+    }
+  }
+
+  return [payload];
+}
+
+List<int> _normalizeIntIds(Iterable<int> ids) {
+  final normalized = <int>[];
+  for (final id in ids) {
+    if (id <= 0 || normalized.contains(id)) {
+      continue;
+    }
+    normalized.add(id);
+  }
+  return normalized;
 }
 
 Map<String, dynamic> _buildTenantStoreCompatQueryParameters({

@@ -1822,11 +1822,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportAdviceAvoidAlcohol => 'Tobacco and alcohol';
 
   @override
-  String get reportAdviceProductsTitle => 'Related Product Recommendations';
+  String get reportAdviceProductsTitle => 'Therapy Product Recommendations';
 
   @override
   String get reportAdviceProductsSubtitle =>
-      'Personalized recommendations based on constitution';
+      'Personalized recommendations based on the report';
 
   @override
   String get reportAdviceProductsDisclaimer =>

@@ -1,10 +1,45 @@
 part of '../report_page.dart';
 
-class _Tab4Advice extends StatelessWidget {
+class _Tab4Advice extends StatefulWidget {
   final bool isUnlocked;
   final Future<void> Function() onUnlock;
+  final ReportViewData viewData;
 
-  const _Tab4Advice({required this.isUnlocked, required this.onUnlock});
+  const _Tab4Advice({
+    required this.isUnlocked,
+    required this.onUnlock,
+    required this.viewData,
+  });
+
+  @override
+  State<_Tab4Advice> createState() => _Tab4AdviceState();
+}
+
+class _Tab4AdviceState extends State<_Tab4Advice> {
+  late Future<List<ReportProductData>> _backendProductsFuture;
+
+  bool get _isUnlocked => widget.isUnlocked;
+  Future<void> Function() get _onUnlock => widget.onUnlock;
+  ReportViewData get _viewData => widget.viewData;
+
+  @override
+  void initState() {
+    super.initState();
+    _backendProductsFuture = _loadBackendProducts();
+  }
+
+  @override
+  void didUpdateWidget(covariant _Tab4Advice oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_productQuerySignature(oldWidget.viewData) ==
+        _productQuerySignature(widget.viewData)) {
+      return;
+    }
+
+    setState(() {
+      _backendProductsFuture = _loadBackendProducts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +51,9 @@ class _Tab4Advice extends StatelessWidget {
         _FloatingSectionTitle(title: l10n.reportAdviceDietTitle),
         const SizedBox(height: 10),
         _Lockable(
-          isUnlocked: isUnlocked,
+          isUnlocked: _isUnlocked,
           lockTitle: l10n.reportUnlockDietAdviceTitle,
-          onUnlock: onUnlock,
+          onUnlock: _onUnlock,
           child: _buildDietAdviceContent(context),
         ),
         const SizedBox(height: 16),
@@ -412,51 +447,115 @@ class _Tab4Advice extends StatelessWidget {
   // ── 产品推荐 ─────────────────────────────────────────────────────
   Widget _buildProductRecommendations(BuildContext context) {
     final l10n = context.l10n;
-    final products = buildReportProducts(l10n);
+    return FutureBuilder<List<ReportProductData>>(
+      future: _backendProductsFuture,
+      builder: (context, snapshot) {
+        final backendProducts = snapshot.data ?? const <ReportProductData>[];
+        final products = backendProducts.isNotEmpty
+            ? backendProducts
+            : buildReportProducts(l10n);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FloatingSectionTitle(title: l10n.reportAdviceProductsTitle),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 10),
-          child: Text(
-            l10n.reportAdviceProductsSubtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: const Color(0xFFA09080).withValues(alpha: 0.8),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FloatingSectionTitle(title: l10n.reportAdviceProductsTitle),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 10),
+              child: Text(
+                l10n.reportAdviceProductsSubtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: const Color(0xFFA09080).withValues(alpha: 0.8),
+                ),
+              ),
             ),
-          ),
-        ),
-        ...products.map(
-          (p) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _ProductCard(product: p),
-          ),
-        ),
-        // 免责声明
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2D6A4F).withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
-              width: 1,
+            ...products.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ProductCard(product: p),
+              ),
             ),
-          ),
-          child: Text(
-            l10n.reportAdviceProductsDisclaimer,
-            style: TextStyle(
-              fontSize: 11,
-              color: const Color(0xFF3A3028).withValues(alpha: 0.45),
-              height: 1.5,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D6A4F).withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                l10n.reportAdviceProductsDisclaimer,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: const Color(0xFF3A3028).withValues(alpha: 0.45),
+                  height: 1.5,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
+  }
+
+  Future<List<ReportProductData>> _loadBackendProducts() async {
+    try {
+      final source = ReportRemoteSource(getIt<DioClient>());
+      final rawProducts = await source.getPhysiqueProducts(
+        token: _viewData.token,
+        topOrgId: _viewData.tenantId,
+        clinicId: _viewData.storeId,
+        physiqueIds: _collectNumericIds(
+          _viewData.constitutionScores.map((item) => item.id),
+        ),
+        symptomIds: _collectNumericIds([
+          ..._viewData.healthRadarClassicSymptoms.map((item) => item.id),
+          ..._viewData.healthRadarDeepSymptoms.map((item) => item.id),
+        ]),
+      );
+      if (rawProducts.isEmpty) {
+        return const <ReportProductData>[];
+      }
+      return rawProducts
+          .asMap()
+          .entries
+          .map(
+            (entry) => ReportProductData.fromBackend(
+              entry.value,
+              index: entry.key,
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <ReportProductData>[];
+    }
+  }
+
+  String _productQuerySignature(ReportViewData viewData) {
+    return [
+      viewData.reportId?.trim() ?? '',
+      viewData.token?.trim() ?? '',
+      viewData.tenantId?.trim() ?? '',
+      viewData.storeId?.trim() ?? '',
+      ...viewData.constitutionScores.map((item) => item.id.trim()),
+      ...viewData.healthRadarClassicSymptoms.map((item) => item.id.trim()),
+      ...viewData.healthRadarDeepSymptoms.map((item) => item.id.trim()),
+    ].join('|');
+  }
+
+  List<int> _collectNumericIds(Iterable<String> values) {
+    final resolved = <int>[];
+    for (final value in values) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed == null || parsed <= 0 || resolved.contains(parsed)) {
+        continue;
+      }
+      resolved.add(parsed);
+    }
+    return resolved;
   }
 }
 

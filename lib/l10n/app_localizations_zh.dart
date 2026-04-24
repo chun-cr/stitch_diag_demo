@@ -1691,10 +1691,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportAdviceAvoidAlcohol => '烟酒';
 
   @override
-  String get reportAdviceProductsTitle => '相关产品推荐';
+  String get reportAdviceProductsTitle => '理疗项目推荐';
 
   @override
-  String get reportAdviceProductsSubtitle => '依据体质个性化推荐';
+  String get reportAdviceProductsSubtitle => '依据报告结果个性化推荐';
 
   @override
   String get reportAdviceProductsDisclaimer =>

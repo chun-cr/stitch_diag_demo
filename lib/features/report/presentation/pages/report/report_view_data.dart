@@ -91,6 +91,7 @@ class ReportViewData {
   const ReportViewData({
     required this.mode,
     required this.reportId,
+    required this.token,
     required this.overallScore,
     required this.faceScore,
     required this.tongueScore,
@@ -117,6 +118,7 @@ class ReportViewData {
 
   final ReportViewMode mode;
   final String? reportId;
+  final String? token;
   final double overallScore;
   final double faceScore;
   final double tongueScore;
@@ -159,6 +161,7 @@ class ReportViewData {
     return ReportViewData(
       mode: mode,
       reportId: reportId,
+      token: token,
       overallScore: overallScore,
       faceScore: faceScore,
       tongueScore: tongueScore,
@@ -188,6 +191,7 @@ class ReportViewData {
     return ReportViewData(
       mode: ReportViewMode.demo,
       reportId: reportId,
+      token: null,
       overallScore: 78,
       faceScore: 86,
       tongueScore: 72,
@@ -321,6 +325,7 @@ class ReportViewData {
     return ReportViewData(
       mode: ReportViewMode.live,
       reportId: detail.id.isNotEmpty ? detail.id : null,
+      token: detail.token.trim().isNotEmpty ? detail.token.trim() : null,
       overallScore: _clampPercent(detail.healthScore),
       faceScore: _scoreFromFindings(
         detail.faceAnalysisResult.result.length,
