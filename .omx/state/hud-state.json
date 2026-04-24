@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-24T02:04:28.809Z",
-  "turn_count": 188,
-  "last_progress_at": "2026-04-24T02:04:28.809Z",
-  "last_agent_output": "对照小程序后，问题点基本找到了。\n\n小程序历史页在 [recipeAI.js](/D:/work/millet-kyai-miniapps/common/api/recipeAI.js) 和 [hom"
+  "last_turn_at": "2026-04-24T02:24:09.012Z",
+  "turn_count": 194,
+  "last_progress_at": "2026-04-24T02:24:09.012Z",
+  "last_agent_output": "严格说，不是默认的 `SnackBar`。\n\n那张“签到成功，+10积分”更像是“底部胶囊 Toast”或“浮动型 SnackBar 风格提示”：\n- 视觉上是胶囊、居中、带图标\n- 行为上是短时自动"
 }
