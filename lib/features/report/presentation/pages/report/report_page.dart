@@ -12,6 +12,7 @@ import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/l10n/seasonal_context.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 import 'package:stitch_diag_demo/features/report/data/sources/report_remote_source.dart';
 import 'package:stitch_diag_demo/features/report/application/report_unlock_service.dart';

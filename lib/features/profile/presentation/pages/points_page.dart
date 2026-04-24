@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points_entry_entity.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points_overview_entity.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points_task_entity.dart';
@@ -38,10 +39,12 @@ const _kSupportedTaskRoutes = <String>{
 class PointsPage extends ConsumerWidget {
   const PointsPage({super.key});
 
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showToast(
+    BuildContext context,
+    String message, {
+    AppToastKind kind = AppToastKind.error,
+  }) {
+    showAppToast(context, message, kind: kind);
   }
 
   Future<void> _refreshPoints(BuildContext context, WidgetRef ref) async {
@@ -51,7 +54,7 @@ class PointsPage extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      _showSnackBar(context, context.l10n.profilePointsLoadFailed);
+      _showToast(context, context.l10n.profilePointsLoadFailed);
     }
   }
 
@@ -67,16 +70,17 @@ class PointsPage extends ConsumerWidget {
       }
       final reward = (overview.balance - previousBalance).toInt();
       if (reward > 0) {
-        _showSnackBar(
+        _showToast(
           context,
           context.l10n.profilePointsCheckInSuccess(reward),
+          kind: AppToastKind.success,
         );
       }
     } on Object {
       if (!context.mounted) {
         return;
       }
-      _showSnackBar(context, context.l10n.profilePointsCheckInFailed);
+      _showToast(context, context.l10n.profilePointsCheckInFailed);
     }
   }
 
@@ -109,11 +113,12 @@ class PointsPage extends ConsumerWidget {
     if (!context.mounted) {
       return;
     }
-    _showSnackBar(
+    _showToast(
       context,
       context.l10n.profilePointsTaskActionUnsupported(
         _taskActionLabel(context, task),
       ),
+      kind: AppToastKind.info,
     );
   }
 
@@ -124,7 +129,7 @@ class PointsPage extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      _showSnackBar(context, context.l10n.profilePointsLoadMoreFailed);
+      _showToast(context, context.l10n.profilePointsLoadMoreFailed);
     }
   }
 

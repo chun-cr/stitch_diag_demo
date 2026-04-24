@@ -1,14 +1,14 @@
-// ═══════════════════════════════════════════════════════════════════
-// 修复说明（保留原有所有 bug-fix 逻辑，只重做 UI）
+﻿// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+// 淇璇存槑锛堜繚鐣欏師鏈夋墍鏈?bug-fix 閫昏緫锛屽彧閲嶅仛 UI锛?
 //
-// UI 架构：三层分割
-//   顶部引导卡  → 白色圆角卡片（步骤指示器 + 标题 + 中医说明条）
-//   中间拍摄区  → 相机预览 + 舌形扫描框（口形椭圆）
-//   底部提示卡  → 白色圆角卡片（Tips + 主操作按钮 + 跳过）
+// UI 鏋舵瀯锛氫笁灞傚垎鍓?
+//   椤堕儴寮曞鍗? 鈫?鐧借壊鍦嗚鍗＄墖锛堟楠ゆ寚绀哄櫒 + 鏍囬 + 涓尰璇存槑鏉★級
+//   涓棿鎷嶆憚鍖? 鈫?鐩告満棰勮 + 鑸屽舰鎵弿妗嗭紙鍙ｅ舰妞渾锛?
+//   搴曢儴鎻愮ず鍗? 鈫?鐧借壊鍦嗚鍗＄墖锛圱ips + 涓绘搷浣滄寜閽?+ 璺宠繃锛?
 //
-// 风格与 scan_guide_page.dart 保持一致：
-//   背景色 0xFFF4F1EB（宣纸米色）、绿色体系、白色卡片、微阴影
-// ═══════════════════════════════════════════════════════════════════
+// 椋庢牸涓?scan_guide_page.dart 淇濇寔涓€鑷达細
+//   鑳屾櫙鑹?0xFFF4F1EB锛堝绾哥背鑹诧級銆佺豢鑹蹭綋绯汇€佺櫧鑹插崱鐗囥€佸井闃村奖
+// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 
 import 'dart:async';
 
@@ -22,6 +22,7 @@ import '../../../../core/l10n/l10n.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../data/models/scan_session.dart';
 import '../../data/models/scan_upload_result.dart';
 import '../../data/sources/scan_remote_source.dart';
@@ -32,7 +33,7 @@ import '../utils/scan_debug_error_dialog.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
 
-// ── 扫描状态枚举（原定义在 scan_frame.dart，此处独立声明）
+// 鈹€鈹€ 鎵弿鐘舵€佹灇涓撅紙鍘熷畾涔夊湪 scan_frame.dart锛屾澶勭嫭绔嬪０鏄庯級
 enum ScanState { idle, scanning, uploading, completed }
 
 bool isTongueHoldEligible({
@@ -103,10 +104,10 @@ List<String> describeTongueScanBlockers({
   return blockers.isEmpty ? const ['hold_ready'] : blockers;
 }
 
-// ── 颜色（舌象用偏暖的玫瑰绿，兼容米色背景）
-const _kAccent = Color(0xFF0D7A5A); // 主强调色
-const _kAccentLight = Color(0xFF3DAB78); // 按钮渐变亮端
-const _kBgColor = Color(0xFFF4F1EB); // 宣纸米色
+// 鈹€鈹€ 棰滆壊锛堣垖璞＄敤鍋忔殩鐨勭帿鐟扮豢锛屽吋瀹圭背鑹茶儗鏅級
+const _kAccent = Color(0xFF0D7A5A); // 涓诲己璋冭壊
+const _kAccentLight = Color(0xFF3DAB78); // 鎸夐挳娓愬彉浜
+const _kBgColor = Color(0xFFF4F1EB); // 瀹ｇ焊绫宠壊
 
 class TongueScanPage extends StatefulWidget {
   const TongueScanPage({super.key});
@@ -144,7 +145,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
   Size _cameraViewportSize = Size.zero;
-  String _mouthDirection = ''; // 方向提示
+  String _mouthDirection = ''; // 鏂瑰悜鎻愮ず
 
   Rect get _tongueGuideRectNormalized => buildNormalizedGuideRect(
     _cameraViewportSize,
@@ -386,7 +387,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
-  /// 根据嘴部中心（已归一化）0~1 计算偏移方向
+  /// 鏍规嵁鍢撮儴涓績锛堝凡褰掍竴鍖栵級0~1 璁＄畻鍋忕Щ鏂瑰悜
   String _computeMouthDirection(Offset? center) {
     if (center == null) return '';
     final l10n = context.l10n;
@@ -480,9 +481,11 @@ class _TongueScanPageState extends State<TongueScanPage>
         setState(() {
           _scanState = ScanState.scanning;
         });
-        ScaffoldMessenger.of(
+        showAppToast(
           context,
-        ).showSnackBar(const SnackBar(content: Text('未检测到清晰舌象，请重新扫描。')));
+          '未检测到清晰舌象，请重新扫描。',
+          kind: AppToastKind.info,
+        );
         return;
       }
 
@@ -505,7 +508,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       setState(() {
         _scanState = ScanState.scanning;
       });
-      await showScanDebugErrorDialog(context, title: '舌象上传失败', error: error);
+      await showScanDebugErrorDialog(context, title: '鑸岃薄涓婁紶澶辫触', error: error);
     }
   }
 
@@ -538,7 +541,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     super.dispose();
   }
 
-  // ── 文案计算 ──────────────────────────────────────────────────────
+  // 鈹€鈹€ 鏂囨璁＄畻 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   String get _statusLabel {
     final l10n = context.l10n;
@@ -551,7 +554,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     return l10n.scanTongueAlignHint;
   }
 
-  // ─── Build ──────────────────────────────────────────────────────────────────
+  // 鈹€鈹€鈹€ Build 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   @override
   Widget build(BuildContext context) {
@@ -576,7 +579,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
-  // ─── 顶部引导卡 ─────────────────────────────────────────────────────
+  // 鈹€鈹€鈹€ 椤堕儴寮曞鍗?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   Widget _buildTopGuideCard() {
     final l10n = context.l10n;
@@ -596,7 +599,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       ),
       child: Column(
         children: [
-          // 顶栏
+          // 椤舵爮
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 10, 16, 6),
             child: Row(
@@ -636,7 +639,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Divider(height: 1, color: _kAccent.withValues(alpha: 0.08)),
-          // 标题行
+          // 鏍囬琛?
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
             child: Row(
@@ -737,7 +740,7 @@ class _TongueScanPageState extends State<TongueScanPage>
               ],
             ),
           ),
-          // 底部说明条
+          // 搴曢儴璇存槑鏉?
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
@@ -772,7 +775,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
-  // ─── 中间拍摄区 ─────────────────────────────────────────────────────
+  // 鈹€鈹€鈹€ 涓棿鎷嶆憚鍖?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   Widget _buildCameraArea() {
     return LayoutBuilder(
@@ -780,9 +783,9 @@ class _TongueScanPageState extends State<TongueScanPage>
         _cameraViewportSize = constraints.biggest;
         final cx = constraints.maxWidth / 2;
         final tongueFrameAlignmentY = _tongueGuideAlignment.y;
-        // 将圆形 camera 视作整张脸，圆心轻微下移，给口鼻区域留出更自然的位置
+        // 灏嗗渾褰?camera 瑙嗕綔鏁村紶鑴革紝鍦嗗績杞诲井涓嬬Щ锛岀粰鍙ｉ蓟鍖哄煙鐣欏嚭鏇磋嚜鐒剁殑浣嶇疆
         final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
-        // 缩小圆圈半径
+        // 缂╁皬鍦嗗湀鍗婂緞
         final radius = constraints.maxWidth * 0.36;
 
         return Stack(
@@ -843,7 +846,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 容错区 (外层)
+          // 瀹归敊鍖?(澶栧眰)
           Positioned.fill(
             child: CustomPaint(
               painter: _BionicTonguePainter(
@@ -855,7 +858,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
 
-          // 精准区 (内层) 带有呼吸动画及对齐后反馈
+          // 绮惧噯鍖?(鍐呭眰) 甯︽湁鍛煎惛鍔ㄧ敾鍙婂榻愬悗鍙嶉
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _breatheAnim,
@@ -889,7 +892,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
 
-          // 扫描线
+          // 鎵弿绾?
           AnimatedBuilder(
             animation: _scanAnim,
             builder: (context, child) => Positioned(
@@ -911,7 +914,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
 
-          // 进度条（底部）
+          // 杩涘害鏉★紙搴曢儴锛?
           if (_scanState == ScanState.scanning && _holdEligible)
             Positioned(
               bottom: -66,
@@ -920,7 +923,7 @@ class _TongueScanPageState extends State<TongueScanPage>
               child: _ScanProgressBar(progress: _scanProgress),
             ),
 
-          // 状态气泡
+          // 鐘舵€佹皵娉?
           Positioned(
             bottom: -48,
             left: -40,
@@ -940,7 +943,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
-  // ─── 底部提示卡 ─────────────────────────────────────────────────────
+  // 鈹€鈹€鈹€ 搴曢儴鎻愮ず鍗?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   Widget _buildBottomCard() {
     final l10n = context.l10n;
@@ -967,7 +970,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Tips 行
+          // Tips 琛?
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Row(
@@ -989,7 +992,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Divider(height: 1, color: _kAccent.withValues(alpha: 0.08)),
-          // 按钮区
+          // 鎸夐挳鍖?
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(
@@ -1067,7 +1070,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 }
 
-// ── 进度条 ───────────────────────────────────────────────────────────────────
+// 鈹€鈹€ 杩涘害鏉?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _ScanProgressBar extends StatelessWidget {
   final double progress;
@@ -1105,7 +1108,7 @@ class _ScanProgressBar extends StatelessWidget {
   );
 }
 
-// ── 共用小组件 ────────────────────────────────────────────────────────────────
+// 鈹€鈹€ 鍏辩敤灏忕粍浠?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _TipItem extends StatelessWidget {
   final IconData icon;
@@ -1178,7 +1181,7 @@ class _StatusPill extends StatelessWidget {
   );
 }
 
-// ── 背景画布（与 scan_guide_page 完全一致）──────────────────────────────────
+// 鈹€鈹€ 鑳屾櫙鐢诲竷锛堜笌 scan_guide_page 瀹屽叏涓€鑷达級鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _BgPainter extends CustomPainter {
   @override
@@ -1227,7 +1230,7 @@ class _BgPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter _) => false;
 }
 
-// ── 舌状扫描相关 Painter 及 Widget ──────────────────────────────────────────
+// 鈹€鈹€ 鑸岀姸鎵弿鐩稿叧 Painter 鍙?Widget 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _CircleMask extends StatelessWidget {
   final Offset center;
@@ -1274,7 +1277,7 @@ class _CircleMaskPainter extends CustomPainter {
       fullPath,
       circlePath,
     );
-    canvas.drawPath(maskPath, Paint()..color = bgColor); // 不透明边缘遮罩
+    canvas.drawPath(maskPath, Paint()..color = bgColor); // 涓嶉€忔槑杈圭紭閬僵
   }
 
   @override
@@ -1365,7 +1368,7 @@ class _BionicTonguePainter extends CustomPainter {
   bool shouldRepaint(_BionicTonguePainter old) => true;
 }
 
-// ── 方向引导气泡 ────────────────────────────────────────────────────────────
+// 鈹€鈹€ 鏂瑰悜寮曞姘旀场 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _TongueDirectionPill extends StatelessWidget {
   final String direction;
@@ -1402,3 +1405,4 @@ class _TongueDirectionPill extends StatelessWidget {
     );
   }
 }
+

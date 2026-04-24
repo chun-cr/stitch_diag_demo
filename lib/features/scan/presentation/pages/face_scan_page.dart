@@ -7,11 +7,12 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/l10n/l10n.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/logger.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../widgets/scan_step_indicator.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/face_landmark_overlay.dart';
-import '../../../../core/utils/logger.dart';
-import '../../../../core/router/app_router.dart';
 import '../../data/models/scan_session.dart';
 import '../../data/sources/scan_remote_source.dart';
 import '../services/face_scan_status_bridge.dart';
@@ -348,9 +349,7 @@ class _FaceScanPageState extends State<FaceScanPage>
         setState(() {
           _isSubmitting = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        showAppToast(context, message, kind: AppToastKind.info);
         return;
       }
 

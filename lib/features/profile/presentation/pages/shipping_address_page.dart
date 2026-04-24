@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
+import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_shipping_address_entity.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_address_provider.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/widgets/profile_loading_skeletons.dart';
@@ -31,10 +32,8 @@ final _addressPhoneInputFormatter = FilteringTextInputFormatter.allow(
 class ShippingAddressPage extends ConsumerWidget {
   const ShippingAddressPage({super.key});
 
-  void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showErrorToast(BuildContext context, String message) {
+    showAppToast(context, message);
   }
 
   Future<void> _refreshAddresses(BuildContext context, WidgetRef ref) async {
@@ -44,7 +43,7 @@ class ShippingAddressPage extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      _showErrorSnackBar(context, context.l10n.profileAddressLoadFailed);
+      _showErrorToast(context, context.l10n.profileAddressLoadFailed);
     }
   }
 
@@ -62,7 +61,7 @@ class ShippingAddressPage extends ConsumerWidget {
             .loadAddressDetail(initial.id);
       } on Object {
         if (context.mounted) {
-          _showErrorSnackBar(context, context.l10n.profileAddressLoadFailed);
+          _showErrorToast(context, context.l10n.profileAddressLoadFailed);
         }
       }
     }
@@ -90,7 +89,7 @@ class ShippingAddressPage extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      _showErrorSnackBar(context, context.l10n.profileAddressSaveFailed);
+      _showErrorToast(context, context.l10n.profileAddressSaveFailed);
     }
   }
 
@@ -129,7 +128,7 @@ class ShippingAddressPage extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      _showErrorSnackBar(context, context.l10n.profileAddressDeleteFailed);
+      _showErrorToast(context, context.l10n.profileAddressDeleteFailed);
     }
   }
 
@@ -144,7 +143,7 @@ class ShippingAddressPage extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      _showErrorSnackBar(context, context.l10n.profileAddressDefaultFailed);
+      _showErrorToast(context, context.l10n.profileAddressDefaultFailed);
     }
   }
 

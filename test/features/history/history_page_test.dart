@@ -1,13 +1,83 @@
 import 'dart:async';
 
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stitch_diag_demo/core/di/injector.dart';
+import 'package:stitch_diag_demo/core/network/dio_client.dart';
+import 'package:stitch_diag_demo/core/platform/app_identity.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_page.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_widgets.dart';
 import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
+
+import '../report/report_test_data.dart';
+
+class _HistoryReportsAdapter implements HttpClientAdapter {
+  _HistoryReportsAdapter({required this.reportDetailRaw});
+
+  final Map<String, dynamic> reportDetailRaw;
+  final requestPaths = <String>[];
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requestPaths.add(options.path);
+
+    if (options.path == '/api/v1/saas/physiques/reports') {
+      expect(options.queryParameters['source'], 'KY_MA');
+      return ResponseBody.fromString(
+        jsonEncode({
+          'code': 0,
+          'message': 'ok',
+          'data': {
+            'datas': [
+              {
+                'id': 'record-1',
+                'testTime': '2026-04-17 10:30',
+                'healthScore': 82,
+                'physiqueName': 'Balanced',
+                'imageUrl': 'https://example.com/tongue.png',
+                'lockedStatus': '1',
+                'deepPredicts': const <String, Object>{},
+              },
+            ],
+            'totalCount': 1,
+          },
+        }),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
+
+    if (options.path == '/api/v1/saas/mobile/ai/diagnosis/report/record-1') {
+      return ResponseBody.fromString(
+        jsonEncode({'code': 0, 'message': 'ok', 'data': reportDetailRaw}),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
+
+    throw StateError('Unexpected path: ${options.path}');
+  }
+}
 
 Future<GoRouter> _pumpHistoryRouter(
   WidgetTester tester, {
@@ -122,6 +192,8 @@ DiagnosisRecord _buildRecord({
 }
 
 void main() {
+  tearDown(hideAppToast);
+
   testWidgets('history page renders provided records without loading state', (
     tester,
   ) async {
@@ -184,34 +256,32 @@ void main() {
     await _tearDownHistoryPage(tester);
   });
 
-  testWidgets(
-    'locked history record shows unlock action instead of navigating',
-    (tester) async {
-      final router = await _pumpHistoryRouter(
-        tester,
-        records: [
-          _buildRecord(
-            id: 'record-99',
-            constitutionLabel: 'Dampness',
-            date: DateTime(2026, 4, 11),
-            isUnlocked: false,
-          ),
-        ],
-      );
-      final l10n = lookupAppLocalizations(const Locale('zh'));
+  testWidgets('locked history record still navigates to report analysis', (
+    tester,
+  ) async {
+    final router = await _pumpHistoryRouter(
+      tester,
+      records: [
+        _buildRecord(
+          id: 'record-99',
+          constitutionLabel: 'Dampness',
+          date: DateTime(2026, 4, 11),
+          isUnlocked: false,
+        ),
+      ],
+    );
+    final l10n = lookupAppLocalizations(const Locale('zh'));
 
-      expect(find.text(l10n.actionUnlockNow), findsOneWidget);
+    expect(find.text(l10n.actionUnlockNow), findsOneWidget);
 
-      await tester.tap(find.text(l10n.actionUnlockNow));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.actionUnlockNow));
+    await tester.pumpAndSettle();
 
-      expect(find.text(l10n.commonFeatureInDevelopment), findsOneWidget);
-      expect(find.text('report:record-99'), findsNothing);
+    expect(find.text('report:record-99'), findsOneWidget);
 
-      router.dispose();
-      await _tearDownHistoryPage(tester);
-    },
-  );
+    router.dispose();
+    await _tearDownHistoryPage(tester);
+  });
 
   testWidgets('history page loads records through injected loader', (
     tester,
@@ -306,4 +376,53 @@ void main() {
 
     await _tearDownHistoryPage(tester);
   });
+
+  testWidgets(
+    'history page resolves face preview images from report detail by default',
+    (tester) async {
+      const channel = MethodChannel('app/info');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final adapter = _HistoryReportsAdapter(
+        reportDetailRaw: buildDiagnosisReportDetail(
+          id: 'record-1',
+          imageUrl: 'https://example.com/tongue.png',
+          faceImageUrl: 'https://example.com/face.png',
+        ).raw,
+      );
+
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        expect(call.method, 'getAppId');
+        return 'com.permillet.myapp.dev';
+      });
+      AppIdentity.resetForTest();
+      await getIt.reset();
+      final dioClient = DioClient();
+      dioClient.dio.httpClientAdapter = adapter;
+      getIt.registerSingleton<DioClient>(dioClient);
+
+      addTearDown(() async {
+        messenger.setMockMethodCallHandler(channel, null);
+        AppIdentity.resetForTest();
+        await getIt.reset();
+      });
+
+      await _pumpHistoryPage(tester);
+      await tester.pumpAndSettle();
+
+      final card = tester.widget<HistoryRecordCard>(
+        find.byType(HistoryRecordCard),
+      );
+      expect(card.record.faceImageUrl, 'https://example.com/face.png');
+      expect(
+        adapter.requestPaths,
+        equals([
+          '/api/v1/saas/physiques/reports',
+          '/api/v1/saas/mobile/ai/diagnosis/report/record-1',
+        ]),
+      );
+
+      await _tearDownHistoryPage(tester);
+    },
+  );
 }

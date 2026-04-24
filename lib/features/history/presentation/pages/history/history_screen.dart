@@ -106,7 +106,6 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) => HistoryRecordCard(
                   record: visibleRecords[index],
-                  onUnlock: () => _showUnlockMessage(context),
                 ),
                 childCount: visibleRecords.length,
               ),
@@ -115,13 +114,6 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
       ],
     );
   }
-
-  void _showUnlockMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.commonFeatureInDevelopment)),
-    );
-  }
-
   Widget _buildEmptyState(BuildContext context) {
     final message = Localizations.localeOf(context).languageCode == 'zh'
         ? '暂无历史报告'

@@ -158,7 +158,10 @@ class _ReportScreenState extends State<_ReportScreen>
 
     final reportId = widget.viewData.reportId?.trim() ?? '';
     if (reportId.isEmpty) {
-      _showReportShareSnack(_reportShareMissingIdMessage(context));
+      _showReportShareToast(
+        _reportShareMissingIdMessage(context),
+        kind: AppToastKind.info,
+      );
       return;
     }
 
@@ -170,7 +173,10 @@ class _ReportScreenState extends State<_ReportScreen>
       }
       if (!shareQrCode.hasDisplayableImage &&
           shareQrCode.copyValue.trim().isEmpty) {
-        _showReportShareSnack(_reportShareEmptyMessage(context));
+        _showReportShareToast(
+          _reportShareEmptyMessage(context),
+          kind: AppToastKind.info,
+        );
       } else {
         await _showReportShareDialog(context, shareQrCode);
       }
@@ -178,16 +184,17 @@ class _ReportScreenState extends State<_ReportScreen>
       if (!mounted) {
         return;
       }
-      _showReportShareSnack(_reportShareFailedMessage(context));
+      _showReportShareToast(_reportShareFailedMessage(context));
     } finally {
       _shareLoading = false;
     }
   }
 
-  void _showReportShareSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showReportShareToast(
+    String message, {
+    AppToastKind kind = AppToastKind.error,
+  }) {
+    showAppToast(context, message, kind: kind);
   }
 
   double _heroExpandedHeight(BuildContext context) =>
@@ -1766,12 +1773,10 @@ Future<void> _showReportShareDialog(
                         if (!dialogContext.mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              _reportShareCopiedMessage(dialogContext),
-                            ),
-                          ),
+                        showAppToast(
+                          dialogContext,
+                          _reportShareCopiedMessage(dialogContext),
+                          kind: AppToastKind.success,
                         );
                       },
                       child: Text(_reportShareCopyAction(dialogContext)),

@@ -79,23 +79,23 @@ class HistoryRecordCard extends StatelessWidget {
   const HistoryRecordCard({
     super.key,
     required this.record,
-    required this.onUnlock,
   });
 
   final DiagnosisRecord record;
-  final VoidCallback onUnlock;
+
+  void _openReport(BuildContext context) {
+    context.push(
+      Uri(
+        path: AppRoutes.reportAnalysis,
+        queryParameters: <String, String>{'reportId': record.id},
+      ).toString(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: record.isUnlocked
-          ? () => context.push(
-              Uri(
-                path: AppRoutes.reportAnalysis,
-                queryParameters: <String, String>{'reportId': record.id},
-              ).toString(),
-            )
-          : null,
+      onTap: () => _openReport(context),
       child: Container(
         decoration: BoxDecoration(
           color: historyCardBg,
@@ -223,7 +223,7 @@ class HistoryRecordCard extends StatelessWidget {
                         const Spacer(),
                         if (!record.isUnlocked)
                           GestureDetector(
-                            onTap: onUnlock,
+                            onTap: () => _openReport(context),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,

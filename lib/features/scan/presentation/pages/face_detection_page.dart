@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/l10n/l10n.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../services/face_scan_status_bridge.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/face_landmark_overlay.dart';
@@ -44,8 +45,10 @@ class _FaceDetectionPageState extends State<FaceDetectionPage> {
       });
       await _bridge.startMonitoring();
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.scanFaceDetectionPermissionRequired)),
+      showAppToast(
+        context,
+        context.l10n.scanFaceDetectionPermissionRequired,
+        kind: AppToastKind.info,
       );
     }
   }

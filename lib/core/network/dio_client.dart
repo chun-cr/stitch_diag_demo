@@ -4,7 +4,6 @@ import '../platform/app_identity.dart';
 import 'interceptors/app_identity_interceptor.dart';
 import 'interceptors/log_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
-import 'secure_response_transformer.dart';
 
 class DioClient {
   static const String _defaultNativeBaseUrl =
@@ -102,7 +101,6 @@ class DioClient {
         headers: {'X-App-Id': AppIdentity.currentAppId, 'X-Platform': platform},
       ),
     );
-    dio.transformer = SecureResponseTransformer();
     dio.interceptors.add(AppIdentityInterceptor());
     dio.interceptors.add(AuthInterceptor());
     dio.interceptors.add(AppLogInterceptor());

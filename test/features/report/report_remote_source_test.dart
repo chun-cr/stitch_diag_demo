@@ -43,17 +43,6 @@ ResponseBody _jsonResponse(Object? data) {
   );
 }
 
-ResponseBody _encryptedJsonResponse(String data) {
-  return ResponseBody.fromString(
-    data,
-    200,
-    headers: {
-      Headers.contentTypeHeader: [Headers.jsonContentType],
-      'X-Security': ['1'],
-    },
-  );
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -219,34 +208,4 @@ void main() {
       expect(requestPaths, equals(['/api/v1/saas/physiques/reports']));
     },
   );
-
-  test('getAllReports decrypts X-Security protected payloads', () async {
-    final dioClient = DioClient();
-    final adapter = _CaptureAdapter((options) {
-      if (options.path != '/api/v1/saas/physiques/reports') {
-        throw StateError('Unexpected path: ${options.path}');
-      }
-
-      return _encryptedJsonResponse(
-        'WFy8PpSj4QM4+LqSWcH4SHMM/iooHXtYxaSMfBDclAo3JUEYhWi16CkASSqqjYYdWzwdlk3+6fraFrWfOIRA4BsNrXfCpDm2QVvrO8bWc0bp7jKGP8Q+rjFD6TLjt5TR+pXCZnqde7MoQcgJkibnyppmHc2RYWYiu8ErZ5g6XXlSIpuHi0KQWgsD5REhsnfLWtCiGZcf9V9Hqt5Z2zKSraTWtkb5TGY/6EYznCx8Wcsy0fBuYwd7OILQ8IkLnVfxAPLeHexKU5t9rEu8C0X2BRhX/EsXb1MK0LaLaJOf0N4qg+zz8RUu46VIOMDc3KKdXl2vpYi3B2Tx2omlESSrhSjmJ6zD7mZfab5ejR+InPNEtxnzfGFbfJ6At539rcLR6rlGCU3vtPZ7rx6MWHZ7Uli1dvnS89vFFQcFzHGIDuBe/1mLiE7muu+UUdK4fRx7',
-      );
-    });
-    dioClient.dio.httpClientAdapter = adapter;
-    final remoteSource = ReportRemoteSource(dioClient);
-
-    final result = await remoteSource.getAllReports();
-
-    expect(result, hasLength(1));
-    expect(result.first.id, 'report-secure-1');
-    expect(result.first.physiqueName, 'Balanced');
-    expect(result.first.deepPredicts.categoryProbabilities, hasLength(2));
-    expect(
-      result.first.deepPredicts.categoryProbabilities.first.name,
-      'risk-a',
-    );
-    expect(
-      result.first.deepPredicts.categoryProbabilities.first.rawProbability,
-      closeTo(0.67, 0.0001),
-    );
-  });
 }
