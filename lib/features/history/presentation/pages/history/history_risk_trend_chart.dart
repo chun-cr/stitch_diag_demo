@@ -20,6 +20,10 @@ class HistoryRiskTrendChart extends StatefulWidget {
 
 class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
   static const bool _isFlutterTest = bool.fromEnvironment('FLUTTER_TEST');
+  static const bool _enableEmbeddedECharts = bool.fromEnvironment(
+    'ENABLE_HISTORY_ECHARTS',
+    defaultValue: false,
+  );
   static const List<Color> _seriesPalette = <Color>[
     historyEarth,
     Color(0xFF5C8768),
@@ -37,7 +41,10 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
   bool _chartLoadFailed = false;
 
   bool get _supportsEmbeddedECharts {
-    if (kIsWeb || _isFlutterTest || WebViewPlatform.instance == null) {
+    if (!_enableEmbeddedECharts ||
+        kIsWeb ||
+        _isFlutterTest ||
+        WebViewPlatform.instance == null) {
       return false;
     }
 

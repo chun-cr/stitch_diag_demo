@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-23T03:48:50.898Z",
-  "turn_count": 183,
-  "last_progress_at": "2026-04-23T03:48:50.898Z",
-  "last_agent_output": "已把页面级加载态切成 [`shimmer`](https://pub.dev/packages/shimmer) 骨架屏，覆盖了 `history`、`report`、`points`、`shippi"
+  "last_turn_at": "2026-04-24T01:27:53.117Z",
+  "turn_count": 187,
+  "last_progress_at": "2026-04-24T01:27:53.117Z",
+  "last_agent_output": "现在从本地代码和测试看，历史报告查询是正常的。\n\n查询链路还在，历史页没有被改成“只显示本地数据不拉接口”。入口在 [history_entry_resolver.dart](/D:/work/sti"
 }

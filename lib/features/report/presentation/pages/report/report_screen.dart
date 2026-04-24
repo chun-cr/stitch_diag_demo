@@ -234,6 +234,9 @@ class _ReportScreenState extends State<_ReportScreen>
     return SliverAppBar(
       expandedHeight: heroExpandedHeight,
       pinned: true,
+      centerTitle: true,
+      titleSpacing: 0,
+      title: _ReportHeaderTitle(viewData: widget.viewData),
       backgroundColor: const Color(0xFFF4F1EB),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -242,6 +245,7 @@ class _ReportScreenState extends State<_ReportScreen>
       leading: Padding(
         padding: const EdgeInsets.only(left: 12),
         child: _HeroChromeButton(
+          key: const ValueKey('report_back_button'),
           icon: Icons.arrow_back_ios_new_rounded,
           onTap: _handleBack,
         ),
@@ -366,12 +370,6 @@ double _estimateHeroExpandedHeight(
     mediaQuery.size.width - horizontalPadding * 2,
     1.0,
   );
-  final metaHeight = _estimateHeroMetaHeight(
-    context,
-    viewData: viewData,
-    maxWidth: contentWidth,
-    compact: compact,
-  );
   final contentHeight = _estimateHeroContentHeight(
     context,
     viewData: viewData,
@@ -386,9 +384,6 @@ double _estimateHeroExpandedHeight(
   final expandedHeight =
       mediaQuery.padding.top +
       topPadding +
-      metaHeight +
-      // meta 与内容区之间的间距，与 _ReportHeroSpace 保持一致
-      (compact ? 8.0 : 14.0) +
       contentHeight +
       // 内容区与 disclaimer 之间的间距
       _heroContentDisclaimerGap(compact) +
@@ -417,30 +412,9 @@ bool _shouldStackHeroContent(double maxWidth) => maxWidth < 360;
 bool _isCompactReportWidth(double width) =>
     width <= _kReportCompactWidthBreakpoint;
 
-double _estimateHeroMetaHeight(
-  BuildContext context, {
-  required ReportViewData viewData,
-  required double maxWidth,
-  required bool compact,
-}) {
-  final metaText =
-      '${_heroTimestampPrefix()}: ${_formatHeroDate(viewData.recordedAt)} · '
-      '${_heroAssessmentSource(viewData.source)}';
-  final textHeight = _measureHeroTextHeight(
-    context,
-    text: metaText,
-    style: TextStyle(
-      fontSize: compact ? 11 : 12,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.2,
-      color: const Color(0xFF5E6B62),
-    ),
-    maxWidth: maxWidth,
-    maxLines: 1,
-  );
-
-  return textHeight + (compact ? 12.0 : 16.0);
-}
+String _heroHeaderMetaText(ReportViewData viewData) =>
+    '${_heroTimestampPrefix()}: ${_formatHeroDate(viewData.recordedAt)} · '
+    '${_heroAssessmentSource(viewData.source)}';
 
 double _estimateHeroContentHeight(
   BuildContext context, {
@@ -758,7 +732,6 @@ class _ReportHeroSpace extends StatelessWidget {
               1.0,
             );
         final eased = Curves.easeOutCubic.transform(progress);
-        final collapsedOpacity = Curves.easeOut.transform(1 - eased);
         final expandedOpacity = Curves.easeOut.transform(eased);
 
         return Stack(
@@ -832,88 +805,62 @@ class _ReportHeroSpace extends StatelessWidget {
                             ? EdgeInsets.fromLTRB(18, 44, 18, heroBottomInset)
                             : EdgeInsets.fromLTRB(24, 52, 24, heroBottomInset),
                         child: LayoutBuilder(
-                          builder: (context, innerConstraints) {
-                            const disclaimerReservedHeight = 0.0;
+                          builder: (context, _) {
                             return Stack(
                               fit: StackFit.expand,
                               children: [
-                                Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom: disclaimerReservedHeight,
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      AnimatedOpacity(
-                                        duration: const Duration(
-                                          milliseconds: 120,
-                                        ),
-                                        opacity: expandedOpacity,
-                                        child: Transform.translate(
-                                          offset: Offset(0, 18 * (1 - eased)),
-                                          child: _HeroMetaLine(
-                                            viewData: viewData,
-                                            compact: compact,
-                                          ),
-                                        ),
-                                      ),
-                                      // meta 与内容区间距，与估算函数保持一致
-                                      SizedBox(height: compact ? 8 : 14),
-                                      Flexible(
-                                        fit: FlexFit.loose,
-                                        child: LayoutBuilder(
-                                          builder: (context, slotConstraints) {
-                                            final estimatedContentHeight =
-                                                _estimateHeroContentHeight(
-                                                  context,
-                                                  viewData: viewData,
-                                                  maxWidth:
-                                                      slotConstraints.maxWidth,
-                                                  compact: compact,
-                                                  stackedOverride:
-                                                      _shouldStackHeroContent(
-                                                        constraints.maxWidth,
-                                                      ),
-                                                );
-                                            final shouldPinToBottom =
-                                                slotConstraints.maxHeight -
-                                                    estimatedContentHeight >
-                                                (compact
-                                                    ? _kHeroContentBottomPinThresholdCompact
-                                                    : _kHeroContentBottomPinThresholdRegular);
-                                            final heroContent = AnimatedOpacity(
-                                              duration: const Duration(
-                                                milliseconds: 120,
-                                              ),
-                                              opacity: expandedOpacity,
-                                              child: Transform.translate(
-                                                offset: Offset(
-                                                  0,
-                                                  20 * (1 - eased),
-                                                ),
-                                                child: _HeroContentCard(
-                                                  viewData: viewData,
-                                                  scoreAnim: scoreAnim,
-                                                  maxWidth:
+                                Column(
+                                  children: [
+                                    Flexible(
+                                      fit: FlexFit.loose,
+                                      child: LayoutBuilder(
+                                        builder: (context, slotConstraints) {
+                                          final estimatedContentHeight =
+                                              _estimateHeroContentHeight(
+                                                context,
+                                                viewData: viewData,
+                                                maxWidth:
+                                                    slotConstraints.maxWidth,
+                                                compact: compact,
+                                                stackedOverride:
+                                                    _shouldStackHeroContent(
                                                       constraints.maxWidth,
-                                                  compact: compact,
-                                                ),
+                                                    ),
+                                              );
+                                          final shouldPinToBottom =
+                                              slotConstraints.maxHeight -
+                                                  estimatedContentHeight >
+                                              (compact
+                                                  ? _kHeroContentBottomPinThresholdCompact
+                                                  : _kHeroContentBottomPinThresholdRegular);
+                                          final heroContent = Opacity(
+                                            opacity: expandedOpacity,
+                                            child: Transform.translate(
+                                              offset: Offset(
+                                                0,
+                                                20 * (1 - eased),
                                               ),
-                                            );
+                                              child: _HeroContentCard(
+                                                viewData: viewData,
+                                                scoreAnim: scoreAnim,
+                                                maxWidth: constraints.maxWidth,
+                                                compact: compact,
+                                              ),
+                                            ),
+                                          );
 
-                                            if (!shouldPinToBottom) {
-                                              return heroContent;
-                                            }
+                                          if (!shouldPinToBottom) {
+                                            return heroContent;
+                                          }
 
-                                            return Align(
-                                              alignment: Alignment.bottomCenter,
-                                              child: heroContent,
-                                            );
-                                          },
-                                        ),
+                                          return Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: heroContent,
+                                          );
+                                        },
                                       ),
-                                      // 内容区与 disclaimer 间距，与估算函数保持一致
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             );
@@ -925,33 +872,77 @@ class _ReportHeroSpace extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              left: 76,
-              right: 76,
-              top: mediaQuery.padding.top + 14,
-              child: IgnorePointer(
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 120),
-                  opacity: collapsedOpacity,
-                  child: Center(
-                    child: Text(
-                      context.l10n.reportHeaderCollapsedTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E1810),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _ReportHeaderTitle extends StatelessWidget {
+  const _ReportHeaderTitle({required this.viewData});
+
+  final ReportViewData viewData;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context
+        .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+    final collapseProgress = settings == null
+        ? 0.0
+        : ((settings.maxExtent - settings.currentExtent) /
+                math.max(settings.maxExtent - settings.minExtent, 1.0))
+            .clamp(0.0, 1.0)
+            .toDouble();
+    final reportTimeOpacity = 1.0 - collapseProgress;
+    final collapsedTitleOpacity = collapseProgress;
+    final reportTimeText = _heroHeaderMetaText(viewData);
+
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Opacity(
+                  key: const ValueKey('report_header_time'),
+                  opacity: reportTimeOpacity,
+                  child: Text(
+                    reportTimeText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                      color: Color(0xFF5E6B62),
+                    ),
+                  ),
+                ),
+                Opacity(
+                  key: const ValueKey('report_header_collapsed_title'),
+                  opacity: collapsedTitleOpacity,
+                  child: Text(
+                    context.l10n.reportHeaderCollapsedTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E1810),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -1027,48 +1018,6 @@ class _HeroContentCard extends StatelessWidget {
 
           return content;
         },
-      ),
-    );
-  }
-}
-
-class _HeroMetaLine extends StatelessWidget {
-  const _HeroMetaLine({required this.viewData, required this.compact});
-
-  final ReportViewData viewData;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final dateText = _formatHeroDate(viewData.recordedAt);
-    final sourceText = _heroAssessmentSource(viewData.source);
-    final metaText = '${_heroTimestampPrefix()}: $dateText · $sourceText';
-
-    return Center(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 12 : 14,
-          vertical: compact ? 6 : 8,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.42),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: const Color(0xFFF0E4D2).withValues(alpha: 0.9),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          metaText,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: compact ? 11 : 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-            color: const Color(0xFF5E6B62),
-          ),
-        ),
       ),
     );
   }

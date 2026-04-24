@@ -258,6 +258,79 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
+  testWidgets('report header keeps time in the toolbar row while fading into AI title', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(
+      tester,
+      surfaceSize: const Size(390, 844),
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'header-fade-report',
+        loadReportViewData: (_) async => buildReportViewData(
+          testTime: '2026-04-17 10:30',
+          source: 'scan-booth',
+          primaryConstitution: '气虚体质',
+          therapySummary: '疏肝解郁，规律作息，少食生冷。',
+          analysisFindingSymptoms: const ['舌边齿痕', '舌苔白腻'],
+          constitutionScores: const [
+            {
+              'id': 'constitution-primary',
+              'name': '气虚体质',
+              'score': 82,
+              'solutions': '疏肝解郁，规律作息，少食生冷。',
+            },
+            {
+              'id': 'constitution-secondary',
+              'name': '阳虚体质',
+              'score': 64,
+              'solutions': '',
+            },
+          ],
+        ),
+      ),
+    );
+
+    final reportTime = find.byKey(const ValueKey('report_header_time'));
+    final collapsedTitle = find.byKey(
+      const ValueKey('report_header_collapsed_title'),
+    );
+    final backButton = find.byKey(const ValueKey('report_back_button'));
+    final shareButton = find.byKey(const ValueKey('report_share_button'));
+    final therapyLine = find.byKey(const ValueKey('report_hero_therapy_line'));
+
+    expect(reportTime, findsOneWidget);
+    expect(collapsedTitle, findsOneWidget);
+    expect(
+      (tester.getCenter(reportTime).dy - tester.getCenter(backButton).dy).abs(),
+      lessThan(4),
+    );
+    expect(
+      (tester.getCenter(reportTime).dy - tester.getCenter(shareButton).dy).abs(),
+      lessThan(4),
+    );
+
+    final initialTimeOpacity = tester.widget<Opacity>(reportTime).opacity;
+    final initialTitleOpacity = tester.widget<Opacity>(collapsedTitle).opacity;
+    expect(initialTimeOpacity, greaterThan(0.9));
+    expect(initialTitleOpacity, lessThan(0.1));
+
+    await tester.drag(therapyLine, const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    final scrolledTimeOpacity = tester.widget<Opacity>(reportTime).opacity;
+    final scrolledTitleOpacity = tester.widget<Opacity>(collapsedTitle).opacity;
+    expect(scrolledTimeOpacity, lessThan(initialTimeOpacity));
+    expect(scrolledTitleOpacity, greaterThan(initialTitleOpacity));
+    expect(scrolledTimeOpacity, lessThan(0.4));
+    expect(scrolledTitleOpacity, greaterThan(0.6));
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('hero grows to fit long therapy content on handset', (
     tester,
   ) async {
