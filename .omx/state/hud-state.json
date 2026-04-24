@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-24T01:27:53.117Z",
-  "turn_count": 187,
-  "last_progress_at": "2026-04-24T01:27:53.117Z",
-  "last_agent_output": "现在从本地代码和测试看，历史报告查询是正常的。\n\n查询链路还在，历史页没有被改成“只显示本地数据不拉接口”。入口在 [history_entry_resolver.dart](/D:/work/sti"
+  "last_turn_at": "2026-04-24T02:04:28.809Z",
+  "turn_count": 188,
+  "last_progress_at": "2026-04-24T02:04:28.809Z",
+  "last_agent_output": "对照小程序后，问题点基本找到了。\n\n小程序历史页在 [recipeAI.js](/D:/work/millet-kyai-miniapps/common/api/recipeAI.js) 和 [hom"
 }

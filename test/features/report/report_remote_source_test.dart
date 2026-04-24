@@ -167,4 +167,45 @@ void main() {
       );
     },
   );
+
+  test(
+    'getAllReports does not resolve face images from detail by default',
+    () async {
+      final requestPaths = <String>[];
+      final dioClient = DioClient();
+      final adapter = _CaptureAdapter((options) {
+        requestPaths.add(options.path);
+        if (options.path == '/api/v1/saas/physiques/reports') {
+          return _jsonResponse({
+            'code': 0,
+            'message': 'ok',
+            'data': {
+              'datas': [
+                {
+                  'id': 'report-1',
+                  'testTime': '2026-04-17 10:30',
+                  'healthScore': 82,
+                  'physiqueName': 'Balanced',
+                  'imageUrl': 'https://example.com/tongue.png',
+                  'lockedStatus': '1',
+                  'deepPredicts': const <String, Object>{},
+                },
+              ],
+              'totalCount': 1,
+            },
+          });
+        }
+
+        throw StateError('Unexpected path: ${options.path}');
+      });
+      dioClient.dio.httpClientAdapter = adapter;
+      final remoteSource = ReportRemoteSource(dioClient);
+
+      final result = await remoteSource.getAllReports();
+
+      expect(result, hasLength(1));
+      expect(result.first.faceImageUrl, isEmpty);
+      expect(requestPaths, equals(['/api/v1/saas/physiques/reports']));
+    },
+  );
 }

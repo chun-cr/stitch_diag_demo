@@ -56,9 +56,13 @@ class _HistoryEntryResolverState extends State<HistoryEntryResolver> {
   }
 
   Future<List<DiagnosisRecord>> _defaultLoadHistoryRecords() async {
+    // Keep history loading aligned with the miniapp: list page uses the
+    // summaries endpoint directly and renders placeholders when face images
+    // are absent, instead of blocking the whole page on N follow-up detail
+    // requests.
     final summaries = await ReportRemoteSource(
       getIt<DioClient>(),
-    ).getAllReports(source: ScanSession.reportSource, resolveFaceImages: true);
+    ).getAllReports(source: ScanSession.reportSource);
     return summaries.map(DiagnosisRecord.fromSummary).toList();
   }
 
