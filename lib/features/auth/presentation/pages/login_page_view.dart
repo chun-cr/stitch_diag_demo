@@ -519,7 +519,7 @@ mixin _LoginPageView
             maskedReceiver.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            '验证码已发送至 $maskedReceiver',
+            context.l10n.authCodeSentToReceiver(maskedReceiver),
             key: const ValueKey('login_masked_receiver_hint'),
             style: TextStyle(
               fontSize: 12,
@@ -869,11 +869,6 @@ mixin _LoginPageView
   }
 
   Widget _buildSocialRow() {
-    final locale = Localizations.localeOf(context).languageCode;
-    final wechatLabel = locale == 'zh'
-        ? '微信小程序登录'
-        : context.l10n.authWechatLogin;
-
     return Row(
       children: [
         Expanded(
@@ -881,7 +876,7 @@ mixin _LoginPageView
             buttonKey: const ValueKey('login_wechat_button'),
             icon: Icons.wechat,
             iconColor: const Color(0xFF07C160),
-            label: wechatLabel,
+            label: context.l10n.authWechatLogin,
             labelColor: const Color(0xFF1E1810),
             loading: _wechatLoginLoading,
             onTap: _onWechatMiniProgramLogin,

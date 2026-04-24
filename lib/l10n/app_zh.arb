@@ -86,6 +86,17 @@
       }
     }
   },
+  "authWechatUnsupported": "微信授权环境未接入，请先实现 acquireWechatCode()。",
+  "authWechatCodeMissing": "未获取到微信授权码，请重试。",
+  "authWechatCompletedWithoutToken": "微信授权已完成，但当前未返回登录令牌。",
+  "authWechatStatusPendingBinding": "微信授权返回状态：{status}，后续绑定流程待接入。",
+  "@authWechatStatusPendingBinding": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "authSendCodeFirst": "请先获取验证码",
   "commonContinue": "继续",
   "authCaptchaTitle": "人机验证",
@@ -117,6 +128,10 @@
   "registerCreateAccountAction": "创建账号",
   "registerCreateFailed": "创建账号失败，请稍后重试",
   "registerPasswordSetupPrompt": "注册成功，可在“我的 - 设置 - 账号与安全”中设置登录密码",
+  "registerPhoneMode": "手机注册",
+  "registerEmailMode": "邮箱注册",
+  "registerAlreadyHaveAccount": "已有账号？",
+  "registerLoginNow": "立即登录",
   "registerGenderOptional": "性别",
   "registerGenderRequired": "请选择性别",
   "completeProfileTitle": "完善资料",

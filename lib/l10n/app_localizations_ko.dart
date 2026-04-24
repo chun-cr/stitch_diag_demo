@@ -201,6 +201,21 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get authWechatUnsupported => 'WeChat 미니프로그램 인증은 아직 연결되지 않았습니다.';
+
+  @override
+  String get authWechatCodeMissing => 'WeChat 인증 코드를 받아오지 못했어요.';
+
+  @override
+  String get authWechatCompletedWithoutToken =>
+      'WeChat 인증은 완료됐지만 로그인 토큰이 반환되지 않았어요.';
+
+  @override
+  String authWechatStatusPendingBinding(String status) {
+    return 'WeChat 인증에서 상태 \"$status\" 가 반환됐어요. 후속 연결 플로우는 아직 미구현 상태예요.';
+  }
+
+  @override
   String get authSendCodeFirst => '먼저 인증코드를 받아 주세요.';
 
   @override
@@ -276,6 +291,18 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get registerPasswordSetupPrompt =>
       '가입이 완료되었어요. 나중에 \'내 정보 - 설정 - 계정 및 보안\'에서 로그인 비밀번호를 설정할 수 있어요.';
+
+  @override
+  String get registerPhoneMode => '휴대폰 가입';
+
+  @override
+  String get registerEmailMode => '이메일 가입';
+
+  @override
+  String get registerAlreadyHaveAccount => '이미 계정이 있으신가요? ';
+
+  @override
+  String get registerLoginNow => '바로 로그인';
 
   @override
   String get registerGenderOptional => '성별';

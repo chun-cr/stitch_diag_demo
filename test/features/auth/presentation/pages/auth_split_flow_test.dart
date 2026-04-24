@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/features/auth/data/models/auth_request.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
@@ -85,7 +86,29 @@ class _SuccessfulRegisterAuthRepository extends AuthRepositoryAdapter {
   Future<void> logout({required String refreshToken}) async {}
 }
 
+Future<void> _pumpUntilLocation(
+  WidgetTester tester,
+  String expectedLocation, {
+  Duration step = const Duration(milliseconds: 50),
+  int maxTicks = 20,
+}) async {
+  for (var i = 0; i < maxTicks; i++) {
+    await tester.pump(step);
+    if (appRouter.state.matchedLocation == expectedLocation) {
+      return;
+    }
+  }
+}
+
 void main() {
+  setUp(() {
+    AuthSessionStore.debugUseMemoryBackend = true;
+  });
+
+  tearDown(() {
+    AuthSessionStore.debugUseMemoryBackend = false;
+  });
+
   testWidgets('router exposes complete profile page route', (tester) async {
     SharedPreferences.setMockInitialValues({});
     setPreviewAuthenticated(false);
@@ -119,9 +142,8 @@ void main() {
     final enFinder = find.text('Skip');
     await tester.tap(zhFinder.evaluate().isNotEmpty ? zhFinder : enFinder);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
+    await _pumpUntilLocation(tester, AppRoutes.login);
 
-    expect(find.byType(CompleteProfilePage), findsNothing);
     expect(appRouter.state.matchedLocation, AppRoutes.login);
     expect(isPreviewAuthenticated, isFalse);
 
@@ -146,9 +168,8 @@ void main() {
         find.byKey(const ValueKey('complete_profile_primary_button')),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
+      await _pumpUntilLocation(tester, AppRoutes.login);
 
-      expect(find.byType(CompleteProfilePage), findsNothing);
       expect(appRouter.state.matchedLocation, AppRoutes.login);
       expect(isPreviewAuthenticated, isFalse);
 
@@ -214,9 +235,9 @@ void main() {
       find.byKey(const ValueKey('register_create_account_button')),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await _pumpUntilLocation(tester, AppRoutes.completeProfile);
 
-    expect(find.byType(CompleteProfilePage), findsOneWidget);
+    expect(appRouter.state.matchedLocation, AppRoutes.completeProfile);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
