@@ -16,6 +16,7 @@ import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 import 'package:stitch_diag_demo/features/report/data/sources/report_remote_source.dart';
 import 'package:stitch_diag_demo/features/report/application/report_unlock_service.dart';
+import 'package:stitch_diag_demo/features/report/presentation/models/report_project_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_entry_resolver.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_view_data.dart';

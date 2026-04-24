@@ -9,8 +9,6 @@ const _kHeroBottomPaddingCompact = 0.0;
 const _kHeroBottomPaddingRegular = 0.0;
 const _kHeroContentDisclaimerGapCompact = 2.0;
 const _kHeroContentDisclaimerGapRegular = 4.0;
-const _kHeroContentBottomPinThresholdCompact = 48.0;
-const _kHeroContentBottomPinThresholdRegular = 56.0;
 const _kHeroMeasurementSlackCompact = 12.0;
 const _kHeroMeasurementSlackRegular = 16.0;
 const _kHeroMinExpandedDeltaCompact = 8.0;
@@ -401,8 +399,7 @@ double _estimateHeroExpandedHeight(
       contentGapCompensation +
       heroBottomInset +
       measurementSlack;
-  final collapsedHeight =
-      kToolbarHeight + mediaQuery.padding.top;
+  final collapsedHeight = kToolbarHeight + mediaQuery.padding.top;
 
   return math.max(
     expandedHeight,
@@ -413,10 +410,9 @@ double _estimateHeroExpandedHeight(
   );
 }
 
-double _heroContentDisclaimerGap(bool compact) =>
-    compact
-        ? _kHeroContentDisclaimerGapCompact
-        : _kHeroContentDisclaimerGapRegular;
+double _heroContentDisclaimerGap(bool compact) => compact
+    ? _kHeroContentDisclaimerGapCompact
+    : _kHeroContentDisclaimerGapRegular;
 
 bool _shouldStackHeroContent(double maxWidth) => maxWidth < 360;
 
@@ -824,51 +820,17 @@ class _ReportHeroSpace extends StatelessWidget {
                                   children: [
                                     Flexible(
                                       fit: FlexFit.loose,
-                                      child: LayoutBuilder(
-                                        builder: (context, slotConstraints) {
-                                          final estimatedContentHeight =
-                                              _estimateHeroContentHeight(
-                                                context,
-                                                viewData: viewData,
-                                                maxWidth:
-                                                    slotConstraints.maxWidth,
-                                                compact: compact,
-                                                stackedOverride:
-                                                    _shouldStackHeroContent(
-                                                      constraints.maxWidth,
-                                                    ),
-                                              );
-                                          final shouldPinToBottom =
-                                              slotConstraints.maxHeight -
-                                                  estimatedContentHeight >
-                                              (compact
-                                                  ? _kHeroContentBottomPinThresholdCompact
-                                                  : _kHeroContentBottomPinThresholdRegular);
-                                          final heroContent = Opacity(
-                                            opacity: expandedOpacity,
-                                            child: Transform.translate(
-                                              offset: Offset(
-                                                0,
-                                                20 * (1 - eased),
-                                              ),
-                                              child: _HeroContentCard(
-                                                viewData: viewData,
-                                                scoreAnim: scoreAnim,
-                                                maxWidth: constraints.maxWidth,
-                                                compact: compact,
-                                              ),
-                                            ),
-                                          );
-
-                                          if (!shouldPinToBottom) {
-                                            return heroContent;
-                                          }
-
-                                          return Align(
-                                            alignment: Alignment.bottomCenter,
-                                            child: heroContent,
-                                          );
-                                        },
+                                      child: Opacity(
+                                        opacity: expandedOpacity,
+                                        child: Transform.translate(
+                                          offset: Offset(0, 20 * (1 - eased)),
+                                          child: _HeroContentCard(
+                                            viewData: viewData,
+                                            scoreAnim: scoreAnim,
+                                            maxWidth: constraints.maxWidth,
+                                            compact: compact,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -902,9 +864,9 @@ class _ReportHeaderTitle extends StatelessWidget {
     final collapseProgress = settings == null
         ? 0.0
         : ((settings.maxExtent - settings.currentExtent) /
-                math.max(settings.maxExtent - settings.minExtent, 1.0))
-            .clamp(0.0, 1.0)
-            .toDouble();
+                  math.max(settings.maxExtent - settings.minExtent, 1.0))
+              .clamp(0.0, 1.0)
+              .toDouble();
     final reportTimeOpacity = 1.0 - collapseProgress;
     final collapsedTitleOpacity = collapseProgress;
     final reportTimeText = _heroHeaderMetaText(viewData);
@@ -975,21 +937,21 @@ class _HeroContentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final stacked = _shouldStackHeroContent(maxWidth);
     final stackedContent = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: compact ? 10 : 20),
-                  child: _HeroScoreColumn(
-                    viewData: viewData,
-                    scoreAnim: scoreAnim,
-                    compact: compact,
-                  ),
-                ),
-              ),
-              _HeroInfoColumn(viewData: viewData, compact: compact),
-            ],
-          );
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: compact ? 10 : 20),
+            child: _HeroScoreColumn(
+              viewData: viewData,
+              scoreAnim: scoreAnim,
+              compact: compact,
+            ),
+          ),
+        ),
+        _HeroInfoColumn(viewData: viewData, compact: compact),
+      ],
+    );
     final rowContent = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

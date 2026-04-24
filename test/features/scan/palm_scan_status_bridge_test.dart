@@ -70,6 +70,36 @@ void main() {
       },
     );
 
+    test(
+      'accepts nearly straight open palm at score 0.50 without native flags',
+      () {
+        const status = PalmScanStatus(
+          handPresent: true,
+          gestureDetected: false,
+          handStraight: false,
+          gestureName: 'Open_Palm',
+          score: 0.50,
+        );
+
+        expect(status.readyToScan, isTrue);
+      },
+    );
+
+    test(
+      'rejects open palm below score 0.50 when native flags are absent',
+      () {
+        const status = PalmScanStatus(
+          handPresent: true,
+          gestureDetected: false,
+          handStraight: false,
+          gestureName: 'Open_Palm',
+          score: 0.49,
+        );
+
+        expect(status.readyToScan, isFalse);
+      },
+    );
+
     test('keeps detecting stage visible before any hand is present', () {
       final stage = resolvePalmScanFeedbackStage(
         hasPermission: true,
@@ -179,6 +209,51 @@ void main() {
   });
 
   group('shouldTrackPalmHold', () {
+    test(
+      'starts hold with relaxed framing when palm is ready',
+      () {
+        expect(
+          shouldTrackPalmHold(
+            holdInProgress: false,
+            handPresent: true,
+            readyToScan: true,
+            isFramed: false,
+            isRelaxedFramed: true,
+            pauseAutoScanUntilReset: false,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('does not start hold outside relaxed framing', () {
+      expect(
+        shouldTrackPalmHold(
+          holdInProgress: false,
+          handPresent: true,
+          readyToScan: true,
+          isFramed: false,
+          isRelaxedFramed: false,
+          pauseAutoScanUntilReset: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not start hold under relaxed framing when palm is not ready', () {
+      expect(
+        shouldTrackPalmHold(
+          holdInProgress: false,
+          handPresent: true,
+          readyToScan: false,
+          isFramed: false,
+          isRelaxedFramed: true,
+          pauseAutoScanUntilReset: false,
+        ),
+        isFalse,
+      );
+    });
+
     test(
       'keeps hold alive with relaxed framing once countdown has started',
       () {

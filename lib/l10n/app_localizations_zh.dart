@@ -1691,17 +1691,74 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportAdviceAvoidAlcohol => '烟酒';
 
   @override
-  String get reportAdviceProductsTitle => '理疗项目推荐';
+  String get reportAdviceProjectsTitle => '服务项目推荐';
 
   @override
-  String get reportAdviceProductsSubtitle => '依据报告结果个性化推荐';
+  String get reportAdviceProjectsSubtitle => '依据报告结果推荐可到店咨询的调理项目';
+
+  @override
+  String get reportAdviceProjectsEmpty => '当前暂无匹配的服务项目推荐。';
+
+  @override
+  String get reportAdviceProjectsDisclaimer =>
+      '以上服务项目推荐基于体质分析结果，仅供参考。实际服务内容与预约安排以门店说明为准。';
+
+  @override
+  String get reportAdviceProjectDetailButton => '查看项目 >';
+
+  @override
+  String get reportAdviceProductsTitle => '推荐商品';
+
+  @override
+  String get reportAdviceProductsSubtitle => '依据报告结果推荐可配送商品';
+
+  @override
+  String get reportAdviceProductsEmpty => '当前暂无匹配的商品推荐。';
 
   @override
   String get reportAdviceProductsDisclaimer =>
-      '以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。';
+      '以上商品推荐基于体质分析结果，仅供参考。实际库存、规格与配送范围以门店说明为准。';
 
   @override
   String get reportProductCommonShipping => '工作日 48 小时内安排发货，支持全程物流追踪。';
+
+  @override
+  String get reportProjectCommonServiceNote => '需由门店评估后安排具体服务内容。';
+
+  @override
+  String get reportProjectCommonConsultNote => '支持到店咨询与预约，实际排期以门店安排为准。';
+
+  @override
+  String get reportProjectWarmMoxibustion => '温养艾灸调理';
+
+  @override
+  String get reportProjectWarmMoxibustionType => '到店温补项目';
+
+  @override
+  String get reportProjectWarmMoxibustionDesc =>
+      '结合报告中的寒湿与气虚倾向，优先推荐温和艾灸与局部温养护理。';
+
+  @override
+  String get reportProjectWarmMoxibustionTag => '门店推荐';
+
+  @override
+  String get reportProjectWarmMoxibustionDuration => '单次约 45 分钟';
+
+  @override
+  String get reportProjectMeridianRelief => '经络舒缓护理';
+
+  @override
+  String get reportProjectMeridianReliefType => '经络调理项目';
+
+  @override
+  String get reportProjectMeridianReliefDesc =>
+      '围绕疲劳、睡眠与气血运行问题，安排舒缓型经络调理与放松护理。';
+
+  @override
+  String get reportProjectMeridianReliefTag => '适合初次体验';
+
+  @override
+  String get reportProjectMeridianReliefDuration => '单次约 60 分钟';
 
   @override
   String get reportProductJianpiwanPack => '1 瓶装 / 200 丸，适合日常脾胃调理周期使用。';
@@ -1753,6 +1810,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportProductDetailReportLinked => '与报告建议联动';
+
+  @override
+  String get reportProjectDetailTitle => '项目详情';
+
+  @override
+  String get reportProjectDetailHeroBadge => '报告关联项目';
+
+  @override
+  String get reportProjectDetailRecommendationTitle => '推荐理由';
+
+  @override
+  String get reportProjectDetailDurationTitle => '服务时长';
+
+  @override
+  String get reportProjectDetailServiceTitle => '服务说明';
+
+  @override
+  String get reportProjectDetailConsultTitle => '咨询与预约';
+
+  @override
+  String get reportProjectDetailActionButton => '预约咨询';
+
+  @override
+  String get reportProjectDetailReportLinked => '与报告建议联动';
 
   @override
   String get reportProductCheckoutTitle => '确认订单';
@@ -2050,7 +2131,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportWuxingWater => '水';
 
   @override
-  String get reportAdviceProductDetailButton => '了解详情 >';
+  String get reportAdviceProductDetailButton => '查看商品 >';
 
   @override
   String get metricFaceDiagnosis => '面诊';

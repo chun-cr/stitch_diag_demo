@@ -1728,17 +1728,75 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportAdviceAvoidAlcohol => '술 · 담배';
 
   @override
+  String get reportAdviceProjectsTitle => '추천 케어 프로젝트';
+
+  @override
+  String get reportAdviceProjectsSubtitle => '리포트 결과에 맞춘 방문 서비스';
+
+  @override
+  String get reportAdviceProjectsEmpty => '현재 이 리포트에 맞는 케어 프로젝트 추천이 없습니다.';
+
+  @override
+  String get reportAdviceProjectsDisclaimer =>
+      '서비스 추천은 체질 분석을 바탕으로 한 참고 정보입니다. 실제 서비스 내용과 예약 가능 여부는 매장 안내를 따릅니다.';
+
+  @override
+  String get reportAdviceProjectDetailButton => '프로젝트 보기 >';
+
+  @override
   String get reportAdviceProductsTitle => '추천 상품';
 
   @override
-  String get reportAdviceProductsSubtitle => '체질에 맞춘 제안';
+  String get reportAdviceProductsSubtitle => '리포트 결과에 맞춘 배송 상품';
+
+  @override
+  String get reportAdviceProductsEmpty => '현재 이 리포트에 맞는 상품 추천이 없습니다.';
 
   @override
   String get reportAdviceProductsDisclaimer =>
-      '이 추천은 체질 분석을 바탕으로 한 참고 정보입니다. 중성약을 사용할 경우에는 의사 또는 약사의 안내에 따라 주세요.';
+      '상품 추천은 체질 분석을 바탕으로 한 참고 정보입니다. 실제 재고, 규격, 배송 범위는 매장 안내를 따릅니다.';
 
   @override
   String get reportProductCommonShipping => '영업일 기준 48시간 이내 출고되며 배송 추적을 지원합니다.';
+
+  @override
+  String get reportProjectCommonServiceNote => '구체적인 서비스 내용은 매장 상담 후 확정됩니다.';
+
+  @override
+  String get reportProjectCommonConsultNote =>
+      '매장 상담과 예약이 가능하며 실제 일정은 매장 배정에 따릅니다.';
+
+  @override
+  String get reportProjectWarmMoxibustion => '온열 뜸 케어';
+
+  @override
+  String get reportProjectWarmMoxibustionType => '방문 온보 프로젝트';
+
+  @override
+  String get reportProjectWarmMoxibustionDesc =>
+      '냉습과 기허 경향이 보일 때 부드러운 뜸과 온열 케어를 우선 제안합니다.';
+
+  @override
+  String get reportProjectWarmMoxibustionTag => '매장 추천';
+
+  @override
+  String get reportProjectWarmMoxibustionDuration => '1회 약 45분';
+
+  @override
+  String get reportProjectMeridianRelief => '경락 릴리프 케어';
+
+  @override
+  String get reportProjectMeridianReliefType => '경락 조리 프로젝트';
+
+  @override
+  String get reportProjectMeridianReliefDesc =>
+      '피로감, 수면 리듬, 기혈 순환을 중심으로 한 완화형 경락 케어입니다.';
+
+  @override
+  String get reportProjectMeridianReliefTag => '첫 방문 추천';
+
+  @override
+  String get reportProjectMeridianReliefDuration => '1회 약 60분';
 
   @override
   String get reportProductJianpiwanPack =>
@@ -1794,6 +1852,30 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportProductDetailReportLinked => '리포트 제안과 연동';
+
+  @override
+  String get reportProjectDetailTitle => '프로젝트 상세';
+
+  @override
+  String get reportProjectDetailHeroBadge => '리포트 연동 프로젝트';
+
+  @override
+  String get reportProjectDetailRecommendationTitle => '추천 이유';
+
+  @override
+  String get reportProjectDetailDurationTitle => '서비스 시간';
+
+  @override
+  String get reportProjectDetailServiceTitle => '서비스 안내';
+
+  @override
+  String get reportProjectDetailConsultTitle => '상담 및 예약';
+
+  @override
+  String get reportProjectDetailActionButton => '상담 예약하기';
+
+  @override
+  String get reportProjectDetailReportLinked => '리포트 제안과 연동';
 
   @override
   String get reportProductCheckoutTitle => '주문 확인';
@@ -2106,7 +2188,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportWuxingWater => '수';
 
   @override
-  String get reportAdviceProductDetailButton => '자세히 보기 >';
+  String get reportAdviceProductDetailButton => '상품 보기 >';
 
   @override
   String get metricFaceDiagnosis => '면진';

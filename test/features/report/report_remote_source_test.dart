@@ -106,6 +106,174 @@ void main() {
     expect(result.shareUrl, 'https://example.com/report-share.png');
   });
 
+  test('getPhysiqueProductDetail unwraps nested product payloads', () async {
+    final dioClient = DioClient();
+    final adapter = _CaptureAdapter((options) {
+      return _jsonResponse({
+        'code': 0,
+        'message': 'ok',
+        'data': {
+          'product': {'id': 123, 'name': '艾灸温养盒', 'description': '详情接口返回的商品说明'},
+        },
+      });
+    });
+    dioClient.dio.httpClientAdapter = adapter;
+    final remoteSource = ReportRemoteSource(dioClient);
+
+    final result = await remoteSource.getPhysiqueProductDetail('123');
+
+    expect(
+      adapter.lastRequestOptions.path,
+      '/api/v1/saas/mobile/physique/product/123',
+    );
+    expect(adapter.lastRequestOptions.method, 'GET');
+    expect(result, isNotNull);
+    expect(result!['id'], 123);
+    expect(result['name'], '艾灸温养盒');
+    expect(result['description'], '详情接口返回的商品说明');
+  });
+
+  test(
+    'getPhysiqueProjects uses by-token endpoint when token is present',
+    () async {
+      final dioClient = DioClient();
+      final adapter = _CaptureAdapter((options) {
+        return _jsonResponse({
+          'code': 0,
+          'message': 'ok',
+          'data': {
+            'projects': [
+              {'id': 9, 'name': 'Meridian Care'},
+            ],
+          },
+        });
+      });
+      dioClient.dio.httpClientAdapter = adapter;
+      final remoteSource = ReportRemoteSource(dioClient);
+
+      final result = await remoteSource.getPhysiqueProjects(
+        token: 'report-token',
+        topOrgId: 'tenant-1',
+        age: 28,
+        sex: 'F',
+        physiqueIds: const [11, 12, 12],
+      );
+
+      expect(
+        adapter.lastRequestOptions.path,
+        '/api/v1/saas/mobile/physique/project/by/token',
+      );
+      expect(adapter.lastRequestOptions.method, 'GET');
+      expect(
+        adapter.lastRequestOptions.queryParameters,
+        containsPair('token', 'report-token'),
+      );
+      expect(
+        adapter.lastRequestOptions.queryParameters,
+        containsPair('topOrgId', 'tenant-1'),
+      );
+      expect(
+        adapter.lastRequestOptions.queryParameters,
+        containsPair('tenantId', 'tenant-1'),
+      );
+      expect(
+        adapter.lastRequestOptions.queryParameters,
+        containsPair('age', 28),
+      );
+      expect(
+        adapter.lastRequestOptions.queryParameters,
+        containsPair('sex', 'F'),
+      );
+      expect(
+        adapter.lastRequestOptions.queryParameters,
+        containsPair('physiqueIds', [11, 12]),
+      );
+      expect(result, hasLength(1));
+      expect(result.first['id'], 9);
+    },
+  );
+
+  test('getPhysiqueProjects uses plain endpoint without token', () async {
+    final dioClient = DioClient();
+    final adapter = _CaptureAdapter((options) {
+      return _jsonResponse({
+        'code': 0,
+        'message': 'ok',
+        'data': [
+          {'id': 'project-1', 'name': 'Warm Care'},
+        ],
+      });
+    });
+    dioClient.dio.httpClientAdapter = adapter;
+    final remoteSource = ReportRemoteSource(dioClient);
+
+    final result = await remoteSource.getPhysiqueProjects(
+      topOrgId: 'tenant-2',
+      age: 35,
+      sex: 'M',
+      physiqueIds: const [8],
+    );
+
+    expect(
+      adapter.lastRequestOptions.path,
+      '/api/v1/saas/mobile/physique/project',
+    );
+    expect(adapter.lastRequestOptions.method, 'GET');
+    expect(
+      adapter.lastRequestOptions.queryParameters.containsKey('token'),
+      isFalse,
+    );
+    expect(result, hasLength(1));
+    expect(result.first['id'], 'project-1');
+  });
+
+  test(
+    'getPhysiqueProjects keeps explicit empty project payloads empty',
+    () async {
+      final dioClient = DioClient();
+      final adapter = _CaptureAdapter((options) {
+        return _jsonResponse({
+          'code': 0,
+          'message': 'ok',
+          'data': {'projects': <Map<String, dynamic>>[], 'totalCount': 0},
+        });
+      });
+      dioClient.dio.httpClientAdapter = adapter;
+      final remoteSource = ReportRemoteSource(dioClient);
+
+      final result = await remoteSource.getPhysiqueProjects(
+        topOrgId: 'tenant-empty',
+        age: 31,
+        sex: 'F',
+      );
+
+      expect(result, isEmpty);
+    },
+  );
+
+  test(
+    'getPhysiqueProjects skips request when token and topOrgId are both missing',
+    () async {
+      final dioClient = DioClient();
+      var requestCount = 0;
+      final adapter = _CaptureAdapter((options) {
+        requestCount += 1;
+        throw StateError('request should not be sent');
+      });
+      dioClient.dio.httpClientAdapter = adapter;
+      final remoteSource = ReportRemoteSource(dioClient);
+
+      final result = await remoteSource.getPhysiqueProjects(
+        age: 23,
+        sex: 'F',
+        physiqueIds: const [1, 2],
+      );
+
+      expect(result, isEmpty);
+      expect(requestCount, 0);
+    },
+  );
+
   test(
     'getAllReports resolves face images from detail when summary payload omits them',
     () async {

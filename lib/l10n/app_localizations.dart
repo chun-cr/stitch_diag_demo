@@ -3396,22 +3396,58 @@ abstract class AppLocalizations {
   /// **'烟酒'**
   String get reportAdviceAvoidAlcohol;
 
+  /// No description provided for @reportAdviceProjectsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务项目推荐'**
+  String get reportAdviceProjectsTitle;
+
+  /// No description provided for @reportAdviceProjectsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据报告结果推荐可到店咨询的调理项目'**
+  String get reportAdviceProjectsSubtitle;
+
+  /// No description provided for @reportAdviceProjectsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前暂无匹配的服务项目推荐。'**
+  String get reportAdviceProjectsEmpty;
+
+  /// No description provided for @reportAdviceProjectsDisclaimer.
+  ///
+  /// In zh, this message translates to:
+  /// **'以上服务项目推荐基于体质分析结果，仅供参考。实际服务内容与预约安排以门店说明为准。'**
+  String get reportAdviceProjectsDisclaimer;
+
+  /// No description provided for @reportAdviceProjectDetailButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看项目 >'**
+  String get reportAdviceProjectDetailButton;
+
   /// No description provided for @reportAdviceProductsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'相关产品推荐'**
+  /// **'推荐商品'**
   String get reportAdviceProductsTitle;
 
   /// No description provided for @reportAdviceProductsSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'依据体质个性化推荐'**
+  /// **'依据报告结果推荐可配送商品'**
   String get reportAdviceProductsSubtitle;
+
+  /// No description provided for @reportAdviceProductsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前暂无匹配的商品推荐。'**
+  String get reportAdviceProductsEmpty;
 
   /// No description provided for @reportAdviceProductsDisclaimer.
   ///
   /// In zh, this message translates to:
-  /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
+  /// **'以上商品推荐基于体质分析结果，仅供参考。实际库存、规格与配送范围以门店说明为准。'**
   String get reportAdviceProductsDisclaimer;
 
   /// No description provided for @reportProductCommonShipping.
@@ -3419,6 +3455,78 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'工作日 48 小时内安排发货，支持全程物流追踪。'**
   String get reportProductCommonShipping;
+
+  /// No description provided for @reportProjectCommonServiceNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'需由门店评估后安排具体服务内容。'**
+  String get reportProjectCommonServiceNote;
+
+  /// No description provided for @reportProjectCommonConsultNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'支持到店咨询与预约，实际排期以门店安排为准。'**
+  String get reportProjectCommonConsultNote;
+
+  /// No description provided for @reportProjectWarmMoxibustion.
+  ///
+  /// In zh, this message translates to:
+  /// **'温养艾灸调理'**
+  String get reportProjectWarmMoxibustion;
+
+  /// No description provided for @reportProjectWarmMoxibustionType.
+  ///
+  /// In zh, this message translates to:
+  /// **'到店温补项目'**
+  String get reportProjectWarmMoxibustionType;
+
+  /// No description provided for @reportProjectWarmMoxibustionDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'结合报告中的寒湿与气虚倾向，优先推荐温和艾灸与局部温养护理。'**
+  String get reportProjectWarmMoxibustionDesc;
+
+  /// No description provided for @reportProjectWarmMoxibustionTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'门店推荐'**
+  String get reportProjectWarmMoxibustionTag;
+
+  /// No description provided for @reportProjectWarmMoxibustionDuration.
+  ///
+  /// In zh, this message translates to:
+  /// **'单次约 45 分钟'**
+  String get reportProjectWarmMoxibustionDuration;
+
+  /// No description provided for @reportProjectMeridianRelief.
+  ///
+  /// In zh, this message translates to:
+  /// **'经络舒缓护理'**
+  String get reportProjectMeridianRelief;
+
+  /// No description provided for @reportProjectMeridianReliefType.
+  ///
+  /// In zh, this message translates to:
+  /// **'经络调理项目'**
+  String get reportProjectMeridianReliefType;
+
+  /// No description provided for @reportProjectMeridianReliefDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'围绕疲劳、睡眠与气血运行问题，安排舒缓型经络调理与放松护理。'**
+  String get reportProjectMeridianReliefDesc;
+
+  /// No description provided for @reportProjectMeridianReliefTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'适合初次体验'**
+  String get reportProjectMeridianReliefTag;
+
+  /// No description provided for @reportProjectMeridianReliefDuration.
+  ///
+  /// In zh, this message translates to:
+  /// **'单次约 60 分钟'**
+  String get reportProjectMeridianReliefDuration;
 
   /// No description provided for @reportProductJianpiwanPack.
   ///
@@ -3515,6 +3623,54 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'与报告建议联动'**
   String get reportProductDetailReportLinked;
+
+  /// No description provided for @reportProjectDetailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'项目详情'**
+  String get reportProjectDetailTitle;
+
+  /// No description provided for @reportProjectDetailHeroBadge.
+  ///
+  /// In zh, this message translates to:
+  /// **'报告关联项目'**
+  String get reportProjectDetailHeroBadge;
+
+  /// No description provided for @reportProjectDetailRecommendationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐理由'**
+  String get reportProjectDetailRecommendationTitle;
+
+  /// No description provided for @reportProjectDetailDurationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务时长'**
+  String get reportProjectDetailDurationTitle;
+
+  /// No description provided for @reportProjectDetailServiceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务说明'**
+  String get reportProjectDetailServiceTitle;
+
+  /// No description provided for @reportProjectDetailConsultTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'咨询与预约'**
+  String get reportProjectDetailConsultTitle;
+
+  /// No description provided for @reportProjectDetailActionButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'预约咨询'**
+  String get reportProjectDetailActionButton;
+
+  /// No description provided for @reportProjectDetailReportLinked.
+  ///
+  /// In zh, this message translates to:
+  /// **'与报告建议联动'**
+  String get reportProjectDetailReportLinked;
 
   /// No description provided for @reportProductCheckoutTitle.
   ///
@@ -4089,7 +4245,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportAdviceProductDetailButton.
   ///
   /// In zh, this message translates to:
-  /// **'了解详情 >'**
+  /// **'查看商品 >'**
   String get reportAdviceProductDetailButton;
 
   /// No description provided for @metricFaceDiagnosis.

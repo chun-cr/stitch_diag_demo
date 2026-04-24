@@ -13,6 +13,8 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
+import 'package:stitch_diag_demo/features/report/presentation/models/report_project_data.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report_project_detail_page.dart';
 import 'package:stitch_diag_demo/main.dart';
 
 class _SuccessfulRegisterAuthRepository extends AuthRepositoryAdapter {
@@ -243,4 +245,78 @@ void main() {
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
   });
+
+  testWidgets(
+    'register flow preserves redirect through complete profile to project detail',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      setPreviewAuthenticated(false);
+      await tester.binding.setSurfaceSize(const Size(1280, 2400));
+
+      final project = ReportProjectData(
+        id: 'project-redirect',
+        name: 'Warm Care',
+        type: 'Clinic Service',
+        description: 'Recovery-focused in-clinic project.',
+        tag: 'Recommended',
+        durationNote: '45 min',
+        serviceNote: 'Booked after assessment.',
+        consultNote: 'Consult before scheduling.',
+        color: const Color(0xFFB96A3A),
+        icon: Icons.spa_outlined,
+      );
+      final redirectLocation = Uri(
+        path: AppRoutes.reportProjectDetail,
+        queryParameters: project.toRouteQueryParameters(),
+      ).toString();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              _SuccessfulRegisterAuthRepository(),
+            ),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      appRouter.go(
+        Uri(
+          path: AppRoutes.register,
+          queryParameters: {'redirect': redirectLocation},
+        ).toString(),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
+      await tester.enterText(find.byType(TextFormField).at(1), '123456');
+      await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const ValueKey('register_terms_row')));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('register_create_account_button')),
+      );
+      await tester.pump();
+      await _pumpUntilLocation(tester, AppRoutes.completeProfile);
+
+      expect(appRouter.state.matchedLocation, AppRoutes.completeProfile);
+      expect(appRouter.state.uri.queryParameters['redirect'], redirectLocation);
+
+      final zhFinder = find.text('跳过');
+      final enFinder = find.text('Skip');
+      await tester.tap(zhFinder.evaluate().isNotEmpty ? zhFinder : enFinder);
+      await tester.pump();
+      await _pumpUntilLocation(tester, AppRoutes.reportProjectDetail);
+
+      expect(appRouter.state.matchedLocation, AppRoutes.reportProjectDetail);
+      expect(find.byType(ReportProjectDetailPage), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 }

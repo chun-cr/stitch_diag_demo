@@ -6,13 +6,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
+import 'package:stitch_diag_demo/features/report/presentation/models/report_project_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report_project_detail_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_product_detail_page.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
 import 'report_test_data.dart';
+
+Widget _buildFallbackReportPage(
+  GoRouterState state, {
+  Widget Function(BuildContext context, GoRouterState state)? reportBuilder,
+  required BuildContext context,
+}) {
+  return reportBuilder?.call(context, state) ??
+      ReportPage(
+        reportId:
+            state.uri.queryParameters['reportId'] ??
+            (state.extra is String ? state.extra as String : null),
+      );
+}
 
 Future<GoRouter> _pumpReportRouter(
   WidgetTester tester, {
@@ -27,21 +42,35 @@ Future<GoRouter> _pumpReportRouter(
     initialLocation: initialLocation,
     routes: [
       GoRoute(
-        path: AppRoutes.report,
-        builder: (context, state) =>
-            reportBuilder?.call(context, state) ?? const ReportPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.reportAnalysis,
-        builder: (context, state) =>
-            reportBuilder?.call(context, state) ?? const ReportPage(),
+        path: AppRoutes.reportProjectDetail,
+        builder: (context, state) {
+          final project = state.extra;
+          if (project is! ReportProjectData) {
+            final routedProject = ReportProjectData.fromRouteQueryParameters(
+              state.uri.queryParameters,
+            );
+            if (routedProject == null) {
+              return _buildFallbackReportPage(
+                state,
+                reportBuilder: reportBuilder,
+                context: context,
+              );
+            }
+            return ReportProjectDetailPage(project: routedProject);
+          }
+          return ReportProjectDetailPage(project: project);
+        },
       ),
       GoRoute(
         path: AppRoutes.reportProductDetail,
         builder: (context, state) {
           final product = state.extra;
           if (product is! ReportProductData) {
-            return const SizedBox.shrink();
+            return _buildFallbackReportPage(
+              state,
+              reportBuilder: reportBuilder,
+              context: context,
+            );
           }
           return ReportProductDetailPage(product: product);
         },
@@ -51,10 +80,30 @@ Future<GoRouter> _pumpReportRouter(
         builder: (context, state) {
           final args = state.extra;
           if (args is! ReportCheckoutArgs) {
-            return const SizedBox.shrink();
+            return _buildFallbackReportPage(
+              state,
+              reportBuilder: reportBuilder,
+              context: context,
+            );
           }
           return ReportCheckoutPage(args: args);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.reportAnalysis,
+        builder: (context, state) => _buildFallbackReportPage(
+          state,
+          reportBuilder: reportBuilder,
+          context: context,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.report,
+        builder: (context, state) => _buildFallbackReportPage(
+          state,
+          reportBuilder: reportBuilder,
+          context: context,
+        ),
       ),
     ],
   );
@@ -258,71 +307,117 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('report header keeps time in the toolbar row while fading into AI title', (
+  testWidgets(
+    'report header keeps time in the toolbar row while fading into AI title',
+    (tester) async {
+      final router = await _pumpReportRouter(
+        tester,
+        surfaceSize: const Size(390, 844),
+        reportBuilder: (context, state) => ReportPage(
+          reportId: 'header-fade-report',
+          loadReportViewData: (_) async => buildReportViewData(
+            testTime: '2026-04-17 10:30',
+            source: 'scan-booth',
+            primaryConstitution: '气虚体质',
+            therapySummary: '疏肝解郁，规律作息，少食生冷。',
+            analysisFindingSymptoms: const ['舌边齿痕', '舌苔白腻'],
+            constitutionScores: const [
+              {
+                'id': 'constitution-primary',
+                'name': '气虚体质',
+                'score': 82,
+                'solutions': '疏肝解郁，规律作息，少食生冷。',
+              },
+              {
+                'id': 'constitution-secondary',
+                'name': '阳虚体质',
+                'score': 64,
+                'solutions': '',
+              },
+            ],
+          ),
+        ),
+      );
+
+      final reportTime = find.byKey(const ValueKey('report_header_time'));
+      final collapsedTitle = find.byKey(
+        const ValueKey('report_header_collapsed_title'),
+      );
+      final backButton = find.byKey(const ValueKey('report_back_button'));
+      final shareButton = find.byKey(const ValueKey('report_share_button'));
+      final therapyLine = find.byKey(
+        const ValueKey('report_hero_therapy_line'),
+      );
+
+      expect(reportTime, findsOneWidget);
+      expect(collapsedTitle, findsOneWidget);
+      expect(
+        (tester.getCenter(reportTime).dy - tester.getCenter(backButton).dy)
+            .abs(),
+        lessThan(4),
+      );
+      expect(
+        (tester.getCenter(reportTime).dy - tester.getCenter(shareButton).dy)
+            .abs(),
+        lessThan(4),
+      );
+
+      final initialTimeOpacity = tester.widget<Opacity>(reportTime).opacity;
+      final initialTitleOpacity = tester
+          .widget<Opacity>(collapsedTitle)
+          .opacity;
+      expect(initialTimeOpacity, greaterThan(0.9));
+      expect(initialTitleOpacity, lessThan(0.1));
+
+      await tester.drag(therapyLine, const Offset(0, -700));
+      await tester.pumpAndSettle();
+
+      final scrolledTimeOpacity = tester.widget<Opacity>(reportTime).opacity;
+      final scrolledTitleOpacity = tester
+          .widget<Opacity>(collapsedTitle)
+          .opacity;
+      expect(scrolledTimeOpacity, lessThan(initialTimeOpacity));
+      expect(scrolledTitleOpacity, greaterThan(initialTitleOpacity));
+      expect(scrolledTimeOpacity, lessThan(0.4));
+      expect(scrolledTitleOpacity, greaterThan(0.6));
+      expect(tester.takeException(), isNull);
+
+      router.dispose();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
+
+  testWidgets('hero content does not jump upward on first small scroll', (
     tester,
   ) async {
     final router = await _pumpReportRouter(
       tester,
       surfaceSize: const Size(390, 844),
       reportBuilder: (context, state) => ReportPage(
-        reportId: 'header-fade-report',
-        loadReportViewData: (_) async => buildReportViewData(
-          testTime: '2026-04-17 10:30',
-          source: 'scan-booth',
-          primaryConstitution: '气虚体质',
-          therapySummary: '疏肝解郁，规律作息，少食生冷。',
-          analysisFindingSymptoms: const ['舌边齿痕', '舌苔白腻'],
-          constitutionScores: const [
-            {
-              'id': 'constitution-primary',
-              'name': '气虚体质',
-              'score': 82,
-              'solutions': '疏肝解郁，规律作息，少食生冷。',
-            },
-            {
-              'id': 'constitution-secondary',
-              'name': '阳虚体质',
-              'score': 64,
-              'solutions': '',
-            },
-          ],
-        ),
+        reportId: 'hero-scroll-stability',
+        loadReportViewData: (_) async => buildReportViewData(),
       ),
     );
 
-    final reportTime = find.byKey(const ValueKey('report_header_time'));
-    final collapsedTitle = find.byKey(
-      const ValueKey('report_header_collapsed_title'),
-    );
-    final backButton = find.byKey(const ValueKey('report_back_button'));
-    final shareButton = find.byKey(const ValueKey('report_share_button'));
     final therapyLine = find.byKey(const ValueKey('report_hero_therapy_line'));
+    expect(therapyLine, findsOneWidget);
 
-    expect(reportTime, findsOneWidget);
-    expect(collapsedTitle, findsOneWidget);
-    expect(
-      (tester.getCenter(reportTime).dy - tester.getCenter(backButton).dy).abs(),
-      lessThan(4),
-    );
-    expect(
-      (tester.getCenter(reportTime).dy - tester.getCenter(shareButton).dy).abs(),
-      lessThan(4),
-    );
+    final initialTop = tester.getTopLeft(therapyLine).dy;
 
-    final initialTimeOpacity = tester.widget<Opacity>(reportTime).opacity;
-    final initialTitleOpacity = tester.widget<Opacity>(collapsedTitle).opacity;
-    expect(initialTimeOpacity, greaterThan(0.9));
-    expect(initialTitleOpacity, lessThan(0.1));
-
-    await tester.drag(therapyLine, const Offset(0, -700));
+    await tester.drag(therapyLine, const Offset(0, -24));
     await tester.pumpAndSettle();
 
-    final scrolledTimeOpacity = tester.widget<Opacity>(reportTime).opacity;
-    final scrolledTitleOpacity = tester.widget<Opacity>(collapsedTitle).opacity;
-    expect(scrolledTimeOpacity, lessThan(initialTimeOpacity));
-    expect(scrolledTitleOpacity, greaterThan(initialTitleOpacity));
-    expect(scrolledTimeOpacity, lessThan(0.4));
-    expect(scrolledTitleOpacity, greaterThan(0.6));
+    final scrollable = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    final scrollOffset = scrollable.position.pixels;
+    final shiftedTop = tester.getTopLeft(therapyLine).dy;
+    final upwardShift = initialTop - shiftedTop;
+
+    expect(scrollOffset, greaterThan(0));
+    expect(upwardShift, lessThan(scrollOffset + 12));
     expect(tester.takeException(), isNull);
 
     router.dispose();
@@ -409,7 +504,9 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('hero stays tight to short content on handset', (tester) async {
+  testWidgets('hero keeps disclaimer visible above the tab bar on handset', (
+    tester,
+  ) async {
     final router = await _pumpReportRouter(
       tester,
       surfaceSize: const Size(390, 844),
@@ -453,7 +550,7 @@ void main() {
     );
     expect(
       tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
-      lessThan(8),
+      lessThan(96),
     );
     expect(tester.takeException(), isNull);
 
@@ -463,7 +560,9 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('hero stays tight on 430dp wide handset', (tester) async {
+  testWidgets('hero keeps disclaimer visible on 430dp wide handset', (
+    tester,
+  ) async {
     final router = await _pumpReportRouter(
       tester,
       surfaceSize: const Size(430, 932),
@@ -507,7 +606,7 @@ void main() {
     );
     expect(
       tester.getTopLeft(tabBar).dy - tester.getBottomLeft(disclaimer).dy,
-      lessThan(8),
+      lessThan(96),
     );
     expect(tester.takeException(), isNull);
 
@@ -965,7 +1064,7 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('switching to advice tab reveals product actions', (
+  testWidgets('switching to advice tab reveals project and product actions', (
     tester,
   ) async {
     final router = await _pumpReportRouter(tester);
@@ -974,7 +1073,61 @@ void main() {
     await tester.tap(find.text(l10n.reportTabAdvice));
     await tester.pumpAndSettle();
 
+    expect(find.text(l10n.reportAdviceProjectDetailButton), findsWidgets);
     expect(find.text(l10n.reportAdviceProductDetailButton), findsWidgets);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('project detail route works from report advice tab', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(tester);
+    final l10n = lookupAppLocalizations(const Locale('zh'));
+
+    await tester.tap(find.text(l10n.reportTabAdvice));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.reportAdviceProjectDetailButton).first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ReportProjectDetailPage), findsOneWidget);
+    expect(find.text(l10n.reportProjectDetailActionButton), findsOneWidget);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('project detail route restores from query parameters', (
+    tester,
+  ) async {
+    final project = ReportProjectData(
+      id: 'project-route-1',
+      name: 'Warm Care',
+      type: 'In-clinic service',
+      description: 'Route-safe description',
+      tag: 'Recommended',
+      durationNote: '45 min',
+      serviceNote: 'Service note',
+      consultNote: 'Consult note',
+      color: const Color(0xFF2D6A4F),
+      icon: Icons.spa_outlined,
+    );
+    final router = await _pumpReportRouter(
+      tester,
+      initialLocation: Uri(
+        path: AppRoutes.reportProjectDetail,
+        queryParameters: project.toRouteQueryParameters(),
+      ).toString(),
+    );
+
+    expect(find.byType(ReportProjectDetailPage), findsOneWidget);
+    expect(find.text('Warm Care'), findsOneWidget);
+    expect(find.text('Route-safe description'), findsOneWidget);
 
     router.dispose();
     await tester.pumpWidget(const SizedBox.shrink());

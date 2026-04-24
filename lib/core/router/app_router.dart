@@ -16,8 +16,10 @@ import 'package:stitch_diag_demo/features/profile/presentation/pages/points_page
 import 'package:stitch_diag_demo/features/profile/presentation/pages/set_login_password_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/shipping_address_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/models/report_project_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report_project_detail_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_product_detail_page.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_page.dart';
 
@@ -33,6 +35,7 @@ class AppRoutes {
   static const scanPalm = '/scan/palm';
   static const report = '/report';
   static const reportAnalysis = '/report/analysis';
+  static const reportProjectDetail = '/report/project';
   static const reportProductDetail = '/report/product';
   static const reportCheckout = '/report/checkout';
   static const history = '/history';
@@ -206,7 +209,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.completeProfile,
-      builder: (context, state) => const CompleteProfilePage(),
+      builder: (context, state) => CompleteProfilePage(
+        redirectLocation: state.uri.queryParameters['redirect'],
+      ),
     ),
     GoRoute(
       path: AppRoutes.scan,
@@ -233,12 +238,19 @@ final appRouter = GoRouter(
       builder: (context, state) => const PalmScanPage(),
     ),
     GoRoute(
-      path: AppRoutes.reportAnalysis,
-      builder: (context, state) => _buildReportPage(state),
-    ),
-    GoRoute(
-      path: AppRoutes.report,
-      builder: (context, state) => _buildReportPage(state),
+      path: AppRoutes.reportProjectDetail,
+      builder: (context, state) {
+        final project = switch (state.extra) {
+          final ReportProjectData extraProject => extraProject,
+          _ => ReportProjectData.fromRouteQueryParameters(
+            state.uri.queryParameters,
+          ),
+        };
+        if (project == null) {
+          return _buildReportPage(state);
+        }
+        return ReportProjectDetailPage(project: project);
+      },
     ),
     GoRoute(
       path: AppRoutes.reportProductDetail,
@@ -259,6 +271,14 @@ final appRouter = GoRouter(
         }
         return ReportCheckoutPage(args: args);
       },
+    ),
+    GoRoute(
+      path: AppRoutes.reportAnalysis,
+      builder: (context, state) => _buildReportPage(state),
+    ),
+    GoRoute(
+      path: AppRoutes.report,
+      builder: (context, state) => _buildReportPage(state),
     ),
     GoRoute(
       path: AppRoutes.history,

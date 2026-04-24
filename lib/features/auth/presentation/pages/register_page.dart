@@ -24,6 +24,30 @@ import 'package:stitch_diag_demo/features/share/presentation/providers/share_ref
 
 part 'complete_profile_page.dart';
 
+String? _normalizeAuthRedirectLocation(String? value) {
+  final normalized = value?.trim();
+  if (normalized == null || normalized.isEmpty || !normalized.startsWith('/')) {
+    return null;
+  }
+  return normalized;
+}
+
+String _buildAuthRouteLocation(
+  String path, {
+  Map<String, String> queryParameters = const <String, String>{},
+  String? redirectLocation,
+}) {
+  final resolvedQueryParameters = Map<String, String>.from(queryParameters);
+  final normalizedRedirect = _normalizeAuthRedirectLocation(redirectLocation);
+  if (normalizedRedirect != null) {
+    resolvedQueryParameters['redirect'] = normalizedRedirect;
+  }
+  if (resolvedQueryParameters.isEmpty) {
+    return path;
+  }
+  return Uri(path: path, queryParameters: resolvedQueryParameters).toString();
+}
+
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({
     super.key,
@@ -164,13 +188,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   String? get _redirectLocation {
-    final redirectLocation = widget.redirectLocation?.trim();
-    if (redirectLocation == null ||
-        redirectLocation.isEmpty ||
-        !redirectLocation.startsWith('/')) {
-      return null;
-    }
-    return redirectLocation;
+    return _normalizeAuthRedirectLocation(widget.redirectLocation);
   }
 
   bool get _isEmailRegister => _registerMode == _RegisterMode.email;
@@ -239,16 +257,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     if (_visitorKey != null) {
       queryParameters['visitorKey'] = _visitorKey!;
     }
-    if (_redirectLocation != null) {
-      queryParameters['redirect'] = _redirectLocation!;
-    }
-    if (queryParameters.isEmpty) {
-      return AppRoutes.login;
-    }
-    return Uri(
-      path: AppRoutes.login,
+    return _buildAuthRouteLocation(
+      AppRoutes.login,
       queryParameters: queryParameters,
-    ).toString();
+      redirectLocation: _redirectLocation,
+    );
   }
 
   Future<void> _initializeShareReferral() async {
@@ -396,7 +409,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       unawaited(_synchronizeShareReferralAfterAuth());
       if (!mounted) return;
       setState(() => _isLoading = false);
-      context.go(AppRoutes.completeProfile);
+      context.go(
+        _buildAuthRouteLocation(
+          AppRoutes.completeProfile,
+          redirectLocation: _redirectLocation,
+        ),
+      );
     } on DioException catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);

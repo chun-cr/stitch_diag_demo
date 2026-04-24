@@ -1822,19 +1822,83 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportAdviceAvoidAlcohol => 'Tobacco and alcohol';
 
   @override
-  String get reportAdviceProductsTitle => 'Therapy Product Recommendations';
+  String get reportAdviceProjectsTitle => 'Recommended Care Services';
+
+  @override
+  String get reportAdviceProjectsSubtitle =>
+      'In-clinic service recommendations based on your report';
+
+  @override
+  String get reportAdviceProjectsEmpty =>
+      'No matching care-service recommendations are available right now.';
+
+  @override
+  String get reportAdviceProjectsDisclaimer =>
+      'These service recommendations are based on constitution analysis and are for reference only. Final service content and booking availability follow the clinic\'s arrangement.';
+
+  @override
+  String get reportAdviceProjectDetailButton => 'View service >';
+
+  @override
+  String get reportAdviceProductsTitle => 'Recommended Products';
 
   @override
   String get reportAdviceProductsSubtitle =>
-      'Personalized recommendations based on the report';
+      'Shippable product recommendations based on your report';
+
+  @override
+  String get reportAdviceProductsEmpty =>
+      'No matching product recommendations are available right now.';
 
   @override
   String get reportAdviceProductsDisclaimer =>
-      'These product recommendations are based on constitution analysis and are for reference only. Use of Chinese patent medicines should be guided by a physician or pharmacist.';
+      'These product recommendations are based on constitution analysis and are for reference only. Actual inventory, specifications, and delivery coverage follow the clinic\'s arrangement.';
 
   @override
   String get reportProductCommonShipping =>
       'Orders are prepared within 48 business hours and include shipment tracking.';
+
+  @override
+  String get reportProjectCommonServiceNote =>
+      'Final service content is arranged after an in-clinic assessment.';
+
+  @override
+  String get reportProjectCommonConsultNote =>
+      'In-clinic consultation and booking are supported. Final scheduling depends on the clinic.';
+
+  @override
+  String get reportProjectWarmMoxibustion => 'Warm Moxibustion Care';
+
+  @override
+  String get reportProjectWarmMoxibustionType => 'In-clinic warming session';
+
+  @override
+  String get reportProjectWarmMoxibustionDesc =>
+      'Recommended when the report suggests cold-damp or qi-deficiency tendencies and gentle warming care is appropriate.';
+
+  @override
+  String get reportProjectWarmMoxibustionTag => 'Clinic pick';
+
+  @override
+  String get reportProjectWarmMoxibustionDuration =>
+      'About 45 minutes per session';
+
+  @override
+  String get reportProjectMeridianRelief => 'Meridian Relief Session';
+
+  @override
+  String get reportProjectMeridianReliefType => 'Meridian care service';
+
+  @override
+  String get reportProjectMeridianReliefDesc =>
+      'Focused on fatigue, sleep rhythm, and qi-blood circulation with a lighter, restorative in-clinic treatment plan.';
+
+  @override
+  String get reportProjectMeridianReliefTag => 'Good first visit';
+
+  @override
+  String get reportProjectMeridianReliefDuration =>
+      'About 60 minutes per session';
 
   @override
   String get reportProductJianpiwanPack =>
@@ -1890,6 +1954,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportProductDetailReportLinked => 'Aligned with report guidance';
+
+  @override
+  String get reportProjectDetailTitle => 'Service Details';
+
+  @override
+  String get reportProjectDetailHeroBadge => 'Linked to your report';
+
+  @override
+  String get reportProjectDetailRecommendationTitle => 'Why it is recommended';
+
+  @override
+  String get reportProjectDetailDurationTitle => 'Session length';
+
+  @override
+  String get reportProjectDetailServiceTitle => 'Service notes';
+
+  @override
+  String get reportProjectDetailConsultTitle => 'Consultation & booking';
+
+  @override
+  String get reportProjectDetailActionButton => 'Book a consultation';
+
+  @override
+  String get reportProjectDetailReportLinked => 'Aligned with report guidance';
 
   @override
   String get reportProductCheckoutTitle => 'Confirm Order';
@@ -2217,7 +2305,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportWuxingWater => 'Water';
 
   @override
-  String get reportAdviceProductDetailButton => 'View details >';
+  String get reportAdviceProductDetailButton => 'View product >';
 
   @override
   String get metricFaceDiagnosis => 'Face';

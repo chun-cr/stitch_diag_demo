@@ -108,6 +108,8 @@ class ReportViewData {
     this.source,
     this.tenantId,
     this.storeId,
+    this.age,
+    this.sex,
     this.primaryConstitution,
     this.secondaryBias,
     this.summary,
@@ -135,6 +137,8 @@ class ReportViewData {
   final String? source;
   final String? tenantId;
   final String? storeId;
+  final int? age;
+  final String? sex;
   final String? primaryConstitution;
   final String? secondaryBias;
   final String? summary;
@@ -178,6 +182,8 @@ class ReportViewData {
       source: source,
       tenantId: tenantId,
       storeId: storeId,
+      age: age,
+      sex: sex,
       primaryConstitution: primaryConstitution,
       secondaryBias: secondaryBias,
       summary: summary,
@@ -259,6 +265,8 @@ class ReportViewData {
       source: null,
       tenantId: null,
       storeId: null,
+      age: 23,
+      sex: 'F',
       primaryConstitution: null,
       secondaryBias: null,
       summary: null,
@@ -343,6 +351,10 @@ class ReportViewData {
       source: detail.source.isNotEmpty ? detail.source : null,
       tenantId: detail.tenantId.isNotEmpty ? detail.tenantId : null,
       storeId: detail.storeId.isNotEmpty ? detail.storeId : null,
+      age: detail.faceAnalysisResult.age?.round(),
+      sex: detail.faceAnalysisResult.sex.trim().isNotEmpty
+          ? detail.faceAnalysisResult.sex.trim()
+          : null,
       constitutionScores: constitutionScores,
       primaryConstitution: detail.analysisResult.tz.name.isNotEmpty
           ? detail.analysisResult.tz.name

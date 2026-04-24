@@ -84,6 +84,51 @@ class ReportRemoteSource {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPhysiqueProjects({
+    String? token,
+    String? topOrgId,
+    int? age,
+    String? sex,
+    List<int> physiqueIds = const [],
+  }) async {
+    final queryParameters = _buildPhysiqueProjectQueryParameters(
+      token: token,
+      topOrgId: topOrgId,
+      age: age,
+      sex: sex,
+      physiqueIds: physiqueIds,
+    );
+    if (queryParameters.isEmpty) {
+      return const <Map<String, dynamic>>[];
+    }
+
+    final envelope = await _getEnvelope(
+      _resolvePhysiqueProjectsPath(queryParameters['token']?.toString()),
+      queryParameters: queryParameters,
+    );
+    return List<Map<String, dynamic>>.unmodifiable(
+      _extractGenericItems(envelope, preferredKeys: const ['projects']),
+    );
+  }
+
+  Future<Map<String, dynamic>?> getPhysiqueProductDetail(
+    String productId,
+  ) async {
+    final normalizedProductId = productId.trim();
+    if (normalizedProductId.isEmpty) {
+      return null;
+    }
+
+    final envelope = await _getEnvelope(
+      '/api/v1/saas/mobile/physique/product/${Uri.encodeComponent(normalizedProductId)}',
+    );
+    final payload = _extractPhysiqueProductDetail(envelope);
+    if (payload.isEmpty) {
+      return null;
+    }
+    return Map<String, dynamic>.unmodifiable(payload);
+  }
+
   Future<void> addReportSymptom({
     required String reportId,
     required String symptomId,
@@ -311,6 +356,12 @@ String _resolvePhysiqueProductsPath(String? token) {
       : '/api/v1/saas/mobile/physique/products';
 }
 
+String _resolvePhysiqueProjectsPath(String? token) {
+  return token != null && token.trim().isNotEmpty
+      ? '/api/v1/saas/mobile/physique/project/by/token'
+      : '/api/v1/saas/mobile/physique/project';
+}
+
 Map<String, dynamic> _buildPhysiqueProductQueryParameters({
   required String? token,
   required String? topOrgId,
@@ -344,9 +395,56 @@ Map<String, dynamic> _buildPhysiqueProductQueryParameters({
   return queryParameters;
 }
 
+Map<String, dynamic> _buildPhysiqueProjectQueryParameters({
+  required String? token,
+  required String? topOrgId,
+  required int? age,
+  required String? sex,
+  required List<int> physiqueIds,
+}) {
+  final queryParameters = <String, dynamic>{};
+
+  final normalizedToken = token?.trim() ?? '';
+  final normalizedTopOrgId = topOrgId?.trim() ?? '';
+  if (normalizedToken.isEmpty && normalizedTopOrgId.isEmpty) {
+    return queryParameters;
+  }
+
+  if (normalizedToken.isNotEmpty) {
+    queryParameters['token'] = normalizedToken;
+  }
+
+  queryParameters.addAll(
+    _buildTenantStoreCompatQueryParameters(tenantId: normalizedTopOrgId),
+  );
+
+  if (age != null && age > 0) {
+    queryParameters['age'] = age;
+  }
+
+  final normalizedSex = sex?.trim() ?? '';
+  if (normalizedSex.isNotEmpty) {
+    queryParameters['sex'] = normalizedSex;
+  }
+
+  final normalizedPhysiqueIds = _normalizeIntIds(physiqueIds);
+  if (normalizedPhysiqueIds.isNotEmpty) {
+    queryParameters['physiqueIds'] = normalizedPhysiqueIds;
+  }
+
+  return queryParameters;
+}
+
 List<Map<String, dynamic>> _extractPhysiqueProductItems(
   Map<String, dynamic> envelope,
 ) {
+  return _extractGenericItems(envelope, preferredKeys: const ['products']);
+}
+
+List<Map<String, dynamic>> _extractGenericItems(
+  Map<String, dynamic> envelope, {
+  List<String> preferredKeys = const [],
+}) {
   final payload = _asMap(envelope['data']);
   if (payload.isEmpty) {
     final raw = envelope['data'];
@@ -359,14 +457,20 @@ List<Map<String, dynamic>> _extractPhysiqueProductItems(
     return const <Map<String, dynamic>>[];
   }
 
-  for (final key in const [
+  final keys = <String>[
+    ...preferredKeys,
     'datas',
     'records',
     'items',
     'list',
     'rows',
-    'products',
-  ]) {
+  ];
+  var foundExplicitListKey = false;
+  for (final key in keys) {
+    if (!payload.containsKey(key)) {
+      continue;
+    }
+    foundExplicitListKey = true;
     final items = _asList(payload[key])
         .map((item) => _asMap(item))
         .where((item) => item.isNotEmpty)
@@ -376,7 +480,29 @@ List<Map<String, dynamic>> _extractPhysiqueProductItems(
     }
   }
 
+  if (foundExplicitListKey) {
+    return const <Map<String, dynamic>>[];
+  }
+
   return [payload];
+}
+
+Map<String, dynamic> _extractPhysiqueProductDetail(
+  Map<String, dynamic> envelope,
+) {
+  final payload = _asMap(envelope['data']);
+  if (payload.isEmpty) {
+    return const <String, dynamic>{};
+  }
+
+  for (final key in const ['data', 'item', 'product', 'detail', 'info']) {
+    final nested = _asMap(payload[key]);
+    if (nested.isNotEmpty) {
+      return nested;
+    }
+  }
+
+  return payload;
 }
 
 List<int> _normalizeIntIds(Iterable<int> ids) {

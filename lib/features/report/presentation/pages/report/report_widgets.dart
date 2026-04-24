@@ -2277,6 +2277,150 @@ class _FoodChip extends StatelessWidget {
 }
 
 /// 浜у搧鎺ㄨ崘鍗＄墖
+class _ProjectCard extends StatelessWidget {
+  final ReportProjectData project;
+
+  const _ProjectCard({required this.project});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return GestureDetector(
+      onTap: () {
+        context.push(
+          Uri(
+            path: AppRoutes.reportProjectDetail,
+            queryParameters: project.toRouteQueryParameters(),
+          ).toString(),
+          extra: project,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: project.color.withValues(alpha: 0.12),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: project.color.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: project.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(project.icon, size: 24, color: project.color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            project.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E1810),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          project.tag,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: project.color.withValues(alpha: 0.68),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      project.type,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: project.color.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      project.description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF3A3028).withValues(alpha: 0.6),
+                        height: 1.5,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            project.durationNote,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: project.color,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(99),
+                            border: Border.all(
+                              color: project.color.withValues(alpha: 0.22),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            l10n.reportAdviceProjectDetailButton,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: project.color.withValues(alpha: 0.82),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ProductCard extends StatelessWidget {
   final ReportProductData product;
   const _ProductCard({required this.product});

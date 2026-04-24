@@ -1,7 +1,9 @@
 part of 'register_page.dart';
 
 class CompleteProfilePage extends StatefulWidget {
-  const CompleteProfilePage({super.key});
+  const CompleteProfilePage({super.key, this.redirectLocation});
+
+  final String? redirectLocation;
 
   @override
   State<CompleteProfilePage> createState() => _CompleteProfilePageState();
@@ -21,6 +23,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   late AnimationController _fadeController;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
+
+  String? get _redirectLocation =>
+      _normalizeAuthRedirectLocation(widget.redirectLocation);
 
   @override
   void initState() {
@@ -77,7 +82,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     if (!mounted) {
       return;
     }
-    context.go(hasSession ? AppRoutes.register : AppRoutes.login);
+    context.go(
+      _buildAuthRouteLocation(
+        hasSession ? AppRoutes.register : AppRoutes.login,
+        redirectLocation: _redirectLocation,
+      ),
+    );
   }
 
   Future<void> _completeOrSkip({required bool skip}) async {
@@ -88,7 +98,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
 
     if (!hasSession) {
       setPreviewAuthenticated(false);
-      context.go(AppRoutes.login);
+      context.go(
+        _buildAuthRouteLocation(
+          AppRoutes.login,
+          redirectLocation: _redirectLocation,
+        ),
+      );
       return;
     }
 
@@ -97,7 +112,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     }
 
     setPreviewAuthenticated(true);
-    context.go(AppRoutes.home);
+    context.go(_redirectLocation ?? AppRoutes.home);
   }
 
   Widget _buildHeader(BuildContext context) {

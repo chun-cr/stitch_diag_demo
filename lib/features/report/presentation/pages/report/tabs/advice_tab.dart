@@ -16,6 +16,7 @@ class _Tab4Advice extends StatefulWidget {
 }
 
 class _Tab4AdviceState extends State<_Tab4Advice> {
+  late Future<List<ReportProjectData>> _backendProjectsFuture;
   late Future<List<ReportProductData>> _backendProductsFuture;
 
   bool get _isUnlocked => widget.isUnlocked;
@@ -25,19 +26,30 @@ class _Tab4AdviceState extends State<_Tab4Advice> {
   @override
   void initState() {
     super.initState();
+    _backendProjectsFuture = _loadBackendProjects();
     _backendProductsFuture = _loadBackendProducts();
   }
 
   @override
   void didUpdateWidget(covariant _Tab4Advice oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_productQuerySignature(oldWidget.viewData) ==
-        _productQuerySignature(widget.viewData)) {
+    final shouldReloadProjects =
+        _projectQuerySignature(oldWidget.viewData) !=
+        _projectQuerySignature(widget.viewData);
+    final shouldReloadProducts =
+        _productQuerySignature(oldWidget.viewData) !=
+        _productQuerySignature(widget.viewData);
+    if (!shouldReloadProjects && !shouldReloadProducts) {
       return;
     }
 
     setState(() {
-      _backendProductsFuture = _loadBackendProducts();
+      if (shouldReloadProjects) {
+        _backendProjectsFuture = _loadBackendProjects();
+      }
+      if (shouldReloadProducts) {
+        _backendProductsFuture = _loadBackendProducts();
+      }
     });
   }
 
@@ -56,6 +68,8 @@ class _Tab4AdviceState extends State<_Tab4Advice> {
           onUnlock: _onUnlock,
           child: _buildDietAdviceContent(context),
         ),
+        const SizedBox(height: 16),
+        _buildProjectRecommendations(context),
         const SizedBox(height: 16),
         _buildProductRecommendations(context),
       ],
@@ -445,6 +459,58 @@ class _Tab4AdviceState extends State<_Tab4Advice> {
   }
 
   // ── 产品推荐 ─────────────────────────────────────────────────────
+  Widget _buildProjectRecommendations(BuildContext context) {
+    final l10n = context.l10n;
+    return FutureBuilder<List<ReportProjectData>>(
+      future: _backendProjectsFuture,
+      builder: (context, snapshot) {
+        final backendProjects = snapshot.data ?? const <ReportProjectData>[];
+        final projects = backendProjects.isNotEmpty
+            ? backendProjects
+            : (_viewData.isLive
+                  ? const <ReportProjectData>[]
+                  : buildReportProjects(l10n));
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FloatingSectionTitle(
+              title: l10n.reportAdviceProjectsTitle,
+              accentColor: const Color(0xFFB96A3A),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 10),
+              child: Text(
+                l10n.reportAdviceProjectsSubtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: const Color(0xFFA09080).withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+            if (projects.isEmpty)
+              _buildAdviceEmptyState(
+                message: l10n.reportAdviceProjectsEmpty,
+                color: const Color(0xFFB96A3A),
+              )
+            else
+              ...projects.map(
+                (project) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ProjectCard(project: project),
+                ),
+              ),
+            _buildAdviceDisclaimer(
+              message: l10n.reportAdviceProjectsDisclaimer,
+              color: const Color(0xFFB96A3A),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildProductRecommendations(BuildContext context) {
     final l10n = context.l10n;
     return FutureBuilder<List<ReportProductData>>(
@@ -453,7 +519,9 @@ class _Tab4AdviceState extends State<_Tab4Advice> {
         final backendProducts = snapshot.data ?? const <ReportProductData>[];
         final products = backendProducts.isNotEmpty
             ? backendProducts
-            : buildReportProducts(l10n);
+            : (_viewData.isLive
+                  ? const <ReportProductData>[]
+                  : buildReportProducts(l10n));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,35 +538,110 @@ class _Tab4AdviceState extends State<_Tab4Advice> {
                 ),
               ),
             ),
-            ...products.map(
-              (p) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ProductCard(product: p),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2D6A4F).withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFF2D6A4F).withValues(alpha: 0.08),
-                  width: 1,
+            if (products.isEmpty)
+              _buildAdviceEmptyState(
+                message: l10n.reportAdviceProductsEmpty,
+                color: const Color(0xFF2D6A4F),
+              )
+            else
+              ...products.map(
+                (p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ProductCard(product: p),
                 ),
               ),
-              child: Text(
-                l10n.reportAdviceProductsDisclaimer,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: const Color(0xFF3A3028).withValues(alpha: 0.45),
-                  height: 1.5,
-                ),
-              ),
+            _buildAdviceDisclaimer(
+              message: l10n.reportAdviceProductsDisclaimer,
+              color: const Color(0xFF2D6A4F),
             ),
           ],
         );
       },
     );
+  }
+
+  Widget _buildAdviceEmptyState({
+    required String message,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.1), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.inbox_outlined, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: const Color(0xFF3A3028).withValues(alpha: 0.62),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdviceDisclaimer({
+    required String message,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.08), width: 1),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          fontSize: 11,
+          color: const Color(0xFF3A3028).withValues(alpha: 0.45),
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Future<List<ReportProjectData>> _loadBackendProjects() async {
+    if (!_viewData.isLive) {
+      return const <ReportProjectData>[];
+    }
+
+    try {
+      final source = ReportRemoteSource(getIt<DioClient>());
+      final rawProjects = await source.getPhysiqueProjects(
+        token: _viewData.token,
+        topOrgId: _viewData.tenantId,
+        age: _viewData.age,
+        sex: _viewData.sex,
+        physiqueIds: _collectNumericIds(
+          _viewData.constitutionScores.map((item) => item.id),
+        ),
+      );
+      if (rawProjects.isEmpty) {
+        return const <ReportProjectData>[];
+      }
+      return rawProjects
+          .asMap()
+          .entries
+          .map(
+            (entry) =>
+                ReportProjectData.fromBackend(entry.value, index: entry.key),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <ReportProjectData>[];
+    }
   }
 
   Future<List<ReportProductData>> _loadBackendProducts() async {
@@ -523,15 +666,24 @@ class _Tab4AdviceState extends State<_Tab4Advice> {
           .asMap()
           .entries
           .map(
-            (entry) => ReportProductData.fromBackend(
-              entry.value,
-              index: entry.key,
-            ),
+            (entry) =>
+                ReportProductData.fromBackend(entry.value, index: entry.key),
           )
           .toList(growable: false);
     } catch (_) {
       return const <ReportProductData>[];
     }
+  }
+
+  String _projectQuerySignature(ReportViewData viewData) {
+    return [
+      viewData.reportId?.trim() ?? '',
+      viewData.token?.trim() ?? '',
+      viewData.tenantId?.trim() ?? '',
+      viewData.age?.toString() ?? '',
+      viewData.sex?.trim() ?? '',
+      ...viewData.constitutionScores.map((item) => item.id.trim()),
+    ].join('|');
   }
 
   String _productQuerySignature(ReportViewData viewData) {

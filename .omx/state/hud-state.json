@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-24T04:17:05.111Z",
-  "turn_count": 205,
-  "last_progress_at": "2026-04-24T04:17:05.111Z",
-  "last_agent_output": "已经按这条思路接上了，商品接口现在集成到报告页的 `advice` tab，并把展示文案改成“理疗项目推荐”。\n\n这次改动的核心是：\n- 在 [report_remote_source.dart](D"
+  "last_turn_at": "2026-04-24T09:24:12.181Z",
+  "turn_count": 224,
+  "last_progress_at": "2026-04-24T09:24:12.181Z",
+  "last_agent_output": "已完成。报告页推荐现在拆成两条独立链路：`project` 只走项目详情，不进入零售下单；`product` 继续走商品详情和结算链路。顺手补掉了两个真实缺口：显式空 `projects` 响应不再伪"
 }

@@ -104,7 +104,7 @@ bool shouldTrackPalmHold({
   return isPalmHoldEligible(
     handPresent: handPresent,
     readyToScan: readyToScan,
-    isFramed: isFramed,
+    isFramed: isRelaxedFramed,
     pauseAutoScanUntilReset: pauseAutoScanUntilReset,
   );
 }
@@ -259,10 +259,12 @@ class _PalmScanPageState extends State<PalmScanPage>
           _pauseAutoScanUntilReset = false;
         }
         if (_scanState == PalmScanState.uploading) return;
-        final canHold = isPalmHoldEligible(
+        final canHold = shouldTrackPalmHold(
+          holdInProgress: false,
           handPresent: status.handPresent,
           readyToScan: status.readyToScan,
           isFramed: strictlyFramed,
+          isRelaxedFramed: relaxedFramed,
           pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
         );
         final holdAlive = shouldTrackPalmHold(

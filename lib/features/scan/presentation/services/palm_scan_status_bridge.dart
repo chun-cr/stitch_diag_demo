@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class PalmScanStatus {
-  static const double _openPalmScoreThreshold = 0.60;
+  static const double _openPalmScoreThreshold = 0.50;
 
   final bool handPresent;
   final bool gestureDetected;

@@ -1719,17 +1719,75 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportAdviceAvoidAlcohol => '酒・たばこ';
 
   @override
+  String get reportAdviceProjectsTitle => 'おすすめ施術';
+
+  @override
+  String get reportAdviceProjectsSubtitle => 'レポート結果に合わせた来店サービス';
+
+  @override
+  String get reportAdviceProjectsEmpty => '現在、このレポートに対応する施術提案はありません。';
+
+  @override
+  String get reportAdviceProjectsDisclaimer =>
+      '施術提案は体質分析に基づく参考情報です。実際の施術内容と予約枠は店舗案内に従ってください。';
+
+  @override
+  String get reportAdviceProjectDetailButton => '施術を見る >';
+
+  @override
   String get reportAdviceProductsTitle => 'おすすめ商品';
 
   @override
-  String get reportAdviceProductsSubtitle => '体質に合わせたご提案';
+  String get reportAdviceProductsSubtitle => 'レポート結果に合わせた配送商品';
+
+  @override
+  String get reportAdviceProductsEmpty => '現在、このレポートに対応する商品提案はありません。';
 
   @override
   String get reportAdviceProductsDisclaimer =>
-      'これらのおすすめは体質分析に基づく参考情報です。中成薬を使用する場合は、医師または薬剤師の指導のもとで行ってください。';
+      '商品提案は体質分析に基づく参考情報です。在庫・仕様・配送範囲は店舗案内に準じます。';
 
   @override
   String get reportProductCommonShipping => '通常は営業日 48 時間以内に発送し、配送追跡に対応します。';
+
+  @override
+  String get reportProjectCommonServiceNote => '具体的な施術内容は来店後の評価に応じて案内されます。';
+
+  @override
+  String get reportProjectCommonConsultNote =>
+      '来店相談と予約に対応しています。実際の枠は店舗手配に準じます。';
+
+  @override
+  String get reportProjectWarmMoxibustion => '温養灸ケア';
+
+  @override
+  String get reportProjectWarmMoxibustionType => '来店温補コース';
+
+  @override
+  String get reportProjectWarmMoxibustionDesc =>
+      '冷えや湿の傾向が見られる場合に、やさしいお灸と温養ケアを優先して提案します。';
+
+  @override
+  String get reportProjectWarmMoxibustionTag => '店舗おすすめ';
+
+  @override
+  String get reportProjectWarmMoxibustionDuration => '1回 約45分';
+
+  @override
+  String get reportProjectMeridianRelief => '経絡リリーフケア';
+
+  @override
+  String get reportProjectMeridianReliefType => '経絡調整コース';
+
+  @override
+  String get reportProjectMeridianReliefDesc =>
+      '疲労感、睡眠リズム、気血の巡りに着目した、軽めの経絡調整ケアです。';
+
+  @override
+  String get reportProjectMeridianReliefTag => '初回向け';
+
+  @override
+  String get reportProjectMeridianReliefDuration => '1回 約60分';
 
   @override
   String get reportProductJianpiwanPack => '1本 / 200丸入り。日常的な脾胃ケアのサイクル向けです。';
@@ -1781,6 +1839,30 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reportProductDetailReportLinked => 'レポート提案と連動';
+
+  @override
+  String get reportProjectDetailTitle => '施術詳細';
+
+  @override
+  String get reportProjectDetailHeroBadge => 'レポート連動施術';
+
+  @override
+  String get reportProjectDetailRecommendationTitle => 'おすすめ理由';
+
+  @override
+  String get reportProjectDetailDurationTitle => '施術時間';
+
+  @override
+  String get reportProjectDetailServiceTitle => '施術案内';
+
+  @override
+  String get reportProjectDetailConsultTitle => '相談・予約';
+
+  @override
+  String get reportProjectDetailActionButton => '相談を予約する';
+
+  @override
+  String get reportProjectDetailReportLinked => 'レポート提案と連動';
 
   @override
   String get reportProductCheckoutTitle => '注文確認';
@@ -2086,7 +2168,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportWuxingWater => '水';
 
   @override
-  String get reportAdviceProductDetailButton => '詳細を見る >';
+  String get reportAdviceProductDetailButton => '商品を見る >';
 
   @override
   String get metricFaceDiagnosis => '顔診';

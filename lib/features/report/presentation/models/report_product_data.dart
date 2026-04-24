@@ -4,6 +4,7 @@ import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 @immutable
 class ReportProductData {
   final String id;
+  final String? detailId;
   final String name;
   final String type;
   final String description;
@@ -16,6 +17,7 @@ class ReportProductData {
 
   const ReportProductData({
     required this.id,
+    this.detailId,
     required this.name,
     required this.type,
     required this.description,
@@ -36,75 +38,138 @@ class ReportProductData {
     return '¥$yuan.${fen.toString().padLeft(2, '0')}';
   }
 
+  bool get supportsRemoteDetail => (detailId?.trim().isNotEmpty ?? false);
+
   factory ReportProductData.fromBackend(
     Map<String, dynamic> json, {
     int index = 0,
   }) {
+    final resolvedDetailId = _resolveDetailId(json);
     return ReportProductData(
-      id: _firstText(
-            json,
-            const [
-              'id',
-              'productId',
-              'spuId',
-              'skuId',
-              'itemId',
-              'code',
-            ],
-          ) ??
-          'backend-$index',
-      name: _firstText(
-            json,
-            const ['name', 'productName', 'spuName', 'skuName', 'title'],
-          ) ??
+      id: resolvedDetailId ?? 'backend-$index',
+      detailId: resolvedDetailId,
+      name:
+          _firstText(json, const [
+            'name',
+            'productName',
+            'spuName',
+            'skuName',
+            'title',
+          ]) ??
           '推荐商品',
-      type: _firstText(
-            json,
-            const ['type', 'typeName', 'categoryName', 'productType'],
-          ) ??
+      type:
+          _firstText(json, const [
+            'type',
+            'typeName',
+            'categoryName',
+            'productType',
+          ]) ??
           _kBackendDefaultType,
-      description: _firstText(
-            json,
-            const [
-              'description',
-              'desc',
-              'detail',
-              'recommendationReason',
-              'reason',
-              'summary',
-            ],
-          ) ??
+      description:
+          _firstText(json, const [
+            'description',
+            'desc',
+            'detail',
+            'recommendationReason',
+            'reason',
+            'summary',
+          ]) ??
           _kBackendDefaultDescription,
       priceCents: _resolvePriceCents(json),
-      tag: _firstText(
-            json,
-            const ['tag', 'label', 'badge', 'recommendTag', 'sceneTag'],
-          ) ??
+      tag:
+          _firstText(json, const [
+            'tag',
+            'label',
+            'badge',
+            'recommendTag',
+            'sceneTag',
+          ]) ??
           (index == 0 ? '推荐' : '精选'),
       color: _resolveColor(json, index),
       icon: _resolveIcon(json, index),
-      packageNote: _firstText(
-            json,
-            const [
-              'packageNote',
-              'packageDesc',
-              'specification',
-              'spec',
-              'packageInfo',
-            ],
-          ) ??
+      packageNote:
+          _firstText(json, const [
+            'packageNote',
+            'packageDesc',
+            'specification',
+            'spec',
+            'packageInfo',
+          ]) ??
           _kBackendDefaultPackageNote,
-      shippingNote: _firstText(
-            json,
-            const [
-              'shippingNote',
-              'shippingDesc',
-              'deliveryDesc',
-              'logisticsDesc',
-              'deliveryInfo',
-            ],
-          ) ??
+      shippingNote:
+          _firstText(json, const [
+            'shippingNote',
+            'shippingDesc',
+            'deliveryDesc',
+            'logisticsDesc',
+            'deliveryInfo',
+          ]) ??
           _kBackendDefaultShippingNote,
+    );
+  }
+
+  ReportProductData mergeBackend(Map<String, dynamic> json) {
+    final resolvedDetailId = _resolveDetailId(json);
+    return ReportProductData(
+      id: resolvedDetailId ?? id,
+      detailId: resolvedDetailId ?? detailId,
+      name:
+          _firstText(json, const [
+            'name',
+            'productName',
+            'spuName',
+            'skuName',
+            'title',
+          ]) ??
+          name,
+      type:
+          _firstText(json, const [
+            'type',
+            'typeName',
+            'categoryName',
+            'productType',
+          ]) ??
+          type,
+      description:
+          _firstText(json, const [
+            'description',
+            'desc',
+            'detail',
+            'recommendationReason',
+            'reason',
+            'summary',
+          ]) ??
+          description,
+      priceCents: _tryResolvePriceCents(json) ?? priceCents,
+      tag:
+          _firstText(json, const [
+            'tag',
+            'label',
+            'badge',
+            'recommendTag',
+            'sceneTag',
+          ]) ??
+          tag,
+      color: _tryResolveColor(json) ?? color,
+      icon: _tryResolveIcon(json) ?? icon,
+      packageNote:
+          _firstText(json, const [
+            'packageNote',
+            'packageDesc',
+            'specification',
+            'spec',
+            'packageInfo',
+          ]) ??
+          packageNote,
+      shippingNote:
+          _firstText(json, const [
+            'shippingNote',
+            'shippingDesc',
+            'deliveryDesc',
+            'logisticsDesc',
+            'deliveryInfo',
+          ]) ??
+          shippingNote,
     );
   }
 }
@@ -118,8 +183,8 @@ const _kBackendFallbackColors = <Color>[
   Color(0xFFD4794A),
 ];
 
-const _kBackendDefaultDescription = '基于报告结果推荐的理疗商品。';
-const _kBackendDefaultType = '理疗推荐';
+const _kBackendDefaultDescription = '基于报告结果推荐的适配商品。';
+const _kBackendDefaultType = '推荐商品';
 const _kBackendDefaultPackageNote = '以实际发货规格为准。';
 const _kBackendDefaultShippingNote = '支持快递配送，具体以页面说明为准。';
 
@@ -176,6 +241,17 @@ List<ReportProductData> buildReportProducts(AppLocalizations l10n) {
   ];
 }
 
+String? _resolveDetailId(Map<String, dynamic> json) {
+  return _firstText(json, const [
+    'id',
+    'productId',
+    'spuId',
+    'skuId',
+    'itemId',
+    'code',
+  ]);
+}
+
 String? _firstText(Map<String, dynamic> json, List<String> keys) {
   for (final key in keys) {
     final value = json[key];
@@ -191,6 +267,10 @@ String? _firstText(Map<String, dynamic> json, List<String> keys) {
 }
 
 int _resolvePriceCents(Map<String, dynamic> json) {
+  return _tryResolvePriceCents(json) ?? 0;
+}
+
+int? _tryResolvePriceCents(Map<String, dynamic> json) {
   const minorKeys = [
     'priceMinor',
     'salePriceMinor',
@@ -223,7 +303,7 @@ int _resolvePriceCents(Map<String, dynamic> json) {
     }
   }
 
-  return 0;
+  return null;
 }
 
 double? _parseMoneyValue(Object? value) {
@@ -231,9 +311,7 @@ double? _parseMoneyValue(Object? value) {
     return value.toDouble();
   }
   if (value is String) {
-    final normalized = value
-        .replaceAll(RegExp(r'[^0-9.\-]'), '')
-        .trim();
+    final normalized = value.replaceAll(RegExp(r'[^0-9.\-]'), '').trim();
     if (normalized.isEmpty) {
       return null;
     }
@@ -243,13 +321,18 @@ double? _parseMoneyValue(Object? value) {
 }
 
 Color _resolveColor(Map<String, dynamic> json, int index) {
+  return _tryResolveColor(json) ??
+      _kBackendFallbackColors[index % _kBackendFallbackColors.length];
+}
+
+Color? _tryResolveColor(Map<String, dynamic> json) {
   for (final key in const ['color', 'themeColor', 'brandColor', 'mainColor']) {
     final color = _parseColorValue(json[key]);
     if (color != null) {
       return color;
     }
   }
-  return _kBackendFallbackColors[index % _kBackendFallbackColors.length];
+  return null;
 }
 
 Color? _parseColorValue(Object? value) {
@@ -284,25 +367,39 @@ Color? _parseColorValue(Object? value) {
 }
 
 IconData _resolveIcon(Map<String, dynamic> json, int index) {
+  return _tryResolveIcon(json) ??
+      switch (index % 4) {
+        0 => Icons.local_pharmacy_outlined,
+        1 => Icons.eco_outlined,
+        2 => Icons.spa_outlined,
+        _ => Icons.restaurant_menu_outlined,
+      };
+}
+
+IconData? _tryResolveIcon(Map<String, dynamic> json) {
   final hint = [
     _firstText(json, const ['icon', 'iconName', 'iconKey']),
     _firstText(json, const ['category', 'categoryName', 'type', 'typeName']),
     _firstText(json, const ['name', 'title', 'description']),
   ].whereType<String>().join(' ').toLowerCase();
 
+  if (hint.trim().isEmpty) {
+    return null;
+  }
+
   if (hint.contains('pharmacy') ||
       hint.contains('medicine') ||
       hint.contains('drug') ||
       hint.contains('药') ||
       hint.contains('丸') ||
-      hint.contains('膏')) {
+      hint.contains('胶')) {
     return Icons.local_pharmacy_outlined;
   }
 
   if (hint.contains('food') ||
       hint.contains('diet') ||
       hint.contains('meal') ||
-      hint.contains('餐') ||
+      hint.contains('饮') ||
       hint.contains('食') ||
       hint.contains('汤') ||
       hint.contains('粥')) {
@@ -335,10 +432,5 @@ IconData _resolveIcon(Map<String, dynamic> json, int index) {
     return Icons.spa_outlined;
   }
 
-  return switch (index % 4) {
-    0 => Icons.local_pharmacy_outlined,
-    1 => Icons.eco_outlined,
-    2 => Icons.spa_outlined,
-    _ => Icons.restaurant_menu_outlined,
-  };
+  return null;
 }
