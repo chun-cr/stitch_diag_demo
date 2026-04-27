@@ -46,6 +46,21 @@ class ScanTongueUploadResult {
   Map<String, dynamic> get tongueReport => _asMap(data['tongueReport']);
 
   String get reportId => _asString(tongueReport['reportId']);
+  int? get tongueReportId => _firstInt(<Object?>[
+    tongueReport['tongueReportId'],
+    tongueReport['id'],
+    data['tongueReportId'],
+  ]);
+  int? get medicalCaseId => _firstInt(<Object?>[
+    data['medicalCaseId'],
+    tongueReport['medicalCaseId'],
+    analysisResult['medicalCaseId'],
+  ]);
+  String get phyCategory => _firstNonEmptyString(<Object?>[
+    data['phyCategory'],
+    tongueReport['phyCategory'],
+    analysisResult['phyCategory'],
+  ]);
 
   bool get missingTongue {
     return analysisResult['success'] == true &&
@@ -88,4 +103,24 @@ num? _asNum(Object? value) {
     return num.tryParse(value);
   }
   return null;
+}
+
+int? _firstInt(List<Object?> values) {
+  for (final value in values) {
+    final parsed = _asNum(value)?.toInt();
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+String _firstNonEmptyString(List<Object?> values) {
+  for (final value in values) {
+    final parsed = _asString(value).trim();
+    if (parsed.isNotEmpty) {
+      return parsed;
+    }
+  }
+  return '';
 }

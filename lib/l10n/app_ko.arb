@@ -863,6 +863,38 @@
   "scanPalmTipFlatten": "손바닥을 평평하게 유지해 주세요",
   "scanPalmViewingReportSoon": "리포트를 여는 중...",
   "scanPalmHoldButton": "손바닥을 2초간 유지",
+  "scanQuestionTitle": "추가 질문",
+  "scanQuestionSubtitle": "몇 가지 질문에 더 답하면 체질 분석과 최종 리포트를 더 완성도 있게 만들 수 있습니다. 현재 스캔 결과로 바로 리포트를 볼 수도 있습니다.",
+  "scanQuestionSkipDirectReport": "건너뛰고 리포트 보기",
+  "scanQuestionAnsweredCount": "{count}개 답변 완료",
+  "@scanQuestionAnsweredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionOptionalTag": "선택 사항",
+  "scanQuestionLoadingTitle": "추가 질문을 준비하는 중",
+  "scanQuestionLoadingBody": "다음 질문을 불러오고 답변 컨텍스트를 정리하고 있습니다.",
+  "scanQuestionLoadFailed": "질문을 불러오지 못했습니다",
+  "scanQuestionRetry": "다시 시도",
+  "scanQuestionMissingQuestion": "지금 표시할 질문이 없습니다. 다시 시도하거나 바로 리포트로 이동하세요.",
+  "scanQuestionFooterHint": "답변 내용은 체질 분석 보완에만 사용되며, 이미 업로드된 스캔 이미지에는 영향을 주지 않습니다.",
+  "scanQuestionProgressTitle": "{current}/{total}번째 질문",
+  "@scanQuestionProgressTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionSectionTitle": "추가 질문",
+  "scanQuestionSubmitAndReport": "답변 제출 후 리포트 생성",
+  "scanQuestionNextButton": "다음 질문",
   "localeSheetTitle": "언어 선택",
   "localeFollowSystem": "시스템 설정 따르기",
   "localeChineseSimplified": "간체 중국어",

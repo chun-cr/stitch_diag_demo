@@ -491,6 +491,38 @@
   "scanPalmTipFlatten": "手掌展平",
   "scanPalmViewingReportSoon": "即将查看报告",
   "scanPalmHoldButton": "请伸直手掌并保持 2 秒",
+  "scanQuestionTitle": "问诊补充",
+  "scanQuestionSubtitle": "再补充几个问题，可让体质判断和最终报告更完整。你也可以直接跳过，按当前扫描结果查看报告。",
+  "scanQuestionSkipDirectReport": "跳过，直接看报告",
+  "scanQuestionAnsweredCount": "已回答 {count} 题",
+  "@scanQuestionAnsweredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionOptionalTag": "可跳过",
+  "scanQuestionLoadingTitle": "正在准备补充问题",
+  "scanQuestionLoadingBody": "正在拉取下一题并整理问答上下文，请稍候。",
+  "scanQuestionLoadFailed": "问题加载失败",
+  "scanQuestionRetry": "重新加载",
+  "scanQuestionMissingQuestion": "当前没有可展示的问题，请重试或直接查看报告。",
+  "scanQuestionFooterHint": "问答结果仅用于完善体质分析，不会影响已完成的扫描图像上传。",
+  "scanQuestionProgressTitle": "第 {current}/{total} 题",
+  "@scanQuestionProgressTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionSectionTitle": "补充问题",
+  "scanQuestionSubmitAndReport": "提交答案并生成报告",
+  "scanQuestionNextButton": "下一题",
   "reportTabOverview": "总览",
   "reportTabConstitution": "体质",
   "reportTabTherapy": "调理",

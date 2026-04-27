@@ -497,6 +497,38 @@
   "scanPalmTipFlatten": "Keep your palm flat",
   "scanPalmViewingReportSoon": "Opening your report...",
   "scanPalmHoldButton": "Hold Your Palm for 2 Seconds",
+  "scanQuestionTitle": "Follow-up Questions",
+  "scanQuestionSubtitle": "A few extra questions can make the constitution analysis and final report more complete. You can also skip and view the report from the current scan results.",
+  "scanQuestionSkipDirectReport": "Skip to report",
+  "scanQuestionAnsweredCount": "{count} answered",
+  "@scanQuestionAnsweredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionOptionalTag": "Optional",
+  "scanQuestionLoadingTitle": "Preparing follow-up questions",
+  "scanQuestionLoadingBody": "Fetching the next question and assembling the answer context.",
+  "scanQuestionLoadFailed": "Couldn't load the questions",
+  "scanQuestionRetry": "Retry",
+  "scanQuestionMissingQuestion": "No question is available right now. Try again or go straight to the report.",
+  "scanQuestionFooterHint": "These answers are only used to refine the constitution analysis and do not change the uploaded scan images.",
+  "scanQuestionProgressTitle": "Question {current} of {total}",
+  "@scanQuestionProgressTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionSectionTitle": "Extra questions",
+  "scanQuestionSubmitAndReport": "Submit and build report",
+  "scanQuestionNextButton": "Next question",
   "reportTabOverview": "Overview",
   "reportTabConstitution": "Constitution",
   "reportTabTherapy": "Therapy",

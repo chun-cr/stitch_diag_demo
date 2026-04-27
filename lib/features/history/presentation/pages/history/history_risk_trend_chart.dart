@@ -36,7 +36,7 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
   WebViewController? _controller;
   List<DiagnosisRecord> _records = const <DiagnosisRecord>[];
   List<_RiskTrendSeries> _series = const <_RiskTrendSeries>[];
-  Map<String, bool> _visible = const <String, bool>{};
+  String? _focusedSeriesName;
   int? _touchedIndex;
   bool _chartLoadFailed = false;
 
@@ -95,12 +95,11 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
     _records = widget.records.toList()
       ..sort((left, right) => left.date.compareTo(right.date));
     final nextSeries = _buildRiskTrendSeries(_records);
-    final previousVisibility = _visible;
     _series = nextSeries;
-    _visible = <String, bool>{
-      for (final series in nextSeries)
-        series.name: previousVisibility[series.name] ?? true,
-    };
+    if (_focusedSeriesName != null &&
+        nextSeries.every((series) => series.name != _focusedSeriesName)) {
+      _focusedSeriesName = null;
+    }
     _touchedIndex = null;
     _chartLoadFailed = false;
   }
@@ -156,7 +155,7 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
               gridData: _buildGridData(),
               borderData: _buildBorderData(),
               titlesData: _buildTitlesData(),
-              lineBarsData: _visibleLineBarsData,
+              lineBarsData: _lineBarsData,
             ),
           ),
         ),
@@ -166,43 +165,67 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
           runSpacing: 8,
           children: _series
               .map((series) {
-                final isActive = _visible[series.name] ?? true;
+                final isFocused = _isSeriesFocused(series);
+                final isMuted = _hasFocusedSeries && !isFocused;
+                final chipFill = isFocused
+                    ? series.color.withValues(alpha: 0.12)
+                    : historyCardBg.withValues(alpha: isMuted ? 0.76 : 0.96);
+                final chipBorder = isFocused
+                    ? series.color.withValues(alpha: 0.34)
+                    : const Color(
+                        0xFF1E1810,
+                      ).withValues(alpha: isMuted ? 0.06 : 0.12);
+                final labelColor = isFocused
+                    ? historyTextPrimary
+                    : historyTextPrimary.withValues(
+                        alpha: isMuted ? 0.52 : 0.78,
+                      );
+                final dotColor = series.color.withValues(
+                  alpha: isMuted ? 0.35 : 1,
+                );
                 return InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => setState(() {
-                    _visible = <String, bool>{
-                      ..._visible,
-                      series.name: !isActive,
-                    };
+                    _focusedSeriesName = isFocused ? null : series.name;
+                    _touchedIndex = null;
                   }),
-                  child: AnimatedDefaultTextStyle(
+                  child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOut,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? historyTextPrimary : historyTextHint,
-                      letterSpacing: 0.2,
+                    decoration: BoxDecoration(
+                      color: chipFill,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: chipBorder),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 6,
+                    child: DefaultTextStyle(
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isFocused
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                        color: labelColor,
+                        letterSpacing: 0.2,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: series.color,
-                              shape: BoxShape.circle,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: isFocused ? 9 : 8,
+                              height: isFocused ? 9 : 8,
+                              decoration: BoxDecoration(
+                                color: dotColor,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(series.name),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(series.name),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -235,23 +258,29 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
       }
     }
 
+    final series = <_RiskTrendSeries>[];
     var colorIndex = 0;
-    return valuesByName.entries
-        .map(
-          (entry) => _RiskTrendSeries(
-            name: entry.key,
-            values: List<double?>.unmodifiable(entry.value),
-            color: _seriesPalette[colorIndex++ % _seriesPalette.length],
-          ),
-        )
-        .toList(growable: false);
+    for (final entry in valuesByName.entries) {
+      series.add(
+        _RiskTrendSeries(
+          name: entry.key,
+          values: List<double?>.unmodifiable(entry.value),
+          color: _seriesPalette[colorIndex++ % _seriesPalette.length],
+        ),
+      );
+    }
+    series.sort(
+      (left, right) => _seriesPriority(right).compareTo(_seriesPriority(left)),
+    );
+    return List<_RiskTrendSeries>.unmodifiable(series);
   }
 
-  List<_RiskTrendSeries> get _visibleSeries => _series
-      .where((series) => _visible[series.name] ?? true)
-      .toList(growable: false);
+  bool get _hasFocusedSeries => _focusedSeriesName != null;
 
-  List<LineChartBarData> get _visibleLineBarsData => _visibleSeries
+  bool _isSeriesFocused(_RiskTrendSeries series) =>
+      _focusedSeriesName == series.name;
+
+  List<LineChartBarData> get _lineBarsData => _series
       .map(
         (series) => LineChartBarData(
           spots: [
@@ -261,21 +290,27 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
                   : FlSpot(index.toDouble(), series.values[index]!),
           ],
           isCurved: true,
-          color: series.color,
-          barWidth: 1.8,
+          color: _lineColorFor(series),
+          barWidth: _lineWidthFor(series),
           isStrokeCapRound: true,
-          curveSmoothness: 0.2,
+          curveSmoothness: _curveSmoothnessFor(series),
           dotData: FlDotData(
             show: true,
-            checkToShowDot: (spot, _) =>
-                spot != FlSpot.nullSpot &&
-                spot.x.toInt() == _records.length - 1,
+            checkToShowDot: (spot, _) {
+              if (spot == FlSpot.nullSpot) {
+                return false;
+              }
+              if (_hasFocusedSeries) {
+                return _isSeriesFocused(series);
+              }
+              return spot.x.toInt() == _records.length - 1;
+            },
             getDotPainter: (spot, percent, barData, index) =>
                 FlDotCirclePainter(
-                  radius: 3,
+                  radius: _isSeriesFocused(series) ? 3.4 : 3,
                   color: historyCardBg,
-                  strokeWidth: 1.8,
-                  strokeColor: series.color,
+                  strokeWidth: _isSeriesFocused(series) ? 2.2 : 1.8,
+                  strokeColor: _lineColorFor(series),
                 ),
           ),
           belowBarData: BarAreaData(show: false),
@@ -284,7 +319,7 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
       .toList(growable: false);
 
   LineTouchData _buildTouchData(BuildContext context) {
-    final lineBarsData = _visibleLineBarsData;
+    final lineBarsData = _lineBarsData;
     return LineTouchData(
       enabled: lineBarsData.isNotEmpty,
       handleBuiltInTouches: false,
@@ -347,11 +382,14 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
         fitInsideVertically: true,
         getTooltipColor: (_) => historyPageBg.withValues(alpha: 0.98),
         getTooltipItems: (touchedSpots) => touchedSpots
-            .map((item) {
+            .asMap()
+            .entries
+            .map((entry) {
+              final item = entry.value;
               final itemDate = _dateLabel(_records[item.x.toInt()].date);
               final itemColor = _lineColorOf(item.bar);
-              final itemSeries = _visibleSeries[item.barIndex];
-              final itemTitle = item.barIndex == 0 ? '$itemDate\n' : '';
+              final itemSeries = _series[item.barIndex];
+              final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
               return LineTooltipItem(
                 '$itemTitle${itemSeries.name}  ${context.l10n.percentValue(item.y.round())}',
                 TextStyle(
@@ -374,7 +412,7 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
 
   List<ShowingTooltipIndicators> _buildTooltipIndicators() {
     final index = _touchedIndex;
-    final lineBarsData = _visibleLineBarsData;
+    final lineBarsData = _lineBarsData;
     if (index == null ||
         index < 0 ||
         index >= _records.length ||
@@ -384,6 +422,9 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
 
     final touchedSpots = <LineBarSpot>[];
     for (var lineIndex = 0; lineIndex < lineBarsData.length; lineIndex++) {
+      if (_hasFocusedSeries && !_isSeriesFocused(_series[lineIndex])) {
+        continue;
+      }
       final barData = lineBarsData[lineIndex];
       if (index >= barData.spots.length) {
         continue;
@@ -513,6 +554,39 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
     return <int>{0, length ~/ 2, length - 1};
   }
 
+  double _seriesPriority(_RiskTrendSeries series) {
+    for (final value in series.values.reversed) {
+      if (value != null) {
+        return value;
+      }
+    }
+    return -1;
+  }
+
+  double _lineWidthFor(_RiskTrendSeries series) {
+    if (!_hasFocusedSeries) {
+      return 1.6;
+    }
+    return _isSeriesFocused(series) ? 3 : 1.2;
+  }
+
+  double _curveSmoothnessFor(_RiskTrendSeries series) {
+    if (!_hasFocusedSeries) {
+      return 0.14;
+    }
+    return _isSeriesFocused(series) ? 0.16 : 0.08;
+  }
+
+  Color _lineColorFor(_RiskTrendSeries series) {
+    if (!_hasFocusedSeries) {
+      return series.color.withValues(alpha: 0.82);
+    }
+    if (_isSeriesFocused(series)) {
+      return series.color;
+    }
+    return series.color.withValues(alpha: 0.18);
+  }
+
   Color _lineColorOf(LineChartBarData barData) {
     return barData.gradient?.colors.last ??
         barData.color ??
@@ -535,97 +609,18 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
     final labels = _records
         .map((record) => _dateLabel(record.date))
         .toList(growable: false);
-    final option = <String, dynamic>{
-      'backgroundColor': 'transparent',
-      'animationDuration': 300,
-      'color': _series
-          .map((series) => _colorToHex(series.color))
-          .toList(growable: false),
-      'legend': <String, dynamic>{
-        'type': 'scroll',
-        'top': 0,
-        'left': 0,
-        'icon': 'circle',
-        'itemWidth': 10,
-        'itemHeight': 10,
-        'textStyle': <String, dynamic>{
-          'color': '#5A534D',
-          'fontSize': 11,
-          'fontWeight': 600,
-        },
-      },
-      'grid': <String, dynamic>{
-        'left': 36,
-        'right': 12,
-        'top': _series.length > 3 ? 56 : 42,
-        'bottom': 28,
-      },
-      'tooltip': <String, dynamic>{
-        'trigger': 'axis',
-        'backgroundColor': 'rgba(255,248,240,0.98)',
-        'borderColor': 'rgba(30,24,16,0.08)',
-        'borderWidth': 1,
-        'textStyle': <String, dynamic>{
-          'color': '#1E1810',
-          'fontSize': 11,
-          'fontWeight': 600,
-        },
-        'axisPointer': <String, dynamic>{
-          'type': 'line',
-          'lineStyle': <String, dynamic>{
-            'color': 'rgba(30,24,16,0.15)',
-            'type': 'dashed',
-          },
-        },
-      },
-      'xAxis': <String, dynamic>{
-        'type': 'category',
-        'boundaryGap': false,
-        'data': labels,
-        'axisTick': <String, dynamic>{'show': false},
-        'axisLine': <String, dynamic>{
-          'lineStyle': <String, dynamic>{'color': 'rgba(30,24,16,0.12)'},
-        },
-        'axisLabel': <String, dynamic>{
-          'color': '#8A8178',
-          'fontSize': 10,
-          'hideOverlap': true,
-        },
-      },
-      'yAxis': <String, dynamic>{
-        'type': 'value',
-        'min': 0,
-        'max': 100,
-        'interval': 25,
-        'splitLine': <String, dynamic>{
-          'lineStyle': <String, dynamic>{'color': 'rgba(30,24,16,0.07)'},
-        },
-        'axisLine': <String, dynamic>{'show': false},
-        'axisTick': <String, dynamic>{'show': false},
-        'axisLabel': <String, dynamic>{
-          'color': '#8A8178',
-          'fontSize': 10,
-          'formatter': '{value}%',
-        },
-      },
-      'series': _series
+    final labelsJson = jsonEncode(labels);
+    final seriesJson = jsonEncode(
+      _series
           .map(
             (series) => <String, dynamic>{
               'name': series.name,
-              'type': 'line',
-              'smooth': true,
-              'showSymbol': false,
-              'symbol': 'circle',
-              'symbolSize': 6,
-              'connectNulls': false,
-              'lineStyle': <String, dynamic>{'width': 2},
-              'emphasis': <String, dynamic>{'focus': 'series'},
-              'data': series.values,
+              'color': _colorToHex(series.color),
+              'values': series.values,
             },
           )
           .toList(growable: false),
-    };
-    final optionJson = jsonEncode(option);
+    );
 
     return '''
 <!DOCTYPE html>
@@ -638,34 +633,218 @@ class _HistoryRiskTrendChartState extends State<HistoryRiskTrendChart> {
         margin: 0;
         padding: 0;
         width: 100%;
-        height: 100%;
         background: transparent;
       }
+      html, body {
+        height: 100%;
+      }
       body {
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      #legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 4px 2px 10px;
+      }
+      .legend-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(30, 24, 16, 0.12);
+        background: rgba(255, 255, 255, 0.96);
+        color: rgba(30, 24, 16, 0.78);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        cursor: pointer;
+        transition: all 180ms ease;
+      }
+      .legend-chip.is-muted {
+        color: rgba(30, 24, 16, 0.52);
+        border-color: rgba(30, 24, 16, 0.06);
+        background: rgba(255, 255, 255, 0.76);
+      }
+      .legend-chip.is-focused {
+        color: #1E1810;
+        font-weight: 700;
+      }
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+      #chart {
+        flex: 1;
+        min-height: 0;
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   </head>
   <body>
+    <div id="legend"></div>
     <div id="chart"></div>
     <script>
-      const option = $optionJson;
+      const labels = $labelsJson;
+      const seriesMeta = $seriesJson;
+      let focusedSeries = null;
       const chart = echarts.init(document.getElementById('chart'), null, { renderer: 'canvas' });
-      option.tooltip.formatter = function(params) {
-        if (!params || params.length === 0) {
-          return '';
-        }
-        const lines = [params[0].axisValue];
-        params.forEach(function(item) {
-          const value = item.value == null ? '-' : Math.round(item.value) + '%';
-          lines.push(item.marker + item.seriesName + '  ' + value);
+
+      function buildSeriesOption(meta) {
+        const hasFocus = focusedSeries !== null;
+        const isFocused = focusedSeries === meta.name;
+        return {
+          name: meta.name,
+          type: 'line',
+          smooth: true,
+          showSymbol: false,
+          symbol: 'circle',
+          symbolSize: 6,
+          connectNulls: false,
+          z: hasFocus ? (isFocused ? 3 : 1) : 2,
+          lineStyle: {
+            width: hasFocus ? (isFocused ? 3 : 1.2) : 2,
+            opacity: hasFocus ? (isFocused ? 1 : 0.18) : 0.82,
+          },
+          itemStyle: {
+            color: meta.color,
+            opacity: hasFocus ? (isFocused ? 1 : 0.18) : 0.82,
+          },
+          data: meta.values,
+        };
+      }
+
+      function renderLegend() {
+        const legend = document.getElementById('legend');
+        const hasFocus = focusedSeries !== null;
+        legend.innerHTML = '';
+
+        seriesMeta.forEach((meta) => {
+          const isFocused = focusedSeries === meta.name;
+          const isMuted = hasFocus && !isFocused;
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'legend-chip' +
+            (isFocused ? ' is-focused' : '') +
+            (isMuted ? ' is-muted' : '');
+          chip.style.borderColor = isFocused ? meta.color + '55' : '';
+          chip.style.background = isFocused ? meta.color + '1F' : '';
+          chip.onclick = function() {
+            focusedSeries = isFocused ? null : meta.name;
+            chart.setOption({ series: seriesMeta.map(buildSeriesOption) });
+            renderLegend();
+          };
+
+          const dot = document.createElement('span');
+          dot.className = 'legend-dot';
+          dot.style.background = meta.color;
+          dot.style.opacity = isMuted ? '0.35' : '1';
+
+          const label = document.createElement('span');
+          label.textContent = meta.name;
+
+          chip.appendChild(dot);
+          chip.appendChild(label);
+          legend.appendChild(chip);
         });
-        return lines.join('<br/>');
+      }
+
+      const option = {
+        backgroundColor: 'transparent',
+        animationDuration: 300,
+        grid: {
+          left: 36,
+          right: 12,
+          top: 12,
+          bottom: 28,
+        },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255,248,240,0.98)',
+          borderColor: 'rgba(30,24,16,0.08)',
+          borderWidth: 1,
+          textStyle: {
+            color: '#1E1810',
+            fontSize: 11,
+            fontWeight: 600,
+          },
+          axisPointer: {
+            type: 'line',
+            lineStyle: {
+              color: 'rgba(30,24,16,0.15)',
+              type: 'dashed',
+            },
+          },
+          formatter: function(params) {
+            if (!params || params.length === 0) {
+              return '';
+            }
+            const visibleParams = focusedSeries
+              ? params.filter((item) => item.seriesName === focusedSeries)
+              : params;
+            if (visibleParams.length === 0) {
+              return '';
+            }
+            const lines = [visibleParams[0].axisValue];
+            visibleParams.forEach(function(item) {
+              const value = item.value == null ? '-' : Math.round(item.value) + '%';
+              lines.push(item.marker + item.seriesName + '  ' + value);
+            });
+            return lines.join('<br/>');
+          },
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: labels,
+          axisTick: { show: false },
+          axisLine: {
+            lineStyle: { color: 'rgba(30,24,16,0.12)' },
+          },
+          axisLabel: {
+            color: '#8A8178',
+            fontSize: 10,
+            hideOverlap: true,
+          },
+        },
+        yAxis: {
+          type: 'value',
+          min: 0,
+          max: 100,
+          interval: 25,
+          splitLine: {
+            lineStyle: { color: 'rgba(30,24,16,0.07)' },
+          },
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: '#8A8178',
+            fontSize: 10,
+            formatter: '{value}%',
+          },
+        },
+        series: seriesMeta.map(buildSeriesOption),
       };
+
       chart.setOption(option);
+      renderLegend();
       window.addEventListener('resize', function() {
         chart.resize();
+      });
+
+      chart.on('click', function(params) {
+        if (!params || !params.seriesName) {
+          return '';
+        }
+        focusedSeries = focusedSeries === params.seriesName ? null : params.seriesName;
+        chart.setOption({ series: seriesMeta.map(buildSeriesOption) });
+        renderLegend();
       });
     </script>
   </body>

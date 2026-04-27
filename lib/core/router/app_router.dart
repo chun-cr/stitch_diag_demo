@@ -9,6 +9,7 @@ import 'package:stitch_diag_demo/features/scan/presentation/pages/scan_guide_pag
 import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/tongue_scan_page.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/palm_scan_page.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/pages/physique_question_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/settings_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/account_security_page.dart';
@@ -33,6 +34,7 @@ class AppRoutes {
   static const scanFace = '/scan/face';
   static const scanTongue = '/scan/tongue';
   static const scanPalm = '/scan/palm';
+  static const scanQuestionnaire = '/scan/questionnaire';
   static const report = '/report';
   static const reportAnalysis = '/report/analysis';
   static const reportProjectDetail = '/report/project';
@@ -236,6 +238,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.scanPalm,
       builder: (context, state) => const PalmScanPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.scanQuestionnaire,
+      builder: (context, state) => const PhysiqueQuestionPage(),
     ),
     GoRoute(
       path: AppRoutes.reportProjectDetail,

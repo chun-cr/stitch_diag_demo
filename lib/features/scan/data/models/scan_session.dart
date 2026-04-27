@@ -12,6 +12,11 @@ class ScanSession {
   String? get reportId => _tongueUpload?.reportId.isNotEmpty == true
       ? _tongueUpload!.reportId
       : _lastReportId;
+  int? get detectedAge => _faceUpload?.age?.round();
+  String get detectedGender => _faceUpload?.sex?.toString().trim() ?? '';
+  int? get tongueReportId => _tongueUpload?.tongueReportId;
+  int? get medicalCaseId => _tongueUpload?.medicalCaseId;
+  String get phyCategory => _tongueUpload?.phyCategory.trim() ?? '';
 
   void reset() {
     _faceUpload = null;

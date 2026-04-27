@@ -2442,6 +2442,96 @@ abstract class AppLocalizations {
   /// **'请伸直手掌并保持 2 秒'**
   String get scanPalmHoldButton;
 
+  /// No description provided for @scanQuestionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'问诊补充'**
+  String get scanQuestionTitle;
+
+  /// No description provided for @scanQuestionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'再补充几个问题，可让体质判断和最终报告更完整。你也可以直接跳过，按当前扫描结果查看报告。'**
+  String get scanQuestionSubtitle;
+
+  /// No description provided for @scanQuestionSkipDirectReport.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过，直接看报告'**
+  String get scanQuestionSkipDirectReport;
+
+  /// No description provided for @scanQuestionAnsweredCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已回答 {count} 题'**
+  String scanQuestionAnsweredCount(int count);
+
+  /// No description provided for @scanQuestionOptionalTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'可跳过'**
+  String get scanQuestionOptionalTag;
+
+  /// No description provided for @scanQuestionLoadingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在准备补充问题'**
+  String get scanQuestionLoadingTitle;
+
+  /// No description provided for @scanQuestionLoadingBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在拉取下一题并整理问答上下文，请稍候。'**
+  String get scanQuestionLoadingBody;
+
+  /// No description provided for @scanQuestionLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'问题加载失败'**
+  String get scanQuestionLoadFailed;
+
+  /// No description provided for @scanQuestionRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新加载'**
+  String get scanQuestionRetry;
+
+  /// No description provided for @scanQuestionMissingQuestion.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前没有可展示的问题，请重试或直接查看报告。'**
+  String get scanQuestionMissingQuestion;
+
+  /// No description provided for @scanQuestionFooterHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'问答结果仅用于完善体质分析，不会影响已完成的扫描图像上传。'**
+  String get scanQuestionFooterHint;
+
+  /// No description provided for @scanQuestionProgressTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {current}/{total} 题'**
+  String scanQuestionProgressTitle(int current, int total);
+
+  /// No description provided for @scanQuestionSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'补充问题'**
+  String get scanQuestionSectionTitle;
+
+  /// No description provided for @scanQuestionSubmitAndReport.
+  ///
+  /// In zh, this message translates to:
+  /// **'提交答案并生成报告'**
+  String get scanQuestionSubmitAndReport;
+
+  /// No description provided for @scanQuestionNextButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一题'**
+  String get scanQuestionNextButton;
+
   /// No description provided for @reportTabOverview.
   ///
   /// In zh, this message translates to:

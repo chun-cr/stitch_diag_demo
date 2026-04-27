@@ -1221,6 +1221,58 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scanPalmHoldButton => '손바닥을 2초간 유지';
 
   @override
+  String get scanQuestionTitle => '추가 질문';
+
+  @override
+  String get scanQuestionSubtitle =>
+      '몇 가지 질문에 더 답하면 체질 분석과 최종 리포트를 더 완성도 있게 만들 수 있습니다. 현재 스캔 결과로 바로 리포트를 볼 수도 있습니다.';
+
+  @override
+  String get scanQuestionSkipDirectReport => '건너뛰고 리포트 보기';
+
+  @override
+  String scanQuestionAnsweredCount(int count) {
+    return '$count개 답변 완료';
+  }
+
+  @override
+  String get scanQuestionOptionalTag => '선택 사항';
+
+  @override
+  String get scanQuestionLoadingTitle => '추가 질문을 준비하는 중';
+
+  @override
+  String get scanQuestionLoadingBody => '다음 질문을 불러오고 답변 컨텍스트를 정리하고 있습니다.';
+
+  @override
+  String get scanQuestionLoadFailed => '질문을 불러오지 못했습니다';
+
+  @override
+  String get scanQuestionRetry => '다시 시도';
+
+  @override
+  String get scanQuestionMissingQuestion =>
+      '지금 표시할 질문이 없습니다. 다시 시도하거나 바로 리포트로 이동하세요.';
+
+  @override
+  String get scanQuestionFooterHint =>
+      '답변 내용은 체질 분석 보완에만 사용되며, 이미 업로드된 스캔 이미지에는 영향을 주지 않습니다.';
+
+  @override
+  String scanQuestionProgressTitle(int current, int total) {
+    return '$current/$total번째 질문';
+  }
+
+  @override
+  String get scanQuestionSectionTitle => '추가 질문';
+
+  @override
+  String get scanQuestionSubmitAndReport => '답변 제출 후 리포트 생성';
+
+  @override
+  String get scanQuestionNextButton => '다음 질문';
+
+  @override
   String get reportTabOverview => '개요';
 
   @override

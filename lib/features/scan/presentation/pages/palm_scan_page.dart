@@ -379,7 +379,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     super.dispose();
   }
 
-  Future<void> _navigateToReport() async {
+  Future<void> _navigateToQuestionnaire() async {
     if (_isTransitioning || !mounted) return;
     _isTransitioning = true;
     _holdTimer?.cancel();
@@ -389,14 +389,7 @@ class _PalmScanPageState extends State<PalmScanPage>
     _scanCtrl.stop();
     // 手掌是最后一步，这里可以考虑发停止
     unawaited(_statusBridge.stopMonitoring());
-    final reportId = _scanSession.reportId;
-    final location = reportId == null || reportId.isEmpty
-        ? AppRoutes.reportAnalysis
-        : Uri(
-            path: AppRoutes.reportAnalysis,
-            queryParameters: <String, String>{'reportId': reportId},
-          ).toString();
-    context.go(location);
+    context.go(AppRoutes.scanQuestionnaire);
   }
 
   void _startHoldTracking() {
@@ -484,7 +477,7 @@ class _PalmScanPageState extends State<PalmScanPage>
         _scanState = PalmScanState.completed;
         _scanProgress = 1;
       });
-      await _navigateToReportAfterDelay();
+      await _navigateToQuestionnaireAfterDelay();
     } on Object catch (error, stackTrace) {
       AppLogger.log('Palm scan submission failed: $error\n$stackTrace');
       if (!mounted) {
@@ -499,9 +492,9 @@ class _PalmScanPageState extends State<PalmScanPage>
     }
   }
 
-  Future<void> _navigateToReportAfterDelay() async {
+  Future<void> _navigateToQuestionnaireAfterDelay() async {
     await Future<void>.delayed(_postSuccessDelay);
-    await _navigateToReport();
+    await _navigateToQuestionnaire();
   }
 
   /// 根据手部 21 个 landmark 的包围盒大小判断距离，并检测中心偏移。
@@ -969,7 +962,7 @@ class _PalmScanPageState extends State<PalmScanPage>
                       ? l10n.scanPalmViewingReportSoon
                       : l10n.scanScanning,
                   enabled: false,
-                  onTap: _navigateToReport,
+                  onTap: _navigateToQuestionnaire,
                 ),
               ],
             ),

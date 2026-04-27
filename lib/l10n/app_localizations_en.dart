@@ -1284,6 +1284,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanPalmHoldButton => 'Hold Your Palm for 2 Seconds';
 
   @override
+  String get scanQuestionTitle => 'Follow-up Questions';
+
+  @override
+  String get scanQuestionSubtitle =>
+      'A few extra questions can make the constitution analysis and final report more complete. You can also skip and view the report from the current scan results.';
+
+  @override
+  String get scanQuestionSkipDirectReport => 'Skip to report';
+
+  @override
+  String scanQuestionAnsweredCount(int count) {
+    return '$count answered';
+  }
+
+  @override
+  String get scanQuestionOptionalTag => 'Optional';
+
+  @override
+  String get scanQuestionLoadingTitle => 'Preparing follow-up questions';
+
+  @override
+  String get scanQuestionLoadingBody =>
+      'Fetching the next question and assembling the answer context.';
+
+  @override
+  String get scanQuestionLoadFailed => 'Couldn\'t load the questions';
+
+  @override
+  String get scanQuestionRetry => 'Retry';
+
+  @override
+  String get scanQuestionMissingQuestion =>
+      'No question is available right now. Try again or go straight to the report.';
+
+  @override
+  String get scanQuestionFooterHint =>
+      'These answers are only used to refine the constitution analysis and do not change the uploaded scan images.';
+
+  @override
+  String scanQuestionProgressTitle(int current, int total) {
+    return 'Question $current of $total';
+  }
+
+  @override
+  String get scanQuestionSectionTitle => 'Extra questions';
+
+  @override
+  String get scanQuestionSubmitAndReport => 'Submit and build report';
+
+  @override
+  String get scanQuestionNextButton => 'Next question';
+
+  @override
   String get reportTabOverview => 'Overview';
 
   @override

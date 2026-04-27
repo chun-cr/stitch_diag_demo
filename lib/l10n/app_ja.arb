@@ -855,6 +855,38 @@
   "scanPalmTipFlatten": "手のひらを平らに保ってください",
   "scanPalmViewingReportSoon": "レポートを開いています...",
   "scanPalmHoldButton": "手のひらを2秒間キープ",
+  "scanQuestionTitle": "追加の質問",
+  "scanQuestionSubtitle": "いくつか質問に答えると、体質分析と最終レポートをより詳しくできます。現在のスキャン結果のままレポートへ進むこともできます。",
+  "scanQuestionSkipDirectReport": "スキップしてレポートへ",
+  "scanQuestionAnsweredCount": "{count}問回答済み",
+  "@scanQuestionAnsweredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionOptionalTag": "任意",
+  "scanQuestionLoadingTitle": "質問を準備しています",
+  "scanQuestionLoadingBody": "次の質問を取得し、回答コンテキストを準備しています。",
+  "scanQuestionLoadFailed": "質問を読み込めませんでした",
+  "scanQuestionRetry": "再試行",
+  "scanQuestionMissingQuestion": "表示できる質問がありません。再試行するか、そのままレポートへ進んでください。",
+  "scanQuestionFooterHint": "回答内容は体質分析の補完にのみ使用され、アップロード済みのスキャン画像には影響しません。",
+  "scanQuestionProgressTitle": "{current}/{total}問目",
+  "@scanQuestionProgressTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuestionSectionTitle": "追加質問",
+  "scanQuestionSubmitAndReport": "回答を送信してレポート生成",
+  "scanQuestionNextButton": "次の質問",
   "localeSheetTitle": "言語を選択",
   "localeFollowSystem": "システム設定に従う",
   "localeChineseSimplified": "簡体字中国語",

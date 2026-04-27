@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -14,6 +15,7 @@ import 'package:stitch_diag_demo/core/platform/app_identity.dart';
 import 'package:stitch_diag_demo/core/router/app_router.dart';
 import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_page.dart';
+import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_risk_trend_chart.dart';
 import 'package:stitch_diag_demo/features/history/presentation/pages/history/history_widgets.dart';
 import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
@@ -151,6 +153,28 @@ Future<void> _tearDownHistoryPage(WidgetTester tester) async {
   await tester.binding.setSurfaceSize(null);
 }
 
+Future<void> _pumpRiskTrendChart(
+  WidgetTester tester, {
+  required List<DiagnosisRecord> records,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('zh'),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: HistoryRiskTrendChart(records: records)),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 DiagnosisRecord _buildRecord({
   required String id,
   required String constitutionLabel,
@@ -229,6 +253,87 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
     router.dispose();
+    await _tearDownHistoryPage(tester);
+  });
+
+  testWidgets('risk trend legend focuses a line instead of hiding it', (
+    tester,
+  ) async {
+    await _pumpRiskTrendChart(
+      tester,
+      records: [
+        _buildRecord(
+          id: 'risk-1',
+          constitutionLabel: 'Balanced',
+          date: DateTime(2026, 4, 10),
+          isUnlocked: true,
+          riskIndices: const [
+            DiagnosisRiskIndex(name: 'Digest', value: 0.62),
+            DiagnosisRiskIndex(name: 'Sleep', value: 0.41),
+            DiagnosisRiskIndex(name: 'Mood', value: 0.34),
+          ],
+        ),
+        _buildRecord(
+          id: 'risk-2',
+          constitutionLabel: 'Balanced',
+          date: DateTime(2026, 4, 14),
+          isUnlocked: true,
+          riskIndices: const [
+            DiagnosisRiskIndex(name: 'Digest', value: 0.58),
+            DiagnosisRiskIndex(name: 'Sleep', value: 0.48),
+            DiagnosisRiskIndex(name: 'Mood', value: 0.52),
+          ],
+        ),
+      ],
+    );
+
+    LineChart chart = tester.widget<LineChart>(find.byType(LineChart));
+    expect(chart.data.lineBarsData.length, 3);
+    expect(
+      chart.data.lineBarsData.map((item) => item.barWidth).toSet(),
+      equals(<double>{1.6}),
+    );
+
+    await tester.tap(find.text('Digest'));
+    await tester.pumpAndSettle();
+
+    chart = tester.widget<LineChart>(find.byType(LineChart));
+    expect(chart.data.lineBarsData.length, 3);
+    final digestIndex = chart.data.lineBarsData.indexWhere(
+      (item) => item.color == const Color(0xFF8B6914),
+    );
+    expect(digestIndex, isNonNegative);
+    expect(
+      chart.data.lineBarsData.where((item) => item.barWidth > 2.5).length,
+      1,
+    );
+    expect(
+      chart.data.lineBarsData.where((item) => item.barWidth < 1.4).length,
+      2,
+    );
+    expect(chart.data.lineBarsData[digestIndex].barWidth, 3);
+
+    final digestBar = chart.data.lineBarsData[digestIndex];
+    final digestSpot = digestBar.spots.firstWhere(
+      (spot) => spot != FlSpot.nullSpot,
+    );
+    final tooltipItems = chart.data.lineTouchData.touchTooltipData
+        .getTooltipItems(<LineBarSpot>[
+          LineBarSpot(digestBar, digestIndex, digestSpot),
+        ]);
+    final tooltipText = tooltipItems.single?.text;
+    expect(tooltipText, isNotNull);
+    expect(tooltipText?.startsWith('04.10\nDigest'), isTrue);
+
+    await tester.tap(find.text('Digest'));
+    await tester.pumpAndSettle();
+
+    chart = tester.widget<LineChart>(find.byType(LineChart));
+    expect(
+      chart.data.lineBarsData.map((item) => item.barWidth).toSet(),
+      equals(<double>{1.6}),
+    );
+
     await _tearDownHistoryPage(tester);
   });
 

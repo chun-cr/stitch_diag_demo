@@ -1206,6 +1206,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanPalmHoldButton => '请伸直手掌并保持 2 秒';
 
   @override
+  String get scanQuestionTitle => '问诊补充';
+
+  @override
+  String get scanQuestionSubtitle =>
+      '再补充几个问题，可让体质判断和最终报告更完整。你也可以直接跳过，按当前扫描结果查看报告。';
+
+  @override
+  String get scanQuestionSkipDirectReport => '跳过，直接看报告';
+
+  @override
+  String scanQuestionAnsweredCount(int count) {
+    return '已回答 $count 题';
+  }
+
+  @override
+  String get scanQuestionOptionalTag => '可跳过';
+
+  @override
+  String get scanQuestionLoadingTitle => '正在准备补充问题';
+
+  @override
+  String get scanQuestionLoadingBody => '正在拉取下一题并整理问答上下文，请稍候。';
+
+  @override
+  String get scanQuestionLoadFailed => '问题加载失败';
+
+  @override
+  String get scanQuestionRetry => '重新加载';
+
+  @override
+  String get scanQuestionMissingQuestion => '当前没有可展示的问题，请重试或直接查看报告。';
+
+  @override
+  String get scanQuestionFooterHint => '问答结果仅用于完善体质分析，不会影响已完成的扫描图像上传。';
+
+  @override
+  String scanQuestionProgressTitle(int current, int total) {
+    return '第 $current/$total 题';
+  }
+
+  @override
+  String get scanQuestionSectionTitle => '补充问题';
+
+  @override
+  String get scanQuestionSubmitAndReport => '提交答案并生成报告';
+
+  @override
+  String get scanQuestionNextButton => '下一题';
+
+  @override
   String get reportTabOverview => '总览';
 
   @override
