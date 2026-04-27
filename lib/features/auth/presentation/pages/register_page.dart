@@ -20,6 +20,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/utils/auth_verificat
 import 'package:stitch_diag_demo/features/auth/presentation/utils/verification_code_feedback.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/country_code_picker.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/widgets/auth_top_toast.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_session_state.dart';
 import 'package:stitch_diag_demo/features/share/presentation/providers/share_referral_provider.dart';
 
 part 'complete_profile_page.dart';
@@ -406,6 +407,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         inviteTicket: inviteTicket,
       );
       await getIt<AuthSessionStore>().saveSession(session);
+      await clearProfileScopedPersistence();
+      invalidateProfileScopedProviders(ref);
       unawaited(_synchronizeShareReferralAfterAuth());
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -669,30 +672,32 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   Widget _buildAccountCreationPage() {
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(child: _buildSecurityVisual()),
-            const SizedBox(height: 18),
-            Text(
-              context.l10n.registerCreateAccountTitle,
-              style: const TextStyle(
-                fontSize: 31,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF28221B),
-                letterSpacing: 0.2,
+    return AutofillGroup(
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: _buildSecurityVisual()),
+              const SizedBox(height: 18),
+              Text(
+                context.l10n.registerCreateAccountTitle,
+                style: const TextStyle(
+                  fontSize: 31,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF28221B),
+                  letterSpacing: 0.2,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            _buildFormContent(),
-            const SizedBox(height: 20),
-            _buildLoginRow(),
-          ],
+              const SizedBox(height: 24),
+              _buildFormContent(),
+              const SizedBox(height: 20),
+              _buildLoginRow(),
+            ],
+          ),
         ),
       ),
     );
@@ -723,8 +728,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
         _buildTermsRow(),
         const SizedBox(height: 22),
         _buildRegisterButton(),
-        const SizedBox(height: 16),
-        _buildPrivacyTip(),
       ],
     );
   }
@@ -993,8 +996,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           hint: l10n.authVerificationCodeHint,
           prefixIcon: Icons.shield_outlined,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          textInputAction: TextInputAction.done,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(kVerificationCodeLength),
+          ],
           autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: dismissVerificationCodeInputIfComplete,
           suffixIcon: Padding(
             padding: const EdgeInsets.only(right: 8),
             child: AnimatedSwitcher(
@@ -1041,7 +1050,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
             ),
           ),
           validator: (value) {
-            if (value == null || value.trim().length != 6) {
+            if (value == null ||
+                value.trim().length != kVerificationCodeLength) {
               return l10n.authVerificationCodeHint;
             }
             return null;
@@ -1132,53 +1142,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   }
 
   // 鈹€鈹€ Privacy Tip 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  Widget _buildPrivacyTip() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF4),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8D4AA), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x14917E55),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFF8EDD2),
-            ),
-            child: const Icon(
-              Icons.info_outline_rounded,
-              size: 16,
-              color: Color(0xFFC49B55),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              context.l10n.registerPrivacyTip,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6C6254),
-                height: 1.55,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLoginRow() {
     return Wrap(
       alignment: WrapAlignment.center,
@@ -1271,7 +1234,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     bool obscureText = false,
     Widget? suffixIcon,
     TextInputType? keyboardType,
+    TextInputAction? textInputAction,
     List<TextInputFormatter>? inputFormatters,
+    Iterable<String>? autofillHints,
     AutovalidateMode? autovalidateMode,
     String? Function(String?)? validator,
     void Function(String)? onChanged,
@@ -1281,7 +1246,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       focusNode: focusNode,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      textInputAction: textInputAction,
       inputFormatters: inputFormatters,
+      autofillHints: autofillHints,
       autovalidateMode: autovalidateMode,
       onChanged: onChanged,
       cursorColor: const Color(0xFF5D826D),

@@ -88,11 +88,11 @@ class _EmailLoginCaptureRepository extends AuthRepositoryAdapter {
     lastInviteTicket = inviteTicket;
     throw DioException(
       requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/login/verification-code',
+        path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
       ),
       response: Response(
         requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/login/verification-code',
+          path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
         ),
         statusCode: 400,
         data: {'message': 'capture'},
@@ -180,6 +180,8 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(1), '123456');
     await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('login_terms_row')));
+    await tester.pump();
 
     final button = tester.widget<GestureDetector>(
       find.byKey(const ValueKey('login_primary_button')),
@@ -203,26 +205,19 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('register action carries email mode in router query', (
+  testWidgets('/register route opens unified login page in email mode', (
     tester,
   ) async {
     final repository = _EmailLoginCaptureRepository();
     final l10n = lookupAppLocalizations(const Locale('zh'));
     final router = GoRouter(
-      initialLocation: '/login?inviteTicket=invite-email-2',
+      initialLocation: '/register?mode=email&inviteTicket=invite-email-2',
       routes: [
         GoRoute(
-          path: '/login',
-          builder: (context, state) => LoginPage(
-            inviteTicket: state.uri.queryParameters['inviteTicket'],
-          ),
-        ),
-        GoRoute(
           path: '/register',
-          builder: (context, state) => Scaffold(
-            body: Text(
-              'register:${state.uri.queryParameters['mode']}:${state.uri.queryParameters['inviteTicket']}',
-            ),
+          builder: (context, state) => LoginPage(
+            initialMode: state.uri.queryParameters['mode'],
+            inviteTicket: state.uri.queryParameters['inviteTicket'],
           ),
         ),
       ],
@@ -230,13 +225,8 @@ void main() {
 
     await _pumpLoginRouter(tester, repository: repository, router: router);
 
-    await tester.tap(find.byKey(const ValueKey('login_email_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.widgetWithText(TextButton, l10n.authRegisterNow));
-    await tester.pumpAndSettle();
-
-    expect(find.text('register:email:invite-email-2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('email_input_area')), findsOneWidget);
+    expect(find.text(l10n.authRegisterNow), findsNothing);
 
     router.dispose();
     await tester.pumpWidget(const SizedBox.shrink());

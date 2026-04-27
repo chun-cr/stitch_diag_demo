@@ -82,11 +82,11 @@ class _FailingRegisterAuthRepository extends AuthRepositoryAdapter {
     lastAuthenticateScene = scene;
     throw DioException(
       requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+        path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
       ),
       response: Response(
         requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+          path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
         ),
         data: {'message': '验证码错误'},
         statusCode: 400,
@@ -185,11 +185,11 @@ class _CapturingRegisterAuthRepository extends AuthRepositoryAdapter {
     lastVerificationCode = verificationCode;
     throw DioException(
       requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+        path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
       ),
       response: Response(
         requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+          path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
         ),
         data: {'message': 'capture'},
         statusCode: 400,
@@ -302,6 +302,11 @@ void main() {
         find.byKey(const ValueKey('register_send_code_countdown')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('register_masked_receiver_hint')),
+        findsOneWidget,
+      );
+      expect(find.text('验证码已发送至 +441****8000'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -332,6 +337,41 @@ void main() {
         find.byKey(const ValueKey('register_send_code_countdown')),
         findsOneWidget,
       );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
+
+  testWidgets(
+    'register page dismisses keyboard after one-time code autofill completes',
+    (tester) async {
+      final repository = _CapturingRegisterAuthRepository();
+      await _pumpRegisterPage(tester, repository: repository);
+
+      await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
+      await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final codeFieldFinder = find.byType(TextFormField).at(1);
+      final codeEditableFinder = find.byType(EditableText).at(1);
+      final codeEditable = tester.widget<EditableText>(codeEditableFinder);
+      expect(
+        codeEditable.autofillHints,
+        orderedEquals(const [AutofillHints.oneTimeCode]),
+      );
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      await tester.enterText(codeFieldFinder, '123456');
+      await tester.pump();
+
+      final updatedCodeEditable = tester.widget<EditableText>(
+        codeEditableFinder,
+      );
+      expect(updatedCodeEditable.focusNode.hasFocus, isFalse);
+      expect(tester.testTextInput.isVisible, isFalse);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();

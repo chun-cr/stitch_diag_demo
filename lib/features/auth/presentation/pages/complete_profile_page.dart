@@ -77,14 +77,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
     );
   }
 
-  Future<void> _goBack() async {
-    final hasSession = await getIt<AuthSessionStore>().hasSession();
+  void _goBack() {
     if (!mounted) {
       return;
     }
     context.go(
       _buildAuthRouteLocation(
-        hasSession ? AppRoutes.register : AppRoutes.login,
+        AppRoutes.login,
         redirectLocation: _redirectLocation,
       ),
     );
@@ -163,6 +162,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
                 ),
                 const Spacer(),
                 TextButton(
+                  key: const ValueKey('complete_profile_skip_button'),
                   onPressed: () => _completeOrSkip(skip: true),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF222A24),

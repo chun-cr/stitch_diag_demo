@@ -13,6 +13,7 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_enti
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart'
     show VerificationCodeScene;
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_session_state.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../data/models/auth_request.dart';
@@ -69,13 +70,24 @@ class _LoginPageState extends ConsumerState<LoginPage>
   @override
   final _codeCtrl = TextEditingController();
   @override
+  late final Listenable _formFieldsListenable = Listenable.merge([
+    _phoneCtrl,
+    _emailCtrl,
+    _passCtrl,
+    _codeCtrl,
+  ]);
+  @override
   final _verificationCodeFlow = VerificationCodeFlowState();
+  @override
+  bool _agreeTerms = false;
   @override
   bool _isEmailLogin = false;
   @override
   bool _obscurePass = true;
   @override
   bool _isPasswordLogin = false;
+  @override
+  VerificationCodeScene? _resolvedVerificationCodeScene;
   @override
   bool _wechatLoginLoading = false;
   @override
@@ -203,8 +215,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Future<void> _completeLoginWithSession(
     AuthSessionEntity session, {
     String? redirectLocation,
+    bool requiresProfileCompletion = false,
   }) async {
     await getIt<AuthSessionStore>().saveSession(session);
+    await clearProfileScopedPersistence();
+    invalidateProfileScopedProviders(ref);
     unawaited(_synchronizeShareReferralAfterAuth());
 
     if (!mounted) {
@@ -217,7 +232,21 @@ class _LoginPageState extends ConsumerState<LoginPage>
     }
 
     setPreviewAuthenticated(true);
-    context.go(_resolveSafeRedirect(redirectLocation) ?? AppRoutes.home);
+    context.go(
+      requiresProfileCompletion
+          ? _buildCompleteProfileLocation(redirectLocation)
+          : _resolveSafeRedirect(redirectLocation) ?? AppRoutes.home,
+    );
+  }
+
+  String _buildCompleteProfileLocation(String? redirectLocation) {
+    final safeRedirect = _resolveSafeRedirect(redirectLocation);
+    return Uri(
+      path: AppRoutes.completeProfile,
+      queryParameters: safeRedirect == null
+          ? null
+          : <String, String>{'redirect': safeRedirect},
+    ).toString();
   }
 
   @override
@@ -285,6 +314,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   @override
   Future<void> _onSendCode() async {
+    final l10n = context.l10n;
     final accountError = _isEmailLogin
         ? _validateEmail(_emailCtrl.text)
         : _validatePhone(_phoneCtrl.text);
@@ -292,7 +322,47 @@ class _LoginPageState extends ConsumerState<LoginPage>
       _showErrorSnack(accountError);
       return;
     }
-    await sendVerificationCode();
+    final preferredScene =
+        _resolvedVerificationCodeScene ?? VerificationCodeScene.login;
+    final primaryResult = await sendVerificationCode(
+      sceneOverride: preferredScene,
+      presentError: false,
+    );
+    if (primaryResult.isSent) {
+      if (mounted) {
+        setState(() {
+          _resolvedVerificationCodeScene = preferredScene;
+        });
+      }
+      return;
+    }
+
+    if (preferredScene == VerificationCodeScene.login &&
+        primaryResult.dioException != null &&
+        isVerificationCodeUnregisteredError(primaryResult.dioException!)) {
+      if (mounted) {
+        setState(() {
+          _resolvedVerificationCodeScene = null;
+          resetVerificationCodeState(clearCode: false);
+        });
+      }
+      final registerResult = await sendVerificationCode(
+        sceneOverride: VerificationCodeScene.register,
+      );
+      if (registerResult.isSent && mounted) {
+        setState(() {
+          _resolvedVerificationCodeScene = VerificationCodeScene.register;
+        });
+      }
+      return;
+    }
+
+    if (primaryResult.isFailed) {
+      final responseData = primaryResult.dioException?.response?.data;
+      _showErrorSnack(
+        authResponseMessage(responseData) ?? l10n.authSendCodeFailed,
+      );
+    }
   }
 
   @override
@@ -306,6 +376,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
       _showErrorSnack(context.l10n.authSendCodeFirst);
       return;
     }
+    if (!_agreeTerms) {
+      _showErrorSnack(context.l10n.registerAgreeTermsFirst);
+      return;
+    }
 
     if (!_formKey.currentState!.validate()) {
       return;
@@ -316,10 +390,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     try {
       final repository = ref.read(authRepositoryProvider);
-      final Future<AuthSessionEntity> loginFuture;
+      late final AuthSessionEntity session;
+      var verificationScene =
+          _resolvedVerificationCodeScene ?? VerificationCodeScene.login;
       if (_usesPasswordCredential) {
         final inviteTicket = await _resolveInviteTicketForAuth();
-        loginFuture = repository.login(
+        session = await repository.login(
           AuthRequest(
             countryCode: _selectedCountryCode,
             phoneNumber: _phoneCtrl.text.trim(),
@@ -329,23 +405,46 @@ class _LoginPageState extends ConsumerState<LoginPage>
         );
       } else {
         final inviteTicket = await _resolveInviteTicketForAuth();
-        loginFuture = repository.authenticateVerificationCode(
-          scene: VerificationCodeScene.login,
-          challengeId: _challengeId!,
-          verificationCode: _codeCtrl.text.trim(),
-          inviteTicket: inviteTicket,
-        );
+        try {
+          session = await repository.authenticateVerificationCode(
+            scene: verificationScene,
+            challengeId: _challengeId!,
+            verificationCode: _codeCtrl.text.trim(),
+            inviteTicket: inviteTicket,
+          );
+        } on DioException catch (error) {
+          if (verificationScene == VerificationCodeScene.login &&
+              isVerificationCodeUnregisteredError(error)) {
+            session = await repository.authenticateVerificationCode(
+              scene: VerificationCodeScene.register,
+              challengeId: _challengeId!,
+              verificationCode: _codeCtrl.text.trim(),
+              inviteTicket: inviteTicket,
+            );
+            verificationScene = VerificationCodeScene.register;
+            if (mounted) {
+              setState(() {
+                _resolvedVerificationCodeScene = verificationScene;
+              });
+            }
+          } else {
+            rethrow;
+          }
+        }
       }
 
       final results = await Future.wait<dynamic>([
-        loginFuture,
+        Future<AuthSessionEntity>.value(session),
         Future.delayed(_submittingDuration),
       ]);
-      final session = results.first as AuthSessionEntity;
+      final authSession = results.first as AuthSessionEntity;
 
       await _completeLoginWithSession(
-        session,
+        authSession,
         redirectLocation: _redirectLocation,
+        requiresProfileCompletion:
+            !_usesPasswordCredential &&
+            verificationScene == VerificationCodeScene.register,
       );
     } on DioException catch (error) {
       if (!mounted) {
@@ -490,119 +589,128 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                           minHeight: constraints.maxHeight,
                                         ),
                                         child: IntrinsicHeight(
-                                          child: Form(
-                                            key: _formKey,
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
-                                              children: [
-                                                const SizedBox(height: 12),
-                                                _buildBrandRow(),
-                                                AnimatedContainer(
-                                                  duration: const Duration(
-                                                    milliseconds: 280,
-                                                  ),
-                                                  curve: Curves.easeOutCubic,
-                                                  height: keyboardVisible
-                                                      ? 16
-                                                      : 28,
-                                                ),
-                                                AnimatedSlide(
-                                                  duration: const Duration(
-                                                    milliseconds: 280,
-                                                  ),
-                                                  curve: Curves.easeOutCubic,
-                                                  offset: Offset(
-                                                    0,
-                                                    keyboardVisible ? -0.06 : 0,
-                                                  ),
-                                                  child: AnimatedScale(
+                                          child: AutofillGroup(
+                                            child: Form(
+                                              key: _formKey,
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.stretch,
+                                                children: [
+                                                  const SizedBox(height: 12),
+                                                  _buildBrandRow(),
+                                                  AnimatedContainer(
                                                     duration: const Duration(
                                                       milliseconds: 280,
                                                     ),
                                                     curve: Curves.easeOutCubic,
-                                                    scale: keyboardVisible
-                                                        ? 0.84
-                                                        : 1,
-                                                    alignment:
-                                                        Alignment.topCenter,
-                                                    child: _buildHeroVisual(),
+                                                    height: keyboardVisible
+                                                        ? 16
+                                                        : 28,
                                                   ),
-                                                ),
-                                                AnimatedContainer(
-                                                  duration: const Duration(
-                                                    milliseconds: 280,
+                                                  AnimatedSlide(
+                                                    duration: const Duration(
+                                                      milliseconds: 280,
+                                                    ),
+                                                    curve: Curves.easeOutCubic,
+                                                    offset: Offset(
+                                                      0,
+                                                      keyboardVisible
+                                                          ? -0.06
+                                                          : 0,
+                                                    ),
+                                                    child: AnimatedScale(
+                                                      duration: const Duration(
+                                                        milliseconds: 280,
+                                                      ),
+                                                      curve:
+                                                          Curves.easeOutCubic,
+                                                      scale: keyboardVisible
+                                                          ? 0.84
+                                                          : 1,
+                                                      alignment:
+                                                          Alignment.topCenter,
+                                                      child: _buildHeroVisual(),
+                                                    ),
                                                   ),
-                                                  curve: Curves.easeOutCubic,
-                                                  height: keyboardVisible
-                                                      ? 6
-                                                      : 10,
-                                                ),
-                                                _buildHeroText(),
-                                                AnimatedContainer(
-                                                  duration: const Duration(
-                                                    milliseconds: 280,
+                                                  AnimatedContainer(
+                                                    duration: const Duration(
+                                                      milliseconds: 280,
+                                                    ),
+                                                    curve: Curves.easeOutCubic,
+                                                    height: keyboardVisible
+                                                        ? 6
+                                                        : 10,
                                                   ),
-                                                  curve: Curves.easeOutCubic,
-                                                  height: keyboardVisible
-                                                      ? 18
-                                                      : 22,
-                                                ),
-                                                _buildInputArea(),
-                                                const SizedBox(height: 18),
-                                                AnimatedContainer(
-                                                  duration: const Duration(
-                                                    milliseconds: 220,
+                                                  _buildHeroText(),
+                                                  AnimatedContainer(
+                                                    duration: const Duration(
+                                                      milliseconds: 280,
+                                                    ),
+                                                    curve: Curves.easeOutCubic,
+                                                    height: keyboardVisible
+                                                        ? 18
+                                                        : 22,
                                                   ),
-                                                  curve: Curves.easeOutCubic,
-                                                  margin: EdgeInsets.only(
-                                                    bottom: keyboardVisible
-                                                        ? 8
-                                                        : 0,
+                                                  _buildInputArea(),
+                                                  const SizedBox(height: 18),
+                                                  _buildAgreementSection(),
+                                                  AnimatedContainer(
+                                                    duration: const Duration(
+                                                      milliseconds: 220,
+                                                    ),
+                                                    curve: Curves.easeOutCubic,
+                                                    margin: EdgeInsets.only(
+                                                      bottom: keyboardVisible
+                                                          ? 8
+                                                          : 0,
+                                                    ),
+                                                    child:
+                                                        _buildPrimaryButton(),
                                                   ),
-                                                  child: _buildPrimaryButton(),
-                                                ),
-                                                const Spacer(),
-                                                AnimatedSwitcher(
-                                                  duration: const Duration(
-                                                    milliseconds: 220,
-                                                  ),
-                                                  switchInCurve:
-                                                      Curves.easeOutCubic,
-                                                  switchOutCurve:
-                                                      Curves.easeInCubic,
-                                                  transitionBuilder:
-                                                      (child, animation) {
-                                                        return FadeTransition(
-                                                          opacity: animation,
-                                                          child: SizeTransition(
-                                                            sizeFactor:
-                                                                animation,
-                                                            axisAlignment: -1,
-                                                            child: child,
-                                                          ),
-                                                        );
-                                                      },
-                                                  child: keyboardVisible
-                                                      ? const SizedBox(
-                                                          key: ValueKey(
-                                                            'login_keyboard_compact',
-                                                          ),
-                                                          height: 12,
-                                                        )
-                                                      : Column(
-                                                          key: const ValueKey(
-                                                            'login_keyboard_full',
-                                                          ),
-                                                          children: [
-                                                            _buildBottomAuxiliarySections(),
-                                                            const SizedBox(
-                                                              height: 36,
+                                                  const Spacer(),
+                                                  AnimatedSwitcher(
+                                                    duration: const Duration(
+                                                      milliseconds: 220,
+                                                    ),
+                                                    switchInCurve:
+                                                        Curves.easeOutCubic,
+                                                    switchOutCurve:
+                                                        Curves.easeInCubic,
+                                                    transitionBuilder:
+                                                        (child, animation) {
+                                                          return FadeTransition(
+                                                            opacity: animation,
+                                                            child:
+                                                                SizeTransition(
+                                                                  sizeFactor:
+                                                                      animation,
+                                                                  axisAlignment:
+                                                                      -1,
+                                                                  child: child,
+                                                                ),
+                                                          );
+                                                        },
+                                                    child: keyboardVisible
+                                                        ? const SizedBox(
+                                                            key: ValueKey(
+                                                              'login_keyboard_compact',
                                                             ),
-                                                          ],
-                                                        ),
-                                                ),
-                                              ],
+                                                            height: 12,
+                                                          )
+                                                        : Column(
+                                                            key: const ValueKey(
+                                                              'login_keyboard_full',
+                                                            ),
+                                                            children: [
+                                                              _buildBottomAuxiliarySections(),
+                                                              const SizedBox(
+                                                                height: 36,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),

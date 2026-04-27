@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_target.dart';
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
+import 'package:stitch_diag_demo/features/auth/presentation/pages/login_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/pages/register_page.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_project_data.dart';
@@ -45,13 +47,29 @@ class _SuccessfulRegisterAuthRepository extends AuthRepositoryAdapter {
   Future<VerificationCodeChallengeEntity> createVerificationCodeChallenge({
     required VerificationCodeScene scene,
     required VerificationCodeTarget target,
-  }) async => VerificationCodeChallengeEntity(
-    challengeId: 'challenge-1',
-    captchaRequired: false,
-    captchaProvider: null,
-    captchaPayload: null,
-    expireAt: DateTime.now().add(const Duration(minutes: 10)),
-  );
+  }) async {
+    if (scene == VerificationCodeScene.login) {
+      throw DioException(
+        requestOptions: RequestOptions(
+          path: '/api/v1/saas/mobile/auth/verification-code/challenge',
+        ),
+        response: Response(
+          requestOptions: RequestOptions(
+            path: '/api/v1/saas/mobile/auth/verification-code/challenge',
+          ),
+          statusCode: 404,
+          data: {'message': 'account not found'},
+        ),
+      );
+    }
+    return VerificationCodeChallengeEntity(
+      challengeId: 'challenge-1',
+      captchaRequired: false,
+      captchaProvider: null,
+      captchaPayload: null,
+      expireAt: DateTime.now().add(const Duration(minutes: 10)),
+    );
+  }
 
   @override
   Future<VerificationCodeSendEntity> sendCode({
@@ -92,7 +110,7 @@ Future<void> _pumpUntilLocation(
   WidgetTester tester,
   String expectedLocation, {
   Duration step = const Duration(milliseconds: 50),
-  int maxTicks = 20,
+  int maxTicks = 40,
 }) async {
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
@@ -140,9 +158,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    final zhFinder = find.text('跳过');
-    final enFinder = find.text('Skip');
-    await tester.tap(zhFinder.evaluate().isNotEmpty ? zhFinder : enFinder);
+    await tester.tap(
+      find.byKey(const ValueKey('complete_profile_skip_button')),
+    );
     await tester.pump();
     await _pumpUntilLocation(tester, AppRoutes.login);
 
@@ -181,7 +199,7 @@ void main() {
     },
   );
 
-  testWidgets('register page go-login action always routes back to login', (
+  testWidgets('/register route now renders the unified login page', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -193,12 +211,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    await tester.tap(find.byKey(const ValueKey('register_go_login_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
-
+    expect(find.byType(LoginPage), findsOneWidget);
     expect(find.byType(RegisterPage), findsNothing);
-    expect(appRouter.state.matchedLocation, AppRoutes.login);
+    expect(appRouter.state.matchedLocation, AppRoutes.register);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -228,14 +243,12 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
     await tester.enterText(find.byType(TextFormField).at(1), '123456');
-    await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+    await tester.tap(find.byKey(const ValueKey('send_code_button')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const ValueKey('register_terms_row')));
+    await tester.tap(find.byKey(const ValueKey('login_terms_row')));
     await tester.pump();
-    await tester.tap(
-      find.byKey(const ValueKey('register_create_account_button')),
-    );
+    await tester.tap(find.byKey(const ValueKey('login_primary_button')));
     await tester.pump();
     await _pumpUntilLocation(tester, AppRoutes.completeProfile);
 
@@ -291,23 +304,23 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField).at(0), '13800138000');
       await tester.enterText(find.byType(TextFormField).at(1), '123456');
-      await tester.tap(find.byKey(const ValueKey('register_send_code_button')));
+      await tester.tap(find.byKey(const ValueKey('send_code_button')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.byKey(const ValueKey('register_terms_row')));
+      await tester.tap(find.byKey(const ValueKey('login_terms_row')));
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('register_create_account_button')),
-      );
+      await tester.tap(find.byKey(const ValueKey('login_primary_button')));
       await tester.pump();
       await _pumpUntilLocation(tester, AppRoutes.completeProfile);
 
       expect(appRouter.state.matchedLocation, AppRoutes.completeProfile);
       expect(appRouter.state.uri.queryParameters['redirect'], redirectLocation);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
-      final zhFinder = find.text('跳过');
-      final enFinder = find.text('Skip');
-      await tester.tap(zhFinder.evaluate().isNotEmpty ? zhFinder : enFinder);
+      await tester.tap(
+        find.byKey(const ValueKey('complete_profile_skip_button')),
+      );
       await tester.pump();
       await _pumpUntilLocation(tester, AppRoutes.reportProjectDetail);
 

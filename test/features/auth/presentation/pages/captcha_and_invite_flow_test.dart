@@ -177,11 +177,11 @@ class _InviteTicketCapturingRepository extends AuthRepositoryAdapter {
     lastInviteTicket = inviteTicket;
     throw DioException(
       requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+        path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
       ),
       response: Response(
         requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+          path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
         ),
         statusCode: 400,
         data: {'message': 'capture'},
@@ -270,6 +270,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.enterText(find.byType(TextFormField).at(1), '123456');
       await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('login_terms_row')));
+      await tester.pump();
 
       final button = tester.widget<GestureDetector>(
         find.byKey(const ValueKey('login_primary_button')),
@@ -302,11 +304,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     await tester.enterText(find.byType(TextFormField).at(1), 'secret123');
+    await tester.tap(find.byKey(const ValueKey('login_terms_row')));
     await tester.pump();
 
     final button = tester.widget<GestureDetector>(
       find.byKey(const ValueKey('login_primary_button')),
     );
+    expect(button.onTap, isNotNull);
     button.onTap!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1200));

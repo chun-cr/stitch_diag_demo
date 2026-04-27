@@ -98,7 +98,7 @@ bool shouldTrackPalmHold({
   }
 
   if (holdInProgress) {
-    return isRelaxedFramed;
+    return readyToScan;
   }
 
   return isPalmHoldEligible(

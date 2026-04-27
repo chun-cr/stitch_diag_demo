@@ -198,7 +198,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.register,
-      builder: (context, state) => RegisterPage(
+      builder: (context, state) => LoginPage(
         inviteTicket: state.uri.queryParameters['inviteTicket'],
         initialMode: state.uri.queryParameters['mode'],
         shareId: state.uri.queryParameters['shareId'],

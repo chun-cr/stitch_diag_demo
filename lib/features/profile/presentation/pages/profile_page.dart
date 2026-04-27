@@ -14,6 +14,7 @@ import 'package:stitch_diag_demo/features/profile/domain/entities/profile_shippi
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_address_provider.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_points_provider.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_repository_provider.dart';
+import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_session_state.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/widgets/profile_loading_skeletons.dart';
 
 // ── 颜色常量（与全局 TCM 风格统一）────────────────────────────────
@@ -795,6 +796,7 @@ class ProfilePage extends ConsumerWidget {
     return Center(
       child: TextButton.icon(
         onPressed: () async {
+          final container = ProviderScope.containerOf(context, listen: false);
           final sessionStore = getIt<AuthSessionStore>();
           final refreshToken = await sessionStore.refreshToken();
           if (refreshToken != null && refreshToken.isNotEmpty) {
@@ -807,11 +809,15 @@ class ProfilePage extends ConsumerWidget {
             }
           }
           await sessionStore.clear();
+          await clearProfileScopedPersistence();
           if (!context.mounted) {
             return;
           }
           setPreviewAuthenticated(false);
           context.go(AppRoutes.login);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            invalidateProfileScopedProvidersInContainer(container);
+          });
         },
         icon: Icon(
           Icons.logout_rounded,

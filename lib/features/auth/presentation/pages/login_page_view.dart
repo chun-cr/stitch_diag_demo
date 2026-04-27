@@ -8,8 +8,11 @@ mixin _LoginPageView
   Animation<double> get _breatheAnim;
   Animation<double> get _btnScaleAnim;
   AnimationController get _btnScaleCtrl;
+  Listenable get _formFieldsListenable;
   bool get _isBusy;
   bool get _obscurePass;
+  bool get _agreeTerms;
+  set _agreeTerms(bool value);
   @override
   set _obscurePass(bool value);
   bool get _wechatLoginLoading;
@@ -442,7 +445,13 @@ mixin _LoginPageView
         TextFormField(
           controller: _codeCtrl,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          textInputAction: TextInputAction.done,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(kVerificationCodeLength),
+          ],
+          onChanged: dismissVerificationCodeInputIfComplete,
           cursorColor: const Color(0xFF5D826D),
           textAlignVertical: TextAlignVertical.center,
           style: const TextStyle(
@@ -510,7 +519,8 @@ mixin _LoginPageView
           ),
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: (v) =>
-              (!_usesPasswordCredential && (v == null || v.trim().length != 6))
+              (!_usesPasswordCredential &&
+                  (v == null || v.trim().length != kVerificationCodeLength))
               ? l10n.authVerificationCodeHint
               : null,
         ),
@@ -676,6 +686,83 @@ mixin _LoginPageView
     );
   }
 
+  Widget _buildAgreementSection() {
+    return Column(
+      key: const ValueKey('login_agreement_visible'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [_buildTermsRow(), const SizedBox(height: 18)],
+    );
+  }
+
+  Widget _buildTermsRow() {
+    return GestureDetector(
+      key: const ValueKey('login_terms_row'),
+      onTap: () => setState(() => _agreeTerms = !_agreeTerms),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(6),
+              gradient: _agreeTerms
+                  ? const LinearGradient(
+                      colors: [Color(0xFF7AA98E), Color(0xFF98C4AA)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              border: Border.all(
+                color: _agreeTerms
+                    ? Colors.transparent
+                    : const Color(0xFFE0D6C8),
+                width: 1.2,
+              ),
+            ),
+            child: _agreeTerms
+                ? const Icon(Icons.check, size: 12, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF534B41).withValues(alpha: 0.82),
+                  height: 1.55,
+                ),
+                children: [
+                  TextSpan(text: context.l10n.registerReadAndAgree),
+                  const TextSpan(text: ' ', style: TextStyle(fontSize: 12)),
+                  TextSpan(
+                    text: context.l10n.registerUserAgreement,
+                    style: const TextStyle(
+                      color: Color(0xFF3D7B61),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  TextSpan(text: context.l10n.registerAnd),
+                  TextSpan(
+                    text: context.l10n.registerPrivacyPolicy,
+                    style: const TextStyle(
+                      color: Color(0xFF3D7B61),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  TextSpan(text: context.l10n.registerHealthDataClause),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCountryCodePrefix() {
     return Padding(
       padding: const EdgeInsets.only(left: 14),
@@ -698,107 +785,113 @@ mixin _LoginPageView
               });
             },
           ),
-          Container(
-            width: 1,
-            height: 24,
-            margin: const EdgeInsets.only(left: 8, right: 10),
-            color: const Color(0xFFE3DACB),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildPrimaryButton() {
-    return GestureDetector(
-      key: const ValueKey('login_primary_button'),
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) {
-        if (_isBusy) {
-          return;
-        }
-        HapticFeedback.lightImpact();
-        _btnScaleCtrl.forward();
-      },
-      onTap: () {
-        if (_isBusy) {
-          return;
-        }
-        _onLogin();
-      },
-      onTapUp: (_) {
-        if (_isBusy) {
-          return;
-        }
-        _btnScaleCtrl.reverse();
-      },
-      onTapCancel: () {
-        if (_isBusy) {
-          return;
-        }
-        _btnScaleCtrl.reverse();
-      },
-      child: AnimatedBuilder(
-        animation: _btnScaleAnim,
-        builder: (context, child) =>
-            Transform.scale(scale: _btnScaleAnim.value, child: child),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _buttonPhase == _LoginButtonPhase.idle
-                  ? const [
-                      Color(0xFF79AC85),
-                      Color(0xFF7FAE8A),
-                      Color(0xFF74A380),
-                    ]
-                  : const [
-                      Color(0xFF689676),
-                      Color(0xFF729D7D),
-                      Color(0xFF658F73),
-                    ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF76A784).withValues(
-                  alpha: _buttonPhase == _LoginButtonPhase.idle ? 0.34 : 0.14,
-                ),
-                blurRadius: _buttonPhase == _LoginButtonPhase.idle ? 20 : 12,
-                offset: Offset(
-                  0,
-                  _buttonPhase == _LoginButtonPhase.idle ? 8 : 4,
-                ),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: DecoratedBox(
+    return AnimatedBuilder(
+      animation: _formFieldsListenable,
+      builder: (context, _) {
+        final isEnabled = !_isBusy && _hasPrimaryActionRequirements;
+        final buttonColors = _buttonPhase == _LoginButtonPhase.submitting
+            ? const [Color(0xFF689676), Color(0xFF729D7D), Color(0xFF658F73)]
+            : isEnabled
+            ? const [Color(0xFF79AC85), Color(0xFF7FAE8A), Color(0xFF74A380)]
+            : const [Color(0xFFC9D0CA), Color(0xFFBEC6BF), Color(0xFFB2BBB3)];
+        final shadowColor = _buttonPhase == _LoginButtonPhase.submitting
+            ? const Color(0xFF76A784).withValues(alpha: 0.14)
+            : isEnabled
+            ? const Color(0xFF76A784).withValues(alpha: 0.34)
+            : const Color(0xFF99A39C).withValues(alpha: 0.18);
+        final shadowBlur = _buttonPhase == _LoginButtonPhase.submitting
+            ? 12.0
+            : isEnabled
+            ? 20.0
+            : 10.0;
+        final shadowOffsetY = _buttonPhase == _LoginButtonPhase.submitting
+            ? 4.0
+            : isEnabled
+            ? 8.0
+            : 4.0;
+
+        return GestureDetector(
+          key: const ValueKey('login_primary_button'),
+          behavior: HitTestBehavior.opaque,
+          onTapDown: isEnabled
+              ? (_) {
+                  HapticFeedback.lightImpact();
+                  _btnScaleCtrl.forward();
+                }
+              : null,
+          onTap: isEnabled ? _onLogin : null,
+          onTapUp: isEnabled ? (_) => _btnScaleCtrl.reverse() : null,
+          onTapCancel: isEnabled ? () => _btnScaleCtrl.reverse() : null,
+          child: AnimatedBuilder(
+            animation: _btnScaleAnim,
+            builder: (context, child) =>
+                Transform.scale(scale: _btnScaleAnim.value, child: child),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              height: 56,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.16),
-                    Colors.white.withValues(alpha: 0.02),
-                  ],
+                  colors: buttonColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: shadowColor,
+                    blurRadius: shadowBlur,
+                    offset: Offset(0, shadowOffsetY),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.16),
+                        Colors.white.withValues(alpha: 0.02),
+                      ],
+                    ),
+                  ),
+                  child: Center(child: _buildButtonContent(context)),
                 ),
               ),
-              child: Center(child: _buildButtonContent(context)),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
+  bool get _hasPrimaryActionRequirements {
+    if (!_agreeTerms || _currentAccountValue.isEmpty) {
+      return false;
+    }
+    if (_usesPasswordCredential) {
+      return _passCtrl.text.isNotEmpty;
+    }
+    return _codeCtrl.text.trim().length == kVerificationCodeLength;
+  }
+
   Widget _buildButtonContent(BuildContext context) {
+    final idleLabel = _usesPasswordCredential
+        ? context.l10n.authLoginButton
+        : context.l10n.commonContinue;
+    final submittingLabel = _usesPasswordCredential
+        ? context.l10n.authLoggingIn
+        : context.l10n.commonContinue;
     final label = Text(
-      context.l10n.authLoginButton,
+      idleLabel,
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w700,
@@ -825,7 +918,7 @@ mixin _LoginPageView
             ),
             const SizedBox(width: 10),
             Text(
-              context.l10n.authLoggingIn,
+              submittingLabel,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -848,8 +941,6 @@ mixin _LoginPageView
           _buildOrDivider(),
           const SizedBox(height: 14),
           _buildSocialRow(),
-          const SizedBox(height: 18),
-          _buildSignUpRow(),
         ],
       ),
     );
@@ -895,38 +986,6 @@ mixin _LoginPageView
                 : context.l10n.authEmailLogin,
             labelColor: const Color(0xFF3A3028),
             onTap: _toggleIdentityLoginMode,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSignUpRow() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          context.l10n.authNoAccount,
-          style: TextStyle(
-            fontSize: 13,
-            color: const Color(0xFF4F453C).withValues(alpha: 0.76),
-          ),
-        ),
-        TextButton(
-          onPressed: () => context.push(_registerLocation),
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            context.l10n.authRegisterNow,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF8A6B3B),
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ),
       ],

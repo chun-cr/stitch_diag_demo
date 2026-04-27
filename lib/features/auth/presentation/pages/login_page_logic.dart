@@ -13,11 +13,12 @@ mixin _LoginPageLogic
   set _obscurePass(bool value);
   bool get _isPasswordLogin;
   set _isPasswordLogin(bool value);
+  VerificationCodeScene? get _resolvedVerificationCodeScene;
+  set _resolvedVerificationCodeScene(VerificationCodeScene? value);
   AuthTopToastController get _errorToastController;
   String get _selectedCountryCode;
 
   bool get _usesPasswordCredential => !_isEmailLogin && _isPasswordLogin;
-  String get _currentEntryMode => _isEmailLogin ? 'email' : 'phone';
   String get _currentAccountValue =>
       _isEmailLogin ? _emailCtrl.text.trim() : _phoneCtrl.text.trim();
   String? get _currentAccountCountryCode =>
@@ -54,7 +55,7 @@ mixin _LoginPageLogic
 
   @override
   VerificationCodeScene get verificationCodeScene =>
-      VerificationCodeScene.login;
+      _resolvedVerificationCodeScene ?? VerificationCodeScene.login;
 
   @override
   String get verificationCodeSuccessMessageText =>
@@ -158,32 +159,26 @@ mixin _LoginPageLogic
     return normalized;
   }
 
-  String get _registerLocation {
-    final queryParameters = <String, String>{'mode': _currentEntryMode};
-    if (_inviteTicket != null) {
-      queryParameters['inviteTicket'] = _inviteTicket!;
-    }
-    if (_incomingShareId != null) {
-      queryParameters['shareId'] = _incomingShareId!;
-    }
-    if (_visitorKey != null) {
-      queryParameters['visitorKey'] = _visitorKey!;
-    }
-    if (_redirectLocation != null) {
-      queryParameters['redirect'] = _redirectLocation!;
-    }
-    return Uri(
-      path: AppRoutes.register,
-      queryParameters: queryParameters,
-    ).toString();
-  }
-
   void _handlePhoneChanged(String value) {
-    resetVerificationStateIfTargetChanged(value);
+    if (_verificationCodeFlow.codeTargetValue == null ||
+        value.trim() == _verificationCodeFlow.codeTargetValue) {
+      return;
+    }
+    setState(() {
+      _resolvedVerificationCodeScene = null;
+      resetVerificationCodeState();
+    });
   }
 
   void _handleEmailChanged(String value) {
-    resetVerificationStateIfTargetChanged(value);
+    if (_verificationCodeFlow.codeTargetValue == null ||
+        value.trim() == _verificationCodeFlow.codeTargetValue) {
+      return;
+    }
+    setState(() {
+      _resolvedVerificationCodeScene = null;
+      resetVerificationCodeState();
+    });
   }
 
   void _togglePhoneAuthMode() {
@@ -194,6 +189,7 @@ mixin _LoginPageLogic
     setState(() {
       final preservedPhone = _phoneCtrl.text;
       _isPasswordLogin = !_isPasswordLogin;
+      _resolvedVerificationCodeScene = null;
       if (_isPasswordLogin) {
         resetVerificationCodeState();
       } else {
@@ -213,6 +209,7 @@ mixin _LoginPageLogic
       _isEmailLogin = true;
       _obscurePass = true;
       _passCtrl.clear();
+      _resolvedVerificationCodeScene = null;
       resetVerificationCodeState();
       _formKey.currentState?.reset();
     });
@@ -227,6 +224,8 @@ mixin _LoginPageLogic
       _isEmailLogin = false;
       _obscurePass = true;
       _passCtrl.clear();
+      _resolvedVerificationCodeScene = null;
+      resetVerificationCodeState();
       _formKey.currentState?.reset();
     });
   }

@@ -255,18 +255,52 @@ void main() {
     });
 
     test(
-      'keeps hold alive with relaxed framing once countdown has started',
+      'keeps hold alive with relaxed framing once countdown has started and palm stays ready',
+      () {
+        expect(
+          shouldTrackPalmHold(
+            holdInProgress: true,
+            handPresent: true,
+            readyToScan: true,
+            isFramed: false,
+            isRelaxedFramed: true,
+            pauseAutoScanUntilReset: false,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'keeps hold alive after countdown starts while palm remains ready even if framing drifts away',
+      () {
+        expect(
+          shouldTrackPalmHold(
+            holdInProgress: true,
+            handPresent: true,
+            readyToScan: true,
+            isFramed: false,
+            isRelaxedFramed: false,
+            pauseAutoScanUntilReset: false,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'stops active hold once the palm is no longer ready even if framing is still good',
       () {
         expect(
           shouldTrackPalmHold(
             holdInProgress: true,
             handPresent: true,
             readyToScan: false,
-            isFramed: false,
+            isFramed: true,
             isRelaxedFramed: true,
             pauseAutoScanUntilReset: false,
           ),
-          isTrue,
+          isFalse,
         );
       },
     );

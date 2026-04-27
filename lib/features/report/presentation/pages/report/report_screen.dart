@@ -7,8 +7,8 @@ const _kReportHeaderJoinRadius = 32.0;
 // Keep the tab bar visually close to the disclaimer without starving tall hero content.
 const _kHeroBottomPaddingCompact = 0.0;
 const _kHeroBottomPaddingRegular = 0.0;
-const _kHeroTopPaddingCompact = 48.0;
-const _kHeroTopPaddingRegular = 56.0;
+const _kHeroTopPaddingCompact = 50.0;
+const _kHeroTopPaddingRegular = 58.0;
 const _kHeroContentDisclaimerGapCompact = 2.0;
 const _kHeroContentDisclaimerGapRegular = 4.0;
 const _kHeroMeasurementSlackCompact = 12.0;

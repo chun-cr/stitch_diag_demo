@@ -180,6 +180,11 @@ void main() {
 
     expect(find.text(l10n.authCodeSent), findsOneWidget);
     expect(find.byKey(const ValueKey('send_code_countdown')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('login_masked_receiver_hint')),
+      findsOneWidget,
+    );
+    expect(find.text('验证码已发送至 +861****8000'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -307,6 +312,80 @@ void main() {
     await tester.pump();
     await tester.binding.setSurfaceSize(null);
   });
+
+  testWidgets(
+    'verification code field dismisses keyboard after one-time code autofill completes',
+    (tester) async {
+      await _pumpLoginPage(tester, repository: _SuccessfulSendCodeRepository());
+
+      await tester.enterText(find.byType(TextFormField).first, '13800138000');
+      await tester.tap(find.byKey(const ValueKey('send_code_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final codeFieldFinder = find.byType(TextFormField).at(1);
+      final codeEditableFinder = find.byType(EditableText).at(1);
+      final codeEditable = tester.widget<EditableText>(codeEditableFinder);
+      expect(
+        codeEditable.autofillHints,
+        orderedEquals(const [AutofillHints.oneTimeCode]),
+      );
+
+      await tester.tap(codeFieldFinder);
+      await tester.pump();
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      await tester.enterText(codeFieldFinder, '123456');
+      await tester.pump();
+
+      final updatedCodeEditable = tester.widget<EditableText>(
+        codeEditableFinder,
+      );
+      expect(updatedCodeEditable.focusNode.hasFocus, isFalse);
+      expect(tester.testTextInput.isVisible, isFalse);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
+
+  testWidgets(
+    'password login keeps terms row and primary button disabled until agreement',
+    (tester) async {
+      await _pumpLoginPage(tester, repository: _SuccessfulSendCodeRepository());
+
+      final switchToPassword = tester.widget<TextButton>(
+        find.byKey(const ValueKey('switch_to_password_login')),
+      );
+      switchToPassword.onPressed!();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.byKey(const ValueKey('login_terms_row')), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField).first, '13800138000');
+      await tester.enterText(find.byType(TextFormField).at(1), 'abcdef');
+      await tester.pump();
+
+      final buttonBeforeAgreement = tester.widget<GestureDetector>(
+        find.byKey(const ValueKey('login_primary_button')),
+      );
+      expect(buttonBeforeAgreement.onTap, isNull);
+
+      await tester.tap(find.byKey(const ValueKey('login_terms_row')));
+      await tester.pump();
+
+      final buttonAfterAgreement = tester.widget<GestureDetector>(
+        find.byKey(const ValueKey('login_primary_button')),
+      );
+      expect(buttonAfterAgreement.onTap, isNotNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
 
   testWidgets('forgot password shows guidance dialog', (tester) async {
     final l10n = lookupAppLocalizations(const Locale('zh'));

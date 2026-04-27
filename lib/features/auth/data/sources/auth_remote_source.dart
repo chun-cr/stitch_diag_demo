@@ -165,14 +165,8 @@ class AuthRemoteSource {
     required String verificationCode,
     String? inviteTicket,
   }) async {
-    final path = switch (scene) {
-      VerificationCodeScene.login =>
-        '/api/v1/saas/mobile/auth/login/verification-code',
-      VerificationCodeScene.register =>
-        '/api/v1/saas/mobile/auth/register/verification-code',
-    };
     final response = await _dioClient.dio.post(
-      path,
+      '/api/v1/saas/mobile/auth/login-or-register/verification-code',
       data: {
         'challengeId': challengeId,
         'verificationCode': verificationCode,

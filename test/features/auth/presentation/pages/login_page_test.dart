@@ -105,7 +105,7 @@ class _FailingAuthRepository extends AuthRepositoryAdapter {
         requestOptions: RequestOptions(
           path: '/api/v1/saas/mobile/auth/login/password',
         ),
-        data: {'message': '账号或密码错误'},
+        data: {'message': 'account-error'},
         statusCode: 401,
       ),
     );
@@ -159,13 +159,13 @@ class _FailingAuthRepository extends AuthRepositoryAdapter {
   }) {
     throw DioException(
       requestOptions: RequestOptions(
-        path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+        path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
       ),
       response: Response(
         requestOptions: RequestOptions(
-          path: '/api/v1/saas/mobile/auth/verification-code/authenticate',
+          path: '/api/v1/saas/mobile/auth/login-or-register/verification-code',
         ),
-        data: {'message': '账号或密码错误'},
+        data: {'message': 'account-error'},
         statusCode: 401,
       ),
     );
@@ -307,6 +307,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.enterText(find.byType(TextFormField).at(1), '123456');
       await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('login_terms_row')));
+      await tester.pump();
 
       final button = tester.widget<GestureDetector>(
         find.byKey(const ValueKey('login_primary_button')),
@@ -315,7 +317,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('登录中…'), findsOneWidget);
+      expect(find.byKey(const ValueKey('login_submitting')), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.byKey(const ValueKey('login_idle')), findsNothing);
       expect(find.byKey(const ValueKey('login_loading')), findsNothing);
@@ -390,6 +392,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.enterText(find.byType(TextFormField).at(1), '123456');
     await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('login_terms_row')));
+    await tester.pump();
 
     final button = tester.widget<GestureDetector>(
       find.byKey(const ValueKey('login_primary_button')),
@@ -398,7 +402,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1800));
 
-    expect(find.textContaining('账号或密码错误'), findsOneWidget);
+    expect(find.textContaining('account-error'), findsOneWidget);
     expect(find.byKey(const ValueKey('login_idle')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());

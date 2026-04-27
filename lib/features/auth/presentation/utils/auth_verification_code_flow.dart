@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code_send_entity.dart';
@@ -9,6 +10,8 @@ import 'package:stitch_diag_demo/features/auth/domain/entities/verification_code
 import 'package:stitch_diag_demo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repository_provider.dart';
 import 'package:stitch_diag_demo/features/auth/presentation/providers/captcha_resolver_provider.dart';
+
+const int kVerificationCodeLength = 6;
 
 class VerificationCodeFlowState {
   bool codeSending = false;
@@ -32,6 +35,36 @@ class VerificationCodeFlowState {
   }
 }
 
+enum VerificationCodeSendResultType { sent, blocked, failed }
+
+class VerificationCodeSendResult {
+  const VerificationCodeSendResult._(
+    this.type, {
+    this.dioException,
+    this.error,
+  });
+
+  const VerificationCodeSendResult.sent()
+    : this._(VerificationCodeSendResultType.sent);
+
+  const VerificationCodeSendResult.blocked()
+    : this._(VerificationCodeSendResultType.blocked);
+
+  const VerificationCodeSendResult.failedDio(DioException dioException)
+    : this._(VerificationCodeSendResultType.failed, dioException: dioException);
+
+  const VerificationCodeSendResult.failed(Object error)
+    : this._(VerificationCodeSendResultType.failed, error: error);
+
+  final VerificationCodeSendResultType type;
+  final DioException? dioException;
+  final Object? error;
+
+  bool get isSent => type == VerificationCodeSendResultType.sent;
+  bool get isBlocked => type == VerificationCodeSendResultType.blocked;
+  bool get isFailed => type == VerificationCodeSendResultType.failed;
+}
+
 Object? authResponseCode(dynamic responseData) {
   if (responseData is! Map<String, dynamic>) {
     return null;
@@ -48,6 +81,50 @@ String? authResponseMessage(dynamic responseData) {
     return message.trim();
   }
   return null;
+}
+
+bool isVerificationCodeUnregisteredError(DioException error) {
+  final responseData = error.response?.data;
+  final responseCode = authResponseCode(responseData);
+  final statusCode = error.response?.statusCode;
+  final responseMessage = authResponseMessage(responseData);
+  final joinedMessage = [
+    responseMessage,
+    error.message,
+  ].whereType<String>().join(' ').toLowerCase();
+
+  if (statusCode == 404 || responseCode == 404) {
+    return true;
+  }
+
+  if (responseCode is String) {
+    final normalizedCode = responseCode.trim().toUpperCase();
+    if (normalizedCode.contains('NOT_REGISTER') ||
+        normalizedCode.contains('NOT_FOUND') ||
+        normalizedCode.contains('USER_NOT_EXIST') ||
+        normalizedCode.contains('ACCOUNT_NOT_EXIST')) {
+      return true;
+    }
+  }
+
+  const keywords = <String>[
+    '未注册',
+    '尚未注册',
+    '未找到',
+    '不存在',
+    '用户不存在',
+    '账号不存在',
+    '账户不存在',
+    '手机号未注册',
+    '邮箱未注册',
+    'not registered',
+    'unregistered',
+    'not found',
+    'user not found',
+    'account not found',
+    'does not exist',
+  ];
+  return keywords.any((keyword) => joinedMessage.contains(keyword));
 }
 
 VerificationCodeSendEntity? verificationCodeSendEntityFromEnvelope(
@@ -163,6 +240,14 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
     }
   }
 
+  void dismissVerificationCodeInputIfComplete(String value) {
+    if (value.trim().length != kVerificationCodeLength) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.hide'));
+  }
+
   Future<bool> ensureCaptchaVerifiedIfNeeded(AuthRepository repository) async {
     final challengeId = verificationCodeFlow.challengeId;
     final provider = verificationCodeFlow.captchaProvider;
@@ -223,11 +308,15 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
     }
   }
 
-  Future<void> sendVerificationCode() async {
+  Future<VerificationCodeSendResult> sendVerificationCode({
+    VerificationCodeScene? sceneOverride,
+    bool presentSuccess = true,
+    bool presentError = true,
+  }) async {
     final l10n = context.l10n;
     if (verificationCodeFlow.codeSending ||
         verificationCodeFlow.codeCountingDown) {
-      return;
+      return const VerificationCodeSendResult.blocked();
     }
 
     setState(() {
@@ -238,7 +327,7 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
       final repository = ref.read(authRepositoryProvider);
       if (shouldRefreshVerificationChallenge) {
         final challenge = await repository.createVerificationCodeChallenge(
-          scene: verificationCodeScene,
+          scene: sceneOverride ?? verificationCodeScene,
           target: currentVerificationCodeTarget,
         );
         verificationCodeFlow.challengeId = challenge.challengeId;
@@ -258,17 +347,20 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
             verificationCodeFlow.codeSending = false;
           });
         }
-        return;
+        return const VerificationCodeSendResult.blocked();
       }
 
       final sendResult = await repository.sendCode(
         challengeId: verificationCodeFlow.challengeId!,
       );
-      showVerificationSuccess(verificationCodeSuccessMessageText);
+      if (presentSuccess) {
+        showVerificationSuccess(verificationCodeSuccessMessageText);
+      }
       if (!mounted) {
-        return;
+        return const VerificationCodeSendResult.sent();
       }
       startVerificationCodeCountdown(sendResult);
+      return const VerificationCodeSendResult.sent();
     } on DioException catch (error) {
       final responseData = error.response?.data;
       final serverMessage = authResponseMessage(responseData);
@@ -300,15 +392,27 @@ mixin VerificationCodeFlowMixin<T extends ConsumerStatefulWidget>
         if (sendResult != null && mounted) {
           startVerificationCodeCountdown(sendResult);
         }
+        if (sendResult != null) {
+          if (presentError) {
+            showVerificationError(serverMessage ?? l10n.authSendCodeFailed);
+          }
+          return const VerificationCodeSendResult.sent();
+        }
       }
-      showVerificationError(serverMessage ?? l10n.authSendCodeFailed);
+      if (presentError) {
+        showVerificationError(serverMessage ?? l10n.authSendCodeFailed);
+      }
+      return VerificationCodeSendResult.failedDio(error);
     } catch (_) {
       if (mounted) {
         setState(() {
           verificationCodeFlow.codeSending = false;
         });
       }
-      showVerificationError(l10n.authSendCodeFailed);
+      if (presentError) {
+        showVerificationError(l10n.authSendCodeFailed);
+      }
+      return const VerificationCodeSendResult.failed('unknown');
     }
   }
 

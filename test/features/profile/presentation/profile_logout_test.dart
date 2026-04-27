@@ -16,6 +16,7 @@ import 'package:stitch_diag_demo/features/auth/presentation/providers/auth_repos
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_me_entity.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_points_account_simple_entity.dart';
 import 'package:stitch_diag_demo/features/profile/domain/entities/profile_shipping_address_entity.dart';
+import 'package:stitch_diag_demo/features/profile/data/stores/profile_address_store.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/pages/profile_page.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_address_provider.dart';
 import 'package:stitch_diag_demo/features/profile/presentation/providers/profile_points_provider.dart';
@@ -96,7 +97,23 @@ void main() {
         scope: 'mobile',
       ),
     );
+    await ProfileAddressStore().replaceAll(const [
+      ProfileShippingAddressEntity(
+        id: 'addr-1',
+        receiverName: 'Amin',
+        receiverMobile: '13812345678',
+        provinceCode: '110000',
+        provinceName: 'Beijing',
+        cityCode: '110100',
+        cityName: 'Beijing',
+        districtCode: '110101',
+        districtName: 'Dongcheng',
+        detailAddress: 'No.1',
+        isDefault: true,
+      ),
+    ]);
     setPreviewAuthenticated(true);
+    appRouter.go(AppRoutes.home);
     await tester.binding.setSurfaceSize(const Size(1280, 2400));
 
     await tester.pumpWidget(
@@ -166,6 +183,120 @@ void main() {
     expect(preferences.getString('auth_token_type'), isNull);
     expect(preferences.getInt('auth_expires_in'), isNull);
     expect(preferences.getString('auth_scope'), isNull);
+    expect(preferences.getString('profile_shipping_addresses'), isNull);
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('profile page refreshes after switching to a different account', (
+    tester,
+  ) async {
+    AuthSessionStore.debugUseMemoryBackend = true;
+    addTearDown(() {
+      AuthSessionStore.debugUseMemoryBackend = false;
+    });
+    SharedPreferences.setMockInitialValues({});
+    initInjector();
+
+    ProfileMeEntity currentProfile = const ProfileMeEntity(
+      nickname: 'Amin',
+      realName: 'Zhang San',
+      countryCode: '+86',
+      phone: '13812345678',
+    );
+
+    await getIt<AuthSessionStore>().saveSession(
+      const AuthSessionEntity(
+        accessToken: 'token-a',
+        refreshToken: 'refresh-a',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        scope: 'mobile',
+      ),
+    );
+    setPreviewAuthenticated(true);
+    appRouter.go(AppRoutes.home);
+    await tester.binding.setSurfaceSize(const Size(1280, 2400));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            _LogoutCapturingRepository(),
+          ),
+          profileMeProvider.overrideWith((ref) async => currentProfile),
+          profileAddressesProvider.overrideWith(
+            () => _StaticAddressesController(),
+          ),
+          profileDefaultShippingAddressProvider.overrideWith(
+            (ref) async => const ProfileShippingAddressEntity(
+              id: 'addr-1',
+              receiverName: 'Amin',
+              receiverMobile: '13812345678',
+              provinceCode: '110000',
+              provinceName: 'Beijing',
+              cityCode: '110100',
+              cityName: 'Beijing',
+              districtCode: '110101',
+              districtName: 'Dongcheng',
+              detailAddress: 'No.1',
+              isDefault: true,
+            ),
+          ),
+          profilePointsBalanceProvider.overrideWith(
+            (ref) async => const ProfilePointsAccountSimpleEntity(
+              id: 'points-1',
+              userId: 'user-1',
+              availableAmount: 88,
+            ),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.text('Amin'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.logout_rounded));
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.login);
+
+    currentProfile = const ProfileMeEntity(
+      nickname: 'Bora',
+      realName: 'Li Si',
+      countryCode: '+86',
+      phone: '13987654321',
+    );
+    await getIt<AuthSessionStore>().saveSession(
+      const AuthSessionEntity(
+        accessToken: 'token-b',
+        refreshToken: 'refresh-b',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        scope: 'mobile',
+      ),
+    );
+    setPreviewAuthenticated(true);
+    appRouter.go(AppRoutes.home);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.text('Bora'), findsOneWidget);
+    expect(find.text('Amin'), findsNothing);
 
     await tester.binding.setSurfaceSize(null);
   });

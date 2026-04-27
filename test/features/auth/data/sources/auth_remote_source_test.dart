@@ -246,4 +246,64 @@ void main() {
       expect(result.challengeId, 'email-challenge-1');
     });
   });
+
+  group('AuthRemoteSource.authenticateVerificationCode', () {
+    late DioClient dioClient;
+    late AuthRemoteSource remoteSource;
+    late RequestOptions capturedOptions;
+
+    setUp(() {
+      dioClient = DioClient();
+      dioClient.dio.interceptors.clear();
+      remoteSource = AuthRemoteSource(dioClient);
+    });
+
+    test(
+      'uses merged login-or-register verification endpoint with same fields',
+      () async {
+        dioClient.dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              capturedOptions = options;
+              handler.resolve(
+                Response(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: {
+                    'code': 0,
+                    'message': 'ok',
+                    'data': {
+                      'accessToken': 'auth-token',
+                      'refreshToken': 'refresh-token',
+                      'tokenType': 'Bearer',
+                      'expiresIn': 3600,
+                      'scope': 'mobile',
+                    },
+                  },
+                ),
+              );
+            },
+          ),
+        );
+
+        final result = await remoteSource.authenticateVerificationCode(
+          scene: VerificationCodeScene.register,
+          challengeId: 'challenge-1',
+          verificationCode: '123456',
+          inviteTicket: 'invite-1',
+        );
+
+        expect(
+          capturedOptions.path,
+          '/api/v1/saas/mobile/auth/login-or-register/verification-code',
+        );
+        expect(capturedOptions.data, {
+          'challengeId': 'challenge-1',
+          'verificationCode': '123456',
+          'inviteTicket': 'invite-1',
+        });
+        expect(result.accessToken, 'auth-token');
+      },
+    );
+  });
 }

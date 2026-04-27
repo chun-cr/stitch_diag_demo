@@ -104,7 +104,7 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
                 mainAxisExtent: 278,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => HistoryRecordCard(
+                    (context, index) => HistoryRecordCard(
                   record: visibleRecords[index],
                 ),
                 childCount: visibleRecords.length,
@@ -194,36 +194,38 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
               LineChartBarData(
                 spots: trendSpots,
                 isCurved: true,
+                // 橙金色渐变线条，与截图中的暖色标题呼应
                 gradient: const LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [historyPrimaryGreen, historyPrimaryGreenLight],
+                  colors: [Color(0xFFB8864E), Color(0xFFD4A55A)],
                   stops: [0.08, 0.92],
                 ),
-                barWidth: 1.7,
+                barWidth: 2.0,
                 isStrokeCapRound: true,
                 curveSmoothness: 0.28,
+                // 轻微橙金填充，兼顾面积图直观感与折线图简洁感
                 belowBarData: BarAreaData(
                   show: true,
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      historyPrimaryGreenLight.withValues(alpha: 0.18),
-                      historyPrimaryGreen.withValues(alpha: 0.02),
+                      const Color(0xFFD4A55A).withValues(alpha: 0.16),
+                      const Color(0xFFB8864E).withValues(alpha: 0.01),
                     ],
                   ),
                 ),
                 dotData: FlDotData(
                   show: true,
                   checkToShowDot: (spot, barData) =>
-                      spot.x.toInt() == _records.length - 1,
+                  spot.x.toInt() == _records.length - 1,
                   getDotPainter: (spot, percent, barData, index) =>
                       FlDotCirclePainter(
-                        radius: 3,
+                        radius: 3.5,
                         color: historyCardBg,
-                        strokeWidth: 1.7,
-                        strokeColor: historyPrimaryGreen,
+                        strokeWidth: 2.0,
+                        strokeColor: const Color(0xFFD4A55A),
                       ),
                 ),
               ),
@@ -370,23 +372,23 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
         return spotIndexes
             .map(
               (_) => TouchedSpotIndicatorData(
-                FlLine(
-                  color: color.withValues(alpha: 0.18),
-                  strokeWidth: 1,
-                  dashArray: [3, 4],
-                ),
-                FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, bar, index) =>
-                      FlDotCirclePainter(
-                        radius: 4.6,
-                        color: color,
-                        strokeWidth: 2.4,
-                        strokeColor: Colors.white,
-                      ),
-                ),
-              ),
-            )
+            FlLine(
+              color: color.withValues(alpha: 0.18),
+              strokeWidth: 1,
+              dashArray: [3, 4],
+            ),
+            FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, bar, index) =>
+                  FlDotCirclePainter(
+                    radius: 4.6,
+                    color: color,
+                    strokeWidth: 2.4,
+                    strokeColor: Colors.white,
+                  ),
+            ),
+          ),
+        )
             .toList(growable: false);
       },
       touchTooltipData: LineTouchTooltipData(
@@ -407,22 +409,22 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
             .asMap()
             .entries
             .map((entry) {
-              final item = entry.value;
-              final itemDate = _dateLabel(_records[item.x.toInt()].date);
-              final itemColor = _lineColorOf(item.bar);
-              final itemValueText = valueFormatter(item.y);
-              final itemLineName = lineNameResolver(item);
-              final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
-              return LineTooltipItem(
-                '$itemTitle$itemLineName  $itemValueText',
-                TextStyle(
-                  color: itemColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  height: 1.45,
-                ),
-              );
-            })
+          final item = entry.value;
+          final itemDate = _dateLabel(_records[item.x.toInt()].date);
+          final itemColor = _lineColorOf(item.bar);
+          final itemValueText = valueFormatter(item.y);
+          final itemLineName = lineNameResolver(item);
+          final itemTitle = entry.key == 0 ? '$itemDate\n' : '';
+          return LineTooltipItem(
+            '$itemTitle$itemLineName  $itemValueText',
+            TextStyle(
+              color: itemColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.45,
+            ),
+          );
+        })
             .toList(growable: false),
       ),
       distanceCalculator: (offset, spotOffset) {
@@ -434,8 +436,8 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
   }
 
   List<ShowingTooltipIndicators> _buildTrendTooltipIndicators(
-    List<FlSpot> trendSpots,
-  ) {
+      List<FlSpot> trendSpots,
+      ) {
     final index = _trendTouchedIndex;
     if (index == null || index < 0 || index >= trendSpots.length) {
       return const <ShowingTooltipIndicators>[];
@@ -498,7 +500,7 @@ class _HistoryReportScreenState extends State<HistoryReportScreen> {
   Color _lineColorOf(LineChartBarData barData) {
     return barData.gradient?.colors.last ??
         barData.color ??
-        historyPrimaryGreen;
+        const Color(0xFFD4A55A); // 橙金色兜底
   }
 
   Set<int> _buildSparseLabelIndexes(int length) {

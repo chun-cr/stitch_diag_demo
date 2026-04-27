@@ -7,6 +7,11 @@ import '../../domain/entities/profile_shipping_address_entity.dart';
 class ProfileAddressStore {
   static const _addressesKey = 'profile_shipping_addresses';
 
+  Future<void> clear() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_addressesKey);
+  }
+
   Future<List<ProfileShippingAddressEntity>> loadAddresses() async {
     final preferences = await SharedPreferences.getInstance();
     final raw = preferences.getString(_addressesKey);
