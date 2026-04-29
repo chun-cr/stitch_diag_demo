@@ -105,7 +105,6 @@ class ScanRemoteSource {
   Future<ScanFaceUploadResult> uploadFace({
     required String faceFilePath,
     String? faceFrameFilePath,
-    String source = reportSource,
     ProgressCallback? onSendProgress,
   }) async {
     const path = '/api/v1/saas/mobile/ai/diagnosis/upload/face';
@@ -113,7 +112,6 @@ class ScanRemoteSource {
       stage: 'face',
       path: path,
       data: FormData.fromMap({
-        'source': source,
         'faceFile': await MultipartFile.fromFile(
           faceFilePath,
           filename: _fileName(faceFilePath),

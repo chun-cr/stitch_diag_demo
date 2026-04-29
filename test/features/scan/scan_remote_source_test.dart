@@ -98,6 +98,7 @@ void main() {
       '/api/v1/saas/mobile/ai/diagnosis/upload/face',
     );
     final payload = adapter.requests.single.data as FormData;
+    expect(payload.fields, isEmpty);
     expect(
       payload.files.map((entry) => entry.key),
       <String>['faceFile', 'faceFrameFile'],

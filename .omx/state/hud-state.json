@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-29T04:00:46.730Z",
-  "turn_count": 297,
-  "last_progress_at": "2026-04-29T04:00:46.730Z",
-  "last_agent_output": "已把人脸扫描成功后的 `faceFrameFile` 改成上传带描点的 mask 图，不再直接上传无描点原图；`faceFile` 仍然保持原来的裁剪人脸图。实现上是在上传前把抓拍得到的 `frame"
+  "last_turn_at": "2026-04-29T04:17:41.685Z",
+  "turn_count": 298,
+  "last_progress_at": "2026-04-29T04:17:41.685Z",
+  "last_agent_output": "我按 [接口.md](D:/work/stitch_diag_demo/docs/接口.md:477) 对了扫脸上传契约，`/api/v1/saas/mobile/ai/diagnosis/uploa"
 }
