@@ -76,6 +76,44 @@ void main() {
     });
   });
 
+  group('shouldRetainPreviousFaceTracking', () {
+    test('keeps a running hold alive through a brief tracking dropout', () {
+      expect(
+        shouldRetainPreviousFaceTracking(
+          holdInProgress: true,
+          hasFaceDetected: false,
+          hasLandmarks: false,
+          timeSinceLastTrackedFace: const Duration(milliseconds: 180),
+        ),
+        isTrue,
+      );
+    });
+
+    test('does not retain tracking after the grace window expires', () {
+      expect(
+        shouldRetainPreviousFaceTracking(
+          holdInProgress: true,
+          hasFaceDetected: false,
+          hasLandmarks: false,
+          timeSinceLastTrackedFace: const Duration(milliseconds: 400),
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not retain tracking before a hold has started', () {
+      expect(
+        shouldRetainPreviousFaceTracking(
+          holdInProgress: false,
+          hasFaceDetected: false,
+          hasLandmarks: false,
+          timeSinceLastTrackedFace: const Duration(milliseconds: 100),
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('shouldAutoStartFaceScan', () {
     test('returns true only when face is ready and scan is idle', () {
       expect(

@@ -101,7 +101,6 @@ class ScanRemoteSource {
   static const reportSource = 'KY_MA';
   static const _scanUploadRequestExtra = <String, dynamic>{
     DioClient.skipPlatformHeadersExtraKey: true,
-    DioClient.skipAuthorizationHeaderExtraKey: true,
   };
 
   final DioClient _dioClient;

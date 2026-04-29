@@ -69,7 +69,12 @@ void main() {
     );
 
     expect(outputPath, isNot(sourceFile.path));
-    expect(outputPath, endsWith('_mask.png'));
-    expect(File(outputPath).existsSync(), isTrue);
+    expect(outputPath, endsWith('_mask.jpg'));
+    final outputFile = File(outputPath);
+    expect(outputFile.existsSync(), isTrue);
+    final outputBytes = outputFile.readAsBytesSync();
+    expect(outputBytes.length, greaterThan(2));
+    expect(outputBytes[0], 0xFF);
+    expect(outputBytes[1], 0xD8);
   });
 }

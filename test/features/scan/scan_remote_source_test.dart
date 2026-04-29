@@ -137,7 +137,7 @@ void main() {
     ]);
   });
 
-  test('scan uploads skip authorization and app identity headers', () async {
+  test('scan uploads keep authorization but skip app identity headers', () async {
     await seedSession(
       const AuthSessionEntity(
         accessToken: 'access-token',
@@ -160,7 +160,7 @@ void main() {
 
     expect(adapter.requests, hasLength(1));
     final headers = adapter.requests.single.headers;
-    expect(headers.containsKey('Authorization'), isFalse);
+    expect(headers['Authorization'], 'Bearer access-token');
     expect(headers.containsKey('X-App-Id'), isFalse);
     expect(headers.containsKey('X-Platform'), isFalse);
   });

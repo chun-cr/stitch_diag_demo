@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +28,9 @@ const _kGreenLight = Color(0xFF3DAB78);
 
 @visibleForTesting
 const Duration faceScanHoldDuration = Duration(milliseconds: 800);
+
+@visibleForTesting
+const Duration transientFaceTrackingGraceDuration = Duration(milliseconds: 250);
 
 @visibleForTesting
 bool isFaceHoldEligible({
@@ -67,6 +71,20 @@ bool shouldAutoStartFaceScan({
         hasFaceDetected: hasFaceDetected,
         isFramed: isFramed,
       );
+}
+
+@visibleForTesting
+bool shouldRetainPreviousFaceTracking({
+  required bool holdInProgress,
+  required bool hasFaceDetected,
+  required bool hasLandmarks,
+  required Duration timeSinceLastTrackedFace,
+}) {
+  if (!holdInProgress || hasFaceDetected || hasLandmarks) {
+    return false;
+  }
+
+  return timeSinceLastTrackedFace <= transientFaceTrackingGraceDuration;
 }
 
 @visibleForTesting
@@ -115,6 +133,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   List<Offset> _normalizedLandmarks = const [];
   Size _sourceImageSize = Size.zero;
   Size _cameraViewportSize = Size.zero;
+  DateTime? _lastTrackedFaceAt;
   String _faceDirection = ''; // 位置引导文字（空 = 居中或无脸）
 
   Rect get _faceGuideRectNormalized => buildNormalizedGuideRect(
@@ -243,6 +262,22 @@ class _FaceScanPageState extends State<FaceScanPage>
         final hasFace = _extractHasFace(payload);
         final landmarks = _extractNormalizedLandmarks(payload['landmarks']);
         final imageSize = _extractImageSize(payload);
+        final now = DateTime.now();
+        final retainPreviousTracking = shouldRetainPreviousFaceTracking(
+          holdInProgress: _timer != null,
+          hasFaceDetected: hasFace,
+          hasLandmarks: landmarks.isNotEmpty,
+          timeSinceLastTrackedFace: _lastTrackedFaceAt == null
+              ? transientFaceTrackingGraceDuration +
+                    const Duration(milliseconds: 1)
+              : now.difference(_lastTrackedFaceAt!),
+        );
+        if (hasFace && landmarks.isNotEmpty) {
+          _lastTrackedFaceAt = now;
+        }
+        if (retainPreviousTracking) {
+          return;
+        }
         if (_pauseAutoScanUntilReset && !hasFace) {
           _pauseAutoScanUntilReset = false;
         }
@@ -336,6 +371,10 @@ class _FaceScanPageState extends State<FaceScanPage>
       final faceFrameUploadPath = await _buildFaceFrameUploadPath(
         capture.framePath,
       );
+      await _logFaceUploadFileSizes(
+        faceFilePath: capture.croppedPath,
+        faceFrameFilePath: faceFrameUploadPath,
+      );
 
       final faceUpload = await _scanRemoteSource.uploadFace(
         faceFilePath: capture.croppedPath,
@@ -395,6 +434,47 @@ class _FaceScanPageState extends State<FaceScanPage>
         isBackCamera: _isBackCamera,
       ),
     );
+  }
+
+  Future<void> _logFaceUploadFileSizes({
+    required String faceFilePath,
+    required String faceFrameFilePath,
+  }) async {
+    final faceBytes = await _safeFileLength(faceFilePath);
+    final frameBytes = await _safeFileLength(faceFrameFilePath);
+    AppLogger.log(
+      'Face upload file sizes: '
+      'faceFile=${_describeFileSize(faceFilePath, faceBytes)}, '
+      'faceFrameFile=${_describeFileSize(faceFrameFilePath, frameBytes)}',
+    );
+  }
+
+  Future<int?> _safeFileLength(String path) async {
+    try {
+      return await File(path).length();
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  String _describeFileSize(String path, int? bytes) {
+    final fileName = path.split(Platform.pathSeparator).last;
+    if (bytes == null) {
+      return '$fileName(unavailable)';
+    }
+    return '$fileName(${_formatBytes(bytes)} / $bytes B)';
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    final kilobytes = bytes / 1024;
+    if (kilobytes < 1024) {
+      return '${kilobytes.toStringAsFixed(1)} KB';
+    }
+    final megabytes = kilobytes / 1024;
+    return '${megabytes.toStringAsFixed(2)} MB';
   }
 
   Future<void> _navigateToTongueScan() async {
