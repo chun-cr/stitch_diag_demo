@@ -4,7 +4,12 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stitch_diag_demo/core/di/injector.dart';
+import 'package:stitch_diag_demo/core/network/auth_session_store.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
+import 'package:stitch_diag_demo/core/platform/app_identity.dart';
+import 'package:stitch_diag_demo/features/auth/domain/entities/auth_session_entity.dart';
 import 'package:stitch_diag_demo/features/scan/data/models/scan_upload_result.dart';
 import 'package:stitch_diag_demo/features/scan/data/sources/scan_remote_source.dart';
 
@@ -43,6 +48,8 @@ class _QueueHttpClientAdapter implements HttpClientAdapter {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late Directory tempDir;
   const fakeFaceUpload = ScanFaceUploadResult(<String, dynamic>{
     'faceNum': 1,
@@ -63,15 +70,36 @@ void main() {
     }
   });
 
+  setUp(() {
+    AuthSessionStore.debugUseMemoryBackend = true;
+    AppIdentity.resetForTest();
+  });
+
+  tearDown(() async {
+    AuthSessionStore.debugUseMemoryBackend = false;
+    await getIt.reset();
+  });
+
   Future<File> createFile(String name) async {
     final file = File('${tempDir.path}${Platform.pathSeparator}$name');
     await file.writeAsBytes(const <int>[1, 2, 3, 4]);
     return file;
   }
 
-  ScanRemoteSource createSource(_QueueHttpClientAdapter adapter) {
+  Future<void> seedSession(AuthSessionEntity session) async {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+    initInjector();
+    await getIt<AuthSessionStore>().saveSession(session);
+  }
+
+  ScanRemoteSource createSource(
+    _QueueHttpClientAdapter adapter, {
+    bool keepInterceptors = false,
+  }) {
     final dioClient = DioClient();
-    dioClient.dio.interceptors.clear();
+    if (!keepInterceptors) {
+      dioClient.dio.interceptors.clear();
+    }
     dioClient.dio.httpClientAdapter = adapter;
     return ScanRemoteSource(dioClient);
   }
@@ -99,14 +127,42 @@ void main() {
     );
     final payload = adapter.requests.single.data as FormData;
     expect(payload.fields, isEmpty);
-    expect(
-      payload.files.map((entry) => entry.key),
-      <String>['faceFile', 'faceFrameFile'],
+    expect(payload.files.map((entry) => entry.key), <String>[
+      'faceFile',
+      'faceFrameFile',
+    ]);
+    expect(payload.files.map((entry) => entry.value.filename), <String>[
+      'face.jpg',
+      'face-mask.png',
+    ]);
+  });
+
+  test('scan uploads skip authorization and app identity headers', () async {
+    await seedSession(
+      const AuthSessionEntity(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        scope: 'mobile',
+      ),
     );
-    expect(
-      payload.files.map((entry) => entry.value.filename),
-      <String>['face.jpg', 'face-mask.png'],
-    );
+    final file = await createFile('scan-face.jpg');
+    final adapter = _QueueHttpClientAdapter(<_StubResponse>[
+      const _StubResponse(200, <String, dynamic>{
+        'code': 0,
+        'data': <String, dynamic>{},
+      }),
+    ]);
+    final source = createSource(adapter, keepInterceptors: true);
+
+    await source.uploadFace(faceFilePath: file.path);
+
+    expect(adapter.requests, hasLength(1));
+    final headers = adapter.requests.single.headers;
+    expect(headers.containsKey('Authorization'), isFalse);
+    expect(headers.containsKey('X-App-Id'), isFalse);
+    expect(headers.containsKey('X-Platform'), isFalse);
   });
 
   test(
@@ -159,10 +215,8 @@ void main() {
       final source = createSource(adapter);
 
       await expectLater(
-        () => source.uploadPalm(
-          handFilePath: file.path,
-          reportId: 'report-123',
-        ),
+        () =>
+            source.uploadPalm(handFilePath: file.path, reportId: 'report-123'),
         throwsA(
           isA<ScanUploadException>()
               .having((error) => error.stage, 'stage', 'palm')

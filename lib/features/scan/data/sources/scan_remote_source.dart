@@ -99,6 +99,10 @@ class ScanRemoteSource {
   ScanRemoteSource(this._dioClient);
 
   static const reportSource = 'KY_MA';
+  static const _scanUploadRequestExtra = <String, dynamic>{
+    DioClient.skipPlatformHeadersExtraKey: true,
+    DioClient.skipAuthorizationHeaderExtraKey: true,
+  };
 
   final DioClient _dioClient;
 
@@ -121,6 +125,7 @@ class ScanRemoteSource {
           filename: _fileName(faceFrameFilePath ?? faceFilePath),
         ),
       }),
+      options: _scanUploadOptions(),
       onSendProgress: onSendProgress,
     );
     return ScanFaceUploadResult.fromJson(payload);
@@ -148,6 +153,7 @@ class ScanRemoteSource {
           filename: _fileName(imageFilePath),
         ),
       }),
+      options: _scanUploadOptions(),
       onSendProgress: onSendProgress,
     );
     return ScanTongueUploadResult.fromJson(payload);
@@ -175,6 +181,7 @@ class ScanRemoteSource {
           filename: _fileName(handFrameFilePath ?? handFilePath),
         ),
       }),
+      options: _scanUploadOptions(),
       onSendProgress: onSendProgress,
     );
     return ScanPalmUploadResult.fromJson(payload);
@@ -184,6 +191,7 @@ class ScanRemoteSource {
     required String stage,
     required String path,
     required FormData data,
+    Options? options,
     bool allowEmptyPayload = false,
     ProgressCallback? onSendProgress,
   }) async {
@@ -191,6 +199,7 @@ class ScanRemoteSource {
       final response = await _dioClient.dio.post<dynamic>(
         path,
         data: data,
+        options: options,
         onSendProgress: onSendProgress,
       );
       return _extractSuccessPayload(
@@ -208,6 +217,10 @@ class ScanRemoteSource {
       AppLogger.log('Scan upload failed: ${exception.debugDescription}');
       throw exception;
     }
+  }
+
+  Options _scanUploadOptions() {
+    return Options(extra: Map<String, dynamic>.from(_scanUploadRequestExtra));
   }
 
   Map<String, dynamic> _extractSuccessPayload({
@@ -241,7 +254,9 @@ class ScanRemoteSource {
 
     final payload = _asMap(envelope['data']);
     if (payload == null) {
-      if (allowEmptyPayload && envelope.containsKey('data') && envelope['data'] == null) {
+      if (allowEmptyPayload &&
+          envelope.containsKey('data') &&
+          envelope['data'] == null) {
         return const <String, dynamic>{};
       }
       throw ScanUploadException(

@@ -10,6 +10,9 @@ class DioClient {
       'https://saas-api.dev51.permillet.com';
   static const String _defaultLocalProxyBaseUrl = 'http://localhost:8080';
   static const String _baseUrlOverride = String.fromEnvironment('API_BASE_URL');
+  static const String skipPlatformHeadersExtraKey = 'skip_platform_headers';
+  static const String skipAuthorizationHeaderExtraKey =
+      'skip_authorization_header';
   static const String appId = AppIdentity.fallbackAppId;
   static const String wechatMiniProgramAppId = String.fromEnvironment(
     'WECHAT_MINI_PROGRAM_APP_ID',

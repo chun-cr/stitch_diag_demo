@@ -22,17 +22,17 @@ class _RefreshAttemptResult {
   const _RefreshAttemptResult.terminalFailure()
     : this._(refreshed: false, terminalFailure: true);
 
-  final bool refreshed;   // 是否刷新成功
-  final bool terminalFailure;   // 是否永久性失败（需退出登录）
+  final bool refreshed;
+  final bool terminalFailure;
 }
 
 class AuthInterceptor extends Interceptor {
-  static const _retryAfterRefreshKey = 'retry_after_token_refresh';   // 标记请求是否已在刷新后重试过，防止无限循环
-  static const _skipTokenRefreshKey = 'skip_token_refresh';  // 跳过令牌刷新（用于刷新接口自身，避免递归调用）
+  static const _retryAfterRefreshKey = 'retry_after_token_refresh';
+  static const _skipTokenRefreshKey = 'skip_token_refresh';
   static const _allowUnsafeRetryAfterRefreshKey =
-      'allow_unsafe_retry_after_token_refresh';  // 允许非安全方法（POST/PUT/DELETE）在刷新后重试
-  static const _proactiveRefreshThreshold = Duration(minutes: 1);  // 提前 1 分钟主动刷新令牌
-  static const _retryableMethods = <String>{'GET', 'HEAD', 'OPTIONS'};  // 默认只重试安全方法（幂等操作）
+      'allow_unsafe_retry_after_token_refresh';
+  static const _proactiveRefreshThreshold = Duration(minutes: 1);
+  static const _retryableMethods = <String>{'GET', 'HEAD', 'OPTIONS'};
 
   Future<_RefreshAttemptResult>? _refreshFuture;
 
@@ -42,14 +42,18 @@ class AuthInterceptor extends Interceptor {
 
   bool _canRetryAfterRefresh(RequestOptions options) {
     if (options.extra[_allowUnsafeRetryAfterRefreshKey] == true) {
-      return true;   // 显式允许不安全方法重试，默认只重试 GET/HEAD/OPTIONS，防止 POST/PUT/DELETE 重复提交。
+      return true;
     }
     return _retryableMethods.contains(options.method.toUpperCase());
   }
 
+  bool _shouldSkipAuthorizationHeader(RequestOptions options) {
+    return options.extra[DioClient.skipAuthorizationHeaderExtraKey] == true;
+  }
+
   Future<_RefreshAttemptResult> _refreshSession() {
     final existingRefresh = _refreshFuture;
-    if (existingRefresh != null) {  // 当多个请求同时检测到令牌过期时，避免发起多次刷新请求。所有请求共享同一个刷新 Future。
+    if (existingRefresh != null) {
       return existingRefresh;
     }
 
@@ -87,14 +91,12 @@ class AuthInterceptor extends Interceptor {
     );
   }
 
-  // 1️. 检查依赖是否就绪
   Future<_RefreshAttemptResult> _performRefresh() async {
     if (!getIt.isRegistered<AuthSessionStore>() ||
         !getIt.isRegistered<DioClient>()) {
       return const _RefreshAttemptResult.failure();
     }
 
-    // 2. 获取刷新令牌
     final sessionStore = getIt<AuthSessionStore>();
     final refreshToken = await sessionStore.refreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
@@ -102,7 +104,6 @@ class AuthInterceptor extends Interceptor {
     }
 
     try {
-      // 3.调用刷新接口
       final dio = getIt<DioClient>().dio;
       final refreshResponse = await dio.post(
         '/api/v1/saas/mobile/auth/tokens/refresh',
@@ -119,7 +120,6 @@ class AuthInterceptor extends Interceptor {
         throw const FormatException('Missing refresh response data');
       }
 
-      // 4.保存新会话
       final refreshedSession = AuthSessionModel.fromJson(data);
       await sessionStore.saveSession(
         AuthSessionEntity(
@@ -144,22 +144,23 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  // 主动刷新
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // 1.检查依赖
+    if (_shouldSkipAuthorizationHeader(options)) {
+      options.headers.remove('Authorization');
+      handler.next(options);
+      return;
+    }
+
     if (!getIt.isRegistered<AuthSessionStore>()) {
       handler.next(options);
       return;
     }
 
-    // 2.跳过认证接口
     if (!_isAuthPath(options)) {
       final sessionStore = getIt<AuthSessionStore>();
-
-      // 3️ 检查是否需要主动刷新（提前 1 分钟）
       final shouldRefresh =
           options.extra[_skipTokenRefreshKey] != true &&
           await sessionStore.shouldRefreshAccessToken(
@@ -180,7 +181,6 @@ class AuthInterceptor extends Interceptor {
         }
       }
 
-      // 5️ 添加 Authorization 头
       final authorization = await sessionStore.authorizationHeader();
       if (authorization != null) {
         options.headers['Authorization'] = authorization;
@@ -199,6 +199,7 @@ class AuthInterceptor extends Interceptor {
 
     if (statusCode != 401 ||
         skipRefresh ||
+        _shouldSkipAuthorizationHeader(requestOptions) ||
         alreadyRetried ||
         _isAuthPath(requestOptions) ||
         !_canRetryAfterRefresh(requestOptions) ||
