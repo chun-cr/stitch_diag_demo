@@ -78,6 +78,7 @@ void main() {
 
   test('uploadFace posts to the face upload endpoint', () async {
     final file = await createFile('face.jpg');
+    final frameFile = await createFile('face-mask.png');
     final adapter = _QueueHttpClientAdapter(<_StubResponse>[
       const _StubResponse(200, <String, dynamic>{
         'code': 0,
@@ -86,12 +87,24 @@ void main() {
     ]);
     final source = createSource(adapter);
 
-    await source.uploadFace(faceFilePath: file.path);
+    await source.uploadFace(
+      faceFilePath: file.path,
+      faceFrameFilePath: frameFile.path,
+    );
 
     expect(adapter.requests, hasLength(1));
     expect(
       adapter.requests.single.path,
       '/api/v1/saas/mobile/ai/diagnosis/upload/face',
+    );
+    final payload = adapter.requests.single.data as FormData;
+    expect(
+      payload.files.map((entry) => entry.key),
+      <String>['faceFile', 'faceFrameFile'],
+    );
+    expect(
+      payload.files.map((entry) => entry.value.filename),
+      <String>['face.jpg', 'face-mask.png'],
     );
   });
 

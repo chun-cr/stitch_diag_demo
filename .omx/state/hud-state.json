@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-27T07:28:53.908Z",
-  "turn_count": 269,
-  "last_progress_at": "2026-04-27T07:28:53.908Z",
-  "last_agent_output": "已把掌诊后的链路改成“掌诊完成 -> 问卷页 -> 报告页”。问卷页支持跳过；跳过时继续沿用当前 `reportId` 走现有报告逻辑。若用户答题，则会按接口要求累计 `answers`，并把扫描结果"
+  "last_turn_at": "2026-04-29T04:00:46.730Z",
+  "turn_count": 297,
+  "last_progress_at": "2026-04-29T04:00:46.730Z",
+  "last_agent_output": "已把人脸扫描成功后的 `faceFrameFile` 改成上传带描点的 mask 图，不再直接上传无描点原图；`faceFile` 仍然保持原来的裁剪人脸图。实现上是在上传前把抓拍得到的 `frame"
 }

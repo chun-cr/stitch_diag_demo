@@ -34,29 +34,6 @@ class ReportRemoteSource {
     return DiagnosisReportShareQrCode.fromDynamic(envelope['data']);
   }
 
-  Future<DiagnosisMaNavigate?> getMaNavigate({
-    required String tenantId,
-    String? storeId,
-  }) async {
-    final queryParameters = _buildTenantStoreCompatQueryParameters(
-      tenantId: tenantId,
-      storeId: storeId,
-    );
-    if (queryParameters.isEmpty) {
-      return null;
-    }
-
-    final envelope = await _getEnvelope(
-      '/mb/clinic/ma/navigate',
-      queryParameters: queryParameters,
-    );
-    final payload = _asMap(envelope['data']);
-    if (payload.isEmpty) {
-      return null;
-    }
-    return DiagnosisMaNavigate.fromJson(payload);
-  }
-
   Future<List<Map<String, dynamic>>> getPhysiqueProducts({
     String? token,
     String? topOrgId,
@@ -127,50 +104,6 @@ class ReportRemoteSource {
       return null;
     }
     return Map<String, dynamic>.unmodifiable(payload);
-  }
-
-  Future<void> addReportSymptom({
-    required String reportId,
-    required String symptomId,
-    required String symptomName,
-    required String recommendType,
-  }) async {
-    if (reportId.trim().isEmpty || symptomId.trim().isEmpty) {
-      return;
-    }
-
-    await _sendEnvelope(
-      () => _dioClient.dio.post<dynamic>(
-        '/mb/physique/ai/diagnosis/report/symptom',
-        data: <String, dynamic>{
-          'reportId': reportId,
-          'symptomId': symptomId,
-          'symptomName': symptomName,
-          'recommendType': recommendType,
-        },
-      ),
-    );
-  }
-
-  Future<void> deleteReportSymptom({
-    required String reportId,
-    required String symptomId,
-    required String recommendType,
-  }) async {
-    if (reportId.trim().isEmpty || symptomId.trim().isEmpty) {
-      return;
-    }
-
-    await _sendEnvelope(
-      () => _dioClient.dio.delete<dynamic>(
-        '/mb/physique/ai/diagnosis/report/symptom',
-        data: <String, dynamic>{
-          'reportId': reportId,
-          'symptomId': symptomId,
-          'recommendType': recommendType,
-        },
-      ),
-    );
   }
 
   Future<DiagnosisReportSummary?> getLatestReport({

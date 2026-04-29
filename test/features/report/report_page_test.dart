@@ -903,6 +903,48 @@ void main() {
     },
   );
 
+  testWidgets('health radar toggles locally without persistence handlers', (
+    tester,
+  ) async {
+    final router = await _pumpReportRouter(
+      tester,
+      reportBuilder: (context, state) => ReportPage(
+        reportId: 'live-report',
+        loadReportViewData: (_) async => buildReportViewData(
+          relativeSyms: const [
+            {'id': 'classic-1', 'name': 'Classic symptom'},
+          ],
+        ),
+      ),
+    );
+
+    final chipFinder = find.byKey(
+      const ValueKey('report_health_radar_chip_classic_0'),
+    );
+    BoxDecoration readDecoration() {
+      final container = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: chipFinder,
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      return container.decoration! as BoxDecoration;
+    }
+
+    expect(readDecoration().color, equals(Colors.white));
+
+    await tester.tap(chipFinder);
+    await tester.pumpAndSettle();
+
+    expect(readDecoration().color, equals(const Color(0xFFFFF3E6)));
+    expect(tester.takeException(), isNull);
+
+    router.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('risk cards fit on handset viewport without overflow', (
     tester,
   ) async {

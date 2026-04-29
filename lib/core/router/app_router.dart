@@ -19,6 +19,7 @@ import 'package:stitch_diag_demo/features/profile/presentation/pages/shipping_ad
 import 'package:stitch_diag_demo/features/report/presentation/pages/report/report_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_project_data.dart';
 import 'package:stitch_diag_demo/features/report/presentation/models/report_product_data.dart';
+import 'package:stitch_diag_demo/features/report/presentation/pages/report_share_landing_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_checkout_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_project_detail_page.dart';
 import 'package:stitch_diag_demo/features/report/presentation/pages/report_product_detail_page.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const scanPalm = '/scan/palm';
   static const scanQuestionnaire = '/scan/questionnaire';
   static const report = '/report';
+  static const reportShareLanding = '/report/share/landing';
   static const reportAnalysis = '/report/analysis';
   static const reportProjectDetail = '/report/project';
   static const reportProductDetail = '/report/product';
@@ -115,11 +117,13 @@ String? resolvePreviewAuthRedirect({
       matchedLocation == AppRoutes.login ||
       matchedLocation == AppRoutes.register;
   final isProfileCompletionRoute = matchedLocation == AppRoutes.completeProfile;
+  final isPublicLandingRoute = matchedLocation == AppRoutes.reportShareLanding;
 
   if (!bypassAuthGuard &&
       !isAuthenticated &&
       !isEntryAuthRoute &&
-      !isProfileCompletionRoute) {
+      !isProfileCompletionRoute &&
+      !isPublicLandingRoute) {
     final queryParameters = _buildAuthRedirectQueryParameters(currentUri);
     if (queryParameters.isEmpty) {
       return AppRoutes.login;
@@ -242,6 +246,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.scanQuestionnaire,
       builder: (context, state) => const PhysiqueQuestionPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.reportShareLanding,
+      builder: (context, state) =>
+          ReportShareLandingPage(initialUri: state.uri),
     ),
     GoRoute(
       path: AppRoutes.reportProjectDetail,

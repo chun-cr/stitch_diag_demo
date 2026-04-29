@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page.dart';
 
@@ -123,6 +124,32 @@ void main() {
           isFramed: false,
           isScanning: false,
           isTransitioning: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('shouldMirrorFaceUploadMask', () {
+    test('mirrors front camera uploads on Android only', () {
+      expect(
+        shouldMirrorFaceUploadMask(
+          platform: TargetPlatform.android,
+          isBackCamera: false,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldMirrorFaceUploadMask(
+          platform: TargetPlatform.android,
+          isBackCamera: true,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldMirrorFaceUploadMask(
+          platform: TargetPlatform.iOS,
+          isBackCamera: false,
         ),
         isFalse,
       );

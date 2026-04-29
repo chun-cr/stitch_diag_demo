@@ -42,6 +42,21 @@ void main() {
       );
     });
 
+    test('keeps report share landing accessible without session', () {
+      expect(
+        resolvePreviewAuthRedirect(
+          matchedLocation: AppRoutes.reportShareLanding,
+          currentUri: Uri(
+            path: AppRoutes.reportShareLanding,
+            queryParameters: {'reportId': 'report-1'},
+          ),
+          isAuthenticated: false,
+          bypassAuthGuard: false,
+        ),
+        isNull,
+      );
+    });
+
     test('redirects authenticated users away from login', () {
       expect(
         resolvePreviewAuthRedirect(

@@ -16,6 +16,7 @@ import '../widgets/face_landmark_overlay.dart';
 import '../../data/models/scan_session.dart';
 import '../../data/sources/scan_remote_source.dart';
 import '../services/face_scan_status_bridge.dart';
+import '../services/face_frame_mask_renderer.dart';
 import '../services/scan_capture_bridge.dart';
 import '../utils/scan_capture_geometry.dart';
 import '../utils/scan_debug_error_dialog.dart';
@@ -66,6 +67,17 @@ bool shouldAutoStartFaceScan({
         hasFaceDetected: hasFaceDetected,
         isFramed: isFramed,
       );
+}
+
+@visibleForTesting
+bool shouldMirrorFaceUploadMask({
+  required TargetPlatform platform,
+  required bool isBackCamera,
+}) {
+  return shouldMirrorFaceFrameMask(
+    platform: platform,
+    isBackCamera: isBackCamera,
+  );
 }
 
 class FaceScanPage extends StatefulWidget {
@@ -321,10 +333,13 @@ class _FaceScanPageState extends State<FaceScanPage>
       }
 
       setState(() => _scanProgress = 0.68);
+      final faceFrameUploadPath = await _buildFaceFrameUploadPath(
+        capture.framePath,
+      );
 
       final faceUpload = await _scanRemoteSource.uploadFace(
         faceFilePath: capture.croppedPath,
-        faceFrameFilePath: capture.framePath,
+        faceFrameFilePath: faceFrameUploadPath,
         onSendProgress: (sent, total) {
           if (!mounted) {
             return;
@@ -368,6 +383,18 @@ class _FaceScanPageState extends State<FaceScanPage>
       });
       await showScanDebugErrorDialog(context, title: '人脸上传失败', error: error);
     }
+  }
+
+  Future<String> _buildFaceFrameUploadPath(String sourceImagePath) async {
+    return renderFaceFrameMaskFile(
+      sourceImagePath: sourceImagePath,
+      normalizedLandmarks: _normalizedLandmarks,
+      analysisImageSize: _sourceImageSize,
+      mirrored: shouldMirrorFaceUploadMask(
+        platform: defaultTargetPlatform,
+        isBackCamera: _isBackCamera,
+      ),
+    );
   }
 
   Future<void> _navigateToTongueScan() async {

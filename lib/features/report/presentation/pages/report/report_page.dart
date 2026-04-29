@@ -51,6 +51,20 @@ typedef ReportDeleteSymptomAction =
 typedef ReportShareQrCodeLoader =
     Future<DiagnosisReportShareQrCode> Function(String reportId);
 
+// Symptom toggles stay local until an approved api/v1 persistence endpoint exists.
+Future<void> _noopAddReportSymptom({
+  required String reportId,
+  required String symptomId,
+  required String symptomName,
+  required String recommendType,
+}) async {}
+
+Future<void> _noopDeleteReportSymptom({
+  required String reportId,
+  required String symptomId,
+  required String recommendType,
+}) async {}
+
 class ReportPage extends StatelessWidget {
   const ReportPage({
     super.key,
@@ -84,31 +98,8 @@ class ReportPage extends StatelessWidget {
             (reportId) => ReportRemoteSource(
               getIt<DioClient>(),
             ).getReportShareQrCode(reportId),
-        addReportSymptom:
-            addReportSymptom ??
-            ({
-              required reportId,
-              required symptomId,
-              required symptomName,
-              required recommendType,
-            }) async => ReportRemoteSource(getIt<DioClient>()).addReportSymptom(
-              reportId: reportId,
-              symptomId: symptomId,
-              symptomName: symptomName,
-              recommendType: recommendType,
-            ),
-        deleteReportSymptom:
-            deleteReportSymptom ??
-            ({
-              required reportId,
-              required symptomId,
-              required recommendType,
-            }) async =>
-                ReportRemoteSource(getIt<DioClient>()).deleteReportSymptom(
-                  reportId: reportId,
-                  symptomId: symptomId,
-                  recommendType: recommendType,
-                ),
+        addReportSymptom: addReportSymptom ?? _noopAddReportSymptom,
+        deleteReportSymptom: deleteReportSymptom ?? _noopDeleteReportSymptom,
       ),
     );
   }

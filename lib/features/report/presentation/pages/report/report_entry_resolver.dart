@@ -78,27 +78,7 @@ class _ReportEntryResolverState extends State<ReportEntryResolver> {
     return ReportViewData.fromDetail(detail);
   }
 
-  Future<DiagnosisMaNavigate?> _defaultLoadConsultNavigate(
-    ReportViewData viewData,
-  ) async {
-    final tenantId = viewData.tenantId?.trim() ?? '';
-    if (tenantId.isEmpty) {
-      return null;
-    }
-
-    final source = ReportRemoteSource(getIt<DioClient>());
-    try {
-      return await source.getMaNavigate(
-        tenantId: tenantId,
-        storeId: viewData.storeId,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool get _shouldLoadConsultNavigate =>
-      widget.loadReportViewData == null || widget.loadConsultNavigate != null;
+  bool get _shouldLoadConsultNavigate => widget.loadConsultNavigate != null;
 
   void _scheduleConsultNavigateLoad(ReportViewData viewData) {
     if (!_shouldLoadConsultNavigate ||
@@ -118,7 +98,10 @@ class _ReportEntryResolverState extends State<ReportEntryResolver> {
   }
 
   Future<void> _loadConsultNavigate(ReportViewData viewData) async {
-    final loader = widget.loadConsultNavigate ?? _defaultLoadConsultNavigate;
+    final loader = widget.loadConsultNavigate;
+    if (loader == null) {
+      return;
+    }
     DiagnosisMaNavigate? consultNavigate;
     try {
       consultNavigate = await loader(viewData);
