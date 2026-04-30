@@ -3,8 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/pages/face_scan_page.dart';
 
 void main() {
-  test('triggers face upload immediately once detection is ready', () {
-    expect(faceScanHoldDuration, Duration.zero);
+  test('uses platform-specific face hold durations', () {
+    expect(faceScanHoldDuration, const Duration(milliseconds: 800));
+    expect(
+      faceScanHoldDurationForPlatform(TargetPlatform.android),
+      const Duration(milliseconds: 800),
+    );
+    expect(
+      faceScanHoldDurationForPlatform(TargetPlatform.iOS),
+      const Duration(milliseconds: 800),
+    );
   });
 
   test('keeps full face progress visible briefly after upload succeeds', () {
@@ -119,7 +127,7 @@ void main() {
   });
 
   group('shouldAutoStartFaceScan', () {
-    test('returns true on android when a face snapshot is available', () {
+    test('requires framing on android before auto start', () {
       expect(
         shouldAutoStartFaceScan(
           platform: TargetPlatform.android,
@@ -130,11 +138,11 @@ void main() {
           isScanning: false,
           isTransitioning: false,
         ),
-        isTrue,
+        isFalse,
       );
     });
 
-    test('still requires framing on ios', () {
+    test('requires framing on ios before auto start', () {
       expect(
         shouldAutoStartFaceScan(
           platform: TargetPlatform.iOS,
@@ -195,26 +203,132 @@ void main() {
     });
   });
 
-  group('shouldBeginFaceScan', () {
-    test(
-      'allows Android to enter scan progress as soon as a face is detected',
-      () {
-        expect(
-          shouldBeginFaceScan(
-            platform: TargetPlatform.android,
-            hasPermission: true,
-            hasFaceDetected: true,
-            isFramed: false,
-            isBusy: false,
-            isTransitioning: false,
-            isPaused: false,
-          ),
-          isTrue,
-        );
-      },
-    );
+  group('face ready indicator', () {
+    test('shows ready once a face is detected and no directional correction is needed', () {
+      expect(
+        shouldShowFaceReadyStatus(
+          hasPermission: true,
+          hasFaceDetected: true,
+          faceDirection: '',
+        ),
+        isTrue,
+      );
+    });
 
-    test('still requires framing on iOS', () {
+    test('does not show ready before a face is detected', () {
+      expect(
+        shouldShowFaceReadyStatus(
+          hasPermission: true,
+          hasFaceDetected: false,
+          faceDirection: '',
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not show ready while directional correction is still needed', () {
+      expect(
+        shouldShowFaceReadyStatus(
+          hasPermission: true,
+          hasFaceDetected: true,
+          faceDirection: '← 请向左移动',
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('isFaceFramedForUploadBounds', () {
+    const guideRect = Rect.fromLTWH(0.18, 0.10, 0.64, 0.78);
+
+    test('accepts a moderately close face under strict framing', () {
+      const bounds = Rect.fromLTRB(0.20, 0.12, 0.80, 0.86);
+
+      expect(
+        isFaceFramedForUploadBounds(
+          bounds: bounds,
+          guideRect: guideRect,
+          area: 0.48,
+          allowHoldDrift: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('accepts a slightly closer face under strict framing', () {
+      const bounds = Rect.fromLTRB(0.19, 0.11, 0.81, 0.88);
+
+      expect(
+        isFaceFramedForUploadBounds(
+          bounds: bounds,
+          guideRect: guideRect,
+          area: 0.51,
+          allowHoldDrift: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('still rejects an obviously too-close face under strict framing', () {
+      const bounds = Rect.fromLTRB(0.18, 0.10, 0.82, 0.88);
+
+      expect(
+        isFaceFramedForUploadBounds(
+          bounds: bounds,
+          guideRect: guideRect,
+          area: 0.54,
+          allowHoldDrift: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('keeps a slightly larger face alive under relaxed framing', () {
+      const bounds = Rect.fromLTRB(0.19, 0.11, 0.81, 0.88);
+
+      expect(
+        isFaceFramedForUploadBounds(
+          bounds: bounds,
+          guideRect: guideRect,
+          area: 0.53,
+          allowHoldDrift: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('still rejects an obviously too-close face under relaxed framing', () {
+      const bounds = Rect.fromLTRB(0.18, 0.10, 0.82, 0.89);
+
+      expect(
+        isFaceFramedForUploadBounds(
+          bounds: bounds,
+          guideRect: guideRect,
+          area: 0.56,
+          allowHoldDrift: true,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('shouldBeginFaceScan', () {
+    test('requires framing on Android before entering scan progress', () {
+      expect(
+        shouldBeginFaceScan(
+          platform: TargetPlatform.android,
+          hasPermission: true,
+          hasFaceDetected: true,
+          isFramed: false,
+          isBusy: false,
+          isTransitioning: false,
+          isPaused: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('requires framing on iOS before entering scan progress', () {
       expect(
         shouldBeginFaceScan(
           platform: TargetPlatform.iOS,

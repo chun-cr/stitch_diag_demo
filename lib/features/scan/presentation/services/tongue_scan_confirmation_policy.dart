@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 
 import '../utils/scan_capture_geometry.dart';
 
+enum TongueDetectionTuning { standard, android }
+
 /// Flutter-side proxy heuristic for tongue protrusion.
 ///
 /// Important: current native events only provide face/mouth landmarks, not
@@ -15,14 +17,13 @@ class TongueProtrusionProxy {
   static const double _maxMouthAspectRatio = 0.78;
   static const double _centerBandFactor = 0.18;
   static const double _sideBandFactor = 0.24;
-  static const double _minSupportedCentralDropRatio = 0.03;
-  static const double _minSupportedCentralDropToHeightRatio = 0.22;
 
   static bool isFrameEligible({
     required List<Offset> mouthLandmarks,
     required Offset? mouthCenter,
     List<Offset> faceLandmarks = const [],
     Map<String, double> blendshapes = const <String, double>{},
+    TongueDetectionTuning tuning = TongueDetectionTuning.standard,
   }) {
     if (mouthLandmarks.length < 5 || mouthCenter == null) {
       return false;
@@ -85,42 +86,53 @@ class TongueProtrusionProxy {
     final centralDropToHeightRatio =
         (centralLowerY - sideLowerEdgeY) / mouthHeight;
 
-    if (TongueBlendshapeSupport.hasDirectTongueSupport(blendshapes)) {
+    final thresholds = _TongueDetectionThresholds.forTuning(tuning);
+
+    if (TongueBlendshapeSupport.hasDirectTongueSupport(
+      blendshapes,
+      tuning: tuning,
+    )) {
       return true;
     }
 
-    if (!TongueBlendshapeSupport.hasStrongSupport(blendshapes)) {
+    if (!TongueBlendshapeSupport.hasStrongSupport(
+      blendshapes,
+      tuning: tuning,
+    )) {
       return false;
     }
 
-    return centralDropRatio >= _minSupportedCentralDropRatio &&
-        centralDropToHeightRatio >= _minSupportedCentralDropToHeightRatio;
+    return centralDropRatio >= thresholds.minSupportedCentralDropRatio &&
+        centralDropToHeightRatio >=
+            thresholds.minSupportedCentralDropToHeightRatio;
   }
 }
 
 class TongueBlendshapeSupport {
-  static const double _tongueOutThreshold = 0.20;
-  static const double _directJawOpenThreshold = 0.10;
-  static const double _jawOpenThreshold = 0.14;
-  static const double _mouthFunnelThreshold = 0.08;
-  static const double _lowerLipDropThreshold = 0.07;
-
-  static bool hasDirectTongueSupport(Map<String, double> blendshapes) {
+  static bool hasDirectTongueSupport(
+    Map<String, double> blendshapes, {
+    TongueDetectionTuning tuning = TongueDetectionTuning.standard,
+  }) {
     if (blendshapes.isEmpty) {
       return false;
     }
 
+    final thresholds = _TongueDetectionThresholds.forTuning(tuning);
     final tongueOut = blendshapes['tongueOut'] ?? 0;
     final jawOpen = blendshapes['jawOpen'] ?? 0;
-    return tongueOut >= _tongueOutThreshold &&
-        jawOpen >= _directJawOpenThreshold;
+    return tongueOut >= thresholds.tongueOutThreshold &&
+        jawOpen >= thresholds.directJawOpenThreshold;
   }
 
-  static bool hasStrongSupport(Map<String, double> blendshapes) {
+  static bool hasStrongSupport(
+    Map<String, double> blendshapes, {
+    TongueDetectionTuning tuning = TongueDetectionTuning.standard,
+  }) {
     if (blendshapes.isEmpty) {
       return false;
     }
 
+    final thresholds = _TongueDetectionThresholds.forTuning(tuning);
     final jawOpen = blendshapes['jawOpen'] ?? 0;
     final mouthFunnel = blendshapes['mouthFunnel'] ?? 0;
     final lowerLipDrop = _average(
@@ -128,12 +140,61 @@ class TongueBlendshapeSupport {
       blendshapes['mouthLowerDownRight'] ?? 0,
     );
 
-    return jawOpen >= _jawOpenThreshold &&
-        (mouthFunnel >= _mouthFunnelThreshold ||
-            lowerLipDrop >= _lowerLipDropThreshold);
+    return jawOpen >= thresholds.jawOpenThreshold &&
+        (mouthFunnel >= thresholds.mouthFunnelThreshold ||
+            lowerLipDrop >= thresholds.lowerLipDropThreshold);
   }
 
   static double _average(double left, double right) => (left + right) / 2;
+}
+
+class _TongueDetectionThresholds {
+  const _TongueDetectionThresholds({
+    required this.minSupportedCentralDropRatio,
+    required this.minSupportedCentralDropToHeightRatio,
+    required this.tongueOutThreshold,
+    required this.directJawOpenThreshold,
+    required this.jawOpenThreshold,
+    required this.mouthFunnelThreshold,
+    required this.lowerLipDropThreshold,
+  });
+
+  final double minSupportedCentralDropRatio;
+  final double minSupportedCentralDropToHeightRatio;
+  final double tongueOutThreshold;
+  final double directJawOpenThreshold;
+  final double jawOpenThreshold;
+  final double mouthFunnelThreshold;
+  final double lowerLipDropThreshold;
+
+  static const _TongueDetectionThresholds standard = _TongueDetectionThresholds(
+    minSupportedCentralDropRatio: 0.03,
+    minSupportedCentralDropToHeightRatio: 0.22,
+    tongueOutThreshold: 0.20,
+    directJawOpenThreshold: 0.10,
+    jawOpenThreshold: 0.14,
+    mouthFunnelThreshold: 0.08,
+    lowerLipDropThreshold: 0.07,
+  );
+
+  static const _TongueDetectionThresholds android = _TongueDetectionThresholds(
+    minSupportedCentralDropRatio: 0.026,
+    minSupportedCentralDropToHeightRatio: 0.20,
+    tongueOutThreshold: 0.20,
+    directJawOpenThreshold: 0.08,
+    jawOpenThreshold: 0.12,
+    mouthFunnelThreshold: 0.07,
+    lowerLipDropThreshold: 0.06,
+  );
+
+  static _TongueDetectionThresholds forTuning(TongueDetectionTuning tuning) {
+    switch (tuning) {
+      case TongueDetectionTuning.android:
+        return android;
+      case TongueDetectionTuning.standard:
+        return standard;
+    }
+  }
 }
 
 class TongueConfirmationWindow {

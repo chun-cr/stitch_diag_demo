@@ -68,6 +68,36 @@ void main() {
     });
 
     test(
+      'accepts slightly weaker Android tongue support with android tuning',
+      () {
+        expect(
+          TongueProtrusionProxy.isFrameEligible(
+            mouthLandmarks: const [
+              Offset(0.50, 0.40),
+              Offset(0.50, 0.50),
+              Offset(0.50, 0.62),
+              Offset(0.34, 0.50),
+              Offset(0.66, 0.50),
+              Offset(0.38, 0.54),
+              Offset(0.62, 0.54),
+              Offset(0.70, 0.48),
+            ],
+            mouthCenter: const Offset(0.50, 0.50),
+            faceLandmarks: const [
+              Offset(0.20, 0.20),
+              Offset(0.80, 0.20),
+              Offset(0.20, 0.80),
+              Offset(0.80, 0.80),
+            ],
+            blendshapes: const {'jawOpen': 0.12, 'mouthFunnel': 0.07},
+            tuning: TongueDetectionTuning.android,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
       'rejects near-threshold geometry even when blendshapes support it',
       () {
         expect(
@@ -150,6 +180,33 @@ void main() {
       );
     });
 
+    test('accepts slightly shallower tongue geometry with android tuning', () {
+      expect(
+        TongueProtrusionProxy.isFrameEligible(
+          mouthLandmarks: const [
+            Offset(0.50, 0.46),
+            Offset(0.50, 0.50),
+            Offset(0.50, 0.535),
+            Offset(0.34, 0.50),
+            Offset(0.66, 0.50),
+            Offset(0.38, 0.519),
+            Offset(0.62, 0.519),
+            Offset(0.70, 0.49),
+          ],
+          mouthCenter: const Offset(0.50, 0.50),
+          faceLandmarks: const [
+            Offset(0.20, 0.20),
+            Offset(0.80, 0.20),
+            Offset(0.20, 0.80),
+            Offset(0.80, 0.80),
+          ],
+          blendshapes: const {'jawOpen': 0.20, 'mouthFunnel': 0.12},
+          tuning: TongueDetectionTuning.android,
+        ),
+        isTrue,
+      );
+    });
+
     test('rejects isolated tongueOut signal when mouth is barely open', () {
       expect(
         TongueProtrusionProxy.isFrameEligible(
@@ -206,6 +263,35 @@ void main() {
         isFalse,
       );
     });
+
+    test(
+      'keeps standard tuning strict for android-relaxed blendshape scores',
+      () {
+        expect(
+          TongueProtrusionProxy.isFrameEligible(
+            mouthLandmarks: const [
+              Offset(0.50, 0.40),
+              Offset(0.50, 0.50),
+              Offset(0.50, 0.62),
+              Offset(0.34, 0.50),
+              Offset(0.66, 0.50),
+              Offset(0.38, 0.54),
+              Offset(0.62, 0.54),
+              Offset(0.70, 0.48),
+            ],
+            mouthCenter: const Offset(0.50, 0.50),
+            faceLandmarks: const [
+              Offset(0.20, 0.20),
+              Offset(0.80, 0.20),
+              Offset(0.20, 0.80),
+              Offset(0.80, 0.80),
+            ],
+            blendshapes: const {'jawOpen': 0.12, 'mouthFunnel': 0.07},
+          ),
+          isFalse,
+        );
+      },
+    );
   });
 
   group('TongueConfirmationWindow', () {

@@ -27,15 +27,26 @@ import '../utils/scan_upload_tenant_context.dart';
 // ── 颜色系（与 scan_guide_page 绿色体系一致）
 const _kGreen = Color(0xFF2D6A4F);
 const _kGreenLight = Color(0xFF3DAB78);
+const _kFaceStrictMinArea = 0.04;
+const _kFaceStrictMaxArea = 0.52;
+const _kFaceStrictGuideInsetFactor = 0.0;
+const _kFaceRelaxedMinArea = 0.03;
+const _kFaceRelaxedMaxArea = 0.54;
+const _kFaceRelaxedGuideInsetFactor = 0.0;
 
 @visibleForTesting
-const Duration faceScanHoldDuration = Duration.zero;
+const Duration faceScanHoldDuration = Duration(milliseconds: 800);
 
 @visibleForTesting
 const Duration transientFaceTrackingGraceDuration = Duration(milliseconds: 250);
 
 @visibleForTesting
 const Duration faceScanPostSuccessDelay = Duration(milliseconds: 450);
+
+@visibleForTesting
+Duration faceScanHoldDurationForPlatform(TargetPlatform platform) {
+  return faceScanHoldDuration;
+}
 
 @visibleForTesting
 bool isFaceHoldEligible({
@@ -79,10 +90,6 @@ bool shouldAutoStartFaceScan({
     return false;
   }
 
-  if (platform == TargetPlatform.android) {
-    return true;
-  }
-
   return isFramed;
 }
 
@@ -104,10 +111,6 @@ bool shouldBeginFaceScan({
     return false;
   }
 
-  if (platform == TargetPlatform.android) {
-    return true;
-  }
-
   return isFramed;
 }
 
@@ -123,6 +126,37 @@ bool shouldRetainPreviousFaceTracking({
   }
 
   return timeSinceLastTrackedFace <= transientFaceTrackingGraceDuration;
+}
+
+@visibleForTesting
+bool shouldShowFaceReadyStatus({
+  required bool hasPermission,
+  required bool hasFaceDetected,
+  required String faceDirection,
+}) {
+  return hasPermission && hasFaceDetected && faceDirection.isEmpty;
+}
+
+@visibleForTesting
+bool isFaceFramedForUploadBounds({
+  required Rect bounds,
+  required Rect guideRect,
+  required double area,
+  required bool allowHoldDrift,
+}) {
+  final minArea = allowHoldDrift ? _kFaceRelaxedMinArea : _kFaceStrictMinArea;
+  final maxArea = allowHoldDrift ? _kFaceRelaxedMaxArea : _kFaceStrictMaxArea;
+  final guideInsetFactor = allowHoldDrift
+      ? _kFaceRelaxedGuideInsetFactor
+      : _kFaceStrictGuideInsetFactor;
+
+  return area >= minArea &&
+      area <= maxArea &&
+      isNormalizedBoundsInsideGuide(
+        bounds: bounds,
+        guideRect: guideRect,
+        guideInsetFactor: guideInsetFactor,
+      );
 }
 
 @visibleForTesting
@@ -254,6 +288,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   bool _isTransitioning = false;
   bool _stopMonitoringOnDispose = true;
 
+  Timer? _scanHoldTimer;
   StreamSubscription<Map<String, dynamic>>? _faceStatusSub;
   late AnimationController _scanLineCtrl;
   late Animation<double> _scanLineAnim;
@@ -266,6 +301,7 @@ class _FaceScanPageState extends State<FaceScanPage>
   bool? _latestFaceMirrored;
   DateTime? _lastTrackedFaceAt;
   String? _lastFaceHoldDiagnosticsSignature;
+  bool _autoStartScanCheckQueued = false;
   String _faceDirection = ''; // 位置引导文字（空 = 居中或无脸）
 
   Rect get _faceGuideRectNormalized => buildNormalizedGuideRect(
@@ -319,18 +355,12 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (normalizedBounds == null || viewportBounds == null) {
       return false;
     }
-    final area = normalizedRectArea(normalizedBounds);
-    final minArea = allowHoldDrift ? 0.03 : 0.04;
-    final maxArea = allowHoldDrift ? 0.40 : 0.36;
-    final guideInsetFactor = allowHoldDrift ? 0.02 : 0.04;
-
-    return area >= minArea &&
-        area <= maxArea &&
-        isNormalizedBoundsInsideGuide(
-          bounds: viewportBounds,
-          guideRect: _faceGuideRectOnViewport,
-          guideInsetFactor: guideInsetFactor,
-        );
+    return isFaceFramedForUploadBounds(
+      bounds: viewportBounds,
+      guideRect: _faceGuideRectOnViewport,
+      area: normalizedRectArea(normalizedBounds),
+      allowHoldDrift: allowHoldDrift,
+    );
   }
 
   bool get _isFaceReadyToHold =>
@@ -367,6 +397,9 @@ class _FaceScanPageState extends State<FaceScanPage>
 
   bool get _bottomStatusHighlighted =>
       !_isScanning && !_isSubmitting && _isFaceReadyToHold;
+
+  Duration get _requiredFaceScanHoldDuration =>
+      faceScanHoldDurationForPlatform(defaultTargetPlatform);
 
   @override
   void initState() {
@@ -453,11 +486,33 @@ class _FaceScanPageState extends State<FaceScanPage>
           _pauseAutoScanUntilReset = false;
         }
         _logFaceHoldDiagnosticsIfNeeded();
-        if (_isScanning || _isSubmitting) {
+        if (_isScanning && !_isSubmitting) {
+          final keepHoldAlive = shouldKeepFaceHoldAlive(
+            hasPermission: _hasPermission,
+            hasFaceDetected: _hasFaceDetected,
+            isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
+            isRelaxedFramed: _isFaceFramedForUpload(allowHoldDrift: true),
+            holdInProgress: _scanHoldTimer != null,
+          );
+          if (_scanHoldTimer != null && !keepHoldAlive) {
+            _cancelScanHold(resetProgress: true);
+          }
+          return;
+        }
+        if (_isSubmitting) {
           return;
         }
         if (!_pauseAutoScanUntilReset && _shouldAutoStartScan) {
           _startScan();
+          return;
+        }
+        if (!_pauseAutoScanUntilReset &&
+            !_isTransitioning &&
+            _hasPermission &&
+            _hasFaceDetected &&
+            _normalizedLandmarks.isNotEmpty &&
+            _sourceImageSize != Size.zero) {
+          _queueDeferredAutoStartScanCheck();
         }
       });
       await _statusBridge.initialize();
@@ -487,12 +542,50 @@ class _FaceScanPageState extends State<FaceScanPage>
     }
     setState(() {
       _isScanning = true;
-      _scanProgress = 0.08;
+      _scanProgress = _requiredFaceScanHoldDuration > Duration.zero ? 0 : 0.08;
     });
-    unawaited(_captureAndUploadFace());
+    if (_requiredFaceScanHoldDuration <= Duration.zero) {
+      unawaited(_captureAndUploadFace());
+      return;
+    }
+
+    final stopwatch = Stopwatch()..start();
+    _scanHoldTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        _scanHoldTimer = null;
+        return;
+      }
+
+      final keepHoldAlive = shouldKeepFaceHoldAlive(
+        hasPermission: _hasPermission,
+        hasFaceDetected: _hasFaceDetected,
+        isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
+        isRelaxedFramed: _isFaceFramedForUpload(allowHoldDrift: true),
+        holdInProgress: true,
+      );
+      if (!keepHoldAlive) {
+        _cancelScanHold(resetProgress: true);
+        return;
+      }
+
+      final progress =
+          stopwatch.elapsedMilliseconds /
+          _requiredFaceScanHoldDuration.inMilliseconds;
+      if (progress >= 1) {
+        timer.cancel();
+        _scanHoldTimer = null;
+        setState(() => _scanProgress = 0.08);
+        unawaited(_captureAndUploadFace());
+        return;
+      }
+      setState(() => _scanProgress = mapHoldProgressToVisualProgress(progress));
+    });
   }
 
   void _cancelScanHold({required bool resetProgress}) {
+    _scanHoldTimer?.cancel();
+    _scanHoldTimer = null;
     if (!mounted) return;
     setState(() {
       _isScanning = false;
@@ -713,6 +806,7 @@ class _FaceScanPageState extends State<FaceScanPage>
 
   @override
   void dispose() {
+    _scanHoldTimer?.cancel();
     _faceStatusSub?.cancel();
     if (_stopMonitoringOnDispose) {
       unawaited(_statusBridge.stopMonitoring());
@@ -1019,6 +1113,11 @@ class _FaceScanPageState extends State<FaceScanPage>
 
   Widget _buildOvalFrame() {
     final l10n = context.l10n;
+    final showReady = shouldShowFaceReadyStatus(
+      hasPermission: _hasPermission,
+      hasFaceDetected: _hasFaceDetected,
+      faceDirection: _faceDirection,
+    );
     const frameW = 210.0;
     const frameH = 262.0;
 
@@ -1134,11 +1233,11 @@ class _FaceScanPageState extends State<FaceScanPage>
                         ? _DirectionPill(direction: _faceDirection)
                         : _StatusPill(
                             label: _hasPermission
-                                ? (_hasFaceDetected
+                                ? (showReady
                                       ? l10n.scanFaceDetectedReady
                                       : l10n.scanFaceAlignInFrame)
                                 : l10n.scanCameraPermissionRequired,
-                            detected: _hasFaceDetected,
+                            detected: showReady,
                           )),
             ),
           ),
@@ -1283,6 +1382,35 @@ class _FaceScanPageState extends State<FaceScanPage>
     _acceptedFaceSnapshot = null;
   }
 
+  void _queueDeferredAutoStartScanCheck() {
+    if (_autoStartScanCheckQueued || !mounted) {
+      return;
+    }
+
+    _autoStartScanCheckQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoStartScanCheckQueued = false;
+      if (!mounted ||
+          _pauseAutoScanUntilReset ||
+          _isScanning ||
+          _isSubmitting) {
+        return;
+      }
+      if (!_shouldAutoStartScan) {
+        return;
+      }
+
+      AppLogger.log(
+        'Face auto-start resumed after frame sync: '
+        'ready=$_isFaceReadyToHold '
+        'snapshot=${_liveAcceptedFaceSnapshot != null} '
+        'viewport=${_cameraViewportSize.width.toStringAsFixed(0)}x'
+        '${_cameraViewportSize.height.toStringAsFixed(0)}',
+      );
+      _startScan();
+    });
+  }
+
   void _logFaceHoldDiagnosticsIfNeeded() {
     if (!_hasPermission || _isScanning || _isSubmitting) {
       return;
@@ -1298,18 +1426,20 @@ class _FaceScanPageState extends State<FaceScanPage>
         isNormalizedBoundsInsideGuide(
           bounds: viewportBounds,
           guideRect: _faceGuideRectOnViewport,
-          guideInsetFactor: 0.04,
+          guideInsetFactor: _kFaceStrictGuideInsetFactor,
         );
     final blockers = <String>[
       if (!_hasFaceDetected) 'face_missing',
       if (_normalizedLandmarks.isEmpty) 'landmarks_missing',
       if (_sourceImageSize == Size.zero) 'source_size_missing',
       if (_cameraViewportSize == Size.zero) 'viewport_missing',
+      if (_liveAcceptedFaceSnapshot == null) 'accepted_snapshot_missing',
       if (viewportBounds == null) 'viewport_bounds_missing',
-      if (normalizedBounds != null && area < 0.04) 'too_small',
-      if (normalizedBounds != null && area > 0.36) 'too_large',
+      if (normalizedBounds != null && area < _kFaceStrictMinArea) 'too_small',
+      if (normalizedBounds != null && area > _kFaceStrictMaxArea) 'too_large',
       if (viewportBounds != null && !strictInsideGuide) 'framing_failed',
       if (_pauseAutoScanUntilReset) 'paused_after_failure',
+      if (_isTransitioning) 'transitioning',
       if (_isFaceReadyToHold) 'ready',
     ];
     final signature =

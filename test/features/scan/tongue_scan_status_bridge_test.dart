@@ -1,8 +1,39 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stitch_diag_demo/features/scan/presentation/services/tongue_scan_confirmation_policy.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/services/tongue_scan_status_bridge.dart';
 
 void main() {
+  group('platform tuning helpers', () {
+    test('uses android tongue tuning on android', () {
+      expect(
+        resolveTongueDetectionTuning(isAndroid: true),
+        TongueDetectionTuning.android,
+      );
+    });
+
+    test('keeps standard tongue tuning off android', () {
+      expect(
+        resolveTongueDetectionTuning(isAndroid: false),
+        TongueDetectionTuning.standard,
+      );
+    });
+
+    test('uses a shorter confirmation window on android', () {
+      final window = buildTongueConfirmationWindow(isAndroid: true);
+
+      expect(window.windowSize, 6);
+      expect(window.requiredEligibleFrames, 4);
+    });
+
+    test('keeps the stricter confirmation window off android', () {
+      final window = buildTongueConfirmationWindow(isAndroid: false);
+
+      expect(window.windowSize, 8);
+      expect(window.requiredEligibleFrames, 6);
+    });
+  });
+
   group('TongueScanStatus', () {
     test('parses explicit face landmarks payload', () {
       final status = TongueScanStatus.fromEvent({

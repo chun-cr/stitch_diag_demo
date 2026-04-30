@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'tongue_scan_confirmation_policy.dart';
@@ -185,7 +186,10 @@ class TongueScanStatusBridge {
       return const Stream<TongueScanStatus>.empty();
     }
 
-    final confirmationWindow = TongueConfirmationWindow();
+    final tuning = resolveTongueDetectionTuning(isAndroid: Platform.isAndroid);
+    final confirmationWindow = buildTongueConfirmationWindow(
+      isAndroid: Platform.isAndroid,
+    );
 
     return _tongueEvents.receiveBroadcastStream().map((event) {
       final rawStatus = TongueScanStatus.fromEvent(event);
@@ -194,6 +198,7 @@ class TongueScanStatusBridge {
         mouthLandmarks: rawStatus.mouthLandmarks,
         mouthCenter: rawStatus.mouthCenter,
         blendshapes: rawStatus.blendshapes,
+        tuning: tuning,
       );
       final protrusionConfirmed = confirmationWindow.registerFrame(
         eligible: protrusionCandidate,
@@ -217,4 +222,20 @@ class TongueScanStatusBridge {
   Future<void> toggleCamera() {
     return _scanChannel.invokeMethod<void>('face/toggleCamera');
   }
+}
+
+@visibleForTesting
+TongueDetectionTuning resolveTongueDetectionTuning({required bool isAndroid}) {
+  return isAndroid
+      ? TongueDetectionTuning.android
+      : TongueDetectionTuning.standard;
+}
+
+@visibleForTesting
+TongueConfirmationWindow buildTongueConfirmationWindow({
+  required bool isAndroid,
+}) {
+  return isAndroid
+      ? TongueConfirmationWindow(windowSize: 6, requiredEligibleFrames: 4)
+      : TongueConfirmationWindow();
 }
