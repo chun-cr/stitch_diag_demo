@@ -1,4 +1,4 @@
-// ignore_for_file: unused_element
+// 扫描模块页面：`PalmScanPage`。负责组织当前场景的主要布局、交互事件以及与导航/状态层的衔接。
 
 // ═══════════════════════════════════════════════════════════════════
 // 修复说明（重做 UI 以匹配全站风格，并修复 ScanFrame 布局崩溃）
@@ -24,6 +24,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/logger.dart';
 import '../../data/models/scan_session.dart';
 import '../../data/sources/scan_remote_source.dart';
+import '../services/palm_frame_renderer.dart';
 import '../services/palm_scan_status_bridge.dart';
 import '../services/scan_capture_bridge.dart';
 import '../utils/scan_capture_geometry.dart';
@@ -165,6 +166,24 @@ bool shouldShowPalmProgressFeedback({
       (scanState == PalmScanState.scanning && readyToScan);
 }
 
+@visibleForTesting
+List<Offset> remapPalmLandmarksToCaptureGuide({
+  required Iterable<Offset> normalizedLandmarks,
+  required Rect guideRect,
+}) {
+  if (guideRect.isEmpty || guideRect.width <= 0 || guideRect.height <= 0) {
+    return const <Offset>[];
+  }
+
+  return normalizedLandmarks
+      .map((point) {
+        final dx = (point.dx - guideRect.left) / guideRect.width;
+        final dy = (point.dy - guideRect.top) / guideRect.height;
+        return Offset(dx, dy);
+      })
+      .toList(growable: false);
+}
+
 class PalmScanPage extends StatefulWidget {
   const PalmScanPage({super.key});
   @override
@@ -210,14 +229,6 @@ class _PalmScanPageState extends State<PalmScanPage>
   bool get _shouldRenderHandOverlay => shouldRenderPalmOverlay(
     handLandmarks: _handLandmarks,
     imageSize: _imageSize,
-  );
-
-  PalmScanFeedbackStage get _feedbackStage => resolvePalmScanFeedbackStage(
-    hasPermission: _hasPermission,
-    isMonitoring: _isMonitoring,
-    handPresent: _handPresent,
-    readyToScan: _readyToScan,
-    scanState: _scanState,
   );
 
   Rect get _palmGuideRectNormalized => buildNormalizedGuideRect(
@@ -443,6 +454,17 @@ class _PalmScanPageState extends State<PalmScanPage>
       return;
     }
 
+    final captureGuide = _palmCaptureGuide;
+    final captureGuideRect = Rect.fromLTWH(
+      captureGuide.left,
+      captureGuide.top,
+      captureGuide.width,
+      captureGuide.height,
+    );
+    final captureLandmarks = List<Offset>.unmodifiable(_handLandmarks);
+    final captureImageSize = _imageSize;
+    final mirrored = !_isBackCamera;
+
     setState(() {
       _scanState = PalmScanState.uploading;
       _scanProgress = 0.65;
@@ -452,13 +474,29 @@ class _PalmScanPageState extends State<PalmScanPage>
     try {
       final capture = await _captureBridge.capture(
         target: ScanCaptureTarget.palm,
-        guide: _palmCaptureGuide,
+        guide: captureGuide,
+        landmarks: captureLandmarks,
+        analysisImageSize:
+            captureImageSize == null || captureImageSize == Size.zero
+            ? null
+            : captureImageSize,
+        isBackCamera: _isBackCamera,
+        mirrored: mirrored,
       );
       if (!mounted) {
         return;
       }
 
       setState(() => _scanProgress = 0.68);
+      final handFrameFilePath = await _buildPalmFrameUploadPath(
+        capture: capture,
+        captureGuideRect: captureGuideRect,
+        normalizedLandmarks: captureLandmarks,
+        mirrored: mirrored,
+      );
+      if (!mounted) {
+        return;
+      }
 
       final reportId = _scanSession.reportId;
       if (reportId == null || reportId.isEmpty) {
@@ -467,7 +505,7 @@ class _PalmScanPageState extends State<PalmScanPage>
 
       await _scanRemoteSource.uploadPalm(
         handFilePath: capture.croppedPath,
-        handFrameFilePath: capture.framePath,
+        handFrameFilePath: handFrameFilePath,
         reportId: reportId,
         onSendProgress: (sent, total) {
           if (!mounted) {
@@ -503,6 +541,33 @@ class _PalmScanPageState extends State<PalmScanPage>
       });
       await showScanDebugErrorDialog(context, title: '手掌上传失败', error: error);
     }
+  }
+
+  Future<String> _buildPalmFrameUploadPath({
+    required ScanCaptureResult capture,
+    required Rect captureGuideRect,
+    required List<Offset> normalizedLandmarks,
+    required bool mirrored,
+  }) async {
+    final overlayLandmarks = remapPalmLandmarksToCaptureGuide(
+      normalizedLandmarks: normalizedLandmarks,
+      guideRect: captureGuideRect,
+    );
+    final overlayImageSize = Size(capture.cropWidth, capture.cropHeight);
+    AppLogger.log(
+      'Rendering palm frame landmark overlay: '
+      'landmarks=${overlayLandmarks.length}, '
+      'mirrored=$mirrored, '
+      'overlaySize=${capture.cropWidth.toStringAsFixed(0)}x'
+      '${capture.cropHeight.toStringAsFixed(0)}',
+    );
+    return renderPalmFrameFile(
+      sourceImagePath: capture.croppedPath,
+      normalizedLandmarks: overlayLandmarks,
+      analysisImageSize: overlayImageSize,
+      mirrored: mirrored,
+      targetMaxBytes: 450 * 1024,
+    );
   }
 
   Future<void> _navigateToQuestionnaireAfterDelay() async {

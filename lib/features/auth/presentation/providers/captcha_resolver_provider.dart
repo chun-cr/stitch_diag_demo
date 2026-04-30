@@ -1,3 +1,5 @@
+// 认证模块状态提供层：`CaptchaResolverProvider`。通过 Riverpod 向页面暴露查询、写操作和异步状态。
+
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';

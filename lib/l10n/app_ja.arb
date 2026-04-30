@@ -945,6 +945,7 @@
   "profilePointsEntryAssessmentSub": "パーソナライズ体質評価の完了後に付与",
   "profilePointsEntryCoupon": "相談クーポン交換",
   "profilePointsEntryCouponSub": "ポイントを使って割引特典に交換しました",
+  "scanFaceFrameRetryMessage": "顔のランドマーク画像を生成できませんでした。もう一度スキャンしてください。",
   "scanFaceUploadFailedTitle": "顔画像のアップロードに失敗しました",
   "scanTongueUploadFailedTitle": "舌診画像のアップロードに失敗しました"
 }

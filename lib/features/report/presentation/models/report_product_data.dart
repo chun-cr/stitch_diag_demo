@@ -1,3 +1,5 @@
+// 报告模块展示模型：`ReportProductData`。把原始数据整理成页面卡片和详情页可直接渲染的字段。
+
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 

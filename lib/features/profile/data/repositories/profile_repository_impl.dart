@@ -1,3 +1,5 @@
+// 个人中心模块仓储实现：`ProfileRepositoryImpl`。负责组合数据源结果，并向上层输出稳定的业务数据。
+
 import '../../domain/entities/profile_me_entity.dart';
 import '../../domain/entities/profile_points_account_simple_entity.dart';
 import '../../domain/entities/profile_points_account_stat_entity.dart';

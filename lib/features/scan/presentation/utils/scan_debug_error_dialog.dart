@@ -1,3 +1,5 @@
+// 扫描模块展示层工具：`ScanDebugErrorDialog`。负责承载展示层通用的计算、映射或调试辅助逻辑。
+
 import 'package:flutter/material.dart';
 
 import '../../data/sources/scan_remote_source.dart';

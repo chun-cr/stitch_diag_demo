@@ -1,3 +1,5 @@
+// 应用主题组装入口。把颜色、字号、控件风格汇总成统一的 Material Theme 配置。
+
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';

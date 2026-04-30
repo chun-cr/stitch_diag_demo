@@ -1,3 +1,5 @@
+// 个人中心模块状态提供层：`ProfileRepositoryProvider`。通过 Riverpod 向页面暴露查询、写操作和异步状态。
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/network/dio_client.dart';

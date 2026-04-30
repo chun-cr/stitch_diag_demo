@@ -1,3 +1,5 @@
+// 视觉能力提供层。通过 Riverpod 向扫描页面暴露共享的视觉管理器和依赖入口。
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/vision_manager.dart';

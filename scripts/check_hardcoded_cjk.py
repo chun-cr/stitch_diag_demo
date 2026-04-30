@@ -23,8 +23,9 @@ STRING_PATTERNS = [
 
 
 def configure_stdout() -> None:
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    stdout = sys.stdout
+    if hasattr(stdout, "reconfigure"):
+        getattr(stdout, "reconfigure")(encoding="utf-8", errors="replace")
 
 
 def strip_comments(source: str) -> str:

@@ -1,3 +1,5 @@
+// 认证远端数据源。负责把登录、注册、验证码和社交认证请求映射到后端移动端接口。
+
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/verification_code_target.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -9,6 +11,8 @@ import '../models/verification_code_send_model.dart';
 import '../models/wechat_mini_program_auth_result_model.dart';
 
 class AuthRemoteSource {
+  /// 持有共享 Dio 客户端。
+  /// 认证相关的请求组装统一放在这里，避免页面层散落接口字段细节。
   final DioClient _dioClient;
 
   AuthRemoteSource(this._dioClient);
@@ -40,6 +44,7 @@ class AuthRemoteSource {
   }
 
   Map<String, dynamic> _loginPayload(AuthRequest request) {
+    // 登录接口兼容手机号和邮箱，统一通过 loginValue 透传账号主键。
     final loginValue = request.phoneNumber.trim();
     final password = _trimmedOrNull(request.password);
     final countryCode = _trimmedOrNull(request.countryCode);
@@ -116,6 +121,8 @@ class AuthRemoteSource {
     required VerificationCodeScene scene,
     required VerificationCodeTarget target,
   }) async {
+    // 服务端当前仍同时读取 phoneNumber 和 loginValue，这里双写以兼容
+    // 手机号/邮箱两种目标以及旧接口字段约定。
     final loginValue = _trimmedOrNull(target.value) ?? '';
     final normalizedCountryCode = _trimmedOrNull(target.countryCode);
     final challengePayload = <String, dynamic>{

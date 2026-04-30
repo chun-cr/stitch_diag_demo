@@ -997,6 +997,7 @@
   "reportAdviceProductFourDesc": "山药、薏仁、党参、茯苓、红枣精选组合，一周食疗方案。",
   "reportAdviceProductFourTag": "新品",
   "reportAdviceProductDisclaimer": "以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。",
+  "scanFaceFrameRetryMessage": "未生成人脸描点图，请重新扫描。",
   "scanFaceUploadFailedTitle": "人脸上传失败",
   "scanTongueUploadFailedTitle": "舌诊上传失败"
 }

@@ -29,6 +29,7 @@ import '../widgets/scan_step_indicator.dart';
 // 扫描状态枚举。
 enum ScanState { idle, scanning, uploading, completed }
 
+/// 只有“检测到伸舌 + 已确认伸舌 + 嘴部在框内”同时成立时，才允许开始计时。
 bool isTongueHoldEligible({
   required bool protrusionCandidate,
   required bool protrusionConfirmed,
@@ -49,6 +50,7 @@ bool shouldKeepTongueHoldAlive({
 }
 
 @visibleForTesting
+/// 进入 hold 后允许短暂依赖 candidate/confirmed 保活，减少检测抖动带来的误重置。
 bool shouldTrackTongueHold({
   required bool holdInProgress,
   required bool protrusionCandidate,
@@ -86,6 +88,7 @@ bool shouldShowTongueProgressFeedback({
 }
 
 @visibleForTesting
+/// 视觉检测偶尔会丢一两帧，这里给一个极短宽限期，避免进度条频繁清零。
 bool isTongueHoldAliveWithinGrace({
   required bool holdAliveNow,
   required bool holdInProgress,
@@ -105,6 +108,7 @@ bool isTongueHoldAliveWithinGrace({
   return referenceTime.difference(lastHoldAliveAt) <= gracePeriod;
 }
 
+/// 返回当前阻塞自动抓拍的原因，顺序同时作为 UI 提示优先级。
 List<String> describeTongueScanBlockers({
   required bool mouthPresent,
   required bool protrusionCandidate,
@@ -920,7 +924,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 瀹归敊鍖?(澶栧眰)
+          // 外层容错轮廓。用于给用户更宽松的对齐参考区，避免轻微抖动就被判定为失败。
           Positioned.fill(
             child: CustomPaint(
               painter: _BionicTonguePainter(
@@ -965,7 +969,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
 
-          // 鎵弿绾?
+          // 扫描线。只在扫描过程中移动，用来强化“正在采集中”的视觉反馈。
           AnimatedBuilder(
             animation: _scanAnim,
             builder: (context, child) => Positioned(
@@ -1050,7 +1054,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Tips 琛?
+          // 提示行。集中展示光线、饮食和舌面姿态等采集前注意事项。
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Row(
@@ -1072,7 +1076,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Divider(height: 1, color: _kAccent.withValues(alpha: 0.08)),
-          // 鎸夐挳鍖?
+          // 按钮区。负责承载开始扫描和完成后的主要动作入口。
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(

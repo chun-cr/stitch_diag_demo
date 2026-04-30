@@ -1,3 +1,5 @@
+// 本地化取词扩展。把 generated l10n 的访问方式收敛成更短的 BuildContext 扩展入口。
+
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 

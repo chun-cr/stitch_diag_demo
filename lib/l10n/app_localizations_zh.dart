@@ -2592,6 +2592,9 @@ class AppLocalizationsZh extends AppLocalizations {
       '以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。';
 
   @override
+  String get scanFaceFrameRetryMessage => '未生成人脸描点图，请重新扫描。';
+
+  @override
   String get scanFaceUploadFailedTitle => '人脸上传失败';
 
   @override

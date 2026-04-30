@@ -1,3 +1,5 @@
+// 历史报告模块页面：`HistoryStyle`。负责组织当前场景的主要布局、交互事件以及与导航/状态层的衔接。
+
 import 'package:flutter/material.dart';
 
 const historyPageBg = Color(0xFFF4F1EB);

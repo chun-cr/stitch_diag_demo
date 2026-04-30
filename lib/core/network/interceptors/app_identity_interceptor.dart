@@ -1,3 +1,5 @@
+// 应用标识拦截器。为每个请求补充当前包标识和平台信息，方便后端识别客户端来源。
+
 import 'package:dio/dio.dart';
 
 import '../dio_client.dart';

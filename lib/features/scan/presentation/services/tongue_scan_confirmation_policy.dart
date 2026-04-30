@@ -6,12 +6,10 @@ import '../utils/scan_capture_geometry.dart';
 
 enum TongueDetectionTuning { standard, android }
 
-/// Flutter-side proxy heuristic for tongue protrusion.
+/// Flutter 侧的“舌头是否足够伸出”代理判定规则。
 ///
-/// Important: current native events only provide face/mouth landmarks, not
-/// true tongue contour points. This policy therefore evaluates a coordinate-
-/// based proxy from mouth geometry instead of pretending to observe the tongue
-/// directly.
+/// 需要注意：当前原生事件只有脸部和嘴部关键点，没有真正的舌头轮廓点。
+/// 因此这里并不是直接识别舌头，而是基于嘴部几何关系做一层近似推断。
 class TongueProtrusionProxy {
   static const double _minMouthAspectRatio = 0.16;
   static const double _maxMouthAspectRatio = 0.78;

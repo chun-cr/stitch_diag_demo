@@ -1,3 +1,5 @@
+// 个人中心模块状态提供层：`ProfilePointsProvider`。通过 Riverpod 向页面暴露查询、写操作和异步状态。
+
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

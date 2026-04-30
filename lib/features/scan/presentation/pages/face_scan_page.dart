@@ -261,6 +261,21 @@ List<Offset> remapLandmarksToCaptureGuide({
       .toList(growable: false);
 }
 
+@visibleForTesting
+bool hasRenderableFaceFrameUpload({
+  required List<Offset> normalizedLandmarks,
+  required String sourceImagePath,
+  required String faceFrameFilePath,
+}) {
+  if (normalizedLandmarks.isEmpty ||
+      sourceImagePath.isEmpty ||
+      faceFrameFilePath.isEmpty) {
+    return false;
+  }
+
+  return sourceImagePath != faceFrameFilePath;
+}
+
 class FaceScanPage extends StatefulWidget {
   const FaceScanPage({super.key});
   @override
@@ -640,6 +655,33 @@ class _FaceScanPageState extends State<FaceScanPage>
         capture,
         acceptedSnapshot,
       );
+      if (!mounted) {
+        return;
+      }
+      if (!hasRenderableFaceFrameUpload(
+        normalizedLandmarks: acceptedSnapshot.normalizedLandmarks,
+        sourceImagePath: capture.croppedPath,
+        faceFrameFilePath: faceFrameUploadPath,
+      )) {
+        AppLogger.log(
+          'Face frame upload rejected: '
+          'landmarks=${acceptedSnapshot.normalizedLandmarks.length}, '
+          'sourcePath=${capture.croppedPath}, '
+          'framePath=$faceFrameUploadPath',
+        );
+        _pauseAutoScanUntilReset = true;
+        _cancelScanHold(resetProgress: true);
+        _clearAcceptedFaceSnapshot();
+        setState(() {
+          _isSubmitting = false;
+        });
+        showAppToast(
+          context,
+          context.l10n.scanFaceFrameRetryMessage,
+          kind: AppToastKind.info,
+        );
+        return;
+      }
       await _logFaceUploadFileSizes(
         faceFilePath: capture.croppedPath,
         faceFrameFilePath: faceFrameUploadPath,

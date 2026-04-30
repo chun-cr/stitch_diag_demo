@@ -2642,6 +2642,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'これらのおすすめは体質分析に基づく参考情報です。中成薬の使用は医師または薬剤師の指導のもとで行ってください。';
 
   @override
+  String get scanFaceFrameRetryMessage =>
+      '顔のランドマーク画像を生成できませんでした。もう一度スキャンしてください。';
+
+  @override
   String get scanFaceUploadFailedTitle => '顔画像のアップロードに失敗しました';
 
   @override

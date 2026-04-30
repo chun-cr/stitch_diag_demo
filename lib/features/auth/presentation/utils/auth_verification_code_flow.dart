@@ -1,3 +1,5 @@
+// 认证模块展示层工具：`AuthVerificationCodeFlow`。负责承载展示层通用的计算、映射或调试辅助逻辑。
+
 import 'dart:async';
 
 import 'package:dio/dio.dart';

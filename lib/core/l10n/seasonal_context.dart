@@ -85,9 +85,8 @@ class _SolarTermBoundary {
   });
 }
 
-// Lightweight display-oriented mapping based on common modern Gregorian
-// transition dates. This keeps the app dependency-free while ensuring the
-// seasonal tag updates automatically through the year.
+// 这里采用面向展示的轻量节气映射，基于常见公历交接日近似判断。
+// 这样既不用额外引入节气依赖，也能保证页面上的季节标签会随年份自动更新。
 const _solarTermBoundaries = <_SolarTermBoundary>[
   _SolarTermBoundary(
     monthDay: 105,

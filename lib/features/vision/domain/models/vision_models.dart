@@ -1,3 +1,5 @@
+// 视觉识别领域模型。定义面部、手掌、舌象等检测结果在 Flutter 侧的稳定数据结构。
+
 import 'package:flutter/material.dart';
 
 enum VisionMode {

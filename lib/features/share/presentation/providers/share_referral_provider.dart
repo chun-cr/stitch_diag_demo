@@ -1,3 +1,5 @@
+// 分享链路状态提供层。负责串起分享归因、本地持久化和邀约票据刷新，供登录前后流程复用。
+
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,6 +32,8 @@ final shareReferralControllerProvider =
     );
 
 class ShareReferralController extends AsyncNotifier<ShareReferralState> {
+  /// 分享链路控制器。
+  /// 负责串起参数解析、本地状态持久化和邀约票据刷新，让登录前后的跳转意图保持连续。
   ShareReferralStore get _store => ref.read(shareReferralStoreProvider);
   ShareReferralRepository get _repository =>
       ref.read(shareReferralRepositoryProvider);
@@ -57,6 +61,7 @@ class ShareReferralController extends AsyncNotifier<ShareReferralState> {
     }
 
     if (isAuthenticated) {
+      // 已登录时只需要记住来源 sharer，避免再次走游客邀约票据刷新。
       return _persist(current.copyWith(sharerId: resolvedShareId));
     }
 
@@ -73,6 +78,7 @@ class ShareReferralController extends AsyncNotifier<ShareReferralState> {
     );
     final guestContext = next.guestAuthContext;
     if (guestContext != null && guestContext.hasReusableInviteTicket()) {
+      // 游客态已有可复用票据时直接沿用，减少重复 touch 请求。
       return next;
     }
 
@@ -113,6 +119,7 @@ class ShareReferralController extends AsyncNotifier<ShareReferralState> {
     if (guestContext != null &&
         guestContext.inviteShareId == resolvedShareId &&
         guestContext.hasReusableInviteTicket()) {
+      // 登录前拿到的邀约票据优先复用，避免同一跳转链路重复失效。
       return guestContext.inviteTicket;
     }
 

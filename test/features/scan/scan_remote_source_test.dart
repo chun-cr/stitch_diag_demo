@@ -265,6 +265,44 @@ void main() {
   );
 
   test(
+    'uploadPalm posts hand and frame files to the hand upload endpoint',
+    () async {
+      final file = await createFile('palm.jpg');
+      final frameFile = await createFile('palm-frame.jpg');
+      final adapter = _QueueHttpClientAdapter(<_StubResponse>[
+        const _StubResponse(200, <String, dynamic>{
+          'code': 0,
+          'data': <String, dynamic>{},
+        }),
+      ]);
+      final source = createSource(adapter);
+
+      await source.uploadPalm(
+        handFilePath: file.path,
+        handFrameFilePath: frameFile.path,
+        reportId: 'report-123',
+      );
+
+      expect(adapter.requests, hasLength(1));
+      expect(
+        adapter.requests.single.path,
+        '/api/v1/saas/mobile/ai/diagnosis/upload/hand',
+      );
+      final payload = adapter.requests.single.data as FormData;
+      final fields = Map<String, String>.fromEntries(payload.fields);
+      expect(fields, containsPair('reportId', 'report-123'));
+      expect(payload.files.map((entry) => entry.key), <String>[
+        'handFile',
+        'handFrameFile',
+      ]);
+      expect(payload.files.map((entry) => entry.value.filename), <String>[
+        'palm.jpg',
+        'palm-frame.jpg',
+      ]);
+    },
+  );
+
+  test(
     'uploadPalm throws detailed exception for http failure response',
     () async {
       final file = await createFile('palm.jpg');

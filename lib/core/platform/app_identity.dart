@@ -1,3 +1,5 @@
+// 平台应用标识读取器。负责向 Flutter 层暴露包名、应用标识等原生信息，供网络和支付链路复用。
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 

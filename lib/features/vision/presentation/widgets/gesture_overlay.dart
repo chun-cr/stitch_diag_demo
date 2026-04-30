@@ -1,3 +1,5 @@
+// 手势识别覆盖层组件。负责把关键点和轮廓结果绘制到扫描预览之上。
+
 import 'package:flutter/material.dart';
 
 import '../../domain/models/vision_models.dart';

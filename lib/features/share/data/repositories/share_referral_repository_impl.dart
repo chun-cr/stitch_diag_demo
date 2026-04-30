@@ -1,3 +1,5 @@
+// 分享归因仓储实现。负责把远端接口结果转换成上层可直接消费的领域实体。
+
 import '../../domain/entities/app_id_mapping_entity.dart';
 import '../../domain/entities/share_identity_entity.dart';
 import '../../domain/entities/share_touch_result_entity.dart';

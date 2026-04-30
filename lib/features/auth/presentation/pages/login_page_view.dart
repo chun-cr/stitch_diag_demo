@@ -1,5 +1,9 @@
 part of 'login_page.dart';
 
+/// 登录页的纯视图层。
+///
+/// `login_page.dart` 主文件保留状态与事件入口，这个 mixin 只负责布局、
+/// 动画和交互壳层，避免一个超大 State 同时承担“逻辑 + UI”两种职责。
 mixin _LoginPageView
     on
         ConsumerState<LoginPage>,
@@ -776,6 +780,8 @@ mixin _LoginPageView
             options: _countryCodes,
             onSelected: (selected) {
               setState(() {
+                // 验证码和区号是绑定的；切换国家区号后必须清掉旧验证码状态，
+                // 避免用户继续提交先前区号申请到的短信码。
                 if (_codeTargetCountryCode != null &&
                     _codeTargetCountryCode != selected.code) {
                   resetVerificationCodeState();
@@ -897,9 +903,11 @@ mixin _LoginPageView
         fontWeight: FontWeight.w700,
         color: Colors.white,
         letterSpacing: 1.5,
-      ),
-    );
+        ),
+      );
 
+    // 外层按钮的尺寸、渐变和阴影始终保持不变，只切换中心内容，
+    // 这样 loading 态不会造成整颗按钮的宽高跳动。
     switch (_buttonPhase) {
       case _LoginButtonPhase.idle:
         return Center(key: const ValueKey('login_idle'), child: label);

@@ -1,3 +1,5 @@
+// 个人中心模块仓储契约：`ProfileRepository`。对上提供稳定业务接口，对下屏蔽远端与本地数据细节。
+
 import '../entities/profile_me_entity.dart';
 import '../entities/profile_points_account_simple_entity.dart';
 import '../entities/profile_points_account_stat_entity.dart';

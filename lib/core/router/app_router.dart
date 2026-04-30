@@ -1,3 +1,5 @@
+// 应用级路由配置入口。统一收口登录、扫描、报告、个人中心等页面的路径声明与鉴权跳转规则。
+
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -27,6 +29,8 @@ import 'package:stitch_diag_demo/features/history/presentation/pages/history/his
 
 // ─── 路由路径常量 ─────────────────────────────────────────────────
 class AppRoutes {
+  /// 路由常量集合。
+  /// 统一给导航、重定向和深链解析使用，避免各页面散落硬编码路径。
   static const home = '/home';
   static const login = '/login';
   static const register = '/register';
@@ -104,7 +108,7 @@ final ValueNotifier<bool> _previewAuthState = ValueNotifier<bool>(false);
 
 bool get isPreviewAuthenticated => _previewAuthState.value;
 
-// Keep browser debugging unblocked while preserving the auth gate elsewhere.
+// 在 Web 调试态下放开预览鉴权拦截，方便浏览器联调；其它场景仍保持正常登录门槛。
 bool get _bypassPreviewAuthGuardForWebDebug => kDebugMode && kIsWeb;
 
 String? resolvePreviewAuthRedirect({
@@ -113,6 +117,7 @@ String? resolvePreviewAuthRedirect({
   required bool isAuthenticated,
   required bool bypassAuthGuard,
 }) {
+  // 登录/注册、资料补全、分享落地页属于预览态下允许无会话访问的入口。
   final isEntryAuthRoute =
       matchedLocation == AppRoutes.login ||
       matchedLocation == AppRoutes.register;
@@ -156,6 +161,8 @@ ReportPage _buildReportPage(GoRouterState state) {
   return ReportPage(reportId: reportId);
 }
 
+/// 应用共享路由实例。
+/// 既提供给 `MaterialApp.router` 挂载，也承担预览态下的鉴权跳转逻辑。
 final appRouter = GoRouter(
   initialLocation: AppRoutes.login,
   debugLogDiagnostics: true,

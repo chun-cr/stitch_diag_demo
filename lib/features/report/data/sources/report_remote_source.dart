@@ -1,9 +1,13 @@
+// 报告远端数据源。集中处理报告详情、分享二维码、商品项目推荐等接口协议差异。
+
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../models/report_detail.dart';
 
 class ReportRemoteSource {
+  /// 使用全局移动端 Dio 客户端。
+  /// 这样报告接口也能自动复用登录态、应用标识和日志拦截能力。
   const ReportRemoteSource(this._dioClient);
 
   final DioClient _dioClient;
@@ -215,6 +219,7 @@ class ReportRemoteSource {
         queryParameters: queryParameters,
       );
     } on DioException {
+      // 旧接口不一定接受 source 参数，失败时回退到不带 source 的通用分页查询。
       if (!queryParameters.containsKey('source')) {
         rethrow;
       }
@@ -417,6 +422,7 @@ List<Map<String, dynamic>> _extractGenericItems(
     return const <Map<String, dynamic>>[];
   }
 
+  // 某些详情接口直接把对象放在 data 下，没有 items/list 包装，保底按单项返回。
   return [payload];
 }
 

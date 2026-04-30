@@ -1,3 +1,5 @@
+// 分享本地状态存储。负责把分享归因和游客邀约上下文缓存到本地，跨会话延续链路。
+
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';

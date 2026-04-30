@@ -1,3 +1,5 @@
+// 主题文字样式令牌定义。集中沉淀标题、正文、辅助说明等常用排版规范。
+
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 

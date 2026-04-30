@@ -1,3 +1,5 @@
+// 扫描模块共享组件：`ScanFrame`。封装反复使用的界面结构与交互片段，减少页面重复代码。
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

@@ -1,3 +1,5 @@
+// 登录密码缓存工具。只负责保存最近一次登录密码，供需要二次确认的认证流程复用。
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPasswordStore {

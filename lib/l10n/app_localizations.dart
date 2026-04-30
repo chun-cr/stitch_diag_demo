@@ -5124,6 +5124,12 @@ abstract class AppLocalizations {
   /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
   String get reportAdviceProductDisclaimer;
 
+  /// No description provided for @scanFaceFrameRetryMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'未生成人脸描点图，请重新扫描。'**
+  String get scanFaceFrameRetryMessage;
+
   /// No description provided for @scanFaceUploadFailedTitle.
   ///
   /// In zh, this message translates to:

@@ -1,3 +1,5 @@
+// 分享远端数据源。集中处理分享身份、邀约票据和落地埋点相关接口调用。
+
 import 'package:stitch_diag_demo/core/network/dio_client.dart';
 
 import '../../domain/entities/app_id_mapping_entity.dart';

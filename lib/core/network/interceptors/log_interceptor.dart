@@ -1,3 +1,5 @@
+// 网络日志拦截器。集中打印请求、响应和错误信息，便于排查接口联调与线上问题。
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';

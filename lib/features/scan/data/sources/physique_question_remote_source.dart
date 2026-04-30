@@ -1,3 +1,5 @@
+// 扫描模块远端数据源：`PhysiqueQuestionRemoteSource`。负责与后端接口交互，并把请求/响应细节限制在数据层内部。
+
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/dio_client.dart';

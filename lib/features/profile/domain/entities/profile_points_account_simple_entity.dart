@@ -1,3 +1,5 @@
+// 个人中心模块领域实体：`ProfilePointsAccountSimpleEntity`。用于在业务层和展示层之间传递稳定语义，避免直接耦合接口原始结构。
+
 class ProfilePointsAccountSimpleEntity {
   const ProfilePointsAccountSimpleEntity({
     required this.id,

@@ -1,3 +1,5 @@
+// 认证模块仓储契约：`AuthRepository`。对上提供稳定业务接口，对下屏蔽远端与本地数据细节。
+
 import '../../data/models/auth_request.dart';
 import '../entities/auth_session_entity.dart';
 import '../entities/password_register_result_entity.dart';

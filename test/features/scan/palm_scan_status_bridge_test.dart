@@ -177,6 +177,25 @@ void main() {
       expect(shouldHideForPartialLandmarks, isFalse);
       expect(shouldHideWithoutHand, isFalse);
     });
+
+    test('remaps palm landmarks into the capture guide coordinate space', () {
+      final remapped = remapPalmLandmarksToCaptureGuide(
+        normalizedLandmarks: const [
+          Offset(0.20, 0.10),
+          Offset(0.45, 0.40),
+          Offset(0.70, 0.70),
+        ],
+        guideRect: const Rect.fromLTWH(0.20, 0.10, 0.50, 0.60),
+      );
+
+      expect(remapped, hasLength(3));
+      expect(remapped[0].dx, closeTo(0, 1e-9));
+      expect(remapped[0].dy, closeTo(0, 1e-9));
+      expect(remapped[1].dx, closeTo(0.5, 1e-9));
+      expect(remapped[1].dy, closeTo(0.5, 1e-9));
+      expect(remapped[2].dx, closeTo(1, 1e-9));
+      expect(remapped[2].dy, closeTo(1, 1e-9));
+    });
   });
 
   group('isPalmHoldEligible', () {

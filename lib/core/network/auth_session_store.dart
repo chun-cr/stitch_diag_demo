@@ -1,3 +1,5 @@
+// 登录会话存储层。负责持久化 accessToken、refreshToken，并提供会话读写与清理能力。
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -1,3 +1,5 @@
+// 分享归因总状态实体。统一保存 referer 身份、appId 映射和游客邀约上下文。
+
 import 'app_id_mapping_entity.dart';
 import 'guest_invite_context_entity.dart';
 import 'share_identity_entity.dart';

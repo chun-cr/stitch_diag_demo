@@ -63,7 +63,7 @@ def configure_stdio() -> None:
     for stream_name in ("stdout", "stderr"):
         stream = getattr(sys, stream_name, None)
         if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
+            getattr(stream, "reconfigure")(encoding="utf-8", errors="replace")
 
 
 def run_git(args: list[str]) -> list[str]:

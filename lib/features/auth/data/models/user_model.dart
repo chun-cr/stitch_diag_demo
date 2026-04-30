@@ -1,4 +1,5 @@
-// ignore_for_file: uri_does_not_exist, uri_has_not_been_generated, redirect_to_non_class, undefined_method
+// 认证模块数据模型：`UserModel`。用于承接接口原始字段，并在需要时转换为上层可消费的稳定结构。
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user_model.freezed.dart';

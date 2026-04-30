@@ -1,3 +1,5 @@
+// 鉴权拦截器。负责在请求时注入登录态，在会话失效时统一处理认证相关后续动作。
+
 import 'package:dio/dio.dart';
 import 'package:stitch_diag_demo/core/di/injector.dart';
 import 'package:stitch_diag_demo/core/network/auth_session_store.dart';

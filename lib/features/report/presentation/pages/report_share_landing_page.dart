@@ -1,3 +1,5 @@
+// 报告模块页面：`ReportShareLandingPage`。负责组织当前场景的主要布局、交互事件以及与导航/状态层的衔接。
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

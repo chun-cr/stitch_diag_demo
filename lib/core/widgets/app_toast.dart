@@ -1,3 +1,5 @@
+// 通用 Toast 展示能力。统一封装提示浮层的展示、关闭和样式约定。
+
 import 'dart:async';
 import 'dart:math' as math;
 

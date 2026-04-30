@@ -1,3 +1,5 @@
+// 个人中心模块本地存储：`ProfileAddressStore`。负责缓存本地状态，避免页面直接处理序列化和落盘细节。
+
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';

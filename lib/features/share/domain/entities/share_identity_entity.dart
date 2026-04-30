@@ -1,3 +1,5 @@
+// 分享身份实体。描述当前用户在分享体系中的 refererId、shareId 等身份信息。
+
 class ShareIdentityEntity {
   const ShareIdentityEntity({
     required this.shareId,

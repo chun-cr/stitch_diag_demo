@@ -1,3 +1,5 @@
+// 认证模块仓储实现：`AuthRepositoryImpl`。负责组合数据源结果，并向上层输出稳定的业务数据。
+
 import '../../domain/entities/auth_session_entity.dart';
 import '../../domain/entities/password_register_result_entity.dart';
 import '../../domain/entities/verification_code_challenge_entity.dart';

@@ -1,3 +1,5 @@
+// 个人中心模块远端数据源：`ProfileRemoteSource`。负责与后端接口交互，并把请求/响应细节限制在数据层内部。
+
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/profile_points_account_simple_entity.dart';
 import '../../domain/entities/profile_points_account_stat_entity.dart';

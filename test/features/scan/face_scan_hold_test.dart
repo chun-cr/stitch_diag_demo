@@ -19,6 +19,50 @@ void main() {
     expect(faceScanPostSuccessDelay, const Duration(milliseconds: 450));
   });
 
+  group('hasRenderableFaceFrameUpload', () {
+    test(
+      'returns false when no landmarks are available for the frame image',
+      () {
+        expect(
+          hasRenderableFaceFrameUpload(
+            normalizedLandmarks: const [],
+            sourceImagePath: '/tmp/face_crop.jpg',
+            faceFrameFilePath: '/tmp/face_crop_overlay.jpg',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'returns false when the frame image falls back to the source image',
+      () {
+        expect(
+          hasRenderableFaceFrameUpload(
+            normalizedLandmarks: const [Offset(0.5, 0.5)],
+            sourceImagePath: '/tmp/face_crop.jpg',
+            faceFrameFilePath: '/tmp/face_crop.jpg',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'returns true when landmarks exist and a distinct frame image is generated',
+      () {
+        expect(
+          hasRenderableFaceFrameUpload(
+            normalizedLandmarks: const [Offset(0.5, 0.5)],
+            sourceImagePath: '/tmp/face_crop.jpg',
+            faceFrameFilePath: '/tmp/face_crop_overlay.jpg',
+          ),
+          isTrue,
+        );
+      },
+    );
+  });
+
   group('isFaceHoldEligible', () {
     test(
       'returns true only when permission granted, face detected, and framed',
@@ -204,16 +248,19 @@ void main() {
   });
 
   group('face ready indicator', () {
-    test('shows ready once a face is detected and no directional correction is needed', () {
-      expect(
-        shouldShowFaceReadyStatus(
-          hasPermission: true,
-          hasFaceDetected: true,
-          faceDirection: '',
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'shows ready once a face is detected and no directional correction is needed',
+      () {
+        expect(
+          shouldShowFaceReadyStatus(
+            hasPermission: true,
+            hasFaceDetected: true,
+            faceDirection: '',
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('does not show ready before a face is detected', () {
       expect(
@@ -226,16 +273,19 @@ void main() {
       );
     });
 
-    test('does not show ready while directional correction is still needed', () {
-      expect(
-        shouldShowFaceReadyStatus(
-          hasPermission: true,
-          hasFaceDetected: true,
-          faceDirection: '← 请向左移动',
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'does not show ready while directional correction is still needed',
+      () {
+        expect(
+          shouldShowFaceReadyStatus(
+            hasPermission: true,
+            hasFaceDetected: true,
+            faceDirection: '← 请向左移动',
+          ),
+          isFalse,
+        );
+      },
+    );
   });
 
   group('isFaceFramedForUploadBounds', () {

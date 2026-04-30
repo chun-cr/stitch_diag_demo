@@ -1,3 +1,5 @@
+// 报告模块应用层对象：`MockProductCheckout`。承接跨页面流程和业务判断，避免页面直接堆叠复杂状态。
+
 import 'package:flutter/foundation.dart';
 import 'package:stitch_diag_demo/features/report/application/checkout_session.dart';
 import 'package:stitch_diag_demo/features/report/application/payment_method.dart';

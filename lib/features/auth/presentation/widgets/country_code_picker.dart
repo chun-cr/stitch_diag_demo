@@ -6,6 +6,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// 国家区号选择项。
+///
+/// `searchTerms` 预留给后续搜索态使用，`preferred` 用于在产品需要时把常用国家前置。
 class CountryCodeOption {
   const CountryCodeOption({
     required this.name,
@@ -77,6 +80,12 @@ const List<CountryCodeOption> authCountryCodeOptions = [
   ),
 ];
 
+/// 登录页使用的轻量区号弹层。
+///
+/// 这里没有直接使用标准下拉组件，而是自定义 overlay，目的是同时满足：
+/// 1. 锚定在输入框前缀旁边；
+/// 2. 保留玻璃质感和缩放动画；
+/// 3. 在父组件频繁 rebuild 时仍能稳定开合。
 class CountryCodePopoverPicker extends StatefulWidget {
   const CountryCodePopoverPicker({
     super.key,
@@ -146,6 +155,8 @@ class _CountryCodePopoverPickerState extends State<CountryCodePopoverPicker>
         oldWidget.menuWidth != widget.menuWidth ||
         !identical(oldWidget.options, widget.options);
     if (_open && shouldRefreshOverlay) {
+      // OverlayEntry 不会随着宿主 widget 的 rebuild 自动刷新，
+      // 选中值或布局参数变化时需要显式请求下一帧重建。
       _queueOverlayRebuild();
     }
   }
@@ -240,6 +251,8 @@ class _CountryCodePopoverPickerState extends State<CountryCodePopoverPicker>
     final targetSize = targetBox?.size ?? Size.zero;
     final safeBottom = mediaQuery.padding.bottom + 14;
     final keyboardInset = mediaQuery.viewInsets.bottom;
+    // 弹层总是锚定在触发器下方，并把安全区和输入法都计入剩余空间，
+    // 避免小屏或键盘弹起时列表被直接裁到屏幕外。
     final availableBelow =
         mediaQuery.size.height -
         keyboardInset -
@@ -305,6 +318,7 @@ class _CountryCodePopoverPickerState extends State<CountryCodePopoverPicker>
       return;
     }
     _lastHapticPixels = pixels;
+    // ScrollUpdate 通知非常密集，这里做一个极轻的节流，避免连续震动。
     _scrollHapticTimer?.cancel();
     _scrollHapticTimer = Timer(const Duration(milliseconds: 16), () {
       HapticFeedback.selectionClick();

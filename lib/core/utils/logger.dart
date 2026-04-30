@@ -1,3 +1,5 @@
+// 轻量日志封装。为诊断密集型页面和服务提供统一的调试输出入口。
+
 import 'package:flutter/foundation.dart';
 
 enum AppLogCategory { general, network }

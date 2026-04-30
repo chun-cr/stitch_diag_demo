@@ -1,3 +1,5 @@
+// 分享域应用标识映射实体。用于承接当前客户端与分享后台之间的 appId 对应关系。
+
 class AppIdMappingEntity {
   const AppIdMappingEntity({
     this.appId = '',

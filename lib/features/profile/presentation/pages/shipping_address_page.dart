@@ -1,3 +1,5 @@
+// 个人中心模块页面：`ShippingAddressPage`。负责组织当前场景的主要布局、交互事件以及与导航/状态层的衔接。
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

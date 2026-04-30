@@ -1,3 +1,5 @@
+// 认证模块展示层工具：`VerificationCodeFeedback`。负责承载展示层通用的计算、映射或调试辅助逻辑。
+
 import 'package:flutter/widgets.dart';
 
 String verificationCodeSentSuccessMessage(

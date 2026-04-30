@@ -1,3 +1,5 @@
+// 通用骨架屏组件集合。封装加载中的占位结构，减少各页面重复绘制骨架布局。
+
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 

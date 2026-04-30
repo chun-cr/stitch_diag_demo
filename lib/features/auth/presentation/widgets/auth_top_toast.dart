@@ -1,3 +1,5 @@
+// 认证模块共享组件：`AuthTopToast`。封装反复使用的界面结构与交互片段，减少页面重复代码。
+
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/core/widgets/app_toast.dart';
 

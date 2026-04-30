@@ -1,3 +1,5 @@
+// 语言切换底部弹层。封装语言列表、选中态和切换交互，供多个页面复用。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

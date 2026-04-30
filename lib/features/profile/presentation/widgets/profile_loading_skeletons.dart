@@ -1,3 +1,5 @@
+// 个人中心模块共享组件：`ProfileLoadingSkeletons`。封装反复使用的界面结构与交互片段，减少页面重复代码。
+
 import 'package:flutter/material.dart';
 import 'package:stitch_diag_demo/core/l10n/l10n.dart';
 import 'package:stitch_diag_demo/core/widgets/app_skeleton.dart';

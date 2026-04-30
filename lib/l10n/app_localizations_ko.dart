@@ -2667,6 +2667,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 추천은 체질 분석에 기반한 참고 정보입니다. 중성약은 의사 또는 약사의 지도 아래 사용해 주세요.';
 
   @override
+  String get scanFaceFrameRetryMessage =>
+      '얼굴 랜드마크 이미지가 생성되지 않았습니다. 다시 스캔해 주세요.';
+
+  @override
   String get scanFaceUploadFailedTitle => '얼굴 업로드에 실패했습니다';
 
   @override

@@ -1,3 +1,5 @@
+// 视觉能力管理器。统一协调原生视觉 SDK 的初始化、调用和原始识别结果回传。
+
 import 'package:flutter/services.dart';
 
 import '../domain/models/vision_models.dart';

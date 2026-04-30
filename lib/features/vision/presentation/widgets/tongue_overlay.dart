@@ -1,3 +1,5 @@
+// 舌象识别覆盖层组件。负责把舌象引导框、关键轮廓和调试可视化绘制到界面上。
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';

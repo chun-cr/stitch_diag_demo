@@ -1,3 +1,5 @@
+// 游客邀约上下文实体。把 inviteTicket、跳转目标和 visitorKey 等登录前链路状态收敛到一个对象里。
+
 class GuestInviteContextEntity {
   const GuestInviteContextEntity({
     this.inviteShareId = '',

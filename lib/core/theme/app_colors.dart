@@ -1,3 +1,5 @@
+// 主题颜色令牌定义。集中管理应用主色、辅助色和状态色，避免页面内硬编码色值。
+
 import 'package:flutter/material.dart';
 
 class AppColors {

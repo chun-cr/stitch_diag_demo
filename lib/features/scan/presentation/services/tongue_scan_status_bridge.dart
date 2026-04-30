@@ -1,3 +1,5 @@
+// 扫描模块展示层桥接：`TongueScanStatusBridge`。负责把底层能力、状态机或上传流程整理成页面可直接消费的结果。
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';

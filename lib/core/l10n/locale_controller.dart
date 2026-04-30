@@ -1,3 +1,5 @@
+// 语言状态控制器。负责持久化当前语言选择，并通过 Riverpod 向界面广播 locale 变化。
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';

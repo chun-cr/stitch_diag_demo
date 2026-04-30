@@ -1,10 +1,14 @@
+// 报告页展示模型集合。把后端明细结构归一化成页面卡片、图表和摘要可以直接消费的字段。
+
 import 'package:flutter/foundation.dart';
 import 'package:stitch_diag_demo/features/report/data/models/report_detail.dart';
 
+/// 区分演示态报告和真实接口报告来源。
 enum ReportViewMode { demo, live }
 
 @immutable
 class ReportRiskIndexData {
+  /// 报告摘要区单个风险环的展示模型。
   const ReportRiskIndexData({required this.name, required this.rawProbability});
 
   final String name;
@@ -25,6 +29,7 @@ class ReportRiskIndexData {
 
 @immutable
 class ReportConstitutionScoreData {
+  /// 体质分布区使用的标准化得分模型。
   const ReportConstitutionScoreData({
     required this.id,
     required this.name,
@@ -42,6 +47,7 @@ enum ReportHealthRadarMode { aiDeep, classic }
 
 @immutable
 class ReportHealthRadarSymptomData {
+  /// 健康雷达区域中的单个症状项展示模型。
   const ReportHealthRadarSymptomData({
     required this.id,
     required this.name,
@@ -73,6 +79,7 @@ class ReportHealthRadarSymptomData {
 
 @immutable
 class ReportTongueAnalysisItemData {
+  /// 报告详情里单张舌象分析卡片的数据模型。
   const ReportTongueAnalysisItemData({
     required this.key,
     required this.title,
@@ -86,6 +93,10 @@ class ReportTongueAnalysisItemData {
   final String pathologyText;
 }
 
+/// 报告页唯一面向 UI 的展示模型。
+///
+/// 后端返回的 detail 结构字段多、层级深，而且不同区域的数据来源并不一致。
+/// 这里先做一次归一化，保证页面层只消费稳定字段，不直接耦合接口细节。
 @immutable
 class ReportViewData {
   const ReportViewData({
@@ -193,6 +204,7 @@ class ReportViewData {
     );
   }
 
+  /// 本地演示/设计联调使用的固定样例数据。
   factory ReportViewData.demo({String? reportId}) {
     return ReportViewData(
       mode: ReportViewMode.demo,
@@ -300,6 +312,8 @@ class ReportViewData {
     final constitutions = detail.analysisResult.tzData;
     final constitutionScores = _buildConstitutionScores(detail);
     DiagnosisConstitution? secondaryConstitution;
+    // 主体质会同时出现在 tz 和 tzData 中，hero 区只需要“次要偏向”，
+    // 所以这里跳过主 id，拿第一个不同且有名称的结果作为补充说明。
     for (final item in constitutions) {
       final isDistinct = item.id != detail.analysisResult.tz.id;
       if (isDistinct && item.name.isNotEmpty) {
@@ -334,6 +348,8 @@ class ReportViewData {
       mode: ReportViewMode.live,
       reportId: detail.id.isNotEmpty ? detail.id : null,
       token: detail.token.trim().isNotEmpty ? detail.token.trim() : null,
+      // 接口没有稳定提供面 / 舌 / 手三路独立总分，
+      // 页面上的分项分数因此由总分 + finding 数量做保守推导。
       overallScore: _clampPercent(detail.healthScore),
       faceScore: _scoreFromFindings(
         detail.faceAnalysisResult.result.length,
@@ -387,6 +403,8 @@ class ReportViewData {
 List<ReportConstitutionScoreData> _buildConstitutionScores(
   DiagnosisReportDetail detail,
 ) {
+  // 体质分一部分来自 analysisResult.tzData，另一部分来自 tzpdAnalysisResult。
+  // 这里先把补充分统一叠加，再按展示分排序。
   final scoreAdjustments = _constitutionScoreAdjustments(
     detail.tzpdAnalysisResult,
   );
@@ -414,6 +432,7 @@ List<String> _extractHeroTongueSymptoms(
   for (final finding in analysisResult.result) {
     for (final symptom in finding.symptoms) {
       final name = symptom.name.trim();
+      // Hero 区只保留去重后的短标签，避免同一舌象在摘要里重复占位。
       if (name.isEmpty || symptoms.contains(name)) {
         continue;
       }
@@ -498,6 +517,8 @@ String _resolveTonguePathologyText(
     }
   }
 
+  // 后端 `describe` 缺失时，按“症状名精确映射 -> 关键词映射 -> finding 兜底”
+  // 逐层回退，尽量保证每张舌象卡片都有可读解释。
   for (final candidate in [
     _resolveTongueFindingKey(finding),
     _resolveTongueFindingTitle(finding),
@@ -571,6 +592,8 @@ Map<String, double> _constitutionScoreAdjustments(
       continue;
     }
 
+    // 历史接口里既出现过 score，也出现过 prob，量纲还可能是 0-1 或 0-100。
+    // 先做字段兜底，再统一归一到百分制。
     final score = _normalizePercent(
       _asNum(value['score']) ?? _asNum(value['prob']),
     );
@@ -661,6 +684,7 @@ double _normalizePercent(num? value) {
     return 0;
   }
   final normalized = value.toDouble();
+  // 兼容 0-1 小数概率和 0-100 百分制两种返回格式。
   if (normalized <= 1) {
     return normalized * 100;
   }

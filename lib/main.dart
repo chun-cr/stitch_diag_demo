@@ -1,14 +1,11 @@
+// 应用启动入口。这里负责初始化依赖、恢复本地状态，并挂载带路由和国际化能力的根组件。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stitch_diag_demo/l10n/app_localizations.dart';
 
-// 替换成你的实际包名，例如：
-// import 'package:your_app_name/core/router/app_router.dart';
-// import 'package:your_app_name/core/theme/app_theme.dart';
-//
-// 临时直接引用（正式时删掉，改用上面的包名 import）
 import 'core/l10n/l10n.dart';
 import 'core/l10n/locale_controller.dart';
 import 'core/di/injector.dart';
@@ -41,6 +38,7 @@ void main() async {
 }
 
 class MyApp extends ConsumerWidget {
+  /// 应用根组件。统一挂载主题、路由和国际化配置，让整棵页面树共享同一套应用级上下文。
   const MyApp({super.key});
 
   @override

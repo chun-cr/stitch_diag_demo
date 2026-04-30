@@ -1,3 +1,5 @@
+// 国际化格式化辅助函数。封装日期、数字等展示层常用格式，减少页面里散落的本地化拼装逻辑。
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

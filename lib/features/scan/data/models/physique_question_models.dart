@@ -1,3 +1,5 @@
+// 扫描模块数据模型：`PhysiqueQuestionModels`。用于承接接口原始字段，并在需要时转换为上层可消费的稳定结构。
+
 class PhysiqueQuestionRequestAnswer {
   const PhysiqueQuestionRequestAnswer({
     required this.id,

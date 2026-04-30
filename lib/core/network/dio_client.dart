@@ -1,3 +1,5 @@
+// 全局 Dio 客户端构建入口。统一挂载应用标识、鉴权和日志拦截器，避免各模块各自拼网络配置。
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../platform/app_identity.dart';

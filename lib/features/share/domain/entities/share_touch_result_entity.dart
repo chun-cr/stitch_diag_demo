@@ -1,3 +1,5 @@
+// 分享落地结果实体。承接分享链接触达后台后的 inviteTicket、过期时间等返回值。
+
 class ShareTouchResultEntity {
   const ShareTouchResultEntity({
     required this.inviteTicket,

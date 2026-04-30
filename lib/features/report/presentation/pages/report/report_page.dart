@@ -51,7 +51,8 @@ typedef ReportDeleteSymptomAction =
 typedef ReportShareQrCodeLoader =
     Future<DiagnosisReportShareQrCode> Function(String reportId);
 
-// Symptom toggles stay local until an approved api/v1 persistence endpoint exists.
+// 症状勾选目前只保留在本地页面状态里。
+// 在确认可用的 api/v1 持久化接口前，这里不把勾选结果写回后端，避免产生伪保存语义。
 Future<void> _noopAddReportSymptom({
   required String reportId,
   required String symptomId,

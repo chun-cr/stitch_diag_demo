@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
+// 认证模块状态提供层：`AliyunCaptchaWebDelegate`。通过 Riverpod 向页面暴露查询、写操作和异步状态。
 
 import 'dart:async';
 import 'dart:convert';

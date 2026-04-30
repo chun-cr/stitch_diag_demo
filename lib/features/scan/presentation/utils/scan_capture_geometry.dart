@@ -1,3 +1,5 @@
+// 扫描裁剪几何工具。负责把检测框、引导框和预览视口转换成上传时真正使用的裁剪区域。
+
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
@@ -53,6 +55,8 @@ Rect buildNormalizedGuideRect(
 
 double _clamp01(double value) => value.clamp(0.0, 1.0).toDouble();
 
+/// 把检测器返回的归一化矩形映射回当前可见预览区域。
+/// 这里会同时考虑相机预览的 cover 裁切，避免页面上的框和真实截图区域对不齐。
 Rect mapNormalizedRectToViewport({
   required Rect normalizedRect,
   required Size viewportSize,
@@ -152,6 +156,7 @@ Rect buildTongueAnalysisRect({
       : clampNormalizedRect(mouthBounds);
 
   if (safeFaceBounds != Rect.zero) {
+    // 舌象上传不只要嘴部，还要尽量保留额头/下颌，给后续分析留足上下文。
     final widthCandidates = <double>[
       fallbackRect.width,
       safeFaceBounds.width * 1.56,
@@ -235,6 +240,7 @@ Rect buildFaceCaptureRect({required Rect guideRect, Rect? faceBounds}) {
       : safeGuideRect.height * 1.14;
   final targetWidth = math.max(expandedFaceRect.width, minWidth);
   final targetHeight = math.max(expandedFaceRect.height, minHeight);
+  // 人脸框会略向上提，避免额头被裁掉导致后续对齐不稳定。
   final centerY = _clamp01(
     expandedFaceRect.center.dy - math.min(safeFaceBounds.height * 0.04, 0.02),
   );
@@ -286,6 +292,7 @@ Rect buildPalmCaptureRect({required Rect guideRect, Rect? handBounds}) {
     fallbackBaseRect.height * 0.06,
   );
   final expandedHandRect = Rect.fromLTRB(
+    // 手掌裁剪需要比可视引导框更宽，才能尽量保留指尖和手腕。
     safeHandBounds.left - horizontalPadding,
     safeHandBounds.top - topPadding,
     safeHandBounds.right + horizontalPadding,

@@ -1,3 +1,5 @@
+// 面部描点图渲染器。负责把面部关键点绘制到快照上，并生成上传或调试使用的覆盖图。
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -164,6 +166,7 @@ Future<int> _writePhotoOverlayJpeg({
   );
 
   for (;;) {
+    // 先压 JPEG 质量，再退一步缩小尺寸，尽量在文件大小和可读性之间取平衡。
     for (
       var quality = _photoOverlayInitialJpegQuality;
       quality >= _photoOverlayMinJpegQuality;

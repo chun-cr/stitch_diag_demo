@@ -36,7 +36,7 @@ class _HeroPill extends StatelessWidget {
 }
 
 
-//  Shared Sub-widgets
+// 共享子组件
 
 /// 卡片容器。
 class _SectionCard extends StatelessWidget {
@@ -531,7 +531,7 @@ class _HealthRadarSectionBlockState extends State<_HealthRadarSectionBlock> {
         );
       }
     } catch (_) {
-      // Keep the miniapp's optimistic toggle behavior even if persistence fails.
+      // 保持和小程序一致的乐观切换体验：即使持久化失败，也先保留当前点击反馈。
     }
   }
 
@@ -2224,7 +2224,7 @@ class _AcuPointCard extends StatelessWidget {
   }
 }
 
-/// 椋熸潗 Chip
+/// 食材标签。
 class _FoodChip extends StatelessWidget {
   final String name;
   final String desc;
@@ -2549,7 +2549,7 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-//  Data Models
+// 数据模型
 
 class _AcuPoint {
   final String name;
@@ -2583,4 +2583,4 @@ class _SeasonData {
   });
 }
 
-//  Painters
+// 自定义绘制器

@@ -1,3 +1,5 @@
+// 扫描模块远端数据源：`ScanRemoteSource`。负责与后端接口交互，并把请求/响应细节限制在数据层内部。
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';

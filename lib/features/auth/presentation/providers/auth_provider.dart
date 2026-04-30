@@ -1,4 +1,5 @@
-// ignore_for_file: uri_does_not_exist, uri_has_not_been_generated, override_on_non_overriding_member
+// 认证模块状态提供层：`AuthProvider`。通过 Riverpod 向页面暴露查询、写操作和异步状态。
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/auth_request.dart';
 import '../../domain/entities/user_entity.dart';

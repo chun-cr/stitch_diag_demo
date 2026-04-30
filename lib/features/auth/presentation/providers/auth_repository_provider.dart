@@ -1,3 +1,5 @@
+// 认证模块状态提供层：`AuthRepositoryProvider`。通过 Riverpod 向页面暴露查询、写操作和异步状态。
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/network/dio_client.dart';
