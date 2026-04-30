@@ -128,6 +128,13 @@ class ScanCaptureBridge {
   Future<ScanCaptureResult> capture({
     required ScanCaptureTarget target,
     required ScanCaptureGuide guide,
+    int? generationId,
+    List<Offset>? landmarks,
+    Size? analysisImageSize,
+    bool? isBackCamera,
+    bool? mirrored,
+    int? timestampMs,
+    bool preferVisibleRegion = false,
   }) async {
     if (!Platform.isAndroid && !Platform.isIOS) {
       throw ScanCaptureException(
@@ -140,7 +147,28 @@ class ScanCaptureBridge {
     try {
       final payload = await _channel.invokeMapMethod<Object?, Object?>(
         'scan/capture',
-        {'stage': target.name, 'guideRect': guide.toJson()},
+        {
+          'stage': target.name,
+          'guideRect': guide.toJson(),
+          ...?((generationId == null) ? null : {'generationId': generationId}),
+          ...?((landmarks == null)
+              ? null
+              : {
+                  'landmarks': landmarks
+                      .map((point) => {'x': point.dx, 'y': point.dy, 'z': 0.0})
+                      .toList(growable: false),
+                }),
+          ...?((analysisImageSize == null)
+              ? null
+              : {
+                  'analysisImageWidth': analysisImageSize.width.round(),
+                  'analysisImageHeight': analysisImageSize.height.round(),
+                }),
+          ...?((isBackCamera == null) ? null : {'isBackCamera': isBackCamera}),
+          ...?((mirrored == null) ? null : {'mirrored': mirrored}),
+          ...?((timestampMs == null) ? null : {'timestampMs': timestampMs}),
+          if (preferVisibleRegion) 'preferVisibleRegion': true,
+        },
       );
 
       if (payload == null) {

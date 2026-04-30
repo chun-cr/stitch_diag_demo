@@ -1,6 +1,7 @@
 package com.example.stitch_diag_demo
 
 import android.content.Context
+import androidx.camera.core.ImageProxy
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -44,10 +45,7 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
             channelInstance.cameraManager.setListener { frame ->
                 when (channelInstance.cameraManager.mode) {
                     "landmark" -> {
-                        channelInstance.ensureFaceLandmarkerHelper().detect(frame) { result ->
-                            channelInstance.sendFaceEvent(result)
-                            channelInstance.sendTongueEvent(result)
-                        }
+                        channelInstance.processLandmarkFrame(frame)
                     }
                     "gesture" -> {
                         channelInstance.ensureGestureRecognizerHelper().detect(frame) { result ->
@@ -119,6 +117,7 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                     return
                 }
                 cameraManager.mode = "landmark"
+                sendTongueEvent(buildEmptyTongueEvent())
                 cameraManager.startCamera()
                 result.success(null)
             }
@@ -130,25 +129,36 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
             "tongue/stopDetection" -> {
                 cameraManager.mode = "none"
                 cameraManager.stopCamera()
-                sendTongueEvent(
-                    mapOf(
-                        "blendshapes" to emptyMap<String, Double>(),
-                        "mouthLandmarks" to emptyList<Map<String, Double>>(),
-                        "faceLandmarks" to emptyList<Map<String, Double>>(),
-                        "landmarks" to emptyList<Map<String, Double>>(),
-                        "imageWidth" to 0,
-                        "imageHeight" to 0,
-                        "mouthCenter" to null,
-                    )
-                )
+                sendTongueEvent(buildEmptyTongueEvent())
                 result.success(null)
             }
             "scan/capture" -> {
                 val stage = call.argument<String>("stage")
                 val guideRect = call.argument<Map<String, Any?>>("guideRect")
+                val generationId = call.argument<Number>("generationId")?.toLong()
+                val requestedLandmarks = parseNormalizedPoints(call.argument<List<Any?>>("landmarks"))
+                val analysisImageWidth = call.argument<Number>("analysisImageWidth")?.toInt()
+                val analysisImageHeight = call.argument<Number>("analysisImageHeight")?.toInt()
+                val isBackCamera = call.argument<Boolean>("isBackCamera")
+                val mirrored = call.argument<Boolean>("mirrored")
+                val timestampMs = call.argument<Number>("timestampMs")?.toLong()
+                val preferVisibleRegion = call.argument<Boolean>("preferVisibleRegion") == true
 
                 if (stage.isNullOrBlank()) {
                     result.error("INVALID_STAGE", "Missing capture stage", null)
+                    return
+                }
+
+                val contractError = validateCaptureGeneration(stage, generationId)
+                if (contractError != null) {
+                    result.error(
+                        contractError.code,
+                        contractError.message,
+                        mapOf(
+                            "stage" to stage,
+                            "guideRect" to guideRect,
+                        ),
+                    )
                     return
                 }
 
@@ -156,6 +166,75 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
                 if (normalizedRect == null) {
                     result.error("INVALID_GUIDE_RECT", "Missing or invalid guideRect", guideRect)
                     return
+                }
+
+                val canCaptureStoredSnapshot =
+                    generationId != null &&
+                        requestedLandmarks.isNotEmpty() &&
+                        analysisImageWidth != null &&
+                        analysisImageHeight != null &&
+                        isBackCamera != null &&
+                        mirrored != null
+
+                if (!preferVisibleRegion && canCaptureStoredSnapshot) {
+                    cameraManager.captureAcceptedFaceSnapshot(
+                        stage = stage,
+                        request = AcceptedFaceCaptureRequest(
+                            generationId = generationId,
+                            guideRect = normalizedRect,
+                            landmarks = requestedLandmarks,
+                            analysisImageWidth = analysisImageWidth,
+                            analysisImageHeight = analysisImageHeight,
+                            isBackCamera = isBackCamera,
+                            mirrored = mirrored,
+                            timestampMs = timestampMs,
+                        ),
+                        onSuccess = { payload ->
+                            (context as? MainActivity)?.runOnUiThread {
+                                result.success(payload)
+                            }
+                        },
+                        onNoSnapshot = { error ->
+                            (context as? MainActivity)?.runOnUiThread {
+                                result.error(
+                                    FACE_CAPTURE_NO_SNAPSHOT_CODE,
+                                    error,
+                                    mapOf(
+                                        "stage" to stage,
+                                        "generationId" to generationId,
+                                        "guideRect" to guideRect,
+                                    ),
+                                )
+                            }
+                        },
+                        onError = { error ->
+                            (context as? MainActivity)?.runOnUiThread {
+                                result.error("CAPTURE_FAILED", error, guideRect)
+                            }
+                        },
+                    )
+                    return
+                }
+
+                if (stage == FACE_CAPTURE_STAGE && !preferVisibleRegion) {
+                    if (
+                        requestedLandmarks.isEmpty() ||
+                        analysisImageWidth == null ||
+                        analysisImageHeight == null ||
+                        isBackCamera == null ||
+                        mirrored == null
+                    ) {
+                        result.error(
+                            FACE_CAPTURE_NO_SNAPSHOT_CODE,
+                            "Missing accepted face snapshot metadata.",
+                            mapOf(
+                                "stage" to stage,
+                                "generationId" to generationId,
+                                "guideRect" to guideRect,
+                            ),
+                        )
+                        return
+                    }
                 }
 
                 cameraManager.captureVisibleRegion(
@@ -183,6 +262,59 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
 
     override fun onCancel(arguments: Any?) {
         eventSink = null
+    }
+
+    private fun processLandmarkFrame(frame: ImageProxy) {
+        val preparedFrame = cameraManager.prepareFaceFrame(frame)
+        try {
+            val detection = ensureFaceLandmarkerHelper().detect(
+                bitmap = preparedFrame.bitmap,
+                generationId = preparedFrame.generationId,
+            )
+            if (detection.detected && detection.landmarks.isNotEmpty()) {
+                cameraManager.storeFaceSnapshot(
+                    FaceCaptureSnapshot(
+                        generationId = detection.generationId,
+                        timestampMs = preparedFrame.timestampMs,
+                        frameSource = preparedFrame.bitmap,
+                        imageWidth = preparedFrame.imageWidth,
+                        imageHeight = preparedFrame.imageHeight,
+                        isBackCamera = preparedFrame.isBackCamera,
+                        mirrored = preparedFrame.mirrored,
+                        landmarks = detection.landmarks.mapNotNull(::normalizedPointFromPayload),
+                    ),
+                )
+            } else if (!preparedFrame.bitmap.isRecycled) {
+                preparedFrame.bitmap.recycle()
+            }
+
+            val event = detection.toEventPayload(
+                timestampMs = preparedFrame.timestampMs,
+                isBackCamera = preparedFrame.isBackCamera,
+                mirrored = preparedFrame.mirrored,
+            )
+            sendFaceEvent(event)
+            sendTongueEvent(event)
+        } catch (error: Exception) {
+            if (!preparedFrame.bitmap.isRecycled) {
+                preparedFrame.bitmap.recycle()
+            }
+            val errorEvent = mapOf(
+                "detected" to false,
+                "generationId" to preparedFrame.generationId,
+                "timestampMs" to preparedFrame.timestampMs,
+                "isBackCamera" to preparedFrame.isBackCamera,
+                "mirrored" to preparedFrame.mirrored,
+                "landmarks" to emptyList<Map<String, Double>>(),
+                "blendshapes" to emptyMap<String, Double>(),
+                "imageWidth" to preparedFrame.imageWidth,
+                "imageHeight" to preparedFrame.imageHeight,
+                "mouthLandmarks" to emptyList<Map<String, Double>>(),
+                "mouthCenter" to null,
+            )
+            sendFaceEvent(errorEvent)
+            sendTongueEvent(errorEvent)
+        }
     }
 
     private fun sendFaceEvent(data: Map<String, Any?>) {
@@ -223,6 +355,18 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
         (context as? MainActivity)?.runOnUiThread {
             tongueEventSink?.success(tonguePayload)
         }
+    }
+
+    private fun buildEmptyTongueEvent(): Map<String, Any?> {
+        return mapOf(
+            "blendshapes" to emptyMap<String, Double>(),
+            "mouthLandmarks" to emptyList<Map<String, Double>>(),
+            "faceLandmarks" to emptyList<Map<String, Double>>(),
+            "landmarks" to emptyList<Map<String, Double>>(),
+            "imageWidth" to 0,
+            "imageHeight" to 0,
+            "mouthCenter" to null,
+        )
     }
 
     private fun ensureFaceLandmarkerHelper(): FaceLandmarkerHelper {
@@ -286,5 +430,23 @@ class FaceScanChannel(private val context: Context) : MethodChannel.MethodCallHa
             width = width,
             height = height,
         )
+    }
+
+    private fun parseNormalizedPoints(raw: List<Any?>?): List<NormalizedPoint> {
+        if (raw == null) {
+            return emptyList()
+        }
+
+        return raw.mapNotNull { item ->
+            normalizedPointFromPayload(item)
+        }
+    }
+
+    private fun normalizedPointFromPayload(raw: Any?): NormalizedPoint? {
+        val map = raw as? Map<*, *> ?: return null
+        val x = (map["x"] as? Number)?.toDouble() ?: return null
+        val y = (map["y"] as? Number)?.toDouble() ?: return null
+        val z = (map["z"] as? Number)?.toDouble()
+        return NormalizedPoint(x = x, y = y, z = z)
     }
 }

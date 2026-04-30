@@ -71,34 +71,31 @@ void main() {
     );
 
     test(
-      'accepts nearly straight open palm at score 0.50 without native flags',
+      'accepts nearly straight open palm at score 0.58 without native flags',
       () {
         const status = PalmScanStatus(
           handPresent: true,
           gestureDetected: false,
           handStraight: false,
           gestureName: 'Open_Palm',
-          score: 0.50,
+          score: 0.58,
         );
 
         expect(status.readyToScan, isTrue);
       },
     );
 
-    test(
-      'rejects open palm below score 0.50 when native flags are absent',
-      () {
-        const status = PalmScanStatus(
-          handPresent: true,
-          gestureDetected: false,
-          handStraight: false,
-          gestureName: 'Open_Palm',
-          score: 0.49,
-        );
+    test('rejects open palm below score 0.58 when native flags are absent', () {
+      const status = PalmScanStatus(
+        handPresent: true,
+        gestureDetected: false,
+        handStraight: false,
+        gestureName: 'Open_Palm',
+        score: 0.57,
+      );
 
-        expect(status.readyToScan, isFalse);
-      },
-    );
+      expect(status.readyToScan, isFalse);
+    });
 
     test('keeps detecting stage visible before any hand is present', () {
       final stage = resolvePalmScanFeedbackStage(
@@ -209,22 +206,19 @@ void main() {
   });
 
   group('shouldTrackPalmHold', () {
-    test(
-      'starts hold with relaxed framing when palm is ready',
-      () {
-        expect(
-          shouldTrackPalmHold(
-            holdInProgress: false,
-            handPresent: true,
-            readyToScan: true,
-            isFramed: false,
-            isRelaxedFramed: true,
-            pauseAutoScanUntilReset: false,
-          ),
-          isTrue,
-        );
-      },
-    );
+    test('starts hold with relaxed framing when palm is ready', () {
+      expect(
+        shouldTrackPalmHold(
+          holdInProgress: false,
+          handPresent: true,
+          readyToScan: true,
+          isFramed: false,
+          isRelaxedFramed: true,
+          pauseAutoScanUntilReset: false,
+        ),
+        isTrue,
+      );
+    });
 
     test('does not start hold outside relaxed framing', () {
       expect(
@@ -240,19 +234,22 @@ void main() {
       );
     });
 
-    test('does not start hold under relaxed framing when palm is not ready', () {
-      expect(
-        shouldTrackPalmHold(
-          holdInProgress: false,
-          handPresent: true,
-          readyToScan: false,
-          isFramed: false,
-          isRelaxedFramed: true,
-          pauseAutoScanUntilReset: false,
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'does not start hold under relaxed framing when palm is not ready',
+      () {
+        expect(
+          shouldTrackPalmHold(
+            holdInProgress: false,
+            handPresent: true,
+            readyToScan: false,
+            isFramed: false,
+            isRelaxedFramed: true,
+            pauseAutoScanUntilReset: false,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test(
       'keeps hold alive with relaxed framing once countdown has started and palm stays ready',
@@ -320,6 +317,38 @@ void main() {
     });
   });
 
+  group('shouldShowPalmProgressFeedback', () {
+    test('shows progress while ready-to-hold countdown is active', () {
+      expect(
+        shouldShowPalmProgressFeedback(
+          scanState: PalmScanState.scanning,
+          readyToScan: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps progress visible while palm upload is running', () {
+      expect(
+        shouldShowPalmProgressFeedback(
+          scanState: PalmScanState.uploading,
+          readyToScan: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('hides progress before the palm is ready', () {
+      expect(
+        shouldShowPalmProgressFeedback(
+          scanState: PalmScanState.scanning,
+          readyToScan: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('isPalmFramedForUploadBounds', () {
     const guideRect = Rect.fromLTWH(0.15, 0.05, 0.70, 0.90);
 
@@ -339,17 +368,20 @@ void main() {
       },
     );
 
-    test('still rejects a palm that is too close even under relaxed framing', () {
-      const bounds = Rect.fromLTRB(0.17, 0.06, 0.70, 0.83);
+    test(
+      'still rejects a palm that is too close even under relaxed framing',
+      () {
+        const bounds = Rect.fromLTRB(0.17, 0.06, 0.70, 0.83);
 
-      expect(
-        isPalmFramedForUploadBounds(
-          bounds: bounds,
-          guideRect: guideRect,
-          allowHoldDrift: true,
-        ),
-        isFalse,
-      );
-    });
+        expect(
+          isPalmFramedForUploadBounds(
+            bounds: bounds,
+            guideRect: guideRect,
+            allowHoldDrift: true,
+          ),
+          isFalse,
+        );
+      },
+    );
   });
 }

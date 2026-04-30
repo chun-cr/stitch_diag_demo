@@ -43,7 +43,7 @@ class FaceDetectionHelper(private val context: Context) {
 
     fun detect(imageProxy: ImageProxy, callback: (Map<String, Any?>) -> Unit) {
         resultCallback = callback
-        val bitmap = imageProxy.toBitmap()
+        val bitmap = imageProxy.toRgbBitmap()
         val matrix = Matrix().apply { postRotate(imageProxy.imageInfo.rotationDegrees.toFloat()) }
         val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 

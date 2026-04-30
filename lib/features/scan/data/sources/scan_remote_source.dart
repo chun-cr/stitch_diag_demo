@@ -108,6 +108,10 @@ class ScanRemoteSource {
   Future<ScanFaceUploadResult> uploadFace({
     required String faceFilePath,
     String? faceFrameFilePath,
+    int? tenantId,
+    int? topOrgId,
+    int? storeId,
+    int? clinicId,
     ProgressCallback? onSendProgress,
   }) async {
     const path = '/api/v1/saas/mobile/ai/diagnosis/upload/face';
@@ -115,6 +119,12 @@ class ScanRemoteSource {
       stage: 'face',
       path: path,
       data: FormData.fromMap({
+        ..._buildTenantContextFields(
+          tenantId: tenantId,
+          topOrgId: topOrgId,
+          storeId: storeId,
+          clinicId: clinicId,
+        ),
         'faceFile': await MultipartFile.fromFile(
           faceFilePath,
           filename: _fileName(faceFilePath),
@@ -135,6 +145,10 @@ class ScanRemoteSource {
     required ScanFaceUploadResult faceUpload,
     int imageType = 1,
     String source = reportSource,
+    int? tenantId,
+    int? topOrgId,
+    int? storeId,
+    int? clinicId,
     ProgressCallback? onSendProgress,
   }) async {
     const path = '/api/v1/saas/mobile/ai/diagnosis/upload';
@@ -146,6 +160,12 @@ class ScanRemoteSource {
         'imageType': imageType,
         'genReportFlag': '1',
         'finishedFlag': '0',
+        ..._buildTenantContextFields(
+          tenantId: tenantId,
+          topOrgId: topOrgId,
+          storeId: storeId,
+          clinicId: clinicId,
+        ),
         'faceData': faceUpload.toTongueFaceDataJson(),
         'imageFile': await MultipartFile.fromFile(
           imageFilePath,
@@ -213,7 +233,7 @@ class ScanRemoteSource {
         path: path,
         error: error,
       );
-      AppLogger.log('Scan upload failed: ${exception.debugDescription}');
+      AppLogger.network('Scan upload failed: ${exception.debugDescription}');
       throw exception;
     }
   }
@@ -282,5 +302,26 @@ class ScanRemoteSource {
       return Map<String, dynamic>.from(value);
     }
     return null;
+  }
+
+  Map<String, dynamic> _buildTenantContextFields({
+    required int? tenantId,
+    required int? topOrgId,
+    required int? storeId,
+    required int? clinicId,
+  }) {
+    return <String, dynamic>{
+      ...?_singleTenantContextField('tenantId', tenantId),
+      ...?_singleTenantContextField('topOrgId', topOrgId),
+      ...?_singleTenantContextField('storeId', storeId),
+      ...?_singleTenantContextField('clinicId', clinicId),
+    };
+  }
+
+  Map<String, dynamic>? _singleTenantContextField(String key, int? value) {
+    if (value == null) {
+      return null;
+    }
+    return <String, dynamic>{key: value};
   }
 }

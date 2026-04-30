@@ -1,18 +1,10 @@
-﻿// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-// 淇璇存槑锛堜繚鐣欏師鏈夋墍鏈?bug-fix 閫昏緫锛屽彧閲嶅仛 UI锛?
-//
-// UI 鏋舵瀯锛氫笁灞傚垎鍓?
-//   椤堕儴寮曞鍗? 鈫?鐧借壊鍦嗚鍗＄墖锛堟楠ゆ寚绀哄櫒 + 鏍囬 + 涓尰璇存槑鏉★級
-//   涓棿鎷嶆憚鍖? 鈫?鐩告満棰勮 + 鑸屽舰鎵弿妗嗭紙鍙ｅ舰妞渾锛?
-//   搴曢儴鎻愮ず鍗? 鈫?鐧借壊鍦嗚鍗＄墖锛圱ips + 涓绘搷浣滄寜閽?+ 璺宠繃锛?
-//
-// 椋庢牸涓?scan_guide_page.dart 淇濇寔涓€鑷达細
-//   鑳屾櫙鑹?0xFFF4F1EB锛堝绾哥背鑹诧級銆佺豢鑹蹭綋绯汇€佺櫧鑹插崱鐗囥€佸井闃村奖
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+// 舌诊扫描页。
+// 保留现有扫描与上传逻辑，只整理页面结构与样式相关实现。
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -30,18 +22,23 @@ import '../services/scan_capture_bridge.dart';
 import '../services/tongue_scan_status_bridge.dart';
 import '../utils/scan_capture_geometry.dart';
 import '../utils/scan_debug_error_dialog.dart';
+import '../utils/scan_upload_tenant_context.dart';
 import '../widgets/camera_preview_widget.dart';
 import '../widgets/scan_step_indicator.dart';
 
-// 鈹€鈹€ 鎵弿鐘舵€佹灇涓撅紙鍘熷畾涔夊湪 scan_frame.dart锛屾澶勭嫭绔嬪０鏄庯級
+// 扫描状态枚举。
 enum ScanState { idle, scanning, uploading, completed }
 
 bool isTongueHoldEligible({
+  required bool protrusionCandidate,
   required bool protrusionConfirmed,
   required bool isFramed,
   required bool pauseAutoScanUntilReset,
 }) {
-  return protrusionConfirmed && isFramed && !pauseAutoScanUntilReset;
+  return protrusionCandidate &&
+      protrusionConfirmed &&
+      isFramed &&
+      !pauseAutoScanUntilReset;
 }
 
 bool shouldKeepTongueHoldAlive({
@@ -71,6 +68,7 @@ bool shouldTrackTongueHold({
   }
 
   return isTongueHoldEligible(
+    protrusionCandidate: protrusionCandidate,
     protrusionConfirmed: protrusionConfirmed,
     isFramed: isFramed,
     pauseAutoScanUntilReset: pauseAutoScanUntilReset,
@@ -104,9 +102,8 @@ List<String> describeTongueScanBlockers({
   return blockers.isEmpty ? const ['hold_ready'] : blockers;
 }
 
-// 鈹€鈹€ 棰滆壊锛堣垖璞＄敤鍋忔殩鐨勭帿鐟扮豢锛屽吋瀹圭背鑹茶儗鏅級
 const _kAccent = Color(0xFF0D7A5A); // 涓诲己璋冭壊
-const _kAccentLight = Color(0xFF3DAB78); // 鎸夐挳娓愬彉浜
+const _kAccentLight = Color(0xFF3DAB78);
 const _kBgColor = Color(0xFFF4F1EB); // 瀹ｇ焊绫宠壊
 
 class TongueScanPage extends StatefulWidget {
@@ -141,11 +138,12 @@ class _TongueScanPageState extends State<TongueScanPage>
   bool _cameraReady = false;
   bool _mouthPresent = false;
   bool _holdEligible = false;
+  bool _stopMonitoringOnDispose = true;
   bool _pauseAutoScanUntilReset = false;
   double _scanProgress = 0;
   ScanState _scanState = ScanState.idle;
   Size _cameraViewportSize = Size.zero;
-  String _mouthDirection = ''; // 鏂瑰悜鎻愮ず
+  String _mouthDirection = ''; // 方向提示
 
   Rect get _tongueGuideRectNormalized => buildNormalizedGuideRect(
     _cameraViewportSize,
@@ -214,6 +212,8 @@ class _TongueScanPageState extends State<TongueScanPage>
       _holdEligible = false;
       _pauseAutoScanUntilReset = false;
       _scanProgress = 0;
+      _mouthDirection = '';
+      _latestStatus = const TongueScanStatus(mouthLandmarkCount: 0);
     });
     await _startMonitoringWhenReady();
   }
@@ -230,6 +230,8 @@ class _TongueScanPageState extends State<TongueScanPage>
       _mouthPresent = false;
       _holdEligible = false;
       _pauseAutoScanUntilReset = false;
+      _mouthDirection = '';
+      _latestStatus = const TongueScanStatus(mouthLandmarkCount: 0);
     });
     await _startMonitoringWhenReady();
   }
@@ -293,6 +295,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       _pauseAutoScanUntilReset = false;
     }
     final canHold = isTongueHoldEligible(
+      protrusionCandidate: status.protrusionCandidate,
       protrusionConfirmed: status.protrusionConfirmed,
       isFramed: isFramed,
       pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
@@ -387,7 +390,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
-  /// 鏍规嵁鍢撮儴涓績锛堝凡褰掍竴鍖栵級0~1 璁＄畻鍋忕Щ鏂瑰悜
+  /// 根据口部中心（归一化坐标 0~1）计算偏移方向。
   String _computeMouthDirection(Offset? center) {
     if (center == null) return '';
     final l10n = context.l10n;
@@ -427,6 +430,7 @@ class _TongueScanPageState extends State<TongueScanPage>
     if (!mounted || _scanState == ScanState.uploading) {
       return;
     }
+    final providerContainer = ProviderScope.containerOf(context, listen: false);
 
     setState(() {
       _scanState = ScanState.uploading;
@@ -438,6 +442,16 @@ class _TongueScanPageState extends State<TongueScanPage>
       final capture = await _captureBridge.capture(
         target: ScanCaptureTarget.tongue,
         guide: _captureGuideFromRect(analysisRect),
+        generationId: _latestStatus.generationId,
+        landmarks: _latestStatus.faceLandmarks.isEmpty
+            ? null
+            : _latestStatus.faceLandmarks,
+        analysisImageSize: _latestStatus.analysisImageSize == Size.zero
+            ? null
+            : _latestStatus.analysisImageSize,
+        isBackCamera: _latestStatus.isBackCamera,
+        mirrored: _latestStatus.mirrored,
+        timestampMs: _latestStatus.timestampMs,
       );
       if (!mounted) {
         return;
@@ -454,10 +468,23 @@ class _TongueScanPageState extends State<TongueScanPage>
       if (faceUpload == null) {
         throw StateError('缺少面诊结果，请重新开始扫描。');
       }
+      final uploadTenantContext =
+          await loadScanUploadTenantContextFromContainer(providerContainer);
+      if (!mounted) {
+        return;
+      }
+      AppLogger.log(
+        'Tongue upload tenant context: '
+        '${describeScanUploadTenantContext(uploadTenantContext)}',
+      );
 
       final tongueUpload = await _scanRemoteSource.uploadTongue(
         imageFilePath: capture.croppedPath,
         faceUpload: faceUpload,
+        tenantId: uploadTenantContext.tenantId,
+        topOrgId: uploadTenantContext.topOrgId,
+        storeId: uploadTenantContext.storeId,
+        clinicId: uploadTenantContext.clinicId,
         onSendProgress: (sent, total) {
           if (!mounted) {
             return;
@@ -481,11 +508,7 @@ class _TongueScanPageState extends State<TongueScanPage>
         setState(() {
           _scanState = ScanState.scanning;
         });
-        showAppToast(
-          context,
-          '未检测到清晰舌象，请重新扫描。',
-          kind: AppToastKind.info,
-        );
+        showAppToast(context, '未检测到清晰舌象，请重新扫描。', kind: AppToastKind.info);
         return;
       }
 
@@ -508,13 +531,18 @@ class _TongueScanPageState extends State<TongueScanPage>
       setState(() {
         _scanState = ScanState.scanning;
       });
-      await showScanDebugErrorDialog(context, title: '鑸岃薄涓婁紶澶辫触', error: error);
+      await showScanDebugErrorDialog(
+        context,
+        title: context.l10n.scanTongueUploadFailedTitle,
+        error: error,
+      );
     }
   }
 
   Future<void> _navigateToPalmScan() async {
     await Future<void>.delayed(_postSuccessDelay);
     if (!mounted) return;
+    _stopMonitoringOnDispose = false;
     _statusSubscription?.cancel();
     _statusSubscription = null;
     await _statusBridge.stopMonitoring();
@@ -537,11 +565,11 @@ class _TongueScanPageState extends State<TongueScanPage>
     _breatheCtrl.dispose();
     _statusSubscription?.cancel();
     _statusSubscription = null;
-    unawaited(_statusBridge.stopMonitoring());
+    if (_stopMonitoringOnDispose) {
+      unawaited(_statusBridge.stopMonitoring());
+    }
     super.dispose();
   }
-
-  // 鈹€鈹€ 鏂囨璁＄畻 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   String get _statusLabel {
     final l10n = context.l10n;
@@ -553,8 +581,6 @@ class _TongueScanPageState extends State<TongueScanPage>
     if (_mouthPresent) return l10n.scanTongueMouthDetected;
     return l10n.scanTongueAlignHint;
   }
-
-  // 鈹€鈹€鈹€ Build 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   @override
   Widget build(BuildContext context) {
@@ -578,8 +604,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       ),
     );
   }
-
-  // 鈹€鈹€鈹€ 椤堕儴寮曞鍗?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   Widget _buildTopGuideCard() {
     final l10n = context.l10n;
@@ -639,7 +663,7 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
           Divider(height: 1, color: _kAccent.withValues(alpha: 0.08)),
-          // 鏍囬琛?
+          // 标题行。
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
             child: Row(
@@ -740,7 +764,6 @@ class _TongueScanPageState extends State<TongueScanPage>
               ],
             ),
           ),
-          // 搴曢儴璇存槑鏉?
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
@@ -775,17 +798,15 @@ class _TongueScanPageState extends State<TongueScanPage>
     );
   }
 
-  // 鈹€鈹€鈹€ 涓棿鎷嶆憚鍖?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-
   Widget _buildCameraArea() {
     return LayoutBuilder(
       builder: (context, constraints) {
         _cameraViewportSize = constraints.biggest;
         final cx = constraints.maxWidth / 2;
         final tongueFrameAlignmentY = _tongueGuideAlignment.y;
-        // 灏嗗渾褰?camera 瑙嗕綔鏁村紶鑴革紝鍦嗗績杞诲井涓嬬Щ锛岀粰鍙ｉ蓟鍖哄煙鐣欏嚭鏇磋嚜鐒剁殑浣嶇疆
+        // 将圆形相机视口略微下移，给口鼻区域留出更自然的位置。
         final cy = constraints.maxHeight / 2 + constraints.maxHeight * 0.03;
-        // 缂╁皬鍦嗗湀鍗婂緞
+        // 缩小圆形半径。
         final radius = constraints.maxWidth * 0.36;
 
         return Stack(
@@ -858,7 +879,6 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
 
-          // 绮惧噯鍖?(鍐呭眰) 甯︽湁鍛煎惛鍔ㄧ敾鍙婂榻愬悗鍙嶉
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _breatheAnim,
@@ -942,8 +962,6 @@ class _TongueScanPageState extends State<TongueScanPage>
       ),
     );
   }
-
-  // 鈹€鈹€鈹€ 搴曢儴鎻愮ず鍗?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   Widget _buildBottomCard() {
     final l10n = context.l10n;
@@ -1070,8 +1088,6 @@ class _TongueScanPageState extends State<TongueScanPage>
   }
 }
 
-// 鈹€鈹€ 杩涘害鏉?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-
 class _ScanProgressBar extends StatelessWidget {
   final double progress;
   const _ScanProgressBar({required this.progress});
@@ -1107,8 +1123,6 @@ class _ScanProgressBar extends StatelessWidget {
     ],
   );
 }
-
-// 鈹€鈹€ 鍏辩敤灏忕粍浠?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _TipItem extends StatelessWidget {
   final IconData icon;
@@ -1181,8 +1195,6 @@ class _StatusPill extends StatelessWidget {
   );
 }
 
-// 鈹€鈹€ 鑳屾櫙鐢诲竷锛堜笌 scan_guide_page 瀹屽叏涓€鑷达級鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-
 class _BgPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -1229,8 +1241,6 @@ class _BgPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter _) => false;
 }
-
-// 鈹€鈹€ 鑸岀姸鎵弿鐩稿叧 Painter 鍙?Widget 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _CircleMask extends StatelessWidget {
   final Offset center;
@@ -1368,8 +1378,6 @@ class _BionicTonguePainter extends CustomPainter {
   bool shouldRepaint(_BionicTonguePainter old) => true;
 }
 
-// 鈹€鈹€ 鏂瑰悜寮曞姘旀场 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-
 class _TongueDirectionPill extends StatelessWidget {
   final String direction;
   const _TongueDirectionPill({required this.direction});
@@ -1405,4 +1413,3 @@ class _TongueDirectionPill extends StatelessWidget {
     );
   }
 }
-

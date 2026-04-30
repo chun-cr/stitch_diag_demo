@@ -10,10 +10,7 @@ class AppIdentityInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     if (options.extra[DioClient.skipPlatformHeadersExtraKey] == true) {
-      options.headers.remove('X-App-Id');
       options.headers.remove('X-Platform');
-      handler.next(options);
-      return;
     }
 
     options.headers['X-App-Id'] = await AppIdentity.initialize();

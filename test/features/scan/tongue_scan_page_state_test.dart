@@ -146,20 +146,40 @@ void main() {
   });
 
   group('isTongueHoldEligible', () {
-    test('returns true only when confirmed, framed, and not paused', () {
-      expect(
-        isTongueHoldEligible(
-          protrusionConfirmed: true,
-          isFramed: true,
-          pauseAutoScanUntilReset: false,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'returns true only when the current frame is a candidate, confirmed, framed, and not paused',
+      () {
+        expect(
+          isTongueHoldEligible(
+            protrusionCandidate: true,
+            protrusionConfirmed: true,
+            isFramed: true,
+            pauseAutoScanUntilReset: false,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'returns false when the current frame is not a protrusion candidate',
+      () {
+        expect(
+          isTongueHoldEligible(
+            protrusionCandidate: false,
+            protrusionConfirmed: true,
+            isFramed: true,
+            pauseAutoScanUntilReset: false,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('returns false when protrusion is not confirmed', () {
       expect(
         isTongueHoldEligible(
+          protrusionCandidate: true,
           protrusionConfirmed: false,
           isFramed: true,
           pauseAutoScanUntilReset: false,
@@ -171,6 +191,7 @@ void main() {
     test('returns false when mouth is not framed', () {
       expect(
         isTongueHoldEligible(
+          protrusionCandidate: true,
           protrusionConfirmed: true,
           isFramed: false,
           pauseAutoScanUntilReset: false,
@@ -182,6 +203,7 @@ void main() {
     test('returns false while auto scan is paused after upload failure', () {
       expect(
         isTongueHoldEligible(
+          protrusionCandidate: true,
           protrusionConfirmed: true,
           isFramed: true,
           pauseAutoScanUntilReset: true,

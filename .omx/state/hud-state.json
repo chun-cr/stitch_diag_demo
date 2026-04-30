@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-04-29T07:43:29.962Z",
-  "turn_count": 324,
-  "last_progress_at": "2026-04-29T07:43:29.962Z",
-  "last_agent_output": "共识方案已经收敛并通过复核了。结论不是先去大改 UI，也不是只调阈值，而是把安卓的人脸上传改成“像 iOS 一样基于一次冻结的有效快照上传”，先解决两处真正的不稳定点：\n\n1. 在 Flutter 侧"
+  "last_turn_at": "2026-04-30T02:32:20.210Z",
+  "turn_count": 348,
+  "last_progress_at": "2026-04-30T02:32:20.210Z",
+  "last_agent_output": "这次 `400` 已经定位清楚了：不是字段名错，而是后端在 `2026-04-30` 返回了 `details:[\"Maximum upload size exceeded\"]`，也就是上传体积超限。"
 }

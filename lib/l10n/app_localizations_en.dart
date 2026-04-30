@@ -2809,4 +2809,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reportAdviceProductDisclaimer =>
       'These product suggestions are based on the constitution analysis and are for reference only. Use patent medicines under the guidance of a physician or pharmacist.';
+
+  @override
+  String get scanFaceUploadFailedTitle => 'Face upload failed';
+
+  @override
+  String get scanTongueUploadFailedTitle => 'Tongue upload failed';
 }

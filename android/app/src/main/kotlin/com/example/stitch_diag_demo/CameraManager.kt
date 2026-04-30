@@ -2,8 +2,16 @@ package com.example.stitch_diag_demo
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.graphics.Rect
-import androidx.camera.core.*
+import android.os.SystemClock
+import android.util.Log
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.StandardMessageCodec
@@ -13,7 +21,21 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.Executors
 
+data class PreparedFaceFrame(
+    val generationId: Long,
+    val timestampMs: Long,
+    val bitmap: Bitmap,
+    val imageWidth: Int,
+    val imageHeight: Int,
+    val isBackCamera: Boolean,
+    val mirrored: Boolean,
+)
+
 class CameraManager(private val context: Context) {
+    companion object {
+        private const val TAG = "CameraManager"
+    }
+
     var mode: String = "none"
     private var cameraProviderFuture = ProcessCameraProvider.getInstance(context)
     private var analysisUseCase: ImageAnalysis? = null
@@ -21,24 +43,22 @@ class CameraManager(private val context: Context) {
     private var imageCapture: ImageCapture? = null
     private var listener: ((ImageProxy) -> Unit)? = null
     private var lastPreviewView: androidx.camera.view.PreviewView? = null
-
-    // Executor for image processing
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
+    private val faceSnapshots = FaceCaptureSnapshotStore<Bitmap>()
+
+    private var currentSelector: CameraSelector? = null
+    private var isCameraToggled = false
 
     fun hasCameraPermission(): Boolean {
-        return androidx.core.content.ContextCompat.checkSelfPermission(
+        return ContextCompat.checkSelfPermission(
             context,
-            android.Manifest.permission.CAMERA
+            android.Manifest.permission.CAMERA,
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
     fun setListener(l: (ImageProxy) -> Unit) {
-        this.listener = l
+        listener = l
     }
-
-    private var currentSelector: CameraSelector? = null
-
-    private var isCameraToggled = false
 
     fun toggleCamera() {
         isCameraToggled = !isCameraToggled
@@ -46,7 +66,7 @@ class CameraManager(private val context: Context) {
     }
 
     private fun applyPreviewTransform() {
-        // CameraX PreviewView automatically handles mirroring for the front camera.
+        // CameraX PreviewView already applies front-camera mirroring.
         lastPreviewView?.scaleX = 1f
     }
 
@@ -54,16 +74,25 @@ class CameraManager(private val context: Context) {
         cameraProviderFuture.addListener({
             try {
                 val cameraProvider = cameraProviderFuture.get()
-
                 val cameraSelector = if (mode == "gesture") {
-                    if (isCameraToggled) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+                    if (isCameraToggled) {
+                        CameraSelector.DEFAULT_FRONT_CAMERA
+                    } else {
+                        CameraSelector.DEFAULT_BACK_CAMERA
+                    }
                 } else {
-                    if (isCameraToggled) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
+                    if (isCameraToggled) {
+                        CameraSelector.DEFAULT_BACK_CAMERA
+                    } else {
+                        CameraSelector.DEFAULT_FRONT_CAMERA
+                    }
                 }
 
-                // 核心：防止重复绑定导致抖动。
-                if (currentSelector == cameraSelector && preview != null && cameraProvider.isBound(preview!!)) {
-                    android.util.Log.d("CameraManager", "Camera already bound, skipping to prevent jitter.")
+                if (
+                    currentSelector == cameraSelector &&
+                    preview != null &&
+                    cameraProvider.isBound(preview!!)
+                ) {
                     applyPreviewTransform()
                     return@addListener
                 }
@@ -85,8 +114,11 @@ class CameraManager(private val context: Context) {
                     .build()
 
                 analysisUseCase?.setAnalyzer(backgroundExecutor) { imageProxy ->
-                    listener?.invoke(imageProxy)
-                    imageProxy.close()
+                    try {
+                        listener?.invoke(imageProxy)
+                    } finally {
+                        imageProxy.close()
+                    }
                 }
 
                 cameraProvider.unbindAll()
@@ -95,15 +127,15 @@ class CameraManager(private val context: Context) {
                     cameraSelector,
                     preview,
                     analysisUseCase,
-                    imageCapture
+                    imageCapture,
                 )
-                
+
                 lastPreviewView?.let { previewView ->
                     preview?.setSurfaceProvider(previewView.surfaceProvider)
                     applyPreviewTransform()
                 }
-            } catch (exc: Exception) {
-                android.util.Log.e("CameraManager", "Start camera failed", exc)
+            } catch (error: Exception) {
+                Log.e(TAG, "Start camera failed.", error)
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -112,15 +144,19 @@ class CameraManager(private val context: Context) {
         try {
             val cameraProvider = cameraProviderFuture.get()
             cameraProvider.unbindAll()
+            analysisUseCase = null
+            preview = null
             imageCapture = null
             currentSelector = null
+            clearFaceSnapshots()
             if (resetToggle) {
                 isCameraToggled = false
             }
-        } catch (exc: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 
-    fun takePhoto(outputFile: java.io.File, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+    fun takePhoto(outputFile: File, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
         val capture = imageCapture ?: run {
             onError("ImageCapture not ready")
             return
@@ -138,7 +174,7 @@ class CameraManager(private val context: Context) {
                 override fun onError(exception: ImageCaptureException) {
                     onError(exception.message ?: "Capture failed")
                 }
-            }
+            },
         )
     }
 
@@ -150,6 +186,119 @@ class CameraManager(private val context: Context) {
     fun setMirrorPreview(enabled: Boolean) {
         lastPreviewView?.let { previewView ->
             previewView.scaleX = if (enabled) -1f else 1f
+        }
+    }
+
+    fun prepareFaceFrame(imageProxy: ImageProxy): PreparedFaceFrame {
+        val rotatedBitmap = buildRotatedBitmap(imageProxy)
+        val generationId = SystemClock.elapsedRealtimeNanos() / 1_000_000L
+        val timestampMs = System.currentTimeMillis()
+        val isBackCamera = isBackCameraSelected()
+        return PreparedFaceFrame(
+            generationId = generationId,
+            timestampMs = timestampMs,
+            bitmap = rotatedBitmap,
+            imageWidth = rotatedBitmap.width,
+            imageHeight = rotatedBitmap.height,
+            isBackCamera = isBackCamera,
+            mirrored = !isBackCamera,
+        )
+    }
+
+    fun storeFaceSnapshot(snapshot: FaceCaptureSnapshot<Bitmap>) {
+        val evictedSnapshots = faceSnapshots.put(snapshot)
+        evictedSnapshots.forEach(::recycleSnapshot)
+    }
+
+    fun captureAcceptedFaceSnapshot(
+        stage: String,
+        request: AcceptedFaceCaptureRequest,
+        onSuccess: (Map<String, Any>) -> Unit,
+        onNoSnapshot: (String) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val snapshot = faceSnapshots.acquire(request.generationId)
+        if (snapshot == null) {
+            onNoSnapshot("No accepted face snapshot for generationId=${request.generationId}")
+            return
+        }
+
+        backgroundExecutor.execute {
+            try {
+                val (acceptedSnapshot, validationError) = resolveAcceptedFaceCaptureSnapshot(
+                    snapshot = snapshot,
+                    request = request,
+                )
+                if (validationError != null || acceptedSnapshot == null) {
+                    onNoSnapshot(
+                        validationError?.message
+                            ?: "Accepted face snapshot capture validation failed.",
+                    )
+                    return@execute
+                }
+
+                val cropRect = acceptedSnapshot.guideRect.toPixelRect(
+                    width = acceptedSnapshot.analysisImageWidth,
+                    height = acceptedSnapshot.analysisImageHeight,
+                )
+                val croppedBitmap = Bitmap.createBitmap(
+                    acceptedSnapshot.frameSource,
+                    cropRect.left,
+                    cropRect.top,
+                    cropRect.width(),
+                    cropRect.height(),
+                )
+                val sourceBitmapForUpload = mirrorBitmapIfNeeded(
+                    bitmap = acceptedSnapshot.frameSource,
+                    mirrored = acceptedSnapshot.mirrored,
+                )
+                val croppedBitmapForUpload = mirrorBitmapIfNeeded(
+                    bitmap = croppedBitmap,
+                    mirrored = acceptedSnapshot.mirrored,
+                )
+
+                val fileTimestamp = acceptedSnapshot.timestampMs
+                val sourceFile = File(context.cacheDir, "${stage}_source_$fileTimestamp.jpg")
+                val cropFile = File(context.cacheDir, "${stage}_crop_$fileTimestamp.jpg")
+
+                try {
+                    saveBitmap(sourceBitmapForUpload, sourceFile)
+                    saveBitmap(croppedBitmapForUpload, cropFile)
+                } finally {
+                    if (sourceBitmapForUpload !== acceptedSnapshot.frameSource &&
+                        !sourceBitmapForUpload.isRecycled
+                    ) {
+                        sourceBitmapForUpload.recycle()
+                    }
+                    if (croppedBitmapForUpload !== croppedBitmap &&
+                        !croppedBitmapForUpload.isRecycled
+                    ) {
+                        croppedBitmapForUpload.recycle()
+                    }
+                    if (!croppedBitmap.isRecycled) {
+                        croppedBitmap.recycle()
+                    }
+                }
+
+                onSuccess(
+                    buildScanCapturePayload(
+                        stage = stage,
+                        sourcePath = sourceFile.absolutePath,
+                        croppedPath = cropFile.absolutePath,
+                        framePath = sourceFile.absolutePath,
+                        sourceWidth = acceptedSnapshot.analysisImageWidth,
+                        sourceHeight = acceptedSnapshot.analysisImageHeight,
+                        cropLeft = cropRect.left,
+                        cropTop = cropRect.top,
+                        cropWidth = cropRect.width(),
+                        cropHeight = cropRect.height(),
+                    ),
+                )
+            } catch (error: Exception) {
+                onError(error.message ?: "Accepted face snapshot capture failed")
+            } finally {
+                faceSnapshots.release(request.generationId).forEach(::recycleSnapshot)
+            }
         }
     }
 
@@ -191,20 +340,21 @@ class CameraManager(private val context: Context) {
 
                     saveBitmap(previewBitmap, sourceFile)
                     saveBitmap(croppedBitmap, cropFile)
+                    croppedBitmap.recycle()
 
                     onSuccess(
-                        mapOf(
-                            "stage" to stage,
-                            "sourcePath" to sourceFile.absolutePath,
-                            "croppedPath" to cropFile.absolutePath,
-                            "framePath" to sourceFile.absolutePath,
-                            "sourceWidth" to previewBitmap.width.toDouble(),
-                            "sourceHeight" to previewBitmap.height.toDouble(),
-                            "cropLeft" to cropRect.left.toDouble(),
-                            "cropTop" to cropRect.top.toDouble(),
-                            "cropWidth" to cropRect.width().toDouble(),
-                            "cropHeight" to cropRect.height().toDouble(),
-                        )
+                        buildScanCapturePayload(
+                            stage = stage,
+                            sourcePath = sourceFile.absolutePath,
+                            croppedPath = cropFile.absolutePath,
+                            framePath = sourceFile.absolutePath,
+                            sourceWidth = previewBitmap.width,
+                            sourceHeight = previewBitmap.height,
+                            cropLeft = cropRect.left,
+                            cropTop = cropRect.top,
+                            cropWidth = cropRect.width(),
+                            cropHeight = cropRect.height(),
+                        ),
                     )
                 } catch (error: Exception) {
                     onError(error.message ?: "Visible region capture failed")
@@ -219,9 +369,47 @@ class CameraManager(private val context: Context) {
         applyPreviewTransform()
     }
 
-    // For PlatformView
     fun attachPreview(previewView: androidx.camera.view.PreviewView) {
         setPreviewView(previewView)
+    }
+
+    private fun buildRotatedBitmap(imageProxy: ImageProxy): Bitmap {
+        val bitmap = imageProxy.toRgbBitmap()
+        val matrix = Matrix().apply {
+            postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
+        }
+        val rotatedBitmap = Bitmap.createBitmap(
+            bitmap,
+            0,
+            0,
+            bitmap.width,
+            bitmap.height,
+            matrix,
+            true,
+        )
+        if (rotatedBitmap !== bitmap && !bitmap.isRecycled) {
+            bitmap.recycle()
+        }
+        return rotatedBitmap
+    }
+
+    private fun isBackCameraSelected(): Boolean {
+        return if (mode == "gesture") {
+            !isCameraToggled
+        } else {
+            isCameraToggled
+        }
+    }
+
+    private fun clearFaceSnapshots() {
+        faceSnapshots.clear().forEach(::recycleSnapshot)
+    }
+
+    private fun recycleSnapshot(snapshot: FaceCaptureSnapshot<Bitmap>) {
+        val bitmap = snapshot.frameSource
+        if (!bitmap.isRecycled) {
+            bitmap.recycle()
+        }
     }
 
     private fun saveBitmap(bitmap: Bitmap, file: File) {
@@ -231,6 +419,25 @@ class CameraManager(private val context: Context) {
             }
             output.flush()
         }
+    }
+
+    private fun mirrorBitmapIfNeeded(bitmap: Bitmap, mirrored: Boolean): Bitmap {
+        if (!mirrored) {
+            return bitmap
+        }
+
+        val matrix = Matrix().apply {
+            preScale(-1f, 1f)
+        }
+        return Bitmap.createBitmap(
+            bitmap,
+            0,
+            0,
+            bitmap.width,
+            bitmap.height,
+            matrix,
+            true,
+        )
     }
 }
 
@@ -261,24 +468,29 @@ data class RectFCompat(
     }
 }
 
-class CameraPreviewViewFactory(private val cameraManager: CameraManager) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
+class CameraPreviewViewFactory(
+    private val cameraManager: CameraManager,
+) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
     override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
         return CameraPreviewView(context, cameraManager)
     }
 }
 
-class CameraPreviewView(context: Context, private val cameraManager: CameraManager) : PlatformView {
+class CameraPreviewView(
+    context: Context,
+    private val cameraManager: CameraManager,
+) : PlatformView {
     private val previewView = androidx.camera.view.PreviewView(context)
 
     init {
-        // 使用 TextureView 兼容模式，避免 SurfaceView 把 Flutter UI 覆盖导致叠层不可见。
-        previewView.implementationMode = androidx.camera.view.PreviewView.ImplementationMode.COMPATIBLE
+        previewView.implementationMode =
+            androidx.camera.view.PreviewView.ImplementationMode.COMPATIBLE
         cameraManager.attachPreview(previewView)
     }
 
     override fun getView(): android.view.View = previewView
 
     override fun dispose() {
-        // Cleaning up preview if needed
+        // No-op.
     }
 }

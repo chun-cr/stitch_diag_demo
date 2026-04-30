@@ -1,15 +1,10 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image/image.dart' as img;
 
 import '../../../../core/utils/logger.dart';
 import '../widgets/face_landmark_overlay.dart';
-
-const _maskJpegQuality = 82;
-const _maskJpegChroma = img.JpegChroma.yuv420;
 
 bool shouldMirrorFaceFrameMask({
   required TargetPlatform platform,
@@ -23,31 +18,46 @@ Future<String> renderFaceFrameMaskFile({
   required List<Offset> normalizedLandmarks,
   required Size analysisImageSize,
   required bool mirrored,
+  Size? outputImageSize,
+  bool includeSourceImage = true,
 }) async {
   if (normalizedLandmarks.isEmpty) {
     return sourceImagePath;
   }
 
   final sourceFile = File(sourceImagePath);
-  final sourceBytes = await sourceFile.readAsBytes();
 
   ui.Codec? codec;
   ui.Image? sourceImage;
   ui.Image? renderedImage;
 
   try {
-    codec = await ui.instantiateImageCodec(sourceBytes);
-    final frame = await codec.getNextFrame();
-    sourceImage = frame.image;
+    late final Size canvasSize;
+    if (includeSourceImage) {
+      final sourceBytes = await sourceFile.readAsBytes();
+      codec = await ui.instantiateImageCodec(sourceBytes);
+      final frame = await codec.getNextFrame();
+      sourceImage = frame.image;
+      canvasSize = Size(
+        sourceImage.width.toDouble(),
+        sourceImage.height.toDouble(),
+      );
+    } else {
+      final resolvedSize = outputImageSize ?? analysisImageSize;
+      if (resolvedSize.width <= 0 || resolvedSize.height <= 0) {
+        throw const FileSystemException(
+          'Failed to resolve face frame landmark mask size.',
+        );
+      }
+      canvasSize = resolvedSize;
+    }
 
-    final canvasSize = Size(
-      sourceImage.width.toDouble(),
-      sourceImage.height.toDouble(),
-    );
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    canvas.drawImage(sourceImage, Offset.zero, Paint());
+    if (sourceImage != null) {
+      canvas.drawImage(sourceImage, Offset.zero, Paint());
+    }
     FaceLandmarkPainter(
       normalizedLandmarks: normalizedLandmarks,
       imageSize: analysisImageSize.width > 0 && analysisImageSize.height > 0
@@ -57,11 +67,11 @@ Future<String> renderFaceFrameMaskFile({
     ).paint(canvas, canvasSize);
 
     renderedImage = await recorder.endRecording().toImage(
-      sourceImage.width,
-      sourceImage.height,
+      canvasSize.width.round(),
+      canvasSize.height.round(),
     );
     final byteData = await renderedImage.toByteData(
-      format: ui.ImageByteFormat.rawStraightRgba,
+      format: ui.ImageByteFormat.png,
     );
     if (byteData == null) {
       throw const FileSystemException(
@@ -70,17 +80,10 @@ Future<String> renderFaceFrameMaskFile({
     }
 
     final outputFile = File(_buildMaskOutputPath(sourceFile));
-    await outputFile.writeAsBytes(
-      _jpegBytes(
-        width: renderedImage.width,
-        height: renderedImage.height,
-        data: byteData,
-      ),
-      flush: true,
-    );
+    await outputFile.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
     final outputBytes = await outputFile.length();
     AppLogger.log(
-      'Rendered face frame mask JPEG: path=${outputFile.path}, bytes=$outputBytes, quality=$_maskJpegQuality',
+      'Rendered face frame mask PNG: path=${outputFile.path}, bytes=$outputBytes',
     );
     return outputFile.path;
   } finally {
@@ -98,26 +101,5 @@ String _buildMaskOutputPath(File sourceFile) {
   final stem = extensionIndex > 0
       ? fileName.substring(0, extensionIndex)
       : fileName;
-  return '${sourceFile.parent.path}${Platform.pathSeparator}${stem}_mask.jpg';
-}
-
-Uint8List _jpegBytes({
-  required int width,
-  required int height,
-  required ByteData data,
-}) {
-  final image = img.Image.fromBytes(
-    width: width,
-    height: height,
-    bytes: data.buffer,
-    bytesOffset: data.offsetInBytes,
-    rowStride: width * 4,
-    numChannels: 4,
-    order: img.ChannelOrder.rgba,
-  );
-  return img.encodeJpg(
-    image,
-    quality: _maskJpegQuality,
-    chroma: _maskJpegChroma,
-  );
+  return '${sourceFile.parent.path}${Platform.pathSeparator}${stem}_mask.png';
 }

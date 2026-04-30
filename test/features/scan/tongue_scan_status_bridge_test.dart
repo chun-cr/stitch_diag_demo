@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/services/tongue_scan_status_bridge.dart';
 
@@ -80,5 +81,46 @@ void main() {
       expect(status.protrusionCandidate, isTrue);
       expect(status.protrusionConfirmed, isTrue);
     });
+
+    test('parses stored-frame metadata from native events', () {
+      final status = TongueScanStatus.fromEvent({
+        'generationId': 101,
+        'timestampMs': 202,
+        'isBackCamera': false,
+        'mirrored': true,
+        'imageWidth': 640,
+        'imageHeight': 480,
+        'faceLandmarks': [
+          {'x': 0.25, 'y': 0.25},
+          {'x': 0.75, 'y': 0.75},
+        ],
+        'mouthLandmarks': [
+          {'x': 0.45, 'y': 0.55},
+          {'x': 0.55, 'y': 0.55},
+        ],
+      });
+
+      expect(status.generationId, 101);
+      expect(status.timestampMs, 202);
+      expect(status.isBackCamera, isFalse);
+      expect(status.mirrored, isTrue);
+      expect(status.analysisImageSize, const Size(640, 480));
+      expect(status.hasStoredFrameMetadata, isTrue);
+    });
+
+    test(
+      'does not report stored-frame metadata when required fields are missing',
+      () {
+        final status = TongueScanStatus.fromEvent({
+          'imageWidth': 640,
+          'imageHeight': 480,
+          'mouthLandmarks': [
+            {'x': 0.45, 'y': 0.55},
+          ],
+        });
+
+        expect(status.hasStoredFrameMetadata, isFalse);
+      },
+    );
   });
 }

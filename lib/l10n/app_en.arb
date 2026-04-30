@@ -994,5 +994,7 @@
   "reportAdviceProductFourType": "Wellness ingredients",
   "reportAdviceProductFourDesc": "A selected weekly set of Chinese yam, coix seed, codonopsis, poria, and red dates.",
   "reportAdviceProductFourTag": "New",
-  "reportAdviceProductDisclaimer": "These product suggestions are based on the constitution analysis and are for reference only. Use patent medicines under the guidance of a physician or pharmacist."
+  "reportAdviceProductDisclaimer": "These product suggestions are based on the constitution analysis and are for reference only. Use patent medicines under the guidance of a physician or pharmacist.",
+  "scanFaceUploadFailedTitle": "Face upload failed",
+  "scanTongueUploadFailedTitle": "Tongue upload failed"
 }

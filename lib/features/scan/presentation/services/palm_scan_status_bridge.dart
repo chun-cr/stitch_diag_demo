@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class PalmScanStatus {
-  static const double _openPalmScoreThreshold = 0.50;
+  static const double _openPalmScoreThreshold = 0.58;
 
   final bool handPresent;
   final bool gestureDetected;
@@ -26,18 +26,19 @@ class PalmScanStatus {
     this.landmarks = const [],
   });
 
-  bool get readyToScan => handPresent &&
+  bool get readyToScan =>
+      handPresent &&
       (handStraight ||
           gestureDetected ||
           (gestureName == 'Open_Palm' && score >= _openPalmScoreThreshold));
 
   factory PalmScanStatus.fromEvent(dynamic event) {
     if (event is! Map) {
-        return const PalmScanStatus(
-          handPresent: false,
-          gestureDetected: false,
-          handStraight: false,
-          gestureName: '',
+      return const PalmScanStatus(
+        handPresent: false,
+        gestureDetected: false,
+        handStraight: false,
+        gestureName: '',
         score: 0,
         imageWidth: 0,
         imageHeight: 0,
@@ -75,7 +76,9 @@ class PalmScanStatus {
 }
 
 class PalmScanStatusBridge {
-  static const EventChannel _gestureEvents = EventChannel('gesture/resultStream');
+  static const EventChannel _gestureEvents = EventChannel(
+    'gesture/resultStream',
+  );
   static const MethodChannel _scanChannel = MethodChannel('face/channel');
 
   Stream<PalmScanStatus> statusStream() {
@@ -83,9 +86,9 @@ class PalmScanStatusBridge {
       return const Stream<PalmScanStatus>.empty();
     }
 
-    return _gestureEvents
-        .receiveBroadcastStream()
-        .map(PalmScanStatus.fromEvent);
+    return _gestureEvents.receiveBroadcastStream().map(
+      PalmScanStatus.fromEvent,
+    );
   }
 
   Future<void> startMonitoring() {

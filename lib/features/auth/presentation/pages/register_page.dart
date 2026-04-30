@@ -548,7 +548,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ Top Bar 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildTopBar() {
     final seasonalTag = context.l10n.seasonalTagLabel(SeasonalContext.now());
 
@@ -703,7 +702,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ Security Visual 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildFormContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -948,7 +946,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ Password Strength 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildCountryCodePrefix() {
     return Padding(
       padding: const EdgeInsets.only(left: 14),
@@ -1072,7 +1069,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ Terms Row 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildTermsRow() {
     return GestureDetector(
       key: const ValueKey('register_terms_row'),
@@ -1141,7 +1137,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ Privacy Tip 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildLoginRow() {
     return Wrap(
       alignment: WrapAlignment.center,
@@ -1172,7 +1167,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ Register Button 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildRegisterButton() {
     return GestureDetector(
       key: const ValueKey('register_create_account_button'),
@@ -1223,7 +1217,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     );
   }
 
-  // 鈹€鈹€ TextField 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,

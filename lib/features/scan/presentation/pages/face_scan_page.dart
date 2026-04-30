@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -21,13 +22,14 @@ import '../services/face_frame_mask_renderer.dart';
 import '../services/scan_capture_bridge.dart';
 import '../utils/scan_capture_geometry.dart';
 import '../utils/scan_debug_error_dialog.dart';
+import '../utils/scan_upload_tenant_context.dart';
 
 // ── 颜色系（与 scan_guide_page 绿色体系一致）
 const _kGreen = Color(0xFF2D6A4F);
 const _kGreenLight = Color(0xFF3DAB78);
 
 @visibleForTesting
-const Duration faceScanHoldDuration = Duration(milliseconds: 800);
+const Duration faceScanHoldDuration = Duration.zero;
 
 @visibleForTesting
 const Duration transientFaceTrackingGraceDuration = Duration(milliseconds: 250);
@@ -58,19 +60,52 @@ bool shouldKeepFaceHoldAlive({
 
 @visibleForTesting
 bool shouldAutoStartFaceScan({
+  required TargetPlatform platform,
   required bool hasPermission,
   required bool hasFaceDetected,
   required bool isFramed,
+  required bool hasAcceptedSnapshot,
   required bool isScanning,
   required bool isTransitioning,
 }) {
-  return !isScanning &&
-      !isTransitioning &&
-      isFaceHoldEligible(
-        hasPermission: hasPermission,
-        hasFaceDetected: hasFaceDetected,
-        isFramed: isFramed,
-      );
+  if (isScanning ||
+      isTransitioning ||
+      !hasPermission ||
+      !hasFaceDetected ||
+      !hasAcceptedSnapshot) {
+    return false;
+  }
+
+  if (platform == TargetPlatform.android) {
+    return true;
+  }
+
+  return isFramed;
+}
+
+@visibleForTesting
+bool shouldBeginFaceScan({
+  required TargetPlatform platform,
+  required bool hasPermission,
+  required bool hasFaceDetected,
+  required bool isFramed,
+  required bool isBusy,
+  required bool isTransitioning,
+  required bool isPaused,
+}) {
+  if (isBusy ||
+      isTransitioning ||
+      isPaused ||
+      !hasPermission ||
+      !hasFaceDetected) {
+    return false;
+  }
+
+  if (platform == TargetPlatform.android) {
+    return true;
+  }
+
+  return isFramed;
 }
 
 @visibleForTesting
@@ -98,6 +133,97 @@ bool shouldMirrorFaceUploadMask({
   );
 }
 
+@immutable
+class AcceptedFaceSnapshot {
+  AcceptedFaceSnapshot({
+    required this.guideRect,
+    required List<Offset> normalizedLandmarks,
+    required this.analysisImageSize,
+    required this.isBackCamera,
+    required this.mirrored,
+    this.generationId,
+    this.timestampMs,
+  }) : normalizedLandmarks = List<Offset>.unmodifiable(normalizedLandmarks);
+
+  final Rect guideRect;
+  final List<Offset> normalizedLandmarks;
+  final Size analysisImageSize;
+  final bool isBackCamera;
+  final bool mirrored;
+  final int? generationId;
+  final int? timestampMs;
+
+  ScanCaptureGuide toCaptureGuide() {
+    final rect = buildFaceCaptureRect(
+      guideRect: guideRect,
+      faceBounds: normalizedBoundingRect(normalizedLandmarks),
+    );
+    return ScanCaptureGuide(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    );
+  }
+}
+
+@visibleForTesting
+AcceptedFaceSnapshot? buildAcceptedFaceSnapshot({
+  required Rect guideRect,
+  required List<Offset> normalizedLandmarks,
+  required Size analysisImageSize,
+  required bool isBackCamera,
+  required TargetPlatform platform,
+  int? generationId,
+  int? timestampMs,
+  bool? mirrored,
+}) {
+  if (guideRect.isEmpty || normalizedLandmarks.isEmpty) {
+    return null;
+  }
+
+  return AcceptedFaceSnapshot(
+    guideRect: guideRect,
+    normalizedLandmarks: normalizedLandmarks,
+    analysisImageSize: analysisImageSize,
+    isBackCamera: isBackCamera,
+    mirrored:
+        mirrored ??
+        shouldMirrorFaceUploadMask(
+          platform: platform,
+          isBackCamera: isBackCamera,
+        ),
+    generationId: generationId,
+    timestampMs: timestampMs,
+  );
+}
+
+@visibleForTesting
+AcceptedFaceSnapshot? latchAcceptedFaceSnapshot({
+  required AcceptedFaceSnapshot? currentLatchedSnapshot,
+  required AcceptedFaceSnapshot? nextSnapshot,
+}) {
+  return currentLatchedSnapshot ?? nextSnapshot;
+}
+
+@visibleForTesting
+List<Offset> remapLandmarksToCaptureGuide({
+  required Iterable<Offset> normalizedLandmarks,
+  required Rect guideRect,
+}) {
+  if (guideRect.isEmpty || guideRect.width <= 0 || guideRect.height <= 0) {
+    return const <Offset>[];
+  }
+
+  return normalizedLandmarks
+      .map((point) {
+        final dx = (point.dx - guideRect.left) / guideRect.width;
+        final dy = (point.dy - guideRect.top) / guideRect.height;
+        return Offset(dx, dy);
+      })
+      .toList(growable: false);
+}
+
 class FaceScanPage extends StatefulWidget {
   const FaceScanPage({super.key});
   @override
@@ -110,7 +236,6 @@ class _FaceScanPageState extends State<FaceScanPage>
   late final ScanRemoteSource _scanRemoteSource;
   late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
-  static const Duration _requiredHoldDuration = faceScanHoldDuration;
   static const Alignment _faceGuideAlignment = Alignment(0, -0.25);
   static const double _faceGuideWidth = 210;
   static const double _faceGuideHeight = 262;
@@ -126,14 +251,18 @@ class _FaceScanPageState extends State<FaceScanPage>
   bool _isTransitioning = false;
   bool _stopMonitoringOnDispose = true;
 
-  Timer? _timer;
   StreamSubscription<Map<String, dynamic>>? _faceStatusSub;
   late AnimationController _scanLineCtrl;
   late Animation<double> _scanLineAnim;
   List<Offset> _normalizedLandmarks = const [];
   Size _sourceImageSize = Size.zero;
   Size _cameraViewportSize = Size.zero;
+  AcceptedFaceSnapshot? _acceptedFaceSnapshot;
+  int? _latestFaceGenerationId;
+  int? _latestFaceTimestampMs;
+  bool? _latestFaceMirrored;
   DateTime? _lastTrackedFaceAt;
+  String? _lastFaceHoldDiagnosticsSignature;
   String _faceDirection = ''; // 位置引导文字（空 = 居中或无脸）
 
   Rect get _faceGuideRectNormalized => buildNormalizedGuideRect(
@@ -143,25 +272,51 @@ class _FaceScanPageState extends State<FaceScanPage>
     guideHeight: _faceGuideHeight,
   );
 
-  ScanCaptureGuide get _faceCaptureGuide {
-    final rect = buildFaceCaptureRect(
-      guideRect: _faceGuideRectNormalized,
-      faceBounds: normalizedBoundingRect(_normalizedLandmarks),
+  Rect get _faceGuideRectOnViewport => buildViewportGuideRect(
+    _cameraViewportSize,
+    alignment: _faceGuideAlignment,
+    guideWidth: _faceGuideWidth,
+    guideHeight: _faceGuideHeight,
+  );
+
+  AcceptedFaceSnapshot? get _liveAcceptedFaceSnapshot =>
+      buildAcceptedFaceSnapshot(
+        guideRect: _faceGuideRectNormalized,
+        normalizedLandmarks: _normalizedLandmarks,
+        analysisImageSize: _sourceImageSize,
+        isBackCamera: _isBackCamera,
+        mirrored: _latestFaceMirrored,
+        platform: defaultTargetPlatform,
+        generationId: _latestFaceGenerationId,
+        timestampMs: _latestFaceTimestampMs,
+      );
+
+  Rect? get _faceBoundsOnViewport {
+    final normalizedBounds = normalizedBoundingRect(_normalizedLandmarks);
+    if (normalizedBounds == null) {
+      return null;
+    }
+
+    final viewportBounds = mapNormalizedRectToViewport(
+      normalizedRect: normalizedBounds,
+      viewportSize: _cameraViewportSize,
+      imageSize: _sourceImageSize,
     );
-    return ScanCaptureGuide(
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-    );
+
+    if (viewportBounds == Rect.zero) {
+      return null;
+    }
+
+    return viewportBounds;
   }
 
   bool _isFaceFramedForUpload({required bool allowHoldDrift}) {
-    final bounds = normalizedBoundingRect(_normalizedLandmarks);
-    if (bounds == null) {
+    final normalizedBounds = normalizedBoundingRect(_normalizedLandmarks);
+    final viewportBounds = _faceBoundsOnViewport;
+    if (normalizedBounds == null || viewportBounds == null) {
       return false;
     }
-    final area = normalizedRectArea(bounds);
+    final area = normalizedRectArea(normalizedBounds);
     final minArea = allowHoldDrift ? 0.03 : 0.04;
     final maxArea = allowHoldDrift ? 0.40 : 0.36;
     final guideInsetFactor = allowHoldDrift ? 0.02 : 0.04;
@@ -169,8 +324,8 @@ class _FaceScanPageState extends State<FaceScanPage>
     return area >= minArea &&
         area <= maxArea &&
         isNormalizedBoundsInsideGuide(
-          bounds: bounds,
-          guideRect: _faceGuideRectNormalized,
+          bounds: viewportBounds,
+          guideRect: _faceGuideRectOnViewport,
           guideInsetFactor: guideInsetFactor,
         );
   }
@@ -183,18 +338,12 @@ class _FaceScanPageState extends State<FaceScanPage>
       ) &&
       !_pauseAutoScanUntilReset;
 
-  bool get _shouldKeepFaceHoldAlive => shouldKeepFaceHoldAlive(
-    hasPermission: _hasPermission,
-    hasFaceDetected: _hasFaceDetected,
-    isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
-    isRelaxedFramed: _isFaceFramedForUpload(allowHoldDrift: true),
-    holdInProgress: _timer != null,
-  );
-
   bool get _shouldAutoStartScan => shouldAutoStartFaceScan(
+    platform: defaultTargetPlatform,
     hasPermission: _hasPermission,
     hasFaceDetected: _hasFaceDetected,
     isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
+    hasAcceptedSnapshot: _liveAcceptedFaceSnapshot != null,
     isScanning: _isScanning || _isSubmitting,
     isTransitioning: _isTransitioning,
   );
@@ -262,9 +411,13 @@ class _FaceScanPageState extends State<FaceScanPage>
         final hasFace = _extractHasFace(payload);
         final landmarks = _extractNormalizedLandmarks(payload['landmarks']);
         final imageSize = _extractImageSize(payload);
+        final generationId = _extractInt(payload['generationId']);
+        final timestampMs = _extractInt(payload['timestampMs']);
+        final eventBackCamera = _extractBool(payload['isBackCamera']);
+        final mirrored = _extractBool(payload['mirrored']);
         final now = DateTime.now();
         final retainPreviousTracking = shouldRetainPreviousFaceTracking(
-          holdInProgress: _timer != null,
+          holdInProgress: _isScanning,
           hasFaceDetected: hasFace,
           hasLandmarks: landmarks.isNotEmpty,
           timeSinceLastTrackedFace: _lastTrackedFaceAt == null
@@ -285,17 +438,22 @@ class _FaceScanPageState extends State<FaceScanPage>
           _hasFaceDetected = hasFace;
           _normalizedLandmarks = landmarks;
           _sourceImageSize = imageSize;
+          if (eventBackCamera != null) {
+            _isBackCamera = eventBackCamera;
+          }
+          _latestFaceGenerationId = generationId;
+          _latestFaceTimestampMs = timestampMs;
+          _latestFaceMirrored = mirrored;
           _faceDirection = hasFace ? _computeFaceDirection(landmarks) : '';
         });
         if (_pauseAutoScanUntilReset && !_isFaceReadyToHold) {
           _pauseAutoScanUntilReset = false;
         }
-        if (_isSubmitting) {
+        _logFaceHoldDiagnosticsIfNeeded();
+        if (_isScanning || _isSubmitting) {
           return;
         }
-        if (_isScanning && !_shouldKeepFaceHoldAlive) {
-          _cancelScanHold(resetProgress: true);
-        } else if (!_pauseAutoScanUntilReset && _shouldAutoStartScan) {
+        if (!_pauseAutoScanUntilReset && _shouldAutoStartScan) {
           _startScan();
         }
       });
@@ -305,40 +463,33 @@ class _FaceScanPageState extends State<FaceScanPage>
   }
 
   void _startScan() {
-    if (!mounted || _isScanning || _isTransitioning || !_isFaceReadyToHold) {
+    final canBeginScan = shouldBeginFaceScan(
+      platform: defaultTargetPlatform,
+      hasPermission: _hasPermission,
+      hasFaceDetected: _hasFaceDetected,
+      isFramed: _isFaceFramedForUpload(allowHoldDrift: false),
+      isBusy: _isScanning || _isSubmitting,
+      isTransitioning: _isTransitioning,
+      isPaused: _pauseAutoScanUntilReset,
+    );
+    if (!mounted || !canBeginScan) {
+      return;
+    }
+    _clearAcceptedFaceSnapshot();
+    final acceptedSnapshot = _freezeAcceptedFaceSnapshot();
+    if (acceptedSnapshot == null) {
+      _pauseAutoScanUntilReset = true;
+      _cancelScanHold(resetProgress: true);
       return;
     }
     setState(() {
       _isScanning = true;
-      _scanProgress = 0;
+      _scanProgress = 0.08;
     });
-    final stopwatch = Stopwatch()..start();
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (t) {
-      if (!mounted) {
-        t.cancel();
-        _timer = null;
-        return;
-      }
-      if (!_shouldKeepFaceHoldAlive) {
-        _cancelScanHold(resetProgress: true);
-        t.cancel();
-        return;
-      }
-      final progress =
-          stopwatch.elapsedMilliseconds / _requiredHoldDuration.inMilliseconds;
-      if (progress >= 1) {
-        t.cancel();
-        _timer = null;
-        unawaited(_captureAndUploadFace());
-        return;
-      }
-      setState(() => _scanProgress = mapHoldProgressToVisualProgress(progress));
-    });
+    unawaited(_captureAndUploadFace());
   }
 
   void _cancelScanHold({required bool resetProgress}) {
-    _timer?.cancel();
-    _timer = null;
     if (!mounted) return;
     setState(() {
       _isScanning = false;
@@ -352,6 +503,14 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (_isSubmitting || !mounted) {
       return;
     }
+    final providerContainer = ProviderScope.containerOf(context, listen: false);
+
+    final acceptedSnapshot = _freezeAcceptedFaceSnapshot();
+    if (acceptedSnapshot == null) {
+      _pauseAutoScanUntilReset = true;
+      _cancelScanHold(resetProgress: true);
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
@@ -359,9 +518,22 @@ class _FaceScanPageState extends State<FaceScanPage>
     });
 
     try {
+      AppLogger.log(
+        'Face capture request: generation=${acceptedSnapshot.generationId}, '
+        'timestamp=${acceptedSnapshot.timestampMs}, '
+        'mirrored=${acceptedSnapshot.mirrored}, '
+        'backCamera=${acceptedSnapshot.isBackCamera}',
+      );
       final capture = await _captureBridge.capture(
         target: ScanCaptureTarget.face,
-        guide: _faceCaptureGuide,
+        guide: acceptedSnapshot.toCaptureGuide(),
+        generationId: acceptedSnapshot.generationId,
+        landmarks: acceptedSnapshot.normalizedLandmarks,
+        analysisImageSize: acceptedSnapshot.analysisImageSize,
+        isBackCamera: acceptedSnapshot.isBackCamera,
+        mirrored: acceptedSnapshot.mirrored,
+        timestampMs: acceptedSnapshot.timestampMs,
+        preferVisibleRegion: true,
       );
       if (!mounted) {
         return;
@@ -369,16 +541,30 @@ class _FaceScanPageState extends State<FaceScanPage>
 
       setState(() => _scanProgress = 0.68);
       final faceFrameUploadPath = await _buildFaceFrameUploadPath(
-        capture.framePath,
+        capture,
+        acceptedSnapshot,
       );
       await _logFaceUploadFileSizes(
         faceFilePath: capture.croppedPath,
         faceFrameFilePath: faceFrameUploadPath,
       );
+      final uploadTenantContext =
+          await loadScanUploadTenantContextFromContainer(providerContainer);
+      if (!mounted) {
+        return;
+      }
+      AppLogger.log(
+        'Face upload tenant context: '
+        '${describeScanUploadTenantContext(uploadTenantContext)}',
+      );
 
       final faceUpload = await _scanRemoteSource.uploadFace(
         faceFilePath: capture.croppedPath,
         faceFrameFilePath: faceFrameUploadPath,
+        tenantId: uploadTenantContext.tenantId,
+        topOrgId: uploadTenantContext.topOrgId,
+        storeId: uploadTenantContext.storeId,
+        clinicId: uploadTenantContext.clinicId,
         onSendProgress: (sent, total) {
           if (!mounted) {
             return;
@@ -400,6 +586,7 @@ class _FaceScanPageState extends State<FaceScanPage>
             : '未检测到清晰人脸，请重新扫描。';
         _pauseAutoScanUntilReset = true;
         _cancelScanHold(resetProgress: true);
+        _clearAcceptedFaceSnapshot();
         setState(() {
           _isSubmitting = false;
         });
@@ -408,6 +595,7 @@ class _FaceScanPageState extends State<FaceScanPage>
       }
 
       _scanSession.saveFaceUpload(faceUpload);
+      _clearAcceptedFaceSnapshot();
       setState(() => _scanProgress = 1);
       await _navigateToTongueScan();
     } on Object catch (error, stackTrace) {
@@ -417,22 +605,50 @@ class _FaceScanPageState extends State<FaceScanPage>
       }
       _pauseAutoScanUntilReset = true;
       _cancelScanHold(resetProgress: true);
+      _clearAcceptedFaceSnapshot();
       setState(() {
         _isSubmitting = false;
       });
-      await showScanDebugErrorDialog(context, title: '人脸上传失败', error: error);
+      await showScanDebugErrorDialog(
+        context,
+        title: context.l10n.scanFaceUploadFailedTitle,
+        error: error,
+      );
     }
   }
 
-  Future<String> _buildFaceFrameUploadPath(String sourceImagePath) async {
+  Future<String> _buildFaceFrameUploadPath(
+    ScanCaptureResult capture,
+    AcceptedFaceSnapshot acceptedSnapshot,
+  ) async {
+    final captureGuide = acceptedSnapshot.toCaptureGuide();
+    final captureGuideRect = Rect.fromLTWH(
+      captureGuide.left,
+      captureGuide.top,
+      captureGuide.width,
+      captureGuide.height,
+    );
+    final maskLandmarks = remapLandmarksToCaptureGuide(
+      normalizedLandmarks: acceptedSnapshot.normalizedLandmarks,
+      guideRect: captureGuideRect,
+    );
+    final maskImageSize = Size(capture.cropWidth, capture.cropHeight);
+    AppLogger.log(
+      'Rendering face frame mask from accepted snapshot: '
+      'generation=${acceptedSnapshot.generationId}, '
+      'timestamp=${acceptedSnapshot.timestampMs}, '
+      'mirrored=${acceptedSnapshot.mirrored}, '
+      'maskLandmarks=${maskLandmarks.length}, '
+      'maskSize=${capture.cropWidth.toStringAsFixed(0)}x'
+      '${capture.cropHeight.toStringAsFixed(0)}',
+    );
     return renderFaceFrameMaskFile(
-      sourceImagePath: sourceImagePath,
-      normalizedLandmarks: _normalizedLandmarks,
-      analysisImageSize: _sourceImageSize,
-      mirrored: shouldMirrorFaceUploadMask(
-        platform: defaultTargetPlatform,
-        isBackCamera: _isBackCamera,
-      ),
+      sourceImagePath: capture.croppedPath,
+      normalizedLandmarks: maskLandmarks,
+      analysisImageSize: maskImageSize,
+      mirrored: acceptedSnapshot.mirrored,
+      outputImageSize: maskImageSize,
+      includeSourceImage: false,
     );
   }
 
@@ -482,6 +698,7 @@ class _FaceScanPageState extends State<FaceScanPage>
     _isTransitioning = true;
     _stopMonitoringOnDispose = false;
     _cancelScanHold(resetProgress: true);
+    _clearAcceptedFaceSnapshot();
     setState(() => _isSubmitting = false);
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
@@ -491,7 +708,6 @@ class _FaceScanPageState extends State<FaceScanPage>
 
   @override
   void dispose() {
-    _timer?.cancel();
     _faceStatusSub?.cancel();
     if (_stopMonitoringOnDispose) {
       unawaited(_statusBridge.stopMonitoring());
@@ -561,10 +777,12 @@ class _FaceScanPageState extends State<FaceScanPage>
                     size: 16,
                     color: Color(0xFF3A3028),
                   ),
-                  onPressed: () {
-                    unawaited(_statusBridge.stopMonitoring());
-                    context.pop();
-                  },
+                  onPressed: _isScanning || _isSubmitting
+                      ? null
+                      : () {
+                          unawaited(_statusBridge.stopMonitoring());
+                          context.pop();
+                        },
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(),
                 ),
@@ -578,7 +796,7 @@ class _FaceScanPageState extends State<FaceScanPage>
                     color: Color(0xFF3A3028),
                   ),
                   tooltip: l10n.scanToggleCamera,
-                  onPressed: _hasPermission && !_isSubmitting
+                  onPressed: _hasPermission && !_isSubmitting && !_isScanning
                       ? () {
                           setState(() => _isBackCamera = !_isBackCamera);
                           unawaited(_statusBridge.toggleCamera());
@@ -900,9 +1118,11 @@ class _FaceScanPageState extends State<FaceScanPage>
             left: -40,
             right: -40,
             child: Center(
-              child: _isScanning
+              child: (_isScanning || _isSubmitting)
                   ? _HoldFeedback(
-                      label: l10n.scanKeepStill,
+                      label: _isSubmitting
+                          ? l10n.scanScanning
+                          : l10n.scanKeepStill,
                       progress: _scanProgress,
                     )
                   : (_faceDirection.isNotEmpty
@@ -1032,6 +1252,99 @@ class _FaceScanPageState extends State<FaceScanPage>
       return Size.zero;
     }
     return Size(width, height);
+  }
+
+  AcceptedFaceSnapshot? _freezeAcceptedFaceSnapshot() {
+    final snapshot = latchAcceptedFaceSnapshot(
+      currentLatchedSnapshot: _acceptedFaceSnapshot,
+      nextSnapshot: _liveAcceptedFaceSnapshot,
+    );
+    if (snapshot == null) {
+      return null;
+    }
+    if (!identical(snapshot, _acceptedFaceSnapshot)) {
+      _acceptedFaceSnapshot = snapshot;
+      AppLogger.log(
+        'Latched accepted face snapshot: generation=${snapshot.generationId}, '
+        'timestamp=${snapshot.timestampMs}, '
+        'mirrored=${snapshot.mirrored}, '
+        'landmarks=${snapshot.normalizedLandmarks.length}',
+      );
+    }
+    return snapshot;
+  }
+
+  void _clearAcceptedFaceSnapshot() {
+    _acceptedFaceSnapshot = null;
+  }
+
+  void _logFaceHoldDiagnosticsIfNeeded() {
+    if (!_hasPermission || _isScanning || _isSubmitting) {
+      return;
+    }
+
+    final normalizedBounds = normalizedBoundingRect(_normalizedLandmarks);
+    final viewportBounds = _faceBoundsOnViewport;
+    final area = normalizedBounds == null
+        ? 0.0
+        : normalizedRectArea(normalizedBounds);
+    final strictInsideGuide =
+        viewportBounds != null &&
+        isNormalizedBoundsInsideGuide(
+          bounds: viewportBounds,
+          guideRect: _faceGuideRectOnViewport,
+          guideInsetFactor: 0.04,
+        );
+    final blockers = <String>[
+      if (!_hasFaceDetected) 'face_missing',
+      if (_normalizedLandmarks.isEmpty) 'landmarks_missing',
+      if (_sourceImageSize == Size.zero) 'source_size_missing',
+      if (_cameraViewportSize == Size.zero) 'viewport_missing',
+      if (viewportBounds == null) 'viewport_bounds_missing',
+      if (normalizedBounds != null && area < 0.04) 'too_small',
+      if (normalizedBounds != null && area > 0.36) 'too_large',
+      if (viewportBounds != null && !strictInsideGuide) 'framing_failed',
+      if (_pauseAutoScanUntilReset) 'paused_after_failure',
+      if (_isFaceReadyToHold) 'ready',
+    ];
+    final signature =
+        '${blockers.join(",")}|'
+        '${_sourceImageSize.width.round()}x${_sourceImageSize.height.round()}|'
+        '${_cameraViewportSize.width.round()}x${_cameraViewportSize.height.round()}';
+    if (_lastFaceHoldDiagnosticsSignature == signature) {
+      return;
+    }
+
+    _lastFaceHoldDiagnosticsSignature = signature;
+    AppLogger.log(
+      'Face hold diagnostics: blockers=${blockers.join(",")} '
+      'area=${area.toStringAsFixed(3)} '
+      'guideViewport=${_formatRect(_faceGuideRectOnViewport)} '
+      'boundsNormalized=${_formatRect(normalizedBounds)} '
+      'boundsViewport=${_formatRect(viewportBounds)} '
+      'source=${_sourceImageSize.width.toStringAsFixed(0)}x${_sourceImageSize.height.toStringAsFixed(0)} '
+      'viewport=${_cameraViewportSize.width.toStringAsFixed(0)}x${_cameraViewportSize.height.toStringAsFixed(0)}',
+    );
+  }
+
+  String _formatRect(Rect? rect) {
+    if (rect == null || rect == Rect.zero) {
+      return 'null';
+    }
+    return '[${rect.left.toStringAsFixed(3)},${rect.top.toStringAsFixed(3)},'
+        '${rect.width.toStringAsFixed(3)},${rect.height.toStringAsFixed(3)}]';
+  }
+
+  bool? _extractBool(dynamic value) => value is bool ? value : null;
+
+  int? _extractInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return null;
   }
 
   double? _asDouble(dynamic v) => v is num ? v.toDouble() : null;

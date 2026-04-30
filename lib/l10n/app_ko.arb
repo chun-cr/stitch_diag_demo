@@ -952,5 +952,7 @@
   "profilePointsEntryAssessment": "체질 평가 보너스",
   "profilePointsEntryAssessmentSub": "개인 맞춤 체질 평가 완료 후 지급",
   "profilePointsEntryCoupon": "상담 쿠폰 교환",
-  "profilePointsEntryCouponSub": "포인트를 사용해 할인 혜택으로 교환했습니다"
+  "profilePointsEntryCouponSub": "포인트를 사용해 할인 혜택으로 교환했습니다",
+  "scanFaceUploadFailedTitle": "얼굴 업로드에 실패했습니다",
+  "scanTongueUploadFailedTitle": "설진 업로드에 실패했습니다"
 }

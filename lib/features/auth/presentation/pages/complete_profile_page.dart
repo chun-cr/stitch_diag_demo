@@ -748,7 +748,6 @@ class _CompleteProfilePageState extends State<CompleteProfilePage>
   }
 }
 
-// 鈹€鈹€鈹€ Background Painter 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 class _RegBgPainter extends CustomPainter {
   final double rotation;
   const _RegBgPainter({required this.rotation});
@@ -793,7 +792,7 @@ class _RegBgPainter extends CustomPainter {
               ),
             ),
     );
-    // 鏍肩汗
+    // 格纹。
     final g = Paint()
       ..color = const Color(0xFF2D6A4F).withValues(alpha: 0.022)
       ..strokeWidth = 0.5;
@@ -803,7 +802,7 @@ class _RegBgPainter extends CustomPainter {
     for (double y = 0; y < size.height; y += 28) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), g);
     }
-    // 宸︿笂瑙掓參杞楗板湀
+    // 左上角旋转装饰圈。
     canvas.save();
     canvas.translate(24, 180);
     canvas.rotate(rotation);
@@ -951,7 +950,6 @@ class _CompleteProfileBgPainter extends CustomPainter {
   bool shouldRepaint(_CompleteProfileBgPainter old) => old.rotation != rotation;
 }
 
-// 鈹€鈹€鈹€ Small Bagua Ring 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 class _SmallBaguaRingPainter extends CustomPainter {
   const _SmallBaguaRingPainter();
 
@@ -1145,7 +1143,6 @@ class _HarmonySealPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// 鈹€鈹€鈹€ Shared Sub-widgets 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _BrandMark extends StatelessWidget {
   const _BrandMark();

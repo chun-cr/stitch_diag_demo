@@ -5123,6 +5123,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。'**
   String get reportAdviceProductDisclaimer;
+
+  /// No description provided for @scanFaceUploadFailedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人脸上传失败'**
+  String get scanFaceUploadFailedTitle;
+
+  /// No description provided for @scanTongueUploadFailedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'舌诊上传失败'**
+  String get scanTongueUploadFailedTitle;
 }
 
 class _AppLocalizationsDelegate

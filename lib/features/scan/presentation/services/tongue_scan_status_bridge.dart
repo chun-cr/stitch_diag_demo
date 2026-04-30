@@ -12,6 +12,10 @@ class TongueScanStatus {
   final Map<String, double> blendshapes;
   final double imageWidth;
   final double imageHeight;
+  final int? generationId;
+  final int? timestampMs;
+  final bool? isBackCamera;
+  final bool? mirrored;
 
   /// 嘴部中心归一化坐标（0~1），无数据时为 null
   final Offset? mouthCenter;
@@ -25,12 +29,32 @@ class TongueScanStatus {
     this.blendshapes = const <String, double>{},
     this.imageWidth = 0,
     this.imageHeight = 0,
+    this.generationId,
+    this.timestampMs,
+    this.isBackCamera,
+    this.mirrored,
     this.mouthCenter,
     this.protrusionCandidate = false,
     this.protrusionConfirmed = false,
   });
 
   bool get mouthPresent => mouthLandmarkCount > 0;
+
+  Size get analysisImageSize {
+    if (imageWidth <= 0 || imageHeight <= 0) {
+      return Size.zero;
+    }
+    return Size(imageWidth, imageHeight);
+  }
+
+  bool get hasStoredFrameMetadata {
+    return generationId != null &&
+        timestampMs != null &&
+        isBackCamera != null &&
+        mirrored != null &&
+        analysisImageSize != Size.zero &&
+        faceLandmarks.isNotEmpty;
+  }
 
   TongueScanStatus copyWith({
     int? mouthLandmarkCount,
@@ -39,6 +63,10 @@ class TongueScanStatus {
     Map<String, double>? blendshapes,
     double? imageWidth,
     double? imageHeight,
+    int? generationId,
+    int? timestampMs,
+    bool? isBackCamera,
+    bool? mirrored,
     Offset? mouthCenter,
     bool? protrusionCandidate,
     bool? protrusionConfirmed,
@@ -50,6 +78,10 @@ class TongueScanStatus {
       blendshapes: blendshapes ?? this.blendshapes,
       imageWidth: imageWidth ?? this.imageWidth,
       imageHeight: imageHeight ?? this.imageHeight,
+      generationId: generationId ?? this.generationId,
+      timestampMs: timestampMs ?? this.timestampMs,
+      isBackCamera: isBackCamera ?? this.isBackCamera,
+      mirrored: mirrored ?? this.mirrored,
       mouthCenter: mouthCenter ?? this.mouthCenter,
       protrusionCandidate: protrusionCandidate ?? this.protrusionCandidate,
       protrusionConfirmed: protrusionConfirmed ?? this.protrusionConfirmed,
@@ -86,6 +118,10 @@ class TongueScanStatus {
       blendshapes: blendshapes,
       imageWidth: (data['imageWidth'] as num?)?.toDouble() ?? 0,
       imageHeight: (data['imageHeight'] as num?)?.toDouble() ?? 0,
+      generationId: _extractInt(data['generationId']),
+      timestampMs: _extractInt(data['timestampMs']),
+      isBackCamera: _extractBool(data['isBackCamera']),
+      mirrored: _extractBool(data['mirrored']),
       mouthCenter: mouthCenter,
     );
   }
@@ -123,6 +159,18 @@ class TongueScanStatus {
     final y = (raw['y'] as num?)?.toDouble();
     if (x == null || y == null) return null;
     return Offset(x, y);
+  }
+
+  static bool? _extractBool(dynamic value) => value is bool ? value : null;
+
+  static int? _extractInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return null;
   }
 }
 

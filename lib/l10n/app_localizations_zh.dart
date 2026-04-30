@@ -2590,4 +2590,10 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get reportAdviceProductDisclaimer =>
       '以上产品推荐基于体质分析结果，仅供参考。中成药的使用请在医师或药师指导下进行。';
+
+  @override
+  String get scanFaceUploadFailedTitle => '人脸上传失败';
+
+  @override
+  String get scanTongueUploadFailedTitle => '舌诊上传失败';
 }

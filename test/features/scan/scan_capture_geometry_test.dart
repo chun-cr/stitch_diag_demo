@@ -3,6 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stitch_diag_demo/features/scan/presentation/utils/scan_capture_geometry.dart';
 
 void main() {
+  group('buildViewportGuideRect', () {
+    test('maps centered guide into viewport coordinates', () {
+      final rect = buildViewportGuideRect(
+        const Size(200, 400),
+        alignment: Alignment.center,
+        guideWidth: 100,
+        guideHeight: 200,
+      );
+
+      expect(rect.left, closeTo(50, 0.0001));
+      expect(rect.top, closeTo(100, 0.0001));
+      expect(rect.width, closeTo(100, 0.0001));
+      expect(rect.height, closeTo(200, 0.0001));
+    });
+  });
+
   group('buildNormalizedGuideRect', () {
     test('maps centered guide into normalized viewport coordinates', () {
       final rect = buildNormalizedGuideRect(
@@ -28,6 +44,35 @@ void main() {
         ),
         Rect.zero,
       );
+    });
+  });
+
+  group('mapNormalizedRectToViewport', () {
+    test('accounts for cover-crop mapping into the visible viewport', () {
+      final rect = mapNormalizedRectToViewport(
+        normalizedRect: const Rect.fromLTWH(0.25, 0.25, 0.5, 0.5),
+        viewportSize: const Size(200, 400),
+        imageSize: const Size(100, 100),
+      );
+
+      expect(rect.left, closeTo(0, 0.0001));
+      expect(rect.top, closeTo(100, 0.0001));
+      expect(rect.right, closeTo(200, 0.0001));
+      expect(rect.bottom, closeTo(300, 0.0001));
+    });
+
+    test('mirrors the horizontal bounds when requested', () {
+      final rect = mapNormalizedRectToViewport(
+        normalizedRect: const Rect.fromLTWH(0.10, 0.20, 0.30, 0.40),
+        viewportSize: const Size(100, 200),
+        imageSize: const Size(100, 200),
+        mirrored: true,
+      );
+
+      expect(rect.left, closeTo(60, 0.0001));
+      expect(rect.right, closeTo(90, 0.0001));
+      expect(rect.top, closeTo(40, 0.0001));
+      expect(rect.bottom, closeTo(120, 0.0001));
     });
   });
 

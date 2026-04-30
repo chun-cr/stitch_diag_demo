@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-Rect buildNormalizedGuideRect(
+Rect buildViewportGuideRect(
   Size viewportSize, {
   required Alignment alignment,
   required double guideWidth,
@@ -19,11 +19,29 @@ Rect buildNormalizedGuideRect(
     viewportSize.width * ((alignment.x + 1) / 2),
     viewportSize.height * ((alignment.y + 1) / 2),
   );
-  final rect = Rect.fromCenter(
+
+  return Rect.fromCenter(
     center: center,
     width: guideWidth,
     height: guideHeight,
   );
+}
+
+Rect buildNormalizedGuideRect(
+  Size viewportSize, {
+  required Alignment alignment,
+  required double guideWidth,
+  required double guideHeight,
+}) {
+  final rect = buildViewportGuideRect(
+    viewportSize,
+    alignment: alignment,
+    guideWidth: guideWidth,
+    guideHeight: guideHeight,
+  );
+  if (rect == Rect.zero) {
+    return Rect.zero;
+  }
 
   return Rect.fromLTWH(
     rect.left / viewportSize.width,
@@ -34,6 +52,50 @@ Rect buildNormalizedGuideRect(
 }
 
 double _clamp01(double value) => value.clamp(0.0, 1.0).toDouble();
+
+Rect mapNormalizedRectToViewport({
+  required Rect normalizedRect,
+  required Size viewportSize,
+  required Size imageSize,
+  bool mirrored = false,
+}) {
+  final safeRect = clampNormalizedRect(normalizedRect);
+  if (safeRect == Rect.zero ||
+      viewportSize.width <= 0 ||
+      viewportSize.height <= 0) {
+    return Rect.zero;
+  }
+
+  if (imageSize.width <= 0 || imageSize.height <= 0) {
+    final left = (mirrored ? 1 - safeRect.right : safeRect.left) * viewportSize.width;
+    final right =
+        (mirrored ? 1 - safeRect.left : safeRect.right) * viewportSize.width;
+    return Rect.fromLTRB(
+      left,
+      safeRect.top * viewportSize.height,
+      right,
+      safeRect.bottom * viewportSize.height,
+    );
+  }
+
+  final scale = math.max(
+    viewportSize.width / imageSize.width,
+    viewportSize.height / imageSize.height,
+  );
+  final scaledWidth = imageSize.width * scale;
+  final scaledHeight = imageSize.height * scale;
+  final dx = (viewportSize.width - scaledWidth) / 2;
+  final dy = (viewportSize.height - scaledHeight) / 2;
+  final leftNorm = mirrored ? 1 - safeRect.right : safeRect.left;
+  final rightNorm = mirrored ? 1 - safeRect.left : safeRect.right;
+
+  return Rect.fromLTRB(
+    dx + leftNorm * imageSize.width * scale,
+    dy + safeRect.top * imageSize.height * scale,
+    dx + rightNorm * imageSize.width * scale,
+    dy + safeRect.bottom * imageSize.height * scale,
+  );
+}
 
 Rect clampNormalizedRect(Rect rect) {
   if (rect.isEmpty) {

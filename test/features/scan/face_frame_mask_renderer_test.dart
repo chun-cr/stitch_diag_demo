@@ -59,22 +59,76 @@ void main() {
       sourceImagePath: sourceFile.path,
       normalizedLandmarks: List<Offset>.generate(
         468,
-        (index) => Offset(
-          0.2 + (index % 18) * 0.03,
-          0.2 + (index ~/ 18) * 0.02,
-        ),
+        (index) =>
+            Offset(0.2 + (index % 18) * 0.03, 0.2 + (index ~/ 18) * 0.02),
       ),
       analysisImageSize: const Size(120, 120),
       mirrored: false,
     );
 
     expect(outputPath, isNot(sourceFile.path));
-    expect(outputPath, endsWith('_mask.jpg'));
+    expect(outputPath, endsWith('_mask.png'));
     final outputFile = File(outputPath);
     expect(outputFile.existsSync(), isTrue);
     final outputBytes = outputFile.readAsBytesSync();
-    expect(outputBytes.length, greaterThan(2));
-    expect(outputBytes[0], 0xFF);
-    expect(outputBytes[1], 0xD8);
+    expect(outputBytes.length, greaterThan(8));
+    expect(outputBytes[0], 0x89);
+    expect(outputBytes[1], 0x50);
+    expect(outputBytes[2], 0x4E);
+    expect(outputBytes[3], 0x47);
   });
+
+  test(
+    'can render a cropped transparent mask without decoding the source',
+    () async {
+      final sourceFile = await createSourceImage('face-source-mask-only.png');
+
+      final outputPath = await renderFaceFrameMaskFile(
+        sourceImagePath: sourceFile.path,
+        normalizedLandmarks: List<Offset>.generate(
+          468,
+          (index) =>
+              Offset(0.2 + (index % 18) * 0.03, 0.2 + (index ~/ 18) * 0.02),
+        ),
+        analysisImageSize: const Size(72, 80),
+        mirrored: false,
+        outputImageSize: const Size(72, 80),
+        includeSourceImage: false,
+      );
+
+      expect(outputPath, endsWith('_mask.png'));
+      final outputFile = File(outputPath);
+      expect(outputFile.existsSync(), isTrue);
+      expect(outputFile.lengthSync(), greaterThan(8));
+    },
+  );
+
+  test(
+    'uses frozen mirror state when rendering Android front-camera masks',
+    () async {
+      final sourceFile = await createSourceImage('face-source-mirrored.png');
+      final asymmetricLandmarks = List<Offset>.generate(
+        468,
+        (index) =>
+            Offset(0.12 + (index % 18) * 0.028, 0.18 + (index ~/ 18) * 0.018),
+      );
+
+      final nonMirroredPath = await renderFaceFrameMaskFile(
+        sourceImagePath: sourceFile.path,
+        normalizedLandmarks: asymmetricLandmarks,
+        analysisImageSize: const Size(320, 240),
+        mirrored: false,
+      );
+      final nonMirroredBytes = File(nonMirroredPath).readAsBytesSync();
+      final mirroredPath = await renderFaceFrameMaskFile(
+        sourceImagePath: sourceFile.path,
+        normalizedLandmarks: asymmetricLandmarks,
+        analysisImageSize: const Size(320, 240),
+        mirrored: true,
+      );
+
+      final mirroredBytes = File(mirroredPath).readAsBytesSync();
+      expect(nonMirroredBytes, isNot(equals(mirroredBytes)));
+    },
+  );
 }

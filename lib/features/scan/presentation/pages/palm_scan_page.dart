@@ -155,6 +155,15 @@ PalmScanFeedbackStage resolvePalmScanFeedbackStage({
   return PalmScanFeedbackStage.waitingPermission;
 }
 
+@visibleForTesting
+bool shouldShowPalmProgressFeedback({
+  required PalmScanState scanState,
+  required bool readyToScan,
+}) {
+  return scanState == PalmScanState.uploading ||
+      (scanState == PalmScanState.scanning && readyToScan);
+}
+
 class PalmScanPage extends StatefulWidget {
   const PalmScanPage({super.key});
   @override
@@ -890,9 +899,15 @@ class _PalmScanPageState extends State<PalmScanPage>
             left: -40,
             right: -40,
             child: Center(
-              child: _readyToScan && _scanState == PalmScanState.scanning
+              child:
+                  shouldShowPalmProgressFeedback(
+                    scanState: _scanState,
+                    readyToScan: _readyToScan,
+                  )
                   ? _PalmHoldFeedback(
-                      label: context.l10n.scanPalmReadyHold,
+                      label: _scanState == PalmScanState.uploading
+                          ? context.l10n.scanScanning
+                          : context.l10n.scanPalmReadyHold,
                       progress: _scanProgress,
                     )
                   : (_palmHint.isNotEmpty &&

@@ -2640,4 +2640,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get reportAdviceProductDisclaimer =>
       'これらのおすすめは体質分析に基づく参考情報です。中成薬の使用は医師または薬剤師の指導のもとで行ってください。';
+
+  @override
+  String get scanFaceUploadFailedTitle => '顔画像のアップロードに失敗しました';
+
+  @override
+  String get scanTongueUploadFailedTitle => '舌診画像のアップロードに失敗しました';
 }

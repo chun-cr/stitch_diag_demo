@@ -14,11 +14,11 @@ class _HeroPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        // 鏍稿績锛氬幓闄?border锛屼娇鐢ㄩ€忔槑搴︽瀬浣庣殑绾噣搴曡壊
+        // 核心：去掉边框，改用低透明度纯净底色。
         color: active
             ? const Color(0xFF2D6A4F).withValues(alpha: 0.1)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(6), // 鐢ㄥ皬鍦嗚鏇夸唬鍛嗘澘鐨勫ぇ鑳跺泭
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
@@ -35,15 +35,10 @@ class _HeroPill extends StatelessWidget {
   }
 }
 
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-//  Tab 1 路 鎬昏
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
 
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
 //  Shared Sub-widgets
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
 
-/// 鍗＄墖瀹瑰櫒
+/// 卡片容器。
 class _SectionCard extends StatelessWidget {
   final Widget child;
   final Color? borderColor;
@@ -210,7 +205,7 @@ class _IndentedDivider extends StatelessWidget {
   }
 }
 
-/// 鏌斿拰杩炵画娓愬彉杩涘害鏉?
+/// 柔和连续渐变进度条。
 class _SoftGradientProgressBar extends StatelessWidget {
   final double value;
   final double height;
@@ -276,7 +271,6 @@ class _SoftGradientProgressBar extends StatelessWidget {
   }
 }
 
-/// 涓夎瘖璇勫垎鍗曟牸
 class _DiagScoreCell extends StatelessWidget {
   final String label;
   final double score;
@@ -2019,7 +2013,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// 浣撹川璇勫垎琛岋紙Tab2 闆疯揪涓嬫柟鍒楄〃锛?
 class _ConstitutionScoreRow extends StatefulWidget {
   final String label;
   final double score;
@@ -2139,7 +2132,7 @@ class _ConstitutionScoreRowState extends State<_ConstitutionScoreRow>
   }
 }
 
-/// 绌翠綅鍗＄墖
+/// 穴位卡片。
 class _AcuPointCard extends StatelessWidget {
   final _AcuPoint point;
   const _AcuPointCard({required this.point});
@@ -2276,7 +2269,7 @@ class _FoodChip extends StatelessWidget {
   }
 }
 
-/// 浜у搧鎺ㄨ崘鍗＄墖
+/// 项目推荐卡片。
 class _ProjectCard extends StatelessWidget {
   final ReportProjectData project;
 
@@ -2556,9 +2549,7 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
 //  Data Models
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
 
 class _AcuPoint {
   final String name;
@@ -2592,6 +2583,4 @@ class _SeasonData {
   });
 }
 
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
 //  Painters
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲

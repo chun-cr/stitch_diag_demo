@@ -6,9 +6,11 @@ class ScanSession {
   ScanFaceUploadResult? _faceUpload;
   ScanTongueUploadResult? _tongueUpload;
   String? _lastReportId;
+  bool _faceScanSkipped = false;
 
   ScanFaceUploadResult? get faceUpload => _faceUpload;
   ScanTongueUploadResult? get tongueUpload => _tongueUpload;
+  bool get faceScanSkipped => _faceScanSkipped;
   String? get reportId => _tongueUpload?.reportId.isNotEmpty == true
       ? _tongueUpload!.reportId
       : _lastReportId;
@@ -22,10 +24,17 @@ class ScanSession {
     _faceUpload = null;
     _tongueUpload = null;
     _lastReportId = null;
+    _faceScanSkipped = false;
   }
 
   void saveFaceUpload(ScanFaceUploadResult result) {
     _faceUpload = result;
+    _faceScanSkipped = false;
+  }
+
+  void markFaceScanSkipped() {
+    _faceUpload = const ScanFaceUploadResult(<String, dynamic>{});
+    _faceScanSkipped = true;
   }
 
   void saveTongueUpload(ScanTongueUploadResult result) {

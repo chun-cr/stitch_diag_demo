@@ -137,33 +137,66 @@ void main() {
     ]);
   });
 
-  test('scan uploads keep authorization but skip app identity headers', () async {
-    await seedSession(
-      const AuthSessionEntity(
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-        scope: 'mobile',
-      ),
-    );
-    final file = await createFile('scan-face.jpg');
-    final adapter = _QueueHttpClientAdapter(<_StubResponse>[
-      const _StubResponse(200, <String, dynamic>{
-        'code': 0,
-        'data': <String, dynamic>{},
-      }),
-    ]);
-    final source = createSource(adapter, keepInterceptors: true);
+  test(
+    'uploadFace includes tenant compatibility fields when provided',
+    () async {
+      final file = await createFile('face-tenant.jpg');
+      final adapter = _QueueHttpClientAdapter(<_StubResponse>[
+        const _StubResponse(200, <String, dynamic>{
+          'code': 0,
+          'data': <String, dynamic>{},
+        }),
+      ]);
+      final source = createSource(adapter);
 
-    await source.uploadFace(faceFilePath: file.path);
+      await source.uploadFace(
+        faceFilePath: file.path,
+        tenantId: 11,
+        topOrgId: 12,
+        storeId: 13,
+        clinicId: 14,
+      );
 
-    expect(adapter.requests, hasLength(1));
-    final headers = adapter.requests.single.headers;
-    expect(headers['Authorization'], 'Bearer access-token');
-    expect(headers.containsKey('X-App-Id'), isFalse);
-    expect(headers.containsKey('X-Platform'), isFalse);
-  });
+      expect(adapter.requests, hasLength(1));
+      final payload = adapter.requests.single.data as FormData;
+      final fields = Map<String, String>.fromEntries(payload.fields);
+      expect(fields, containsPair('tenantId', '11'));
+      expect(fields, containsPair('topOrgId', '12'));
+      expect(fields, containsPair('storeId', '13'));
+      expect(fields, containsPair('clinicId', '14'));
+    },
+  );
+
+  test(
+    'scan uploads keep authorization and app id but skip platform header',
+    () async {
+      await seedSession(
+        const AuthSessionEntity(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+          scope: 'mobile',
+        ),
+      );
+      final file = await createFile('scan-face.jpg');
+      final adapter = _QueueHttpClientAdapter(<_StubResponse>[
+        const _StubResponse(200, <String, dynamic>{
+          'code': 0,
+          'data': <String, dynamic>{},
+        }),
+      ]);
+      final source = createSource(adapter, keepInterceptors: true);
+
+      await source.uploadFace(faceFilePath: file.path);
+
+      expect(adapter.requests, hasLength(1));
+      final headers = adapter.requests.single.headers;
+      expect(headers['Authorization'], 'Bearer access-token');
+      expect(headers['X-App-Id'], AppIdentity.fallbackAppId);
+      expect(headers.containsKey('X-Platform'), isFalse);
+    },
+  );
 
   test(
     'uploadTongue throws detailed exception for business failure envelope',
@@ -197,6 +230,37 @@ void main() {
               .having((error) => error.requestId, 'requestId', 'req-business'),
         ),
       );
+    },
+  );
+
+  test(
+    'uploadTongue includes tenant compatibility fields when provided',
+    () async {
+      final file = await createFile('tongue-tenant.jpg');
+      final adapter = _QueueHttpClientAdapter(<_StubResponse>[
+        const _StubResponse(200, <String, dynamic>{
+          'code': 0,
+          'data': <String, dynamic>{},
+        }),
+      ]);
+      final source = createSource(adapter);
+
+      await source.uploadTongue(
+        imageFilePath: file.path,
+        faceUpload: fakeFaceUpload,
+        tenantId: 21,
+        topOrgId: 22,
+        storeId: 23,
+        clinicId: 24,
+      );
+
+      expect(adapter.requests, hasLength(1));
+      final payload = adapter.requests.single.data as FormData;
+      final fields = Map<String, String>.fromEntries(payload.fields);
+      expect(fields, containsPair('tenantId', '21'));
+      expect(fields, containsPair('topOrgId', '22'));
+      expect(fields, containsPair('storeId', '23'));
+      expect(fields, containsPair('clinicId', '24'));
     },
   );
 

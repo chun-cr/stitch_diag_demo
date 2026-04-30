@@ -15,8 +15,8 @@ class TongueProtrusionProxy {
   static const double _maxMouthAspectRatio = 0.78;
   static const double _centerBandFactor = 0.18;
   static const double _sideBandFactor = 0.24;
-  static const double _minCentralDropRatio = 0.018;
-  static const double _assistedCentralDropRatio = 0.014;
+  static const double _minSupportedCentralDropRatio = 0.03;
+  static const double _minSupportedCentralDropToHeightRatio = 0.22;
 
   static bool isFrameEligible({
     required List<Offset> mouthLandmarks,
@@ -82,10 +82,8 @@ class TongueProtrusionProxy {
                 : mouthWidth)
             .clamp(mouthWidth, 1.0);
     final centralDropRatio = (centralLowerY - sideLowerEdgeY) / scaleWidth;
-
-    if (centralDropRatio >= _minCentralDropRatio) {
-      return true;
-    }
+    final centralDropToHeightRatio =
+        (centralLowerY - sideLowerEdgeY) / mouthHeight;
 
     if (TongueBlendshapeSupport.hasDirectTongueSupport(blendshapes)) {
       return true;
@@ -95,7 +93,8 @@ class TongueProtrusionProxy {
       return false;
     }
 
-    return centralDropRatio >= _assistedCentralDropRatio;
+    return centralDropRatio >= _minSupportedCentralDropRatio &&
+        centralDropToHeightRatio >= _minSupportedCentralDropToHeightRatio;
   }
 }
 

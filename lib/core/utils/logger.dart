@@ -1,12 +1,38 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/foundation.dart';
 
+enum AppLogCategory { general, network }
+
 class AppLogger {
-  static void log(String message) {
-    developer.log(message, name: 'AppLogger');
-    debugPrintSynchronously('[AppLogger] $message');
-    // ignore: avoid_print
-    print('[AppLogger] $message');
+  static const String _mode = String.fromEnvironment(
+    'APP_LOG_MODE',
+    defaultValue: 'network',
+  );
+
+  static void log(
+    String message, {
+    AppLogCategory category = AppLogCategory.general,
+  }) {
+    if (!_shouldLog(category)) {
+      return;
+    }
+    debugPrintSynchronously('[AppLogger][${category.name}] $message');
+  }
+
+  static void network(String message) {
+    log(message, category: AppLogCategory.network);
+  }
+
+  static bool _shouldLog(AppLogCategory category) {
+    switch (_mode.toLowerCase()) {
+      case 'none':
+        return false;
+      case 'all':
+        return true;
+      case 'general':
+        return category == AppLogCategory.general;
+      case 'network':
+      default:
+        return category == AppLogCategory.network;
+    }
   }
 }
