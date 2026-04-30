@@ -161,6 +161,7 @@ bool shouldShowPalmProgressFeedback({
   required bool readyToScan,
 }) {
   return scanState == PalmScanState.uploading ||
+      scanState == PalmScanState.completed ||
       (scanState == PalmScanState.scanning && readyToScan);
 }
 
@@ -227,7 +228,10 @@ class _PalmScanPageState extends State<PalmScanPage>
   );
 
   ScanCaptureGuide get _palmCaptureGuide {
-    final rect = _palmGuideRectNormalized;
+    final rect = buildPalmCaptureRect(
+      guideRect: _palmGuideRectNormalized,
+      handBounds: normalizedBoundingRect(_handLandmarks),
+    );
     return ScanCaptureGuide(
       left: rect.left,
       top: rect.top,
@@ -905,7 +909,9 @@ class _PalmScanPageState extends State<PalmScanPage>
                     readyToScan: _readyToScan,
                   )
                   ? _PalmHoldFeedback(
-                      label: _scanState == PalmScanState.uploading
+                      label: _scanState == PalmScanState.completed
+                          ? context.l10n.scanPalmCompleted
+                          : _scanState == PalmScanState.uploading
                           ? context.l10n.scanScanning
                           : context.l10n.scanPalmReadyHold,
                       progress: _scanProgress,

@@ -7,6 +7,10 @@ void main() {
     expect(faceScanHoldDuration, Duration.zero);
   });
 
+  test('keeps full face progress visible briefly after upload succeeds', () {
+    expect(faceScanPostSuccessDelay, const Duration(milliseconds: 450));
+  });
+
   group('isFaceHoldEligible', () {
     test(
       'returns true only when permission granted, face detected, and framed',

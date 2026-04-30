@@ -97,7 +97,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
   static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
   final List<CountryCodeOption> _countryCodes = authCountryCodeOptions;
 
-  // 瀵嗙爜寮哄害
+  // 密码强度
   @override
   void initState() {
     super.initState();
@@ -814,7 +814,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
               border: Border.all(color: const Color(0x22566D58), width: 1.2),
             ),
           ),
-          // 鍥涜鍒诲害
+          // 四角刻度
           Positioned(
             top: 17,
             left: 17,

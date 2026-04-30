@@ -52,31 +52,32 @@ void main() {
     expect(outputPath, sourceFile.path);
   });
 
-  test('renders a face landmark mask file beside the source image', () async {
-    final sourceFile = await createSourceImage('face-source-with-mask.png');
+  test(
+    'renders a face landmark overlay photo beside the source image',
+    () async {
+      final sourceFile = await createSourceImage('face-source-with-mask.png');
 
-    final outputPath = await renderFaceFrameMaskFile(
-      sourceImagePath: sourceFile.path,
-      normalizedLandmarks: List<Offset>.generate(
-        468,
-        (index) =>
-            Offset(0.2 + (index % 18) * 0.03, 0.2 + (index ~/ 18) * 0.02),
-      ),
-      analysisImageSize: const Size(120, 120),
-      mirrored: false,
-    );
+      final outputPath = await renderFaceFrameMaskFile(
+        sourceImagePath: sourceFile.path,
+        normalizedLandmarks: List<Offset>.generate(
+          468,
+          (index) =>
+              Offset(0.2 + (index % 18) * 0.03, 0.2 + (index ~/ 18) * 0.02),
+        ),
+        analysisImageSize: const Size(120, 120),
+        mirrored: false,
+      );
 
-    expect(outputPath, isNot(sourceFile.path));
-    expect(outputPath, endsWith('_mask.png'));
-    final outputFile = File(outputPath);
-    expect(outputFile.existsSync(), isTrue);
-    final outputBytes = outputFile.readAsBytesSync();
-    expect(outputBytes.length, greaterThan(8));
-    expect(outputBytes[0], 0x89);
-    expect(outputBytes[1], 0x50);
-    expect(outputBytes[2], 0x4E);
-    expect(outputBytes[3], 0x47);
-  });
+      expect(outputPath, isNot(sourceFile.path));
+      expect(outputPath, endsWith('_overlay.jpg'));
+      final outputFile = File(outputPath);
+      expect(outputFile.existsSync(), isTrue);
+      final outputBytes = outputFile.readAsBytesSync();
+      expect(outputBytes.length, greaterThan(2));
+      expect(outputBytes[0], 0xFF);
+      expect(outputBytes[1], 0xD8);
+    },
+  );
 
   test(
     'can render a cropped transparent mask without decoding the source',

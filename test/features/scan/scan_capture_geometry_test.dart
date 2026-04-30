@@ -176,6 +176,54 @@ void main() {
     });
   });
 
+  group('buildPalmCaptureRect', () {
+    test(
+      'expands beyond the visible guide to preserve fingertips and wrist',
+      () {
+        const guideRect = Rect.fromLTWH(0.18, 0.10, 0.64, 0.72);
+        const handBounds = Rect.fromLTWH(0.28, 0.16, 0.34, 0.54);
+
+        final rect = buildPalmCaptureRect(
+          guideRect: guideRect,
+          handBounds: handBounds,
+        );
+
+        expect(rect.left, lessThan(handBounds.left));
+        expect(rect.top, lessThan(handBounds.top));
+        expect(rect.right, greaterThan(handBounds.right));
+        expect(rect.bottom, greaterThan(handBounds.bottom));
+        expect(rect.width, greaterThan(guideRect.width));
+        expect(rect.height, greaterThan(guideRect.height));
+      },
+    );
+
+    test(
+      'falls back to an expanded guide when hand bounds are unavailable',
+      () {
+        const guideRect = Rect.fromLTWH(0.18, 0.10, 0.64, 0.72);
+
+        final rect = buildPalmCaptureRect(guideRect: guideRect);
+
+        expect(rect.left, lessThan(guideRect.left));
+        expect(rect.top, lessThan(guideRect.top));
+        expect(rect.right, greaterThan(guideRect.right));
+        expect(rect.bottom, greaterThan(guideRect.bottom));
+      },
+    );
+
+    test('clamps palm capture rect near screen edges', () {
+      final rect = buildPalmCaptureRect(
+        guideRect: const Rect.fromLTWH(0.78, 0.02, 0.24, 0.88),
+        handBounds: const Rect.fromLTWH(0.83, 0.05, 0.14, 0.78),
+      );
+
+      expect(rect.left, greaterThanOrEqualTo(0));
+      expect(rect.top, greaterThanOrEqualTo(0));
+      expect(rect.right, lessThanOrEqualTo(1));
+      expect(rect.bottom, lessThanOrEqualTo(1));
+    });
+  });
+
   group('isNormalizedBoundsInsideGuide', () {
     test('accepts bounds fully inside the guide safe area', () {
       expect(

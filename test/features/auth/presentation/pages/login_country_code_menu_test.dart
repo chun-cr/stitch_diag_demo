@@ -31,7 +31,7 @@ class _PopoverHost extends StatefulWidget {
 
 class _PopoverHostState extends State<_PopoverHost> {
   String code = '+86';
-  String flag = '馃嚚馃嚦';
+  String flag = '🇨🇳';
   int rebuilds = 0;
 
   void triggerRebuild() {

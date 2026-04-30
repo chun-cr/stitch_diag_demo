@@ -75,6 +75,36 @@ bool shouldTrackTongueHold({
   );
 }
 
+@visibleForTesting
+bool shouldShowTongueProgressFeedback({
+  required ScanState scanState,
+  required bool holdEligible,
+}) {
+  return scanState == ScanState.uploading ||
+      scanState == ScanState.completed ||
+      (scanState == ScanState.scanning && holdEligible);
+}
+
+@visibleForTesting
+bool isTongueHoldAliveWithinGrace({
+  required bool holdAliveNow,
+  required bool holdInProgress,
+  required DateTime? lastHoldAliveAt,
+  required Duration gracePeriod,
+  DateTime? now,
+}) {
+  if (holdAliveNow) {
+    return true;
+  }
+
+  if (!holdInProgress || lastHoldAliveAt == null) {
+    return false;
+  }
+
+  final referenceTime = now ?? DateTime.now();
+  return referenceTime.difference(lastHoldAliveAt) <= gracePeriod;
+}
+
 List<String> describeTongueScanBlockers({
   required bool mouthPresent,
   required bool protrusionCandidate,
@@ -102,9 +132,9 @@ List<String> describeTongueScanBlockers({
   return blockers.isEmpty ? const ['hold_ready'] : blockers;
 }
 
-const _kAccent = Color(0xFF0D7A5A); // 涓诲己璋冭壊
+const _kAccent = Color(0xFF0D7A5A); // 主强调色
 const _kAccentLight = Color(0xFF3DAB78);
-const _kBgColor = Color(0xFFF4F1EB); // 瀹ｇ焊绫宠壊
+const _kBgColor = Color(0xFFF4F1EB); // 宣纸米色
 
 class TongueScanPage extends StatefulWidget {
   const TongueScanPage({super.key});
@@ -119,6 +149,9 @@ class _TongueScanPageState extends State<TongueScanPage>
   late final ScanSession _scanSession;
   final ScanCaptureBridge _captureBridge = ScanCaptureBridge();
   static const Duration _requiredHoldDuration = Duration(seconds: 2);
+  static const Duration _holdInterruptionGracePeriod = Duration(
+    milliseconds: 300,
+  );
   static const Duration _postSuccessDelay = Duration(milliseconds: 450);
   static const Alignment _tongueGuideAlignment = Alignment(0, 0.32);
   static const double _tongueGuideWidth = 138;
@@ -130,6 +163,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   late Animation<double> _breatheAnim;
   StreamSubscription<TongueScanStatus>? _statusSubscription;
   Timer? _holdTimer;
+  DateTime? _lastHoldAliveAt;
   TongueScanStatus _latestStatus = const TongueScanStatus(
     mouthLandmarkCount: 0,
   );
@@ -307,20 +341,22 @@ class _TongueScanPageState extends State<TongueScanPage>
       isFramed: isFramed,
       pauseAutoScanUntilReset: _pauseAutoScanUntilReset,
     );
+    final holdSignalActive =
+        canHold || _isTongueHoldAliveWithinGrace(holdAliveNow: holdAlive);
     final direction = (status.mouthPresent && !canHold)
         ? _computeMouthDirection(status.mouthCenter)
         : '';
 
     setState(() {
       _mouthPresent = status.mouthPresent;
-      _holdEligible = canHold || (_holdTimer != null && holdAlive);
+      _holdEligible = holdSignalActive;
       _mouthDirection = direction;
     });
     if (_scanState != ScanState.scanning) {
       return;
     }
     if (_holdTimer != null) {
-      if (!holdAlive) {
+      if (!holdSignalActive) {
         _cancelHoldTracking(resetProgress: true);
       }
       return;
@@ -405,8 +441,23 @@ class _TongueScanPageState extends State<TongueScanPage>
     }
   }
 
+  bool _isTongueHoldAliveWithinGrace({required bool holdAliveNow}) {
+    if (holdAliveNow) {
+      _lastHoldAliveAt = DateTime.now();
+      return true;
+    }
+
+    return isTongueHoldAliveWithinGrace(
+      holdAliveNow: false,
+      holdInProgress: _holdTimer != null,
+      lastHoldAliveAt: _lastHoldAliveAt,
+      gracePeriod: _holdInterruptionGracePeriod,
+    );
+  }
+
   void _startHoldTracking() {
     if (_holdTimer != null || _scanState != ScanState.scanning) return;
+    _lastHoldAliveAt = DateTime.now();
     final stopwatch = Stopwatch()..start();
     _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted || _scanState != ScanState.scanning) {
@@ -436,6 +487,7 @@ class _TongueScanPageState extends State<TongueScanPage>
       _scanState = ScanState.uploading;
       _scanProgress = 0.65;
     });
+    _lastHoldAliveAt = null;
 
     try {
       final analysisRect = _tongueAnalysisRectForStatus(_latestStatus);
@@ -553,6 +605,7 @@ class _TongueScanPageState extends State<TongueScanPage>
   void _cancelHoldTracking({required bool resetProgress}) {
     _holdTimer?.cancel();
     _holdTimer = null;
+    _lastHoldAliveAt = null;
     if (resetProgress && mounted) {
       setState(() => _scanProgress = 0);
     }
@@ -934,8 +987,11 @@ class _TongueScanPageState extends State<TongueScanPage>
             ),
           ),
 
-          // 杩涘害鏉★紙搴曢儴锛?
-          if (_scanState == ScanState.scanning && _holdEligible)
+          // 进度条（底部）
+          if (shouldShowTongueProgressFeedback(
+            scanState: _scanState,
+            holdEligible: _holdEligible,
+          ))
             Positioned(
               bottom: -66,
               left: frameW * 0.2,
@@ -943,7 +999,7 @@ class _TongueScanPageState extends State<TongueScanPage>
               child: _ScanProgressBar(progress: _scanProgress),
             ),
 
-          // 鐘舵€佹皵娉?
+          // 状态气泡
           Positioned(
             bottom: -48,
             left: -40,
@@ -970,6 +1026,12 @@ class _TongueScanPageState extends State<TongueScanPage>
         _scanState != ScanState.scanning &&
         _scanState != ScanState.uploading;
     final bool isCompleted = _scanState == ScanState.completed;
+    final primaryButtonLabel =
+        (_scanState == ScanState.scanning || _scanState == ScanState.uploading)
+        ? l10n.scanScanning
+        : isCompleted
+        ? l10n.scanTongueCompleted
+        : l10n.scanTongueStartButton;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -1015,21 +1077,12 @@ class _TongueScanPageState extends State<TongueScanPage>
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(
               children: [
-                if (!isCompleted)
-                  _buildPrimaryButton(
-                    label: _scanState == ScanState.scanning
-                        ? l10n.scanScanning
-                        : l10n.scanTongueStartButton,
-                    enabled: canStart,
-                    onTap: () => unawaited(_startScan()),
-                  )
-                else
-                  _buildPrimaryButton(
-                    label: l10n.scanTongueNextPalm,
-                    enabled: false,
-                    onTap: null,
-                    isNext: true,
-                  ),
+                _buildPrimaryButton(
+                  label: primaryButtonLabel,
+                  enabled: canStart && !isCompleted,
+                  onTap: () => unawaited(_startScan()),
+                  isNext: isCompleted,
+                ),
               ],
             ),
           ),
@@ -1287,7 +1340,7 @@ class _CircleMaskPainter extends CustomPainter {
       fullPath,
       circlePath,
     );
-    canvas.drawPath(maskPath, Paint()..color = bgColor); // 涓嶉€忔槑杈圭紭閬僵
+    canvas.drawPath(maskPath, Paint()..color = bgColor); // 不透明边缘遮罩
   }
 
   @override

@@ -338,6 +338,16 @@ void main() {
       );
     });
 
+    test('keeps full progress visible during completed dwell', () {
+      expect(
+        shouldShowPalmProgressFeedback(
+          scanState: PalmScanState.completed,
+          readyToScan: false,
+        ),
+        isTrue,
+      );
+    });
+
     test('hides progress before the palm is ready', () {
       expect(
         shouldShowPalmProgressFeedback(

@@ -212,4 +212,106 @@ void main() {
       );
     });
   });
+
+  group('shouldShowTongueProgressFeedback', () {
+    test('shows progress while the hold countdown is active', () {
+      expect(
+        shouldShowTongueProgressFeedback(
+          scanState: ScanState.scanning,
+          holdEligible: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps progress visible while upload is running', () {
+      expect(
+        shouldShowTongueProgressFeedback(
+          scanState: ScanState.uploading,
+          holdEligible: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps full progress visible during completed dwell', () {
+      expect(
+        shouldShowTongueProgressFeedback(
+          scanState: ScanState.completed,
+          holdEligible: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('hides progress before the tongue is ready to hold', () {
+      expect(
+        shouldShowTongueProgressFeedback(
+          scanState: ScanState.scanning,
+          holdEligible: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('isTongueHoldAliveWithinGrace', () {
+    test('returns true while the current frame is still hold-alive', () {
+      expect(
+        isTongueHoldAliveWithinGrace(
+          holdAliveNow: true,
+          holdInProgress: true,
+          lastHoldAliveAt: null,
+          gracePeriod: const Duration(milliseconds: 300),
+          now: DateTime(2026),
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps hold alive briefly after a single lost frame', () {
+      final now = DateTime(2026, 1, 1, 12);
+
+      expect(
+        isTongueHoldAliveWithinGrace(
+          holdAliveNow: false,
+          holdInProgress: true,
+          lastHoldAliveAt: now.subtract(const Duration(milliseconds: 180)),
+          gracePeriod: const Duration(milliseconds: 300),
+          now: now,
+        ),
+        isTrue,
+      );
+    });
+
+    test('stops hold after the grace window expires', () {
+      final now = DateTime(2026, 1, 1, 12);
+
+      expect(
+        isTongueHoldAliveWithinGrace(
+          holdAliveNow: false,
+          holdInProgress: true,
+          lastHoldAliveAt: now.subtract(const Duration(milliseconds: 301)),
+          gracePeriod: const Duration(milliseconds: 300),
+          now: now,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not preserve hold without an active countdown', () {
+      final now = DateTime(2026, 1, 1, 12);
+
+      expect(
+        isTongueHoldAliveWithinGrace(
+          holdAliveNow: false,
+          holdInProgress: false,
+          lastHoldAliveAt: now.subtract(const Duration(milliseconds: 100)),
+          gracePeriod: const Duration(milliseconds: 300),
+          now: now,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

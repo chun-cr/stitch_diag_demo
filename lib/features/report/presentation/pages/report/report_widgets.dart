@@ -347,7 +347,7 @@ class _DiagScoreCell extends StatelessWidget {
   }
 }
 
-/// 浜旇鐘舵€佹潯
+/// 五行状态条
 class _WuxingBars extends StatelessWidget {
   const _WuxingBars();
 
@@ -1982,7 +1982,7 @@ class _UnlockButton extends StatelessWidget {
   }
 }
 
-/// 閿€间俊鎭
+/// 键值信息行
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;

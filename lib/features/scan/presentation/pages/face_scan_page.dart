@@ -35,6 +35,9 @@ const Duration faceScanHoldDuration = Duration.zero;
 const Duration transientFaceTrackingGraceDuration = Duration(milliseconds: 250);
 
 @visibleForTesting
+const Duration faceScanPostSuccessDelay = Duration(milliseconds: 450);
+
+@visibleForTesting
 bool isFaceHoldEligible({
   required bool hasPermission,
   required bool hasFaceDetected,
@@ -597,6 +600,10 @@ class _FaceScanPageState extends State<FaceScanPage>
       _scanSession.saveFaceUpload(faceUpload);
       _clearAcceptedFaceSnapshot();
       setState(() => _scanProgress = 1);
+      await Future<void>.delayed(faceScanPostSuccessDelay);
+      if (!mounted) {
+        return;
+      }
       await _navigateToTongueScan();
     } on Object catch (error, stackTrace) {
       AppLogger.log('Face scan submission failed: $error\n$stackTrace');
@@ -647,8 +654,7 @@ class _FaceScanPageState extends State<FaceScanPage>
       normalizedLandmarks: maskLandmarks,
       analysisImageSize: maskImageSize,
       mirrored: acceptedSnapshot.mirrored,
-      outputImageSize: maskImageSize,
-      includeSourceImage: false,
+      targetMaxBytes: 450 * 1024,
     );
   }
 
@@ -697,9 +703,8 @@ class _FaceScanPageState extends State<FaceScanPage>
     if (_isTransitioning || !mounted) return;
     _isTransitioning = true;
     _stopMonitoringOnDispose = false;
-    _cancelScanHold(resetProgress: true);
+    _cancelScanHold(resetProgress: false);
     _clearAcceptedFaceSnapshot();
-    setState(() => _isSubmitting = false);
     await _faceStatusSub?.cancel();
     _faceStatusSub = null;
     if (!mounted) return;

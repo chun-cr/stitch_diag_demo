@@ -754,7 +754,7 @@ class _RegBgPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 鍙充笂閲戣壊鍏夋檿
+    // 右上金色光晕
     canvas.drawCircle(
       Offset(size.width + 30, -30),
       190,

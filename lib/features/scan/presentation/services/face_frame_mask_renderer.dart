@@ -2,9 +2,15 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 
 import '../../../../core/utils/logger.dart';
 import '../widgets/face_landmark_overlay.dart';
+
+const _photoOverlayInitialJpegQuality = 90;
+const _photoOverlayMinJpegQuality = 72;
+const _photoOverlayTargetMaxBytes = 450 * 1024;
+const _photoOverlayMinDimension = 720;
 
 bool shouldMirrorFaceFrameMask({
   required TargetPlatform platform,
@@ -20,6 +26,7 @@ Future<String> renderFaceFrameMaskFile({
   required bool mirrored,
   Size? outputImageSize,
   bool includeSourceImage = true,
+  int? targetMaxBytes,
 }) async {
   if (normalizedLandmarks.isEmpty) {
     return sourceImagePath;
@@ -64,26 +71,29 @@ Future<String> renderFaceFrameMaskFile({
           ? analysisImageSize
           : canvasSize,
       mirrored: mirrored,
+      emphasized: includeSourceImage,
     ).paint(canvas, canvasSize);
 
     renderedImage = await recorder.endRecording().toImage(
       canvasSize.width.round(),
       canvasSize.height.round(),
     );
-    final byteData = await renderedImage.toByteData(
-      format: ui.ImageByteFormat.png,
+    final outputFile = File(
+      includeSourceImage
+          ? _buildPhotoOverlayOutputPath(sourceFile)
+          : _buildMaskOutputPath(sourceFile),
     );
-    if (byteData == null) {
-      throw const FileSystemException(
-        'Failed to encode face frame landmark mask image.',
-      );
-    }
-
-    final outputFile = File(_buildMaskOutputPath(sourceFile));
-    await outputFile.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
-    final outputBytes = await outputFile.length();
+    final outputBytes = includeSourceImage
+        ? await _writePhotoOverlayJpeg(
+            image: renderedImage,
+            outputFile: outputFile,
+            targetMaxBytes: targetMaxBytes ?? _photoOverlayTargetMaxBytes,
+          )
+        : await _writeMaskPng(image: renderedImage, outputFile: outputFile);
     AppLogger.log(
-      'Rendered face frame mask PNG: path=${outputFile.path}, bytes=$outputBytes',
+      includeSourceImage
+          ? 'Rendered face frame overlay JPEG: path=${outputFile.path}, bytes=$outputBytes'
+          : 'Rendered face frame mask PNG: path=${outputFile.path}, bytes=$outputBytes',
     );
     return outputFile.path;
   } finally {
@@ -102,4 +112,92 @@ String _buildMaskOutputPath(File sourceFile) {
       ? fileName.substring(0, extensionIndex)
       : fileName;
   return '${sourceFile.parent.path}${Platform.pathSeparator}${stem}_mask.png';
+}
+
+String _buildPhotoOverlayOutputPath(File sourceFile) {
+  final fileName = sourceFile.uri.pathSegments.isNotEmpty
+      ? sourceFile.uri.pathSegments.last
+      : sourceFile.path.split(Platform.pathSeparator).last;
+  final extensionIndex = fileName.lastIndexOf('.');
+  final stem = extensionIndex > 0
+      ? fileName.substring(0, extensionIndex)
+      : fileName;
+  return '${sourceFile.parent.path}${Platform.pathSeparator}${stem}_overlay.jpg';
+}
+
+Future<int> _writeMaskPng({
+  required ui.Image image,
+  required File outputFile,
+}) async {
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  if (byteData == null) {
+    throw const FileSystemException(
+      'Failed to encode face frame landmark mask image.',
+    );
+  }
+  await outputFile.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+  return outputFile.length();
+}
+
+Future<int> _writePhotoOverlayJpeg({
+  required ui.Image image,
+  required File outputFile,
+  required int targetMaxBytes,
+}) async {
+  final byteData = await image.toByteData(
+    format: ui.ImageByteFormat.rawStraightRgba,
+  );
+  if (byteData == null) {
+    throw const FileSystemException(
+      'Failed to encode face frame landmark overlay image.',
+    );
+  }
+
+  img.Image workingImage = img.Image.fromBytes(
+    width: image.width,
+    height: image.height,
+    bytes: byteData.buffer,
+    bytesOffset: byteData.offsetInBytes,
+    rowStride: image.width * 4,
+    numChannels: 4,
+    order: img.ChannelOrder.rgba,
+  );
+
+  for (;;) {
+    for (
+      var quality = _photoOverlayInitialJpegQuality;
+      quality >= _photoOverlayMinJpegQuality;
+      quality -= 4
+    ) {
+      final encoded = img.encodeJpg(workingImage, quality: quality);
+      if (encoded.length <= targetMaxBytes ||
+          (workingImage.width <= _photoOverlayMinDimension &&
+              workingImage.height <= _photoOverlayMinDimension &&
+              quality <= _photoOverlayMinJpegQuality)) {
+        await outputFile.writeAsBytes(encoded, flush: true);
+        return outputFile.length();
+      }
+    }
+
+    final nextWidth = (workingImage.width * 0.9).round();
+    final nextHeight = (workingImage.height * 0.9).round();
+    if (nextWidth >= workingImage.width ||
+        nextHeight >= workingImage.height ||
+        (nextWidth <= _photoOverlayMinDimension &&
+            nextHeight <= _photoOverlayMinDimension)) {
+      final fallback = img.encodeJpg(
+        workingImage,
+        quality: _photoOverlayMinJpegQuality,
+      );
+      await outputFile.writeAsBytes(fallback, flush: true);
+      return outputFile.length();
+    }
+
+    workingImage = img.copyResize(
+      workingImage,
+      width: nextWidth,
+      height: nextHeight,
+      interpolation: img.Interpolation.average,
+    );
+  }
 }

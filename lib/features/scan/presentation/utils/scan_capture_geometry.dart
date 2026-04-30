@@ -67,7 +67,8 @@ Rect mapNormalizedRectToViewport({
   }
 
   if (imageSize.width <= 0 || imageSize.height <= 0) {
-    final left = (mirrored ? 1 - safeRect.right : safeRect.left) * viewportSize.width;
+    final left =
+        (mirrored ? 1 - safeRect.right : safeRect.left) * viewportSize.width;
     final right =
         (mirrored ? 1 - safeRect.left : safeRect.right) * viewportSize.width;
     return Rect.fromLTRB(
@@ -245,6 +246,53 @@ Rect buildFaceCaptureRect({required Rect guideRect, Rect? faceBounds}) {
       height: math.min(targetHeight, 1.0),
     ),
   );
+}
+
+Rect buildPalmCaptureRect({required Rect guideRect, Rect? handBounds}) {
+  final safeGuideRect = clampNormalizedRect(guideRect);
+  final safeHandBounds = handBounds == null
+      ? Rect.zero
+      : clampNormalizedRect(handBounds);
+
+  if (safeGuideRect == Rect.zero && safeHandBounds == Rect.zero) {
+    return Rect.zero;
+  }
+
+  final fallbackBaseRect = safeGuideRect == Rect.zero
+      ? safeHandBounds
+      : safeGuideRect;
+  final fallbackRect = clampNormalizedRect(
+    Rect.fromCenter(
+      center: fallbackBaseRect.center,
+      width: math.min(fallbackBaseRect.width * 1.12, 1.0),
+      height: math.min(fallbackBaseRect.height * 1.18, 1.0),
+    ),
+  );
+
+  if (safeHandBounds == Rect.zero) {
+    return fallbackRect;
+  }
+
+  final horizontalPadding = math.max(
+    safeHandBounds.width * 0.16,
+    fallbackBaseRect.width * 0.04,
+  );
+  final topPadding = math.max(
+    safeHandBounds.height * 0.16,
+    fallbackBaseRect.height * 0.04,
+  );
+  final bottomPadding = math.max(
+    safeHandBounds.height * 0.24,
+    fallbackBaseRect.height * 0.06,
+  );
+  final expandedHandRect = Rect.fromLTRB(
+    safeHandBounds.left - horizontalPadding,
+    safeHandBounds.top - topPadding,
+    safeHandBounds.right + horizontalPadding,
+    safeHandBounds.bottom + bottomPadding,
+  );
+
+  return clampNormalizedRect(expandedHandRect.expandToInclude(fallbackRect));
 }
 
 Rect? normalizedBoundingRect(Iterable<Offset> points) {
